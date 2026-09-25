@@ -63,7 +63,7 @@ win too, so the set is not built to favor TAA.
 ## Worlds
 
 All scenarios so far use one made-up world (storm rerouting). Before Paper 2, add one or two
-different worlds, such as purchasing or municipal permitting, and rerun the core scenarios there, so
+different worlds, such as something related from TAA paper 1 (e.g. hospital, customer service, etc.), and rerun the core scenarios there, so
 results do not depend on one design.
 
 ## Reviewer tests
