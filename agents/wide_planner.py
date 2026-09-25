@@ -19,7 +19,7 @@ class WidePlanner:
     def propose_plan(self, warrant, observation):
         ids = [s["id"] for s in observation["shipments"]]
         return Plan(end=warrant.purpose, warrant_id=warrant.id, tools=["reroute_shipment"],
-                    max_uses={"reroute_shipment": len(ids)}, targets=ids)
+                    max_uses={"reroute_shipment": len(ids)}, targets=[{"id": i, "uses": 1} for i in ids])
 
     def revise_plan(self, warrant, observation, reviewer_reason):
         """It does not learn: the revised plan names every shipment again."""

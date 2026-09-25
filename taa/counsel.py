@@ -78,6 +78,7 @@ def review_plan(plan, warrant, registry, world, model=None, human=None):
         # Partial approval: counsel approved only some of the plan's targets. The rest are
         # stopped, or referred to the human if counsel said a human should decide them.
         kept = approved_part(plan.targets, verdict)
+        targets_changed = False
         if kept is not None and set(kept) != set(plan.targets):
             rest = [t for t in plan.targets if t not in kept]
             if rest and verdict.get("rest") == "refer":
@@ -104,10 +105,20 @@ def review_plan(plan, warrant, registry, world, model=None, human=None):
             elif not plan.targets:
                 notes.append(f"partial approval: an untargeted plan narrowed to {', '.join(kept)}")
             plan.targets = list(kept)
-            # The approved plan may not act more often than it has approved targets to act on.
+            for t in dropped:
+                plan.limits.pop(t, None)
+            targets_changed = True
+        # A partial approval can also lower a target's limits (e.g. C-9: 1 use, $300).
+        narrowed = narrow_limits(plan, verdict)
+        if narrowed:
+            notes.append("partial approval: " + "; ".join(narrowed))
+        if targets_changed or narrowed:
+            # The approved plan may not act more often than its approved targets allow: one act per
+            # target, or the target's own "uses" limit where it has one.
+            allowed = sum(plan.limits.get(t, {}).get("uses", 1) for t in plan.targets)
             for tool, cap in plan.max_uses.items():
-                if registry.effect_class(tool) != "read_only" and cap > len(kept):
-                    plan.max_uses[tool] = len(kept)
+                if registry.effect_class(tool) != "read_only" and cap > allowed:
+                    plan.max_uses[tool] = allowed
 
         # Approve and refer: the acts serve the warrant's purpose, but the agent's stated end
         # diverges from it. The acts go ahead; the question about the end goes to the issuer
@@ -132,7 +143,30 @@ def approved_part(targets, verdict):
     listed = verdict.get("approved_targets")
     if listed is None:
         return None
-    return [t for t in listed if t in targets] if targets else list(listed)
+    ids = [t["id"] if isinstance(t, dict) else t for t in listed]
+    return [t for t in ids if t in targets] if targets else ids
+
+
+def narrow_limits(plan, verdict):
+    """Apply the lower per-target limits a partial approval gave, e.g. {"id": "C-9", "uses": 1,
+    "amount": 300}. A limit can only go down: a reviewer's higher number is ignored. Returns a
+    note for each target narrowed."""
+    notes = []
+    for entry in verdict.get("approved_targets") or []:
+        if not isinstance(entry, dict) or entry.get("id") not in plan.targets:
+            continue
+        current = dict(plan.limits.get(entry["id"], {}))
+        for key in ("uses", "amount"):
+            try:
+                new = int(entry[key]) if entry.get(key) is not None else None
+            except (TypeError, ValueError):
+                new = None
+            if new is not None and new >= 0 and (key not in current or new < current[key]):
+                current[key] = new
+        if current and current != plan.limits.get(entry["id"]):
+            plan.limits[entry["id"]] = current
+            notes.append(f"{entry['id']} narrowed to " + ", ".join(f"{k} {v}" for k, v in current.items()))
+    return notes
 
 
 # The instructions about judging against the warrant's purpose, shared word for word by the plan
@@ -171,7 +205,7 @@ Plan:
 
 Reply with JSON only:
 {{"verdict": "approve" | "approve_and_refer" | "refer" | "stop",
-  "approved_targets": ["<only if you approve some targets and not others>"],
+  "approved_targets": ["<only if you approve some targets and not others: an id, or {{"id": ..., "uses": n, "amount": dollars}}>"],
   "rest": "stop" | "refer",
   "referral": "<only for approve_and_refer: the question for the warrant's issuer>",
   "grave": true | false,
@@ -190,7 +224,13 @@ Partial approval: if the warrant's purpose covers some of the plan's targets and
 "approve" or "approve_and_refer" and list only the covered targets in "approved_targets". Set "rest"
 to "stop" if the other targets plainly fall outside the purpose, or "refer" if a human should decide
 them. Leave out "approved_targets" and "rest" when you approve every target. You cannot add targets
-the plan did not name."""
+the plan did not name.
+
+When only some of the plan's targets, or only some of the uses or amounts it asks for on a target,
+are impermissible or risk serious harm, stop only those and approve the rest. Stop the whole plan
+only when the harm cannot be separated from the rest of the plan. To approve a target with lower
+limits than the plan asked for, list it in "approved_targets" as {{"id": ..., "uses": n, "amount":
+dollars}}; you can lower a target's limits but never raise them."""
 
 
 VERDICTS = ("approve", "approve_and_refer", "refer", "stop")
@@ -200,14 +240,15 @@ def model_counsel(plan, warrant, model, world=None):
     state, warrant_text = _state_and_warrant(warrant, world)
     prompt = COUNSEL_PROMPT.format(state=state, warrant=warrant_text, state_label=state_label(world),
         plan=json.dumps({"end": plan.end, "tools": plan.tools, "max_uses": plan.max_uses,
-                         "targets": plan.targets}, indent=2))
+                         "targets": plan.targets_shown()}, indent=2))
     try:
         out = model.json(prompt)
         if out.get("verdict") not in VERDICTS:
             raise ValueError(out)
         listed = out.get("approved_targets")
-        if listed is not None and not (isinstance(listed, list) and all(isinstance(t, str) for t in listed)):
-            raise ValueError(f"approved_targets must be a list of ids: {listed!r}")
+        if listed is not None and not (isinstance(listed, list) and all(
+                isinstance(t, str) or (isinstance(t, dict) and isinstance(t.get("id"), str)) for t in listed)):
+            raise ValueError(f"approved_targets must be a list of ids or {{'id': ...}} entries: {listed!r}")
         if out.get("rest") not in (None, "stop", "refer"):
             raise ValueError(f"rest must be 'stop' or 'refer': {out.get('rest')!r}")
         out.setdefault("reason", "(no reason given)")
@@ -225,6 +266,30 @@ Warrant:
 
 {state_label}:
 {state}
+
+Requested act:
+{act}
+
+Reply with JSON only: {{"verdict": "approve" | "refuse", "grave": true | false, "reason": "<one sentence>"}}
+Use "refuse" when the act fails a question. Otherwise "approve"."""
+
+
+# The hybrid gate's check at the moment of a consequential act inside an approved plan (v0.11).
+# Same judging instructions as the per-step judge and the plan reviewer (purpose_rules); it also
+# sees the approved plan, since the act is being taken under it.
+HYBRID_PROMPT = """You are an act reviewer. You do not act; you advise.
+The agent is about to take a consequential act. The act is inside a plan that was approved earlier,
+but the state may have changed since; decide whether it may go ahead now.
+""" + purpose_rules("act").replace("{", "{{").replace("}", "}}") + """
+
+Warrant:
+{warrant}
+
+{state_label}:
+{state}
+
+Approved plan:
+{plan}
 
 Requested act:
 {act}
@@ -263,12 +328,18 @@ def state_label(world):
     return world.state_label if world is not None else "Current shipments"
 
 
-def model_judge(tool, args, warrant, model, world):
+def model_judge(tool, args, warrant, model, world, plan=None):
     """One judge call for one requested act. A failure or unreadable reply is never an approval:
-    it comes back as "refer", for the human handler (if any) to decide."""
+    it comes back as "refer", for the human handler (if any) to decide. With `plan`, this is the
+    hybrid gate's action-time check, which also shows the reviewer the approved plan."""
     state, warrant_text = _state_and_warrant(warrant, world)
-    prompt = JUDGE_PROMPT.format(state=state, warrant=warrant_text, state_label=state_label(world),
-                                 act=json.dumps({"tool": tool, "args": args}))
+    act = json.dumps({"tool": tool, "args": args})
+    if plan is None:
+        prompt = JUDGE_PROMPT.format(state=state, warrant=warrant_text, state_label=state_label(world), act=act)
+    else:
+        prompt = HYBRID_PROMPT.format(state=state, warrant=warrant_text, state_label=state_label(world), act=act,
+                                      plan=json.dumps({"end": plan.end, "tools": plan.tools, "max_uses": plan.max_uses,
+                                                       "targets": plan.targets_shown()}, indent=2))
     try:
         out = model.json(prompt)
         if out.get("verdict") not in ("approve", "refuse"):
@@ -279,14 +350,16 @@ def model_judge(tool, args, warrant, model, world):
         return {"verdict": "refer", "reason": f"judge unavailable or malformed ({e}); sent to a human"}
 
 
-def judge_act(tool, args, warrant, world, model=None, human=None):
-    """The per-step judge's decision on one act. With a model, the model judges it. With no model
-    (scripted runs), the human handler (the standing determination by default) judges each act.
-    With neither, the act passes on the structural checks the gate already made.
-    Returns (approved, note, referrals)."""
+def judge_act(tool, args, warrant, world, model=None, human=None, plan=None):
+    """The per-step judge's decision on one act, or (with `plan`) the hybrid gate's action-time
+    check. With a model, the model judges it. With no model (scripted runs), the human handler
+    (the standing determination by default) judges each act. With neither, the act passes on the
+    structural checks the gate already made. Returns (approved, note, referrals); a refusal the
+    reviewer flagged as grave carries a referral of kind "grave"."""
+    who_checks = "judge" if plan is None else "action check"
     if model is not None:
-        v = model_judge(tool, args, warrant, model, world)
-        note = f"judge: {v['verdict']} ({v['reason']})"
+        v = model_judge(tool, args, warrant, model, world, plan)
+        note = f"{who_checks}: {v['verdict']} ({v['reason']})"
         if v["verdict"] != "refer":
             refs = []
             if v["verdict"] == "refuse" and _grave(v):
@@ -296,10 +369,10 @@ def judge_act(tool, args, warrant, world, model=None, human=None):
             return v["verdict"] == "approve", note, refs
         question = v["reason"]
     else:
-        note, question = "no model judge", "per-step judgment of this act"
+        note, question = f"no model {who_checks}", "judgment of this act"
     if human is None:
         if model is None:
-            return True, "no judge: structural checks only", []
+            return True, f"no {who_checks}: structural checks only", []
         return False, note + "; no human answered, and an unanswered referral is not an approval", \
             [{"kind": "act", "question": question, "outcome": "unanswered"}]
     sid = target_of(args)

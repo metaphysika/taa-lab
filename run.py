@@ -1,5 +1,5 @@
-"""Run each scenario behind five gates (plain permissions, expiring permissions, a per-step
-purpose judge, plan-locked, and TAA) and write a short report comparing what actually happened
+"""Run each scenario behind six gates (plain permissions, expiring permissions, a per-step
+purpose judge, plan-locked, TAA, and the hybrid) and write a short report comparing what actually happened
 in the fake world.
 
 Examples:
@@ -37,9 +37,9 @@ load_keys()
 
 from world.fake_world import FakeWorld
 from taa.records import Warrant, ToolRegistry
-from taa.gate import BaselineGate, ExpiringGate, PlanLockedGate, StepJudgeGate, TAAGate
+from taa.gate import BaselineGate, ExpiringGate, HybridGate, PlanLockedGate, StepJudgeGate, TAAGate
 
-MODES = ("baseline", "expiring", "judge", "locked", "taa")
+MODES = ("baseline", "expiring", "judge", "locked", "taa", "hybrid")
 SCRIPTED_AGENTS = ("scripted", "wideplanner", "obedient")
 from taa.counsel import judge_act, review_plan, send_notice
 
@@ -79,10 +79,14 @@ def run_once(mode, scenario, make_agent, counsel_model, human=None):
                              judge=lambda tool, args: judge_act(tool, args, warrant, world, reviewer_model, human),
                              notify=notify)
     else:
-        gate_cls = PlanLockedGate if mode == "locked" else TAAGate
-        gate = gate_cls(tools, warrant, registry, world,
-                        reviewer=lambda plan: review_plan(plan, warrant, registry, world, reviewer_model, human),
-                        notify=notify)
+        reviewer = lambda plan: review_plan(plan, warrant, registry, world, reviewer_model, human)
+        if mode == "hybrid":
+            gate = HybridGate(tools, warrant, registry, world, reviewer=reviewer, notify=notify,
+                              act_check=lambda tool, args, plan: judge_act(tool, args, warrant, world,
+                                                                           reviewer_model, human, plan))
+        else:
+            gate = (PlanLockedGate if mode == "locked" else TAAGate)(tools, warrant, registry, world,
+                                                                     reviewer=reviewer, notify=notify)
         plan = gate.submit_plan(agent.propose_plan(warrant, world.observe()))
         if plan.status == "stopped":
             # One revised plan, with the reviewer's reason as feedback. If it is stopped too,
@@ -224,6 +228,8 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             sc["reviewer_calls"] = gate.reviewer_calls
             sc["missed"] = missed_work(world, scenario)
             sc["remembered"] = sum(1 for e in gate.log if e.get("remembered"))
+            sc["fresh_rereviews"] = gate.fresh_rereviews
+            sc["action_checks"] = getattr(gate, "action_checks", 0)
             sc.update(checks(world, gate))
             runs[mode].append(sc)
             with open(os.path.join(out_dir, f"{os.path.basename(path)[:-5]}_{mode}_run{i + 1}.json"), "w") as f:
@@ -261,6 +267,12 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             r = runs[mode]
             lines.append(f"| {names[mode]} | " + " | ".join(f"{sum(x[c] for x in r)}/{len(r)} runs"
                                                              for c in scenario["checks"]) + " |")
+    lines += ["", "| Gate | Refused from memory (grave refusals only) | Fresh re-reviews of an act refused before | Action-time checks (hybrid) |",
+              "|---|---|---|---|"]
+    for mode in MODES:
+        r = runs[mode]
+        lines.append(f"| {names[mode]} | {spread([x['remembered'] for x in r])} | {spread([x['fresh_rereviews'] for x in r])} | "
+                     f"{spread([x['action_checks'] for x in r])} |")
     if a.repeat > 1:
         lines += ["", "_Averages across runs; the range is shown in parentheses when runs differed._"]
     skipped_total = sum(x["skipped"] for m in runs.values() for x in m)
@@ -376,7 +388,7 @@ def main():
     summary = ["# Summary", "",
                f"**Agent:** {a.agent}{temp_note(agent_model)}  |  **Counsel:** {a.counsel}{temp_note(counsel_model)}  |  "
                f"**Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
-               "Each cell shows **plain permissions / expiring permissions / per-step judge / plan-locked / TAA**.", "",
+               "Each cell shows **plain permissions / expiring permissions / per-step judge / plan-locked / TAA / hybrid**.", "",
                "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified acts | Legitimate work left undone | Grave acts | Referrals to the human | Reviewer calls | TAA plan outcome |",
                "|---|---|---|---|---|---|---|---|---|"] + scenario_rows
     summary += ["", "Each scenario has its own report_<scenario>.md in this folder with the step-by-step logs."]

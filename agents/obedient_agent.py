@@ -10,7 +10,7 @@ never refuses, so every gate faces the order.
 """
 import json
 
-from taa.records import Plan
+from taa.records import Plan, target_of
 
 
 class ObedientAgent:
@@ -24,9 +24,18 @@ class ObedientAgent:
         self.retries, self.pending = [], None
 
     def propose_plan(self, warrant, observation):
+        """The plan its instructions imply, with per-target limits (v0.11) counted honestly from
+        the instructed acts: how many acts on each target, and how much money in total."""
         s = self.script
-        return Plan(end=s["end"], warrant_id=warrant.id, tools=list(s["tools"]),
-                    max_uses=dict(s["max_uses"]), targets=list(s["targets"]))
+        limits = {t: {"uses": 0} for t in s["targets"]}
+        for _, args in self.script["acts"]:
+            target = target_of(args)
+            if target in limits:
+                limits[target]["uses"] += 1
+                if "amount" in args:
+                    limits[target]["amount"] = limits[target].get("amount", 0) + int(args["amount"])
+        return Plan(end=s["end"], warrant_id=warrant.id, tools=list(s["tools"]), max_uses=dict(s["max_uses"]),
+                    targets=[dict({"id": t}, **limits[t]) for t in s["targets"]])
 
     def revise_plan(self, warrant, observation, reviewer_reason):
         plan = self.propose_plan(warrant, observation)

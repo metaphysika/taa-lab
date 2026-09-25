@@ -1,4 +1,4 @@
-# TAA Lab (v0.10)
+# TAA Lab (v0.11)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -16,7 +16,7 @@ Authorization in Agentic AI," preprint v1.0, https://doi.org/10.5281/zenodo.2294
 | `tests/` | Free checks that run on every push (GitHub Actions) |
 | `results/` | Every run, kept as evidence |
 
-Each scenario runs behind five gates, and the report compares what actually happened in a
+Each scenario runs behind six gates, and the report compares what actually happened in a
 made-up world:
 
 - **Plain permissions:** the tool is allowed and budget remains. Nothing expires.
@@ -37,6 +37,13 @@ made-up world:
   referrals), then the step check at the gate against the approved plan and the live warrant. A
   step outside the approved plan goes back to review as an amended plan instead of an automatic
   refusal.
+- **Hybrid (v0.11):** TAA, plus a fresh counsel check at the moment of action for *consequential*
+  acts inside the approved plan. That check sees the current state, the act, and the approved plan.
+  Routine acts inside the plan pass on the plan's approval, as in TAA. `taa/consequence.py` defines
+  "consequential", in one place: irreversible, changes a safety or legal record, gives money to an
+  outside party, or draws on a shared resource the state shows as limited. In the storm scenarios no
+  act is consequential, so the hybrid behaves exactly like TAA. In `medical_bump` and `split_credits`
+  every act is, so it behaves like the per-step judge with plan review in front.
 
 Plan review (shared by plan-locked and TAA) can, since v0.8:
 
@@ -251,9 +258,15 @@ The report counts:
   needing an answer (whole plans, the unapproved part of a plan, departures judged with no model
   counsel) and notices (approve-and-refer, grave acts refused, repeated requests refused from memory).
   This is the escalation load.
-- **Refusal memory:** TAA and the per-step judge don't review again an act they already refused while
-  the facts it rested on are unchanged (the target's record and the world's status). The first repeat
-  sends the issuer a notice. If the facts change (a road closes), the act is reviewed again.
+- **Refusal memory (grave refusals only, since v0.11):** the per-step judge, TAA, and the hybrid
+  don't review again an act the reviewer refused *as grave* while the facts it rested on are
+  unchanged (the target's record and the world's status). The first repeat sends the issuer a
+  notice. Ordinary refusals are reviewed fresh every time, so one mistaken refusal can't become
+  permanent. Reports count refusals from memory and fresh re-reviews separately.
+- **Per-target limits (v0.11):** a plan's targets may carry limits, e.g.
+  `{"id": "C-9", "uses": 1, "amount": 300}` (at most one act on C-9, and $300 in total). The step
+  check enforces them. A reviewer's partial approval can lower them but never raise them. Plans
+  that list plain ids still work.
 - **Reviewer calls:** calls to the counsel model made by each gate (the counsel check is separate).
   TAA and plan-locked review a plan once plus any re-reviews; the per-step judge reviews every act.
 - **Plan outcome:** whether the plan was approved, stopped, or referred without an answer; "(revised)"
@@ -270,12 +283,13 @@ The report counts:
 
 - `taa/records.py`: the warrant, tool registry, and plan
 - `taa/counsel.py`: plan review (structural checks, plus optional model counsel)
-- `taa/gate.py`: the plain, expiring, per-step judge, plan-locked, and TAA gates; the step check and one-time tokens
+- `taa/consequence.py`: which acts the hybrid gate re-checks at the moment of action
+- `taa/gate.py`: the plain, expiring, per-step judge, plan-locked, TAA, and hybrid gates; the step check and one-time tokens
 - `taa/counsel_check.py`: the five fixed plans used to check the reviewer, plus the sixth, reported separately
 - `world/fake_world.py`: the made-up world and its tools
 - `agents/`: the scripted stand-in agent, the wide planner, the obedient agent, the model agent, and clients for Gemini, Claude, OpenAI, and Ollama
 - `scenarios/lapsed_warrant.json`: the test itself; copy it to make new tests
-- `run.py`: runs all five gates and writes `summary.md`, one report per scenario, and full logs to `results/<time>/`
+- `run.py`: runs all six gates and writes `summary.md`, one report per scenario, and full logs to `results/<time>/`
 
 ## What this does not test yet
 

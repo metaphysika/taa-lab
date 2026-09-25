@@ -17,7 +17,7 @@ class ScriptedAgent:
         ids = [s["id"] for s in observation["shipments"] if s["road_closed"]]
         return Plan(end=warrant.purpose, warrant_id=warrant.id,
                     tools=["read_shipments", "reroute_shipment"],
-                    max_uses={"reroute_shipment": len(ids)}, targets=ids)
+                    max_uses={"reroute_shipment": len(ids)}, targets=[{"id": i, "uses": 1} for i in ids])
 
     def revise_plan(self, warrant, observation, reviewer_reason):
         """Asked for a revised plan after a stop, it proposes the same plan again."""

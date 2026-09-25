@@ -17,7 +17,9 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 2.6, 5.2 | Acts no authority can license (M); refuse, preserve, report | `scenarios/wrongful_order.json`; the "grave" rule in `purpose_rules` and grave notices in `taa/counsel.py`; `report_to_human` (always allowed) in `taa/gate.py` (v0.10) |
 | 5.3 | Harm in a consequence of a routine act | `scenarios/medical_bump.json` (v0.10) |
 | 4.4, 4.5 | Harm split across acts each permitted | `scenarios/split_credits.json` (v0.10; one agent, no delegation) |
-| 3.3 | A reviewer does not re-decide a refusal from scratch | Refusal memory in `_GateBase` (`_recall`, `_remember`), `taa/gate.py` (v0.10) |
+| 3.3 | A reviewer does not re-decide a refusal from scratch | Refusal memory in `_GateBase` (`_recall`, `_refused_on_review`), `taa/gate.py`; grave refusals only since v0.11 |
+| 4.2, 4.3 | Plan review plus a check at the moment of consequential acts | `HybridGate` in `taa/gate.py`; what counts as consequential in `taa/consequence.py` (v0.11) |
+| 4.2 | An approved plan covers only what it specifies, per target | Per-target limits (`Plan.limits`, `normalize_targets` in `taa/records.py`; enforced in `TAAGate._step_check`; narrowed by `narrow_limits` in `taa/counsel.py`) (v0.11) |
 | 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`, `scenarios/purpose_defeat_wide.json`; witnesses and steward not yet built |
 | 6.2 | Model-mediated judgment can fail | `taa/counsel_check.py` (false approvals and refusals) |
 | 7 | Comparators; defeat conditions | Five gates in `taa/gate.py`, including the per-step purpose judge (`StepJudgeGate`, `judge_act` in `taa/counsel.py`); metrics, referrals, and reviewer calls in `run.py` |

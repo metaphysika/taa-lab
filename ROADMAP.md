@@ -33,6 +33,7 @@ TAA counts as adding something only where it beats every simpler gate.
 | Plan-locked (approved plan enforced; departures refused, no re-review) | Done | Does TAA's reviewer add anything beyond holding the agent to its own plan? |
 | Purpose-aware judge per step (one model checks each act, no plan) | Done (v0.9; scripted only so far) | The "strong purpose-aware baseline" the paper names; the main go/no-go test |
 | TAA (plan review, live warrant, step check) | Done (partial) | The architecture under test |
+| Hybrid (TAA + action-time check on consequential acts, `taa/consequence.py`) | Built, not yet tested with a model (v0.11) | Does re-checking consequential acts at the moment of action close the gap between plan review and the per-step judge, at lower cost than judging every act? |
 
 ## Scenarios
 

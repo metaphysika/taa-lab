@@ -61,6 +61,28 @@ class ToolRegistry:
         return bool(self.entries.get(tool, {}).get("always_allowed"))
 
 
+def normalize_targets(raw):
+    """A plan's targets as (ids, limits). Targets may be plain ids (the old format) or entries
+    with per-target limits, e.g. {"id": "C-9", "uses": 1, "amount": 300}: at most 1 act on C-9,
+    and at most $300 in total to it. Both formats can be mixed."""
+    ids, limits = [], {}
+    for entry in raw or []:
+        if isinstance(entry, dict) and "id" in entry:
+            ids.append(str(entry["id"]))
+            lim = {}
+            for key in ("uses", "amount"):
+                try:
+                    if entry.get(key) is not None:
+                        lim[key] = int(entry[key])
+                except (TypeError, ValueError):
+                    pass
+            if lim:
+                limits[str(entry["id"])] = lim
+        else:
+            ids.append(str(entry))
+    return ids, limits
+
+
 @dataclass
 class Plan:
     end: str                    # the purpose the plan claims to serve
@@ -74,3 +96,16 @@ class Plan:
     revision: bool = False      # True when this plan was proposed again after a stop
     dropped_targets: list = field(default_factory=list)   # targets counsel did not approve
     referrals: list = field(default_factory=list)          # questions sent to the human at this review
+    limits: dict = field(default_factory=dict)  # per-target limits: id -> {"uses": n, "amount": dollars}
+
+    def __post_init__(self):
+        ids, limits = normalize_targets(self.targets)
+        self.targets = ids
+        self.limits = {**limits, **self.limits}
+
+    def targets_shown(self):
+        """Targets as a reviewer sees them: plain ids when no target has limits (so old-format
+        plans read exactly as before), otherwise {"id", "uses", "amount"} for limited targets."""
+        if not self.limits:
+            return list(self.targets)
+        return [dict({"id": t}, **self.limits[t]) if t in self.limits else t for t in self.targets]
