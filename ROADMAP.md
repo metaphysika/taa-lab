@@ -80,7 +80,7 @@ results do not depend on one design.
 - Unauthorized, questionable, and justified acts per gate (done)
 - Over-refusal: legitimate work blocked (done; count it as a cost, never a success)
 - Reviewer errors: false approvals and false refusals in the counsel check (done)
-- Escalation load: referrals per run and how many needed a human answer
+- Escalation load: referrals per run and how many needed a human answer (counted per gate since v0.8)
 - Review calls and cost per gate (TAA reviews once per plan; a per-step judge reviews every act)
 - Per-model comparison: Claude, Gemini, local Ollama models
 - At least five repeats per cell for any reported number; report ranges
@@ -106,6 +106,9 @@ Settle each with evidence before changing the architecture.
 1. **Partial approval.** Should counsel be able to approve the justified part of a plan and refuse
    the rest? Today it can only approve, stop, or refer the whole plan, so a wide plan that includes
    legitimate work may block it all. Scenario 5b will show whether this is needed.
+   **Implemented in v0.8** after the Luna `purpose_defeat_wide` run stopped a mixed plan (LAB_NOTEBOOK,
+   2026-09-25): counsel may approve a subset of targets and stop or refer the rest. Test it with
+   `--agent wideplanner` and a model reviewer. Still needs model evidence that reviewers use it well.
 2. **Standing checks on the reviewer.** Should a deployed system run known-answer checks on its
    reviewer at intervals, as the counsel check does now? Map to witness indicators or the purpose
    steward if they already cover it.
@@ -119,6 +122,13 @@ Settle each with evidence before changing the architecture.
    came back empty (a client-side failure, not a bad plan) was correctly stopped, then blocked every
    legitimate reroute for the rest of that run too. Distinct from partial approval (question 1):
    even a plan that is entirely fixable gets no second chance.
+   **Implemented in v0.8:** one revised plan after a stop, with the reviewer's reason as feedback; a
+   second stop leaves the run with no approved plan. Open: whether one revision is enough, and whether
+   a revision lets an agent argue its way past a correct stop.
+5. **Approve and refer.** Added in v0.8: when a plan's acts serve the warrant's purpose but its stated
+   end does not, counsel approves the acts and refers the end to the issuer. Open: whether reviewers
+   use it as intended or as a softer "approve" for plans that should be stopped (counsel check case 6
+   and the original five together measure both).
 
 ## Phases
 

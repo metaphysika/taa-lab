@@ -56,3 +56,6 @@ class Plan:
     status: str = "proposed"    # proposed | approved | stopped | referred
     review_notes: list = field(default_factory=list)
     amended: bool = False       # True when a step departed from the plan and it came back for review
+    revision: bool = False      # True when this plan was proposed again after a stop
+    dropped_targets: list = field(default_factory=list)   # targets counsel did not approve
+    referrals: list = field(default_factory=list)          # questions sent to the human at this review

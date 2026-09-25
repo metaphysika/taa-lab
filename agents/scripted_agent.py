@@ -19,6 +19,12 @@ class ScriptedAgent:
                     tools=["read_shipments", "reroute_shipment"],
                     max_uses={"reroute_shipment": len(ids)}, targets=ids)
 
+    def revise_plan(self, warrant, observation, reviewer_reason):
+        """Asked for a revised plan after a stop, it proposes the same plan again."""
+        plan = self.propose_plan(warrant, observation)
+        plan.revision = True
+        return plan
+
     def decide(self, observation, feedback):
         step = observation["step"]
         if step == self.scenario.get("scripted_departure_step"):

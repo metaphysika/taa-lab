@@ -10,8 +10,11 @@ Four gates share one interface so the same agent can run under any of them:
   A passing call receives a one-time token bound to that exact act. A departure from the
   approved plan goes back to review as an amended plan (Section 4.2) instead of an
   automatic refusal.
+  Plan review can approve only part of a plan, or approve it while referring a question about
+  the agent's stated end to the human handler; after a stop the agent gets one revised plan.
 - PlanLockedGate: the same step check as TAAGate, but a departure is refused outright,
-  with no re-review. This is the comparator for whether re-reviewing departures (Iudicium,
+  with no re-review. It shares TAAGate's plan review (partial approval, approve-and-refer,
+  one revised plan). This is the comparator for whether re-reviewing departures (Iudicium,
   Sections 3.3-4.2) adds anything over locking the plan the moment it is approved.
 
 All gates hold the tool functions privately; the agent only ever calls gate.request().
@@ -28,16 +31,26 @@ class _GateBase:
         self.log = []
 
     def _execute(self, tool, args):
+        """Run an allowed act. Only an act that changed something spends authority: a call
+        with no effect (e.g. "already on that route") counts against no warrant or plan limit."""
         result = self._tools[tool](**args)
-        if self.registry.effect_class(tool) != "read_only" and result.get("ok"):
+        spent = self.registry.effect_class(tool) != "read_only" and bool(result.get("ok"))
+        if spent:
             self.warrant.used[tool] = self.warrant.used.get(tool, 0) + 1
-        return result
+        return result, spent
 
-    def _record(self, tool, args, decision, reason):
+    def _record(self, tool, args, decision, reason, spent=False):
         entry = {"step": self._world.step, "tool": tool, "args": args,
-                 "decision": decision, "reason": reason}
+                 "decision": decision, "reason": reason, "spent": spent}
         self.log.append(entry)
         return entry
+
+    def _allow(self, tool, args, reason):
+        result, spent = self._execute(tool, args)
+        if not spent and self.registry.effect_class(tool) != "read_only":
+            reason += f"; no effect ({result.get('error', 'nothing changed')}), so no authority spent"
+        self._record(tool, args, "ALLOWED", reason, spent)
+        return result
 
 
 class BaselineGate(_GateBase):
@@ -51,9 +64,7 @@ class BaselineGate(_GateBase):
         if left is not None and left <= 0:
             self._record(tool, args, "REFUSED", "budget exhausted")
             return {"ok": False, "error": "budget exhausted"}
-        result = self._execute(tool, args)
-        self._record(tool, args, "ALLOWED", "tool is permitted")
-        return result
+        return self._allow(tool, args, "tool is permitted")
 
 
 class ExpiringGate(BaselineGate):
@@ -74,10 +85,21 @@ class TAAGate(_GateBase):
         super().__init__(tools, warrant, registry, world)
         self.plan = None
         self._reviewer = reviewer      # a function(plan) -> reviewed plan
+        self.referrals = []            # every question plan review sent to the human handler
+
+    def _review(self, plan):
+        reviewed = self._reviewer(plan)
+        for r in reviewed.referrals:
+            self.referrals.append(dict(r, step=self._world.step))
+        return reviewed
 
     def submit_plan(self, plan):
-        self.plan = self._reviewer(plan)
-        self._record("(plan)", {"end": plan.end, "tools": plan.tools, "max_uses": plan.max_uses},
+        """Plan review. After a stop the agent may submit one revised plan (plan.revision);
+        if that is stopped too, the run goes on with no approved plan."""
+        requested = {"end": plan.end, "tools": list(plan.tools), "max_uses": dict(plan.max_uses),
+                     "targets": list(plan.targets)}
+        self.plan = self._review(plan)
+        self._record("(revised plan)" if plan.revision else "(plan)", requested,
                      plan.status.upper(), "; ".join(plan.review_notes))
         return self.plan
 
@@ -97,8 +119,7 @@ class TAAGate(_GateBase):
         left = self.warrant.remaining(tool)
         if left is not None and left <= 0:
             return False, "warrant budget exhausted", False
-        used = sum(1 for e in self.log if e["tool"] == tool and e["decision"] == "ALLOWED"
-                   and self.registry.effect_class(tool) != "read_only")
+        used = sum(1 for e in self.log if e["tool"] == tool and e["decision"] == "ALLOWED" and e["spent"])
         cap = self.plan.max_uses.get(tool)
         if cap is not None and used >= cap:
             return False, f"approved plan allows {cap} uses of '{tool}'", True
@@ -109,15 +130,22 @@ class TAAGate(_GateBase):
         import copy
         amended = copy.deepcopy(self.plan)
         amended.status, amended.review_notes, amended.amended = "proposed", [], True
+        amended.revision = False
         if tool not in amended.tools:
             amended.tools.append(tool)
         if args.get("shipment_id") and amended.targets and args["shipment_id"] not in amended.targets:
             amended.targets.append(args["shipment_id"])
         amended.max_uses[tool] = amended.max_uses.get(tool, 0) + 1
-        reviewed = self._reviewer(amended)
-        if reviewed.status == "approved":
+        reviewed = self._review(amended)
+        # A partial approval that leaves out the very act that departed does not approve it.
+        covers = tool in reviewed.tools and not (args.get("shipment_id") and reviewed.targets
+                                                 and args["shipment_id"] not in reviewed.targets)
+        if reviewed.status == "approved" and covers:
             self.plan = reviewed
             return True, f"departure ({why}) re-reviewed and approved: {'; '.join(reviewed.review_notes)}"
+        if reviewed.status == "approved":
+            return False, (f"departure ({why}) re-reviewed: plan approved without this act, which stays "
+                           f"refused: {'; '.join(reviewed.review_notes)}")
         return False, f"departure ({why}) re-reviewed: {'; '.join(reviewed.review_notes)}"
 
     def request(self, tool, args):
@@ -133,9 +161,7 @@ class TAAGate(_GateBase):
             self._record(tool, args, "REFUSED", reason)
             return {"ok": False, "error": reason}
         token = secrets.token_hex(4)   # one-time token bound to this exact act
-        result = self._execute(tool, args)
-        self._record(tool, args, "ALLOWED", f"{reason}; token {token}")
-        return result
+        return self._allow(tool, args, f"{reason}; token {token}")
 
 
 class PlanLockedGate(TAAGate):
@@ -152,6 +178,4 @@ class PlanLockedGate(TAAGate):
             self._record(tool, args, "REFUSED", reason)
             return {"ok": False, "error": reason}
         token = secrets.token_hex(4)   # one-time token bound to this exact act
-        result = self._execute(tool, args)
-        self._record(tool, args, "ALLOWED", f"{reason}; token {token}")
-        return result
+        return self._allow(tool, args, f"{reason}; token {token}")

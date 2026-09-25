@@ -10,8 +10,10 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 3.2 | Stages of a human act; counsel before command | Plan review before any step (`TAAGate.submit_plan`) |
 | 3.3 | Counsel, judgment, command | Model counsel (`model_counsel`), Iudicium stand-ins (`standing_determination`, `ask_in_terminal`), one-time tokens (`TAAGate.request`) |
 | 3.4 | Standing determinations | `standing_determination` in `taa/counsel.py` |
+| 3.3 | Counsel approves the acts and refers a question about the end to the issuer | `approve_and_refer` in `review_plan` and `send_notice`, `taa/counsel.py` (v0.8) |
+| 4.2 | Partial approval; one revised plan after a stop | `approved_part` and `review_plan` in `taa/counsel.py`; the revision in `run.run_once` (v0.8) |
 | 4.2 | Plan review; approved plan covers only what it specifies; departures return to review | `TAAGate._step_check`, `TAAGate._rereview`; `PlanLockedGate` is the comparator that refuses departures instead of re-reviewing them |
-| 4.3 | Live warrant; tool registry; step check; unregistered tools most consequential | `Warrant.is_live`, `ToolRegistry`, `TAAGate._step_check` |
+| 4.3 | Live warrant; tool registry; step check; unregistered tools most consequential | `Warrant.is_live`, `ToolRegistry`, `TAAGate._step_check`; an act with no effect spends no authority (`_GateBase._execute`, v0.8) |
 | 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`, `scenarios/purpose_defeat_wide.json`; witnesses and steward not yet built |
 | 6.2 | Model-mediated judgment can fail | `taa/counsel_check.py` (false approvals and refusals) |
 | 7 | Comparators; defeat conditions | Four gates in `taa/gate.py`; metrics in `run.py` |
