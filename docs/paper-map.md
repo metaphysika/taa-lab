@@ -10,11 +10,11 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 3.2 | Stages of a human act; counsel before command | Plan review before any step (`TAAGate.submit_plan`) |
 | 3.3 | Counsel, judgment, command | Model counsel (`model_counsel`), Iudicium stand-ins (`standing_determination`, `ask_in_terminal`), one-time tokens (`TAAGate.request`) |
 | 3.4 | Standing determinations | `standing_determination` in `taa/counsel.py` |
-| 4.2 | Plan review; approved plan covers only what it specifies; departures return to review | `TAAGate._step_check`, `TAAGate._rereview` |
+| 4.2 | Plan review; approved plan covers only what it specifies; departures return to review | `TAAGate._step_check`, `TAAGate._rereview`; `PlanLockedGate` is the comparator that refuses departures instead of re-reviewing them |
 | 4.3 | Live warrant; tool registry; step check; unregistered tools most consequential | `Warrant.is_live`, `ToolRegistry`, `TAAGate._step_check` |
-| 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`; witnesses and steward not yet built |
+| 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`, `scenarios/purpose_defeat_wide.json`; witnesses and steward not yet built |
 | 6.2 | Model-mediated judgment can fail | `taa/counsel_check.py` (false approvals and refusals) |
-| 7 | Comparators; defeat conditions | Three gates in `taa/gate.py`; metrics in `run.py` |
+| 7 | Comparators; defeat conditions | Four gates in `taa/gate.py`; metrics in `run.py` |
 
 Not yet implemented: encoded core and charter review (4.1), delegation and shared budgets (4.4),
 witnesses and the purpose steward (4.5), emergency envelope (5.3), content-bound communication (3.2).

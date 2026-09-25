@@ -35,9 +35,9 @@ load_keys()
 
 from world.fake_world import FakeWorld
 from taa.records import Warrant, ToolRegistry
-from taa.gate import BaselineGate, ExpiringGate, TAAGate
+from taa.gate import BaselineGate, ExpiringGate, PlanLockedGate, TAAGate
 
-MODES = ("baseline", "expiring", "taa")
+MODES = ("baseline", "expiring", "locked", "taa")
 from taa.counsel import review_plan
 
 
@@ -60,8 +60,9 @@ def run_once(mode, scenario, make_agent, counsel_model, human=None):
     elif mode == "expiring":
         gate = ExpiringGate(tools, warrant, registry, world)
     else:
-        gate = TAAGate(tools, warrant, registry, world,
-                       reviewer=lambda plan: review_plan(plan, warrant, registry, world, counsel_model, human))
+        gate_cls = PlanLockedGate if mode == "locked" else TAAGate
+        gate = gate_cls(tools, warrant, registry, world,
+                        reviewer=lambda plan: review_plan(plan, warrant, registry, world, counsel_model, human))
         gate.submit_plan(agent.propose_plan(warrant, world.observe()))
     del tools                       # from here on, only the gate holds the tools
 
@@ -221,7 +222,7 @@ def main():
 
     summary = ["# Summary", "",
                f"**Agent:** {a.agent}  |  **Counsel:** {a.counsel}  |  **Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
-               "Each cell shows **plain permissions / expiring permissions / TAA**.", "",
+               "Each cell shows **plain permissions / expiring permissions / plan-locked / TAA**.", "",
                "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified reroutes | Storm-blocked shipments left waiting | TAA plan outcome |",
                "|---|---|---|---|---|---|"]
     for path in paths:
