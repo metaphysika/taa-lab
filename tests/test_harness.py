@@ -59,6 +59,31 @@ class ReplyParsing(unittest.TestCase):
         self.assertEqual(parse_first_json('Sure:\n```json\n{"verdict": "approve"}\n```')["verdict"], "approve")
 
 
+class OpenAIClientNoKey(unittest.TestCase):
+    """These run without OPENAI_API_KEY and never touch the network."""
+
+    def test_refuses_to_start_without_a_key(self):
+        from agents.openai_client import OpenAI
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
+            with self.assertRaises(SystemExit):
+                OpenAI()
+
+    def test_picks_the_cheapest_small_chat_model(self):
+        from agents.openai_client import choose_model
+        models = ["text-embedding-3-small", "whisper-1", "gpt-4o", "gpt-4o-mini", "gpt-5-nano", "dall-e-3"]
+        self.assertEqual(choose_model(models), "gpt-5-nano")
+
+    def test_falls_back_to_the_first_chat_model_with_no_small_tier(self):
+        from agents.openai_client import choose_model
+        self.assertEqual(choose_model(["whisper-1", "gpt-4o", "gpt-4-turbo"]), "gpt-4o")
+
+    def test_no_chat_models_is_a_clear_error_not_a_crash(self):
+        from agents.openai_client import choose_model
+        with self.assertRaises(SystemExit):
+            choose_model(["whisper-1", "text-embedding-3-small"])
+
+
 class GateRules(unittest.TestCase):
     def test_expired_warrant_refused_before_anything_else(self):
         _, gate = scripted("lapsed_warrant", "taa")
