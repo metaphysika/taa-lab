@@ -22,7 +22,7 @@ readable, and prefer the Python standard library over new dependencies.
    to a new file with a new name and say why in the notebook.
 4. **Keep every model run.** Results folders are evidence. Rename a finished run's folder as
    `YYYY-MM-DD vX.Y <agent>-<counsel> r<repeats> [note]` and add a notebook entry. Do not delete runs,
-   including failed or embarrassing ones.
+   including failed or embarrassing ones. Duplicate scripted runs may be deleted; model runs are never deleted.
 5. **Report honestly.** Say when plain or expiring permissions match TAA, when TAA blocks legitimate
    work, and when the reviewer rubber-stamps. A result that weakens the paper's claims is still a result.
 
