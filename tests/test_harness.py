@@ -324,8 +324,9 @@ class GateRules(unittest.TestCase):
         self.assertEqual(a106(locked_world)["route"], "standard")     # left stranded
         self.assertEqual(run.score(taa_world)["justified"], 4)
         self.assertEqual(a106(taa_world)["route"], "express")         # re-reviewed and rerouted
-        self.assertTrue(any(e["decision"] == "ALLOWED" and e["args"].get("shipment_id") == "A106"
-                            for e in taa_gate.log))
+        approval = next(e for e in taa_gate.log
+                        if e["decision"] == "ALLOWED" and e["args"].get("shipment_id") == "A106")
+        self.assertIn("standing determination: approved", approval["reason"])  # not just "approved"
         self.assertTrue(any(e["decision"] == "REFUSED" and e["args"].get("shipment_id") == "A106"
                             for e in locked_gate.log))
 

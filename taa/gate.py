@@ -117,7 +117,7 @@ class TAAGate(_GateBase):
         reviewed = self._reviewer(amended)
         if reviewed.status == "approved":
             self.plan = reviewed
-            return True, f"departure ({why}) re-reviewed and approved"
+            return True, f"departure ({why}) re-reviewed and approved: {'; '.join(reviewed.review_notes)}"
         return False, f"departure ({why}) re-reviewed: {'; '.join(reviewed.review_notes)}"
 
     def request(self, tool, args):

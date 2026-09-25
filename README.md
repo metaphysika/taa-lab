@@ -1,4 +1,4 @@
-# TAA Lab (v0.7)
+# TAA Lab (v0.7.1)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 

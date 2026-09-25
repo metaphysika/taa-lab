@@ -336,3 +336,24 @@ design question 4 (no way to revise a plan after a stop) stays open regardless, 
 empty reply at exactly the plan-proposal call still has nowhere to go but a full stop. Not re-run
 against the live API this session to confirm the fix reduces the failure rate — that needs a paid
 run and should happen before this is called resolved.
+
+## 2026-09-25 — v0.7.1, fix: TAA gate log didn't say why a departure was approved
+
+Checked the `new_closure` TAA runs' JSON gate logs directly to answer whether A106's re-review was
+approved by model counsel or by the standing determination: no model counsel was involved in any of
+them (all scripted, `counsel_model=None`), so `review_plan()` never reaches `model_counsel()` at
+all — every re-review decision, including A106's approval, came from the standing determination.
+The refusal log lines already said so plainly ("re-reviewed: departure judged by standing
+determination: declined"); the approval line at step 6 just said "re-reviewed and approved", with
+no reason, because `TAAGate._rereview`'s success branch returned a fixed string instead of joining
+`reviewed.review_notes` the way its failure branch already did.
+
+Fixed in `taa/gate.py`: the approval reason is now `f"departure ({why}) re-reviewed and approved:
+{'; '.join(reviewed.review_notes)}"`, so step 6 now logs "... re-reviewed and approved: departure
+judged by standing determination: approved; structural checks passed: ...", the same level of
+detail refusals already had. Extended
+`tests/test_harness.py::GateRules::test_taa_re_review_beats_plan_locked_on_a_new_closure` to assert
+the approval's reason names the standing determination, not just "approved".
+
+`python3 -m unittest discover tests` passes (23 tests, 1 extended) and `python3 run.py --scenario
+all` still matches every prior score. Bumped README to v0.7.1.
