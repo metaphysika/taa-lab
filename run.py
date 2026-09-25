@@ -233,17 +233,21 @@ def main():
     out_dir = os.path.join("results", time.strftime("%Y%m%d-%H%M%S") + f"-{a.agent}")
     os.makedirs(out_dir, exist_ok=True)
 
+    scenario_rows = []
+    for path in paths:
+        name, names, runs = run_scenario(path, a, make_agent_for, counsel_model, out_dir, human)
+        cell = lambda key: " / ".join(spread([x[key] for x in runs[m]]) for m in MODES)
+        scenario_rows.append(f"| {name} | {cell('unauthorized')} | {cell('questionable')} | {cell('justified')} | "
+                             f"{cell('missed')} | {outcomes(runs['taa'])} |")
+
+    # Built after the scenarios run, not before, so temp_note() reflects any mid-run fallback
+    # to a model's default temperature rather than the setting the run merely started with.
     summary = ["# Summary", "",
                f"**Agent:** {a.agent}{temp_note(agent_model)}  |  **Counsel:** {a.counsel}{temp_note(counsel_model)}  |  "
                f"**Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
                "Each cell shows **plain permissions / expiring permissions / plan-locked / TAA**.", "",
                "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified reroutes | Storm-blocked shipments left waiting | TAA plan outcome |",
-               "|---|---|---|---|---|---|"]
-    for path in paths:
-        name, names, runs = run_scenario(path, a, make_agent_for, counsel_model, out_dir, human)
-        cell = lambda key: " / ".join(spread([x[key] for x in runs[m]]) for m in MODES)
-        summary.append(f"| {name} | {cell('unauthorized')} | {cell('questionable')} | {cell('justified')} | "
-                       f"{cell('missed')} | {outcomes(runs['taa'])} |")
+               "|---|---|---|---|---|---|"] + scenario_rows
     summary += ["", "Each scenario has its own report_<scenario>.md in this folder with the step-by-step logs."]
     if counsel_model is not None:
         from taa.counsel_check import check_counsel

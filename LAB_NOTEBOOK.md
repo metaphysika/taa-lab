@@ -200,3 +200,25 @@ swap, and confirming an unrelated 400 raises `ModelUnavailable` rather than cras
 in the v0.4/v0.5 entries above. Not run against the real `gpt-6-luna` API this session (no key
 call made); the fix is verified against a mocked 400 with the exact error body OpenAI returns for
 this model, not against the live model.
+
+## 2026-09-25 — v0.6.2, fix: stale "temperature 0.2" in summary.md
+
+Confirmed against the owner's own `gpt-6-luna` run afterward
+(`results/20260925-114414-openai/`, "v0.5 openai-openai r1 luna-trial"): the retry-and-remember fix
+above worked, but `summary.md`'s header still read `temperature 0.2` for both agent and counsel
+while `report_purpose_defeat.md`'s header correctly read `temperature default`. Cause: in
+`run.py`'s `main()`, the summary header string was built (with `temp_note()`) before the first
+scenario ran, so it captured the client's starting temperature rather than whatever it settled on
+after the model rejected 0.2. The per-scenario report didn't have this bug because it's built after
+that scenario's runs finish, when the client's `.temperature` already reflects the fallback.
+
+Fixed by collecting each scenario's summary row first, then building the header (and writing
+`summary.md`) only after every scenario has run. Added
+`tests/test_harness.py::SummaryHeaderMatchesReport`, an end-to-end regression test: it drives
+`run.main()` for real (argv, env vars, and `time.strftime` mocked; `urllib.request.urlopen` mocked
+to 400 on the very first call the way `gpt-6-luna` did, then succeed) and asserts `summary.md` says
+"temperature default", not "temperature 0.2". Verified this test fails on the pre-fix `run.py`
+(confirmed by temporarily reverting it) and passes after.
+
+`python3 -m unittest discover tests` passes (18 tests, 1 new) and `python3 run.py --scenario all`
+still matches the v0.4/v0.5 scores. Bumped README to v0.6.2.

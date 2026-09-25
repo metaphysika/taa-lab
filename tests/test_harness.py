@@ -4,6 +4,7 @@ Run with:  python3 -m unittest discover tests
 """
 import json
 import os
+import shutil
 import sys
 import unittest
 
@@ -20,6 +21,29 @@ def scripted(name, mode):
     scenario = json.load(open(f"scenarios/{name}.json"))
     world, gate, _, _ = run.run_once(mode, scenario, lambda: ScriptedAgent(scenario), None, standing_determination)
     return run.score(world), gate
+
+
+def http_error(code, error_body):
+    """A fake urllib HTTPError carrying an OpenAI-shaped {"error": {...}} JSON body."""
+    from urllib.error import HTTPError
+    import io
+    body = json.dumps({"error": error_body}).encode()
+    return HTTPError(url="https://api.openai.com/v1/chat/completions", code=code, msg="error",
+                      hdrs=None, fp=io.BytesIO(body))
+
+
+def ok_response(reply_json):
+    """A fake urllib response (context manager) wrapping a chat-completion reply."""
+    class Ctx:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": json.dumps(reply_json)}}]}).encode()
+    return Ctx()
 
 
 class ExpectedOutcomes(unittest.TestCase):
@@ -96,40 +120,19 @@ class OpenAIClient400Handling(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
             return OpenAI(model="gpt-6-luna")
 
-    @staticmethod
-    def _http_error(code, error_body):
-        from urllib.error import HTTPError
-        import io
-        body = json.dumps({"error": error_body}).encode()
-        return HTTPError(url="https://api.openai.com/v1/chat/completions", code=code, msg="error",
-                          hdrs=None, fp=io.BytesIO(body))
-
-    @staticmethod
-    def _ok_response(reply_json):
-        class Ctx:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *a):
-                return False
-
-            def read(self):
-                return json.dumps({"choices": [{"message": {"content": json.dumps(reply_json)}}]}).encode()
-        return Ctx()
-
     def test_retries_once_without_temperature_and_remembers_it(self):
         from unittest import mock
         client = self._client()
-        temp_error = self._http_error(400, {
+        temp_error = http_error(400, {
             "param": "temperature",
             "message": "Unsupported value: 'temperature' does not support 0.2 with this model. "
                        "Only the default (1) value is supported."})
-        with mock.patch("urllib.request.urlopen", side_effect=[temp_error, self._ok_response({"ok": True})]):
+        with mock.patch("urllib.request.urlopen", side_effect=[temp_error, ok_response({"ok": True})]):
             out = client.json("hello")
         self.assertEqual(out, {"ok": True})
         self.assertIsNone(client.temperature)          # now reports it is at the model's default
 
-        with mock.patch("urllib.request.urlopen", return_value=self._ok_response({"ok": True})) as m:
+        with mock.patch("urllib.request.urlopen", return_value=ok_response({"ok": True})) as m:
             client.json("hello again")
         sent_body = json.loads(m.call_args[0][0].data)
         self.assertNotIn("temperature", sent_body)     # remembered; no second 400 needed
@@ -138,11 +141,11 @@ class OpenAIClient400Handling(unittest.TestCase):
         from unittest import mock
         client = self._client()
         client._token_param = "max_tokens"              # pretend this model wanted the old name
-        token_error = self._http_error(400, {
+        token_error = http_error(400, {
             "param": "max_tokens",
             "message": "Unsupported parameter: 'max_tokens' is not supported with this model. "
                        "Use 'max_completion_tokens' instead."})
-        with mock.patch("urllib.request.urlopen", side_effect=[token_error, self._ok_response({"ok": True})]):
+        with mock.patch("urllib.request.urlopen", side_effect=[token_error, ok_response({"ok": True})]):
             out = client.json("hello")
         self.assertEqual(out, {"ok": True})
         self.assertEqual(client._token_param, "max_completion_tokens")
@@ -151,10 +154,48 @@ class OpenAIClient400Handling(unittest.TestCase):
         from unittest import mock
         from agents.gemini_client import ModelUnavailable
         client = self._client()
-        bad_request = self._http_error(400, {"param": "messages", "message": "Invalid request."})
+        bad_request = http_error(400, {"param": "messages", "message": "Invalid request."})
         with mock.patch("urllib.request.urlopen", side_effect=[bad_request]):
             with self.assertRaises(ModelUnavailable):
                 client.json("hello")
+
+
+class SummaryHeaderMatchesReport(unittest.TestCase):
+    """Regression test for a real bug: summary.md's header line was built before any scenario
+    ran, so it kept saying "temperature 0.2" even after a model rejected 0.2 partway through and
+    the per-scenario report (built after its scenario ran) correctly said "temperature default"."""
+
+    def test_summary_header_reflects_a_mid_run_temperature_fallback(self):
+        from unittest import mock
+        out_dir = os.path.join("results", "20990101-000000-openai")
+        self.addCleanup(lambda: shutil.rmtree(out_dir, ignore_errors=True))
+
+        temp_error = http_error(400, {
+            "param": "temperature",
+            "message": "Unsupported value: 'temperature' does not support 0.2 with this model. "
+                       "Only the default (1) value is supported."})
+        no_op_reply = {"end": "test", "tools": [], "max_uses": {}, "targets": [],
+                       "tool": None, "reason": "no action"}
+        calls = {"n": 0}
+
+        def fake_urlopen(req, timeout=120):
+            calls["n"] += 1
+            if calls["n"] == 1:                 # only the very first network call ever hits the 400
+                raise temp_error
+            return ok_response(no_op_reply)
+
+        env = {"OPENAI_API_KEY": "test-key", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_PACE": "0"}
+        with mock.patch.object(sys, "argv", ["run.py", "--scenario", "lapsed_warrant", "--agent", "openai"]), \
+             mock.patch.dict(os.environ, env), \
+             mock.patch("time.strftime", return_value="20990101-000000"), \
+             mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            run.main()
+
+        summary = open(os.path.join(out_dir, "summary.md")).read()
+        report = open(os.path.join(out_dir, "report_lapsed_warrant.md")).read()
+        self.assertIn("temperature default", summary)
+        self.assertIn("temperature default", report)
+        self.assertNotIn("temperature 0.2", summary)
 
 
 class GateRules(unittest.TestCase):
