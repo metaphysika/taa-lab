@@ -167,3 +167,36 @@ scores in the entry above.
 Not yet run with a real OpenAI key: whether the cheapest current small model actually behaves well
 as agent or counsel is untested. Same cost rule applies as the other paid providers: ask before
 any run of more than about 200 model calls.
+
+## 2026-09-25 — v0.6.1, fix: gpt-6-luna crash on temperature
+
+`gpt-6-luna` (a reasoning-tier model) rejected the fixed `temperature: 0.2` in every request with
+OpenAI error 400 ("Unsupported value: 'temperature' does not support 0.2 with this model. Only the
+default (1) value is supported."), which crashed the harness with an unhandled `RuntimeError` before
+it could take a single step. Left two empty run folders behind:
+`results/20260925-113411-openai/` and `results/20260925-113444-openai/`, kept as evidence per the
+rule above rather than deleted; `results/20260925-112926-openai/` from the same session is an
+unrelated, complete `gpt-4.1-nano` counsel-check run and needs no fix.
+
+`agents/openai_client.py` now recognizes this 400 (and the mirror case, a model that rejects
+`max_completion_tokens` and asks for the older `max_tokens` instead, or vice versa) from the
+error's `param`/`message` fields, drops or renames the offending body key, retries once, and
+remembers the fix on the client instance for the rest of the run so later calls do not hit the same
+400 again. Prints one line the first time this happens
+(`"<model> does not accept a custom temperature; running at its default temperature."`). Any other
+400 now raises `ModelUnavailable` with the response body included, instead of the generic
+`RuntimeError` that crashed the run before. `OpenAI.temperature` reports the value actually in use
+(`0.2`, or `None` once a model has forced the fallback to its own default), and both
+`report_<scenario>.md` and `summary.md` headers now show it next to the agent/counsel model name
+whenever a client tracks one (`run.py`'s new `temp_note()` helper; a no-op for the other three
+providers, which don't expose the attribute).
+
+Added `tests/test_harness.py::OpenAIClient400Handling` (3 new tests, mocking `urllib.request.urlopen`
+directly, no key or network needed): the temperature retry-and-remember path, the max-tokens-key
+swap, and confirming an unrelated 400 raises `ModelUnavailable` rather than crashing.
+
+`python3 -m unittest discover tests` passes (17 tests, 3 of them new) and
+`python3 run.py --scenario all` (scripted agent, unaffected by this change) still matches the scores
+in the v0.4/v0.5 entries above. Not run against the real `gpt-6-luna` API this session (no key
+call made); the fix is verified against a mocked 400 with the exact error body OpenAI returns for
+this model, not against the live model.

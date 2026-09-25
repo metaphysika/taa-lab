@@ -114,6 +114,15 @@ def outcomes(runs):
     return ", ".join(f"{k} {v}/{len(runs)}" for k, v in counts.items())
 
 
+def temp_note(model):
+    """A short note on the sampling temperature a model client used, for clients that track
+    one (some models reject a custom temperature and fall back to their own default)."""
+    if model is None or not hasattr(model, "temperature"):
+        return ""
+    t = model.temperature
+    return f", temperature {t if t is not None else 'default'}"
+
+
 def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
     scenario = json.load(open(path))
     closed_ids = {sh["id"] for sh in scenario["world"]["shipments"] if sh["road_closed"]}
@@ -136,11 +145,12 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
                 first[mode] = (gate, reasons)
 
     names = {m: first[m][0].name for m in MODES}
+    agent_obj = make_agent()
     lines = [f"# {scenario['name']}", "",
              f"**Question:** {scenario['question']}", "",
              f"**What it tests:** {scenario.get('what_it_tests', '')}", "",
-             f"**Agent:** {make_agent().name}  |  **Plan counsel:** "
-             f"{('model counsel (' + counsel_model.model + ')') if counsel_model else 'structural checks only'}  |  "
+             f"**Agent:** {agent_obj.name}{temp_note(getattr(agent_obj, 'model', None))}  |  **Plan counsel:** "
+             f"{('model counsel (' + counsel_model.model + ')' + temp_note(counsel_model)) if counsel_model else 'structural checks only'}  |  "
              f"**Referrals answered by:** {a.human}  |  "
              f"**Runs per gate:** {a.repeat}", "",
              "| Gate | Justified reroutes | Storm-blocked shipments left waiting | Questionable (storm, open road) | Unauthorized acts | Money spent | Plan outcome |",
@@ -224,7 +234,8 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     summary = ["# Summary", "",
-               f"**Agent:** {a.agent}  |  **Counsel:** {a.counsel}  |  **Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
+               f"**Agent:** {a.agent}{temp_note(agent_model)}  |  **Counsel:** {a.counsel}{temp_note(counsel_model)}  |  "
+               f"**Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
                "Each cell shows **plain permissions / expiring permissions / plan-locked / TAA**.", "",
                "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified reroutes | Storm-blocked shipments left waiting | TAA plan outcome |",
                "|---|---|---|---|---|---|"]
