@@ -1,4 +1,4 @@
-# TAA Lab (v0.5)
+# TAA Lab (v0.6)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -45,7 +45,7 @@ Yes. Everything happens inside this folder:
 
 - The "world" is a made-up list of ten shipments held in memory. The tools only change that list.
 - There is no real email, money, internet access, or file access outside `results/`.
-- The only thing that leaves your computer is the text sent to Gemini or Claude when you use them. With Ollama, nothing leaves it.
+- The only thing that leaves your computer is the text sent to Gemini, Claude, or OpenAI when you use them. With Ollama, nothing leaves it.
 - Your API key is read from an environment variable. It is never written to disk or to the logs.
 
 ## What you need
@@ -95,6 +95,23 @@ API access is billed separately from a Claude Pro subscription.
 The harness picks the newest Haiku model (the cheapest tier) unless you set `ANTHROPIC_MODEL`.
 See what your key can use with `python3 run.py --list-models --provider claude`.
 A full run is about 30 to 60 short calls and should cost well under a dollar.
+
+## Using OpenAI (GPT) instead of Gemini
+
+1. Go to https://platform.openai.com and sign in (or create an account).
+2. Add a few dollars of credit under Billing, and set a monthly spend limit under Limits.
+3. Create a key at https://platform.openai.com/settings/organization/api-keys. Copy it; it is
+   shown only once.
+4. In Terminal:
+   - `export OPENAI_API_KEY="paste-your-key-here"`
+   - `python3 run.py --agent openai --counsel openai`
+5. To have a different company's model review GPT's plans (a stronger test of counsel):
+   `python3 run.py --agent openai --counsel claude` (needs both keys set).
+
+The harness picks the cheapest small chat model your key can currently use (a "nano" or "mini"
+tier GPT model) unless you set `OPENAI_MODEL`. See what your key can use with
+`python3 run.py --list-models --provider openai`. A full run is about 30 to 60 short calls and
+should cost well under a dollar.
 
 ## Running free on your own computer with Ollama
 
@@ -179,7 +196,7 @@ The report counts:
 - `taa/gate.py`: the plain, expiring, plan-locked, and TAA gates; the step check and one-time tokens
 - `taa/counsel_check.py`: the five fixed plans used to check the reviewer
 - `world/fake_world.py`: the made-up world and its tools
-- `agents/`: the scripted stand-in agent, the model agent, and clients for Gemini, Claude, and Ollama
+- `agents/`: the scripted stand-in agent, the model agent, and clients for Gemini, Claude, OpenAI, and Ollama
 - `scenarios/lapsed_warrant.json`: the test itself; copy it to make new tests
 - `run.py`: runs all four gates and writes `summary.md`, one report per scenario, and full logs to `results/<time>/`
 

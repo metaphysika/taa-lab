@@ -173,14 +173,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenario", default="scenarios/lapsed_warrant.json",
                     help="a scenario file, several separated by commas, or 'all' for every file in scenarios/")
-    ap.add_argument("--agent", choices=["scripted", "gemini", "claude", "ollama"], default="scripted")
-    ap.add_argument("--counsel", choices=["none", "gemini", "claude", "ollama"], default="none")
+    ap.add_argument("--agent", choices=["scripted", "gemini", "claude", "ollama", "openai"], default="scripted")
+    ap.add_argument("--counsel", choices=["none", "gemini", "claude", "ollama", "openai"], default="none")
     ap.add_argument("--repeat", type=int, default=1, help="runs per gate per scenario")
     ap.add_argument("--human", choices=["none", "standing", "ask"], default="standing",
                     help="who answers plans referred to human judgment: nobody (referral = not approved), "
                          "a standing determination made in advance (default), or you in the terminal")
     ap.add_argument("--list-models", action="store_true")
-    ap.add_argument("--provider", choices=["gemini", "claude", "ollama"], default="gemini",
+    ap.add_argument("--provider", choices=["gemini", "claude", "ollama", "openai"], default="gemini",
                     help="which provider --list-models asks")
     a = ap.parse_args()
 
@@ -192,6 +192,9 @@ def main():
             elif provider == "ollama":
                 from agents.ollama_client import Ollama
                 cache[provider] = Ollama()
+            elif provider == "openai":
+                from agents.openai_client import OpenAI
+                cache[provider] = OpenAI()
             else:
                 from agents.anthropic_client import Claude
                 cache[provider] = Claude()

@@ -145,3 +145,25 @@ confirms the predictions above exactly:
 No model run happened this session (none was requested). Model-call estimates for
 `--scenario purpose_defeat,purpose_defeat_wide --agent claude --counsel claude --repeat 3`, with and
 without `--human none`, were given to the owner directly rather than run.
+
+## 2026-09-25 — added an OpenAI client; no run yet
+
+`agents/openai_client.py` is a fourth model client, modeled on `anthropic_client.py`: same retry
+and pacing pattern, same `parse_first_json` for the reply, same "raise SystemExit with a clear
+message" style for a missing key, a bad key, or a model not found. Reads `OPENAI_API_KEY`. Unlike
+Anthropic's `/v1/models`, OpenAI's endpoint lists every kind of model the key can use (embeddings,
+audio, image, moderation, and older completion models too, not just chat), so `choose_model()`
+filters to `gpt-*` chat models before picking the cheapest small tier (`nano`, then `mini`); this
+is unit-tested directly on a fixed model list, with no key or network needed.
+
+Added `openai` to `--agent`, `--counsel`, and `--list-models --provider`; `OPENAI_API_KEY=` to
+`keys.env.example`; and a "Using OpenAI (GPT) instead of Gemini" section to README.md. Bumped
+README to v0.6.
+
+`python3 -m unittest discover tests` passes (14 tests, 4 of them new and key-free) and
+`python3 run.py --scenario all` (scripted agent, unaffected by this change) still matches the
+scores in the entry above.
+
+Not yet run with a real OpenAI key: whether the cheapest current small model actually behaves well
+as agent or counsel is untested. Same cost rule applies as the other paid providers: ask before
+any run of more than about 200 model calls.
