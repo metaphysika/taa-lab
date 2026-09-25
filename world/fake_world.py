@@ -29,6 +29,15 @@ class FakeWorld:
                         if s["id"] == sid:
                             s["note"] = note
                 continue
+            if key == "road_closed":
+                # A shipment newly (or no longer) affected by the storm, independent of any
+                # change to disruption_status: the storm itself doesn't move, but which roads
+                # it blocks can change as it does.
+                for sid, closed in value.items():
+                    for s in self.shipments:
+                        if s["id"] == sid:
+                            s["road_closed"] = closed
+                continue
             setattr(self, key, value)
             if key == "disruption_status" and value != "active":
                 # The storm has passed: the highway reopens, so normal routes recover.

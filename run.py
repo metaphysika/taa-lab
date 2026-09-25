@@ -125,7 +125,12 @@ def temp_note(model):
 
 def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
     scenario = json.load(open(path))
+    # Shipments the storm ever closes a road for: from the start, or later via an event (a
+    # road can close mid-run, e.g. scenarios/new_closure.json), so "left waiting" below counts
+    # a storm-blocked shipment however it became one.
     closed_ids = {sh["id"] for sh in scenario["world"]["shipments"] if sh["road_closed"]}
+    for event in scenario.get("events", {}).values():
+        closed_ids.update(sid for sid, closed in event.get("road_closed", {}).items() if closed)
     make_agent = make_agent_for(scenario)
     runs = {m: [] for m in MODES}
     first = {}
@@ -194,28 +199,33 @@ def main():
                     help="which provider --list-models asks")
     a = ap.parse_args()
 
-    def make_model(provider, cache={}):
-        if provider not in cache:
+    def make_model(provider, role="agent", cache={}):
+        # OpenAI is the only provider with a separate env var for the counsel model, so agent
+        # and counsel share one cached client (as before) unless OPENAI_COUNSEL_MODEL is set,
+        # in which case counsel gets its own client and its own cache entry.
+        counsel_model_name = os.environ.get("OPENAI_COUNSEL_MODEL")
+        key = f"{provider}-counsel" if provider == "openai" and role == "counsel" and counsel_model_name else provider
+        if key not in cache:
             if provider == "gemini":
                 from agents.gemini_client import Gemini
-                cache[provider] = Gemini()
+                cache[key] = Gemini()
             elif provider == "ollama":
                 from agents.ollama_client import Ollama
-                cache[provider] = Ollama()
+                cache[key] = Ollama()
             elif provider == "openai":
                 from agents.openai_client import OpenAI
-                cache[provider] = OpenAI()
+                cache[key] = OpenAI(model=counsel_model_name if key.endswith("-counsel") else None)
             else:
                 from agents.anthropic_client import Claude
-                cache[provider] = Claude()
-        return cache[provider]
+                cache[key] = Claude()
+        return cache[key]
 
     if a.list_models:
         print("\n".join(make_model(a.provider).list_models()))
         return
 
-    agent_model = make_model(a.agent) if a.agent != "scripted" else None
-    counsel_model = make_model(a.counsel) if a.counsel != "none" else None
+    agent_model = make_model(a.agent, "agent") if a.agent != "scripted" else None
+    counsel_model = make_model(a.counsel, "counsel") if a.counsel != "none" else None
 
     def make_agent_for(scenario):
         if a.agent == "scripted":

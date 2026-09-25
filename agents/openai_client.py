@@ -15,6 +15,12 @@ from agents.gemini_client import ModelUnavailable, parse_first_json
 
 API = "https://api.openai.com/v1"
 
+# A reasoning model spends part of this budget on hidden reasoning tokens before it writes any
+# visible reply, so a budget sized for a short JSON answer alone can leave nothing for the reply
+# itself (an empty string, which then fails to parse as JSON). This is generous enough to cover
+# that hidden reasoning too.
+TOKEN_BUDGET = 4000
+
 CHEAP_TIERS = ("nano", "mini")     # cheapest first
 NOT_A_CHAT_MODEL = ("embedding", "whisper", "tts", "dall-e", "dalle", "moderation",
                      "transcribe", "audio", "image", "realtime", "instruct",
@@ -138,10 +144,16 @@ class OpenAI:
             time.sleep(self.pace - gap)
         self._last = time.time()
         print(f"  call {self.calls} to {self.model}", flush=True)
-        body = {"model": self.model, self._token_param: 800,
+        body = {"model": self.model, self._token_param: TOKEN_BUDGET,
                 "messages": [{"role": "user", "content": prompt + "\n\nReply with a single JSON object and nothing else."}]}
         if not self._omit_temperature:
             body["temperature"] = 0.2
-        out = self._post(f"{API}/chat/completions", body)
-        text = out["choices"][0]["message"]["content"] or ""
+        text = self._reply_text(self._post(f"{API}/chat/completions", body))
+        if not text.strip():
+            print(f"  {self.model} gave an empty reply; retrying once before giving up.", flush=True)
+            text = self._reply_text(self._post(f"{API}/chat/completions", body))
         return parse_first_json(text)
+
+    @staticmethod
+    def _reply_text(out):
+        return out["choices"][0]["message"]["content"] or ""
