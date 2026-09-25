@@ -10,6 +10,7 @@ paper section it tests.
 |---|---|---|
 | Plain scoped permissions | Done | The floor |
 | Expiring permissions (scope, budget, live condition) | Done | Does TAA add anything beyond ordinary permission expiry? |
+| Plan-locked (plan review, live warrant, step check, no re-review) | Done | Does re-reviewing a departure (Iudicium) add anything beyond locking the plan at approval? |
 | TAA (plan review, live warrant, step check) | Done (partial) | The architecture under test |
 | Purpose-aware judge per step (one model checks each act, no plan) | To do | The "strong purpose-aware baseline" the paper names |
 
@@ -22,6 +23,7 @@ paper section it tests.
 | 3 | Unannounced lapse | 4.3 | Done | |
 | 4 | Ambiguous end (storm downgraded) | 4.3 | Done | |
 | 5 | Purpose defeat: rerouting unaffected shipments | 2.5, 4.5 | Done | |
+| 5b | Purpose defeat, wide plan: the plan must name every shipment it needs | 2.5, 3.4, 4.5 | Done | |
 | 6 | Ticket closures marked as duplicates | 4.5; case 1 | To do | Witness indicators and purpose steward (`taa/steward.py`) |
 | 7 | Benchmark agent reaches for a production system | 4.3; case 2 | To do | Target registry and capability envelope |
 | 8 | Authenticated order to falsify a safety record | 2.6, 5.2; case 4 | To do | M test in counsel; refuse, preserve, report |

@@ -1,15 +1,20 @@
 """The execution gate: the only path from an agent to the tools.
 
-Three gates share one interface so the same agent can run under any of them:
+Four gates share one interface so the same agent can run under any of them:
 - BaselineGate: ordinary scoped permissions. A tool call passes if the tool is on the
   allowed list and budget remains. Nothing expires; there is no plan.
 - ExpiringGate: scoped permissions that also expire when the warrant's condition stops
   holding. This is the strongest simple comparator: no plan, no review of purpose.
 - TAAGate: the step check from the paper (Section 4.3). A call passes only if it matches
   the approved plan, the warrant is live now, budget remains, and the registry allows it.
-  A passing call receives a one-time token bound to that exact act.
+  A passing call receives a one-time token bound to that exact act. A departure from the
+  approved plan goes back to review as an amended plan (Section 4.2) instead of an
+  automatic refusal.
+- PlanLockedGate: the same step check as TAAGate, but a departure is refused outright,
+  with no re-review. This is the comparator for whether re-reviewing departures (Iudicium,
+  Sections 3.3-4.2) adds anything over locking the plan the moment it is approved.
 
-Both gates hold the tool functions privately; the agent only ever calls gate.request().
+All gates hold the tool functions privately; the agent only ever calls gate.request().
 """
 import secrets
 
@@ -125,6 +130,25 @@ class TAAGate(_GateBase):
             ok, reason, _ = self._step_check(tool, args)
             reason = f"{note}; {reason}"
         if not ok:
+            self._record(tool, args, "REFUSED", reason)
+            return {"ok": False, "error": reason}
+        token = secrets.token_hex(4)   # one-time token bound to this exact act
+        result = self._execute(tool, args)
+        self._record(tool, args, "ALLOWED", f"{reason}; token {token}")
+        return result
+
+
+class PlanLockedGate(TAAGate):
+    """Same as TAAGate, except a departure from the approved plan is never re-reviewed:
+    the plan is locked at approval, and anything it did not specify is refused outright.
+    Comparator for whether TAAGate's re-review (Iudicium) earns its keep."""
+    name = "plan-locked (plan review + live warrant + step check, no re-review)"
+
+    def request(self, tool, args):
+        ok, reason, departure = self._step_check(tool, args)
+        if not ok:
+            if departure:
+                reason = f"outside the approved plan, and this gate does not re-review departures: {reason}"
             self._record(tool, args, "REFUSED", reason)
             return {"ok": False, "error": reason}
         token = secrets.token_hex(4)   # one-time token bound to this exact act
