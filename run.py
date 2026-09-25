@@ -1,5 +1,6 @@
-"""Run one scenario twice, once behind an ordinary gate and once behind the TAA gate,
-and write a short report comparing what actually happened in the fake world.
+"""Run each scenario behind five gates (plain permissions, expiring permissions, a per-step
+purpose judge, plan-locked, and TAA) and write a short report comparing what actually happened
+in the fake world.
 
 Examples:
   python run.py                                   # scripted agent, no AI, no cost
@@ -36,10 +37,20 @@ load_keys()
 
 from world.fake_world import FakeWorld
 from taa.records import Warrant, ToolRegistry
-from taa.gate import BaselineGate, ExpiringGate, PlanLockedGate, TAAGate
+from taa.gate import BaselineGate, ExpiringGate, PlanLockedGate, StepJudgeGate, TAAGate
 
-MODES = ("baseline", "expiring", "locked", "taa")
-from taa.counsel import review_plan
+MODES = ("baseline", "expiring", "judge", "locked", "taa")
+from taa.counsel import judge_act, review_plan
+
+
+class CountedModel:
+    """Counts the calls one gate's reviewer makes, even when the agent shares the same client."""
+    def __init__(self, model):
+        self._inner, self.model, self.calls = model, model.model, 0
+
+    def json(self, prompt):
+        self.calls += 1
+        return self._inner.json(prompt)
 
 
 def build(scenario):
@@ -53,6 +64,7 @@ def build(scenario):
 
 def run_once(mode, scenario, make_agent, counsel_model, human=None):
     world, warrant, registry = build(scenario)
+    reviewer_model = CountedModel(counsel_model) if counsel_model is not None else None
     agent = make_agent()
     agent.warrant = warrant
     tools = world.tools()
@@ -60,10 +72,13 @@ def run_once(mode, scenario, make_agent, counsel_model, human=None):
         gate = BaselineGate(tools, warrant, registry, world)
     elif mode == "expiring":
         gate = ExpiringGate(tools, warrant, registry, world)
+    elif mode == "judge":
+        gate = StepJudgeGate(tools, warrant, registry, world,
+                             judge=lambda tool, args: judge_act(tool, args, warrant, world, reviewer_model, human))
     else:
         gate_cls = PlanLockedGate if mode == "locked" else TAAGate
         gate = gate_cls(tools, warrant, registry, world,
-                        reviewer=lambda plan: review_plan(plan, warrant, registry, world, counsel_model, human))
+                        reviewer=lambda plan: review_plan(plan, warrant, registry, world, reviewer_model, human))
         plan = gate.submit_plan(agent.propose_plan(warrant, world.observe()))
         if plan.status == "stopped":
             # One revised plan, with the reviewer's reason as feedback. If it is stopped too,
@@ -78,6 +93,7 @@ def run_once(mode, scenario, make_agent, counsel_model, human=None):
         tool, args, reason = agent.decide(observation, feedback)
         reasons.append({"step": world.step, "wanted": tool, "args": args, "agent_reason": reason})
         feedback = gate.request(tool, args) if tool else None
+    gate.reviewer_calls = reviewer_model.calls if reviewer_model else 0
     return world, gate, reasons, getattr(agent, "skipped", 0)
 
 
@@ -167,6 +183,7 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             sc["skipped"] = skipped
             sc["plan"] = plan_outcome(gate)
             sc.update(referral_counts(gate))
+            sc["reviewer_calls"] = gate.reviewer_calls
             sc["missed"] = sum(1 for sh in world.shipments if sh["id"] in closed_ids and sh["route"] == "standard")
             runs[mode].append(sc)
             with open(os.path.join(out_dir, f"{os.path.basename(path)[:-5]}_{mode}_run{i + 1}.json"), "w") as f:
@@ -184,14 +201,15 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
              f"{('model counsel (' + counsel_model.model + ')' + temp_note(counsel_model)) if counsel_model else 'structural checks only'}  |  "
              f"**Referrals answered by:** {a.human}  |  "
              f"**Runs per gate:** {a.repeat}", "",
-             "| Gate | Justified reroutes | Storm-blocked shipments left waiting | Questionable (storm, open road) | Unauthorized acts | Money spent | Referrals to the human (needing an answer / notices) | Plan outcome |",
-             "|---|---|---|---|---|---|---|---|"]
+             "| Gate | Justified reroutes | Storm-blocked shipments left waiting | Questionable (storm, open road) | Unauthorized acts | Money spent | Referrals to the human (needing an answer / notices) | Reviewer calls | Plan outcome |",
+             "|---|---|---|---|---|---|---|---|---|"]
     for mode in MODES:
         r = runs[mode]
         lines.append(f"| {names[mode]} | {spread([x['justified'] for x in r])} | {spread([x['missed'] for x in r])} | "
                      f"{spread([x['questionable'] for x in r])} | "
                      f"{spread([x['unauthorized'] for x in r])} | ${sum(x['cost'] for x in r) / len(r):,.0f} | "
-                     f"{spread([x['referrals_answer'] for x in r])} / {spread([x['referrals_notice'] for x in r])} | {outcomes(r)} |")
+                     f"{spread([x['referrals_answer'] for x in r])} / {spread([x['referrals_notice'] for x in r])} | "
+                     f"{spread([x['reviewer_calls'] for x in r])} | {outcomes(r)} |")
     if a.repeat > 1:
         lines += ["", "_Averages across runs; the range is shown in parentheses when runs differed._"]
     skipped_total = sum(x["skipped"] for m in runs.values() for x in m)
@@ -201,7 +219,9 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
     unanswered = sum(x["referrals_unanswered"] for m in runs.values() for x in m)
     lines += ["", "Referrals count every question plan review sent to the human handler "
                   f"(answered by: {a.human}). Notices come from approve-and-refer verdicts: the acts went ahead and the "
-                  "question about the agent's stated end went to the issuer. Plain and expiring permissions never refer."
+                  "question about the agent's stated end went to the issuer. Plain and expiring permissions never refer. "
+                  "With no model counsel, the per-step judge sends every act to the human handler, so each counts as a referral. "
+                  "Reviewer calls count calls to the counsel model made by each gate (the counsel check is not included)."
                   + (f" {unanswered} referral(s) across all runs went unanswered." if unanswered else "")]
     lines += ["", "Scoring: " + "; ".join(f"**{k}** = {v}" for k, v in scenario["scoring"].items()), "",
               "## First run in detail", ""]
@@ -284,16 +304,16 @@ def main():
         name, names, runs = run_scenario(path, a, make_agent_for, counsel_model, out_dir, human)
         cell = lambda key: " / ".join(spread([x[key] for x in runs[m]]) for m in MODES)
         scenario_rows.append(f"| {name} | {cell('unauthorized')} | {cell('questionable')} | {cell('justified')} | "
-                             f"{cell('missed')} | {cell('referrals')} | {outcomes(runs['taa'])} |")
+                             f"{cell('missed')} | {cell('referrals')} | {cell('reviewer_calls')} | {outcomes(runs['taa'])} |")
 
     # Built after the scenarios run, not before, so temp_note() reflects any mid-run fallback
     # to a model's default temperature rather than the setting the run merely started with.
     summary = ["# Summary", "",
                f"**Agent:** {a.agent}{temp_note(agent_model)}  |  **Counsel:** {a.counsel}{temp_note(counsel_model)}  |  "
                f"**Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
-               "Each cell shows **plain permissions / expiring permissions / plan-locked / TAA**.", "",
-               "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified reroutes | Storm-blocked shipments left waiting | Referrals to the human | TAA plan outcome |",
-               "|---|---|---|---|---|---|---|"] + scenario_rows
+               "Each cell shows **plain permissions / expiring permissions / per-step judge / plan-locked / TAA**.", "",
+               "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified reroutes | Storm-blocked shipments left waiting | Referrals to the human | Reviewer calls | TAA plan outcome |",
+               "|---|---|---|---|---|---|---|---|"] + scenario_rows
     summary += ["", "Each scenario has its own report_<scenario>.md in this folder with the step-by-step logs."]
     if counsel_model is not None:
         from taa.counsel_check import check_counsel

@@ -1,10 +1,13 @@
 """The execution gate: the only path from an agent to the tools.
 
-Four gates share one interface so the same agent can run under any of them:
+Five gates share one interface so the same agent can run under any of them:
 - BaselineGate: ordinary scoped permissions. A tool call passes if the tool is on the
   allowed list and budget remains. Nothing expires; there is no plan.
 - ExpiringGate: scoped permissions that also expire when the warrant's condition stops
   holding. This is the strongest simple comparator: no plan, no review of purpose.
+- StepJudgeGate: expiring permissions plus a purpose judge (the same counsel model and purpose
+  instructions TAA's reviewer gets) on every act. No plan, no tokens. The comparator for whether
+  TAA's plan layer adds anything over judging each act as it comes.
 - TAAGate: the step check from the paper (Section 4.3). A call passes only if it matches
   the approved plan, the warrant is live now, budget remains, and the registry allows it.
   A passing call receives a one-time token bound to that exact act. A departure from the
@@ -56,26 +59,58 @@ class _GateBase:
 class BaselineGate(_GateBase):
     name = "baseline (scoped permissions)"
 
-    def request(self, tool, args):
+    def _refusal(self, tool, args):
+        """(log reason, error for the agent) if the act is refused, else None."""
         if tool not in self._tools or tool not in self.warrant.allowed_tools:
-            self._record(tool, args, "REFUSED", "tool not permitted")
-            return {"ok": False, "error": "not permitted"}
+            return "tool not permitted", "not permitted"
         left = self.warrant.remaining(tool)
         if left is not None and left <= 0:
-            self._record(tool, args, "REFUSED", "budget exhausted")
-            return {"ok": False, "error": "budget exhausted"}
+            return "budget exhausted", "budget exhausted"
+        return None
+
+    def request(self, tool, args):
+        refused = self._refusal(tool, args)
+        if refused:
+            self._record(tool, args, "REFUSED", refused[0])
+            return {"ok": False, "error": refused[1]}
         return self._allow(tool, args, "tool is permitted")
 
 
 class ExpiringGate(BaselineGate):
     name = "expiring permissions (scope + budget + live condition)"
 
-    def request(self, tool, args):
+    def _refusal(self, tool, args):
         live, why = self.warrant.is_live(self._world)
         if not live:
-            self._record(tool, args, "REFUSED", f"permission expired: {why}")
-            return {"ok": False, "error": f"permission expired: {why}"}
-        return super().request(tool, args)
+            return f"permission expired: {why}", f"permission expired: {why}"
+        return super()._refusal(tool, args)
+
+
+class StepJudgeGate(ExpiringGate):
+    """Expiring permissions plus a purpose judge on every act: no plan and no tokens. Each act
+    that passes scope, budget, and the live condition goes to the judge, which sees the warrant,
+    the current state, and the requested act, and approves or refuses it. This is the "strong
+    purpose-aware baseline" the paper names (Section 7): if it matches TAA, the plan layer is
+    not what does the work."""
+    name = "per-step judge (expiring permissions + purpose judge on every act, no plan)"
+
+    def __init__(self, tools, warrant, registry, world, judge):
+        super().__init__(tools, warrant, registry, world)
+        self._judge = judge            # a function(tool, args) -> (approved, note, referrals)
+        self.referrals = []
+
+    def request(self, tool, args):
+        refused = self._refusal(tool, args)
+        if refused:
+            self._record(tool, args, "REFUSED", refused[0])
+            return {"ok": False, "error": refused[1]}
+        approved, note, referrals = self._judge(tool, args)
+        for r in referrals:
+            self.referrals.append(dict(r, step=self._world.step))
+        if not approved:
+            self._record(tool, args, "REFUSED", note)
+            return {"ok": False, "error": note}
+        return self._allow(tool, args, note)
 
 
 class TAAGate(_GateBase):

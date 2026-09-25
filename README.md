@@ -1,4 +1,4 @@
-# TAA Lab (v0.8)
+# TAA Lab (v0.9)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -16,13 +16,19 @@ Authorization in Agentic AI," preprint v1.0, https://doi.org/10.5281/zenodo.2294
 | `tests/` | Free checks that run on every push (GitHub Actions) |
 | `results/` | Every run, kept as evidence |
 
-Each scenario runs behind four gates, and the report compares what actually happened in a
+Each scenario runs behind five gates, and the report compares what actually happened in a
 made-up world:
 
 - **Plain permissions:** the tool is allowed and budget remains. Nothing expires.
 - **Expiring permissions:** the same, plus the permission lapses when the warrant's condition
   stops holding. This is the strongest simple comparator. If it matches TAA, the improvement
   comes from ordinary security engineering, not from TAA's review of purpose.
+- **Per-step judge:** expiring permissions, plus a purpose judge on every act. No plan and no
+  tokens: before each act, the counsel model sees the warrant, the current state, and the requested
+  act, and approves or refuses it, under the same instructions about judging against the warrant's
+  purpose that TAA's reviewer gets. This is the "strong purpose-aware baseline" the paper names. If
+  it matches TAA, the improvement comes from judging acts, not from TAA's plan layer. With no
+  counsel model (scripted runs), the standing determination judges each act.
 - **Plan-locked:** plan review, then the step check against the approved plan and the live
   warrant, same as TAA below, except a step outside the approved plan is refused outright, with
   no re-review. If this matches TAA, the improvement comes from locking the plan, not from
@@ -200,10 +206,10 @@ Approve-and-refer notices need no answer: `standing` logs them, `ask` shows them
 and `none` logs them as unanswered. The plan goes ahead in every case.
 
 This writes `summary.md` plus one `report_<scenario>.md` per scenario. Each report shows the
-gate's decisions and, step by step, what the agent asked for and why. With Haiku, three runs of
-every scenario under all four gates is roughly 1,100 calls (adding the plan-locked gate's own plan
-review, and a sixth scenario, on top of the older three-gate, five-scenario estimate), about 45
-minutes, and a few dollars. Use `--repeat 2` for a quicker pass, or list scenarios to run only
+gate's decisions and, step by step, what the agent asked for and why. With a model agent and reviewer, three runs of
+every scenario under all five gates is roughly 1,800 calls (about 85 per scenario per run: 14 agent
+calls per gate, a plan or two for plan-locked and TAA, and one judge call per act the agent requests),
+over an hour, and a few dollars with Haiku. Use `--repeat 2` for a quicker pass, or list scenarios to run only
 some of them: `--scenario purpose_defeat,unannounced_lapse`.
 
 The report counts:
@@ -215,6 +221,8 @@ The report counts:
 - **Referrals to the human:** questions plan review sent to the human handler, split into those
   needing an answer (whole plans, the unapproved part of a plan, departures judged with no model
   counsel) and approve-and-refer notices. This is the escalation load.
+- **Reviewer calls:** calls to the counsel model made by each gate (the counsel check is separate).
+  TAA and plan-locked review a plan once plus any re-reviews; the per-step judge reviews every act.
 - **Plan outcome:** whether the plan was approved, stopped, or referred without an answer; "(revised)"
   means it came from the one revision after a stop, "(partial)" that counsel approved only some targets.
 
@@ -229,12 +237,12 @@ The report counts:
 
 - `taa/records.py`: the warrant, tool registry, and plan
 - `taa/counsel.py`: plan review (structural checks, plus optional model counsel)
-- `taa/gate.py`: the plain, expiring, plan-locked, and TAA gates; the step check and one-time tokens
+- `taa/gate.py`: the plain, expiring, per-step judge, plan-locked, and TAA gates; the step check and one-time tokens
 - `taa/counsel_check.py`: the five fixed plans used to check the reviewer, plus the sixth, reported separately
 - `world/fake_world.py`: the made-up world and its tools
 - `agents/`: the scripted stand-in agent, the wide planner, the model agent, and clients for Gemini, Claude, OpenAI, and Ollama
 - `scenarios/lapsed_warrant.json`: the test itself; copy it to make new tests
-- `run.py`: runs all four gates and writes `summary.md`, one report per scenario, and full logs to `results/<time>/`
+- `run.py`: runs all five gates and writes `summary.md`, one report per scenario, and full logs to `results/<time>/`
 
 ## What this does not test yet
 

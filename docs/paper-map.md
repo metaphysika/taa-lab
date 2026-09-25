@@ -16,7 +16,7 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 4.3 | Live warrant; tool registry; step check; unregistered tools most consequential | `Warrant.is_live`, `ToolRegistry`, `TAAGate._step_check`; an act with no effect spends no authority (`_GateBase._execute`, v0.8) |
 | 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`, `scenarios/purpose_defeat_wide.json`; witnesses and steward not yet built |
 | 6.2 | Model-mediated judgment can fail | `taa/counsel_check.py` (false approvals and refusals) |
-| 7 | Comparators; defeat conditions | Four gates in `taa/gate.py`; metrics in `run.py` |
+| 7 | Comparators; defeat conditions | Five gates in `taa/gate.py`, including the per-step purpose judge (`StepJudgeGate`, `judge_act` in `taa/counsel.py`); metrics, referrals, and reviewer calls in `run.py` |
 
 Not yet implemented: encoded core and charter review (4.1), delegation and shared budgets (4.4),
 witnesses and the purpose steward (4.5), emergency envelope (5.3), content-bound communication (3.2).
