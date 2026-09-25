@@ -1,5 +1,7 @@
 # Instructions for Claude Code in this repository
 
+Start each session by reading `docs/project-context.md`.
+
 This is TAA Lab, the test harness for Teleological Alignment Architecture (TAA), a Thomistic
 natural-law framework for governing AI agents. The paper is Chris Lahn, "A Thomistic Natural-Law
 Framework for Purpose-Dependent Authorization in Agentic AI," preprint v1.0,

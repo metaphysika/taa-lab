@@ -11,6 +11,8 @@ Authorization in Agentic AI," preprint v1.0, https://doi.org/10.5281/zenodo.2294
 | `ROADMAP.md` | Planned scenarios and mechanisms, each tied to a paper section |
 | `LAB_NOTEBOOK.md` | Dated findings from every run |
 | `docs/paper-map.md` | Which code implements which part of the paper |
+| `docs/project-context.md` | Decisions and findings so far: read this first in a new session |
+| `docs/*.pdf` | The paper and the research brief |
 | `tests/` | Free checks that run on every push (GitHub Actions) |
 | `results/` | Every run, kept as evidence |
 
