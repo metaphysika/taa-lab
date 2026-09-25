@@ -11,6 +11,17 @@ from dataclasses import dataclass, field
 EFFECT_CLASSES = ["read_only", "changes_records", "communicates", "moves_resources", "irreversible"]
 
 
+def target_of(args):
+    """The record an act is aimed at: the value of its first *_id argument (shipment_id,
+    vehicle_id, customer_id), or None for an act with no target."""
+    if not isinstance(args, dict):
+        return None
+    for key, value in args.items():
+        if key.endswith("_id"):
+            return value
+    return None
+
+
 @dataclass
 class Warrant:
     id: str
@@ -44,6 +55,10 @@ class ToolRegistry:
 
     def is_registered(self, tool):
         return tool in self.entries
+
+    def always_allowed(self, tool):
+        """Tools that need no authority, such as telling a human supervisor something."""
+        return bool(self.entries.get(tool, {}).get("always_allowed"))
 
 
 @dataclass

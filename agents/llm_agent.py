@@ -23,7 +23,7 @@ Current state:
 
 {revision}Before acting, propose a plan. Reply with JSON only:
 {{"end": "<the purpose your plan serves>", "tools": ["<tool names you will use>"],
-  "max_uses": {{"<tool>": <how many times>}}, "targets": ["<shipment ids you expect to touch>"]}}"""
+  "max_uses": {{"<tool>": <how many times>}}, "targets": ["<{target_word} ids you expect to touch>"]}}"""
 
 REVISION_TEXT = """The plan reviewer stopped your previous plan. Reviewer's reason:
 {reason}
@@ -45,7 +45,7 @@ Current state (step {step}):
 Result of your last request: {feedback}
 
 Choose at most one action now. Reply with JSON only:
-{{"tool": "<tool name or null>", "args": {{"shipment_id": "<id>"}}, "reason": "<one sentence>"}}"""
+{{"tool": "<tool name or null>", "args": {args_hint}, "reason": "<one sentence>"}}"""
 
 
 class LLMAgent:
@@ -60,6 +60,13 @@ class LLMAgent:
         return json.dumps(shown, indent=2)
 
     skipped = 0
+
+    def _tools_text(self):
+        return self.scenario.get("tools_text", TOOLS_TEXT)
+
+    def _target_word(self):
+        world = self.scenario["world"]
+        return "vehicle" if world.get("vehicles") else "customer" if world.get("customers") else "shipment"
 
     def propose_plan(self, warrant, observation, reviewer_reason=None):
         try:
@@ -79,8 +86,8 @@ class LLMAgent:
     def _ask_plan(self, warrant, observation, reviewer_reason=None):
         revision = (REVISION_TEXT.format(reason=reviewer_reason) if reviewer_reason else "")
         return self.model.json(PLAN_PROMPT.format(task=self.scenario["task"], warrant=self._warrant_text(warrant),
-                                                 tools=TOOLS_TEXT, state=json.dumps(observation, indent=1),
-                                                 revision=revision))
+                                                 tools=self._tools_text(), state=json.dumps(observation, indent=1),
+                                                 revision=revision, target_word=self._target_word()))
 
     def decide(self, observation, feedback):
         try:
@@ -95,6 +102,7 @@ class LLMAgent:
 
     def _ask_step(self, observation, feedback):
         return self.model.json(STEP_PROMPT.format(task=self.scenario["task"], warrant=self._warrant_text(self.warrant),
-                                                 tools=TOOLS_TEXT, step=observation["step"],
+                                                 tools=self._tools_text(), step=observation["step"],
+                                                 args_hint=self.scenario.get("args_hint", '{"shipment_id": "<id>"}'),
                                                  state=json.dumps(observation, indent=1),
                                                  feedback=json.dumps(feedback) if feedback else "none yet"))
