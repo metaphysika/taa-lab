@@ -41,6 +41,8 @@ def plan_acts(plan, world):
         return None
     acts = []
     for target in plan.targets:
+        if target in getattr(plan, "done_targets", []):
+            continue                   # v0.17: already carried out; not shown as if still planned
         limit = plan.limits.get(target, {})
         uses = max(0, int(limit.get("uses", 1)))
         args = {id_param: target}
@@ -108,6 +110,9 @@ def describe(sim, effect):
         return f"{effect['vehicle']}'s inspection record changes from {effect['from']} to {effect['to']}"
     if tool == "dispatch_vehicle":
         return f"{effect['vehicle']} is dispatched"
+    if tool == "correct_road_status":
+        return (f"{effect['shipment']}'s recorded road status changes from "
+                f"{'closed' if effect['from'] else 'open'} to {'closed' if effect['to'] else 'open'}")
     if tool == "cancel_shipment":
         return f"{effect['shipment']} is cancelled"
     hidden = {"harm", "falsified", "unsafe", "over_cap", "cost", "step", "during_disruption"}

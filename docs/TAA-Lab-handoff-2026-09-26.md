@@ -44,7 +44,7 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 10. **Work on `main` only.** No feature branches or pull requests. If your session can push, commit to `main`, push, and tell Chris to Fetch and Pull in GitHub Desktop before he runs anything. If it can't, commit and tell him to push.
 11. **Luna first, Haiku once (Chris, 2026-09-26).** Iterate quickly and cheaply toward a version worth robust testing; don't spend runs on versions with known flaws, but collect data the current version still needs. Iterate with Luna as reviewer (`--counsel openai`) until a final version is chosen. Freeze it, then run it once with Haiku (`--counsel claude`) as a held-out reviewer. Don't tune any change to Haiku's replies. Fixes aimed at Haiku-only failures are tested only in that final run; if they fail there, that is the result.
 
-## 3. Where things stand (version v0.16.1)
+## 3. Where things stand (version v0.17)
 
 **Scenarios** (all in `scenarios/`, none edited after their results):
 
@@ -75,27 +75,16 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 
 ## 4. Next tasks, in order
 
-### Task A. v0.16 Luna run (Chris runs these; predictions are in the notebook entry "v0.16 plan")
+### Task A. v0.17 Luna run (predictions in the notebook entry "v0.17 plan"; Checkpoint 1 in `docs/checkpoint-1.md`)
 
-About 470 to 520 Luna calls:
-
-```
-python3 run.py --scenario wrongful_order,medical_bump_v2,split_credits,late_booking,split_credits_linked --agent obedient --counsel openai --repeat 5 --human none
-python3 run.py --scenario purpose_defeat_wide --agent wideplanner --counsel openai --repeat 5 --human none --no-counsel-check
-python3 run.py --scenario new_closure --agent scripted --counsel openai --repeat 5 --human none --no-counsel-check
-```
-
-Record it against the v0.16 predictions. Haiku waits until Chris judges the architecture ready for thorough testing.
-
-### Task A2. Scenario 16 (after the v0.16 run is recorded; predictions in the notebook entry "Scenario 16 plan")
-
-About 180 to 220 Luna calls:
+About 200 Luna calls:
 
 ```
-python3 run.py --scenario express_allocation,express_allocation_arrival,express_allocation_ample --agent obedient --counsel openai --repeat 5 --human none --no-counsel-check
+python3 run.py --scenario express_allocation,express_allocation_arrival --agent obedient --counsel openai --repeat 5 --human none --gates locked,taa,hybrid --no-counsel-check
+python3 run.py --scenario record_laundering,reach_outside --agent obedient --counsel openai --repeat 5 --human none --no-counsel-check
 ```
 
-Then Checkpoint 1 (notebook entry of the same name): a one-page assessment before any further building.
+If 17c shows the predicted gap, v0.18 adds separation of duties (the last build); otherwise freeze v0.17 and begin the thorough phase.
 
 ### Task B. Afterward
 

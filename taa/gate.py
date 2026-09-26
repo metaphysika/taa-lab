@@ -61,6 +61,7 @@ class _GateBase:
         self._ordinary_refusals = {}   # memory key -> ordinary refusals on those facts (v0.15)
         self.fresh_rereviews = 0       # reviews of an act that had been refused before
         self._limit_noticed = set()    # targets the issuer has been told about a fixed-limit refusal
+        self._outside_noticed = set()  # tools outside the registry someone has been told about (v0.17)
 
     def _execute(self, tool, args):
         """Run an allowed act. Only an act that changed something spends authority: a call
@@ -92,6 +93,18 @@ class _GateBase:
         if reason:
             self._limit_notice(tool, args)
         return reason
+
+    def _outside_notice(self, tool, args):
+        """v0.17: the first request for a tool outside the registry is refused like any unpermitted
+        tool, and someone is told, once per tool. Nothing behind such a name runs at any gate. This
+        is the hand-off from the law (the gate) to whoever responds to attempts to break it."""
+        if self.registry.is_registered(tool) or tool in self._outside_noticed or self._notify is None:
+            return
+        self._outside_noticed.add(tool)
+        question = f"the agent asked for a tool outside the registry, which was refused: {tool} {json.dumps(args)}"
+        outcome, _ = self._notify(question)
+        self.referrals.append({"kind": "outside", "question": question, "outcome": outcome,
+                               "step": self._world.step})
 
     def _limit_notice(self, tool, args):
         """v0.14: a fixed limit refused an act, so the issuer is told once per target that the
@@ -205,6 +218,7 @@ class BaselineGate(_GateBase):
         return None
 
     def request(self, tool, args):
+        self._outside_notice(tool, args)
         if self._always_allowed(tool):
             return self._allow(tool, args, "always allowed: needs no authority")
         refused = self._refusal(tool, args)
@@ -237,6 +251,7 @@ class StepJudgeGate(ExpiringGate):
         self._judge = judge            # a function(tool, args) -> (approved, note, referrals)
 
     def request(self, tool, args):
+        self._outside_notice(tool, args)
         if self._always_allowed(tool):
             return self._allow(tool, args, "always allowed: needs no authority")
         refused = self._refusal(tool, args)
@@ -273,6 +288,7 @@ class TAAGate(_GateBase):
         asked = [t for t in plan.targets if t]
         tools = list(plan.tools)
         plan.notices_sent = self._notices_sent
+        plan.done_targets = self._done_targets(plan)
         reviewed = self._reviewer(plan, context=context) if context else self._reviewer(plan)
         if departure is None:
             self._note_stops(asked, tools, reviewed)
@@ -297,6 +313,17 @@ class TAAGate(_GateBase):
     # refusal, so one departure re-review is still allowed (the v0.15 rule). The plan's own acts
     # do not release a stop (the reviewer saw them coming); a change from outside does.
 
+    def _done_targets(self, plan):
+        """v0.17: targets whose approved acts are all carried out. A re-review is told they are done,
+        rather than shown them as if still planned (their preview read "already on that route")."""
+        done = []
+        for t in plan.targets:
+            uses = plan.limits.get(t, {}).get("uses", 1)
+            spent = sum(1 for e in self.log if e["decision"] == "ALLOWED" and e["spent"] and target_of(e["args"]) == t)
+            if spent and spent >= uses:
+                done.append(t)
+        return done
+
     def _note_stops(self, asked, tools, reviewed):
         if any(n.startswith("A fails") for n in reviewed.review_notes):
             return                     # a structural stop, enforced by the step check anyway
@@ -309,7 +336,10 @@ class TAAGate(_GateBase):
         for t in reviewed.targets:
             for tool in tools:
                 self._stops.pop((tool, t), None)
-        grave = any(r["kind"] == "grave" for r in reviewed.referrals)
+        # v0.17: a grave flag belongs to the review, not to a target. Only when the review stopped a
+        # single target is the flag surely that target's; several stopped targets each count as an
+        # ordinary first refusal, so an over-broad stop gets one more look (scenario 16).
+        grave = any(r["kind"] == "grave" for r in reviewed.referrals) and len(stopped) == 1
         for t in stopped:
             for tool in tools:
                 self._stops[(tool, t)] = {"facts": self._world.fingerprint(t), "step": self._world.step,
@@ -490,6 +520,7 @@ class TAAGate(_GateBase):
         return False, f"departure ({why}) re-reviewed: {'; '.join(reviewed.review_notes)}"
 
     def request(self, tool, args):
+        self._outside_notice(tool, args)
         if self._always_allowed(tool):
             return self._allow(tool, args, "always allowed: needs no authority")
         ok, reason, departure = self._step_check(tool, args)
@@ -532,6 +563,7 @@ class PlanLockedGate(TAAGate):
     watches_premises = False           # no re-review of any kind, including after facts change
 
     def request(self, tool, args):
+        self._outside_notice(tool, args)
         if self._always_allowed(tool):
             return self._allow(tool, args, "always allowed: needs no authority")
         ok, reason, departure = self._step_check(tool, args)
@@ -563,6 +595,7 @@ class HybridGate(TAAGate):
         return self._act_check(tool, args, self.plan)
 
     def request(self, tool, args):
+        self._outside_notice(tool, args)
         if self._always_allowed(tool):
             return self._allow(tool, args, "always allowed: needs no authority")
         ok, reason, departure = self._step_check(tool, args)

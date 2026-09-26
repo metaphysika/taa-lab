@@ -200,7 +200,7 @@ def plan_outcome(gate):
 
 # Notices tell the human something and need no answer: a diverging stated end (approve and refer),
 # a grave act refused, or an agent asking again for an act already refused.
-NOTICE_KINDS = ("end", "grave", "repeat", "limit")
+NOTICE_KINDS = ("end", "grave", "repeat", "limit", "outside")
 
 
 def referral_counts(gate):

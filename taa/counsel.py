@@ -147,6 +147,9 @@ def review_plan(plan, warrant, registry, world, model=None, human=None, context=
         # Partial approval: counsel approved only some of the plan's targets. The rest are
         # stopped, or referred to the human if counsel said a human should decide them.
         kept = approved_part(plan.targets, verdict)
+        if kept is not None and plan.done_targets:
+            # v0.17: a verdict that leaves out targets already carried out does not undo them.
+            kept = kept + [t for t in plan.targets if t in plan.done_targets and t not in kept]
         targets_changed = False
         if kept is not None and set(kept) != set(plan.targets):
             rest = [t for t in plan.targets if t not in kept]
@@ -415,6 +418,11 @@ def _plan_json(plan):
 
 def model_counsel(plan, warrant, model, world=None, context=None):
     state, warrant_text = _state_and_warrant(warrant, world)
+    done = getattr(plan, "done_targets", [])
+    if done:
+        # v0.17: acts already carried out under the approved plan are not for review again.
+        context = (context or "") + (f"Already carried out under the approved plan: {', '.join(done)}. These "
+                                     "are done and stay approved; judge only the rest.\n\n")
     prompt = COUNSEL_PROMPT.format(state=state, warrant=warrant_text, state_label=state_label(world),
                                    context=context or "", preview=plan_preview_text(plan, world, warrant.caps),
                                    plan=_plan_json(plan))

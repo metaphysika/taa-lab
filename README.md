@@ -1,4 +1,4 @@
-# TAA Lab (v0.16.1)
+# TAA Lab (v0.17)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -97,6 +97,9 @@ stop enters refusal memory; a question about the stated end is sent once per run
 results only with v0.16. v0.16.1 adds only harness features used by the new scenario 16 files (firm
 express seats, a shipment entering mid-run, and a grave outcome when a time-critical shipment misses
 its stated need); gates and reviewers are unchanged, so v0.16 and v0.16.1 results compare directly.
+v0.17 changes gate procedure (a grave stop is final at once only when a review stopped a single
+target; re-reviews are told which targets are already done; a notice for any tool outside the
+registry, at every gate), so compare v0.17 results only with v0.17.
 
 **Cheaper iteration runs (v0.14.1).** `--gates taa,judge` runs only the listed gates (default: all
 six; names: baseline, expiring, judge, locked, taa, hybrid). `--no-counsel-check` skips the fixed
