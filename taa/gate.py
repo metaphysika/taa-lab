@@ -1,6 +1,6 @@
 """The execution gate: the only path from an agent to the tools.
 
-Five gates share one interface so the same agent can run under any of them:
+Six gates share one interface so the same agent can run under any of them:
 - BaselineGate: ordinary scoped permissions. A tool call passes if the tool is on the
   allowed list and budget remains. Nothing expires; there is no plan.
 - ExpiringGate: scoped permissions that also expire when the warrant's condition stops
@@ -19,13 +19,24 @@ Five gates share one interface so the same agent can run under any of them:
   with no re-review. It shares TAAGate's plan review (partial approval, approve-and-refer,
   one revised plan). This is the comparator for whether re-reviewing departures (Iudicium,
   Sections 3.3-4.2) adds anything over locking the plan the moment it is approved.
+- HybridGate: TAA's plan review and departure re-review, plus an action-time check on acts
+  taa/consequence.py calls consequential (v0.11). Kept unchanged in v0.13 as the comparator
+  for TAA's premise watch.
+
+v0.13, shared by all six gates: fixed limits in the warrant (caps, taa/determinations.py) are
+enforced by the gate itself before any review. v0.13, TAA only: when facts the plan's approval
+rested on change for a reason other than the plan's own acts, the rest of the plan goes back to
+review before the next act (taa/premises.py).
 
 All gates hold the tool functions privately; the agent only ever calls gate.request().
 """
+import copy
 import json
 import secrets
 
+from taa import premises
 from taa.consequence import is_consequential
+from taa.determinations import cap_refusal, default_amount
 from taa.records import target_of
 
 
@@ -69,6 +80,13 @@ class _GateBase:
 
     def _always_allowed(self, tool):
         return tool in self._tools and self.registry.always_allowed(tool)
+
+    def _cap_check(self, tool, args):
+        """Why this act would break a fixed limit in the warrant (v0.13), or None. Checked by
+        every gate before any review; a review can't widen it."""
+        if not self.warrant.caps or tool not in self._tools:
+            return None
+        return cap_refusal(self.warrant.caps, tool, args, self.log, default_amount(self._tools[tool]))
 
     # ---- refusal memory (the per-step judge, TAA, and the hybrid alike) ----------------------
     # Since v0.11, only a refusal the reviewer flagged as GRAVE is remembered. While the facts it
@@ -149,6 +167,9 @@ class BaselineGate(_GateBase):
         left = self.warrant.remaining(tool)
         if left is not None and left <= 0:
             return "budget exhausted", "budget exhausted"
+        capped = self._cap_check(tool, args)
+        if capped:
+            return capped, capped
         return None
 
     def request(self, tool, args):
@@ -194,20 +215,25 @@ class StepJudgeGate(ExpiringGate):
 
 
 class TAAGate(_GateBase):
-    name = "TAA (plan review + live warrant + step check)"
+    name = "TAA (plan review + live warrant + step check + premise re-review)"
+    watches_premises = True            # v0.13; plan-locked and the hybrid turn this off
 
     def __init__(self, tools, warrant, registry, world, reviewer, notify=None):
         super().__init__(tools, warrant, registry, world, notify)
         self.plan = None
-        self._reviewer = reviewer      # a function(plan) -> reviewed plan
+        self._reviewer = reviewer      # a function(plan) -> reviewed plan (optionally with context=...)
         self.salvage_calls = 0
         self.salvaged_targets = []
+        self.scope_calls = 0
+        self.premise_rereviews = 0
+        self._baseline = None          # the facts the current approval rests on (taa/premises.py)
         self._pending_targets = set()
         self._pending_limits = {}
 
-    def _review(self, plan):
-        reviewed = self._reviewer(plan)
+    def _review(self, plan, context=None):
+        reviewed = self._reviewer(plan, context=context) if context else self._reviewer(plan)
         self.salvage_calls += reviewed.salvage_calls
+        self.scope_calls += reviewed.scope_calls
         self.salvaged_targets.extend(reviewed.salvaged_targets)
         self._pending_targets.update(reviewed.pending_targets)
         for target, limit in reviewed.pending_limits.items():
@@ -227,7 +253,43 @@ class TAAGate(_GateBase):
         self.plan = self._review(plan)
         self._record("(revised plan)" if plan.revision else "(plan)", requested,
                      plan.status.upper(), "; ".join(plan.review_notes))
+        if self.plan.status == "approved":
+            self._rebaseline()
         return self.plan
+
+    # ---- premise watch (v0.13, TAA only) -------------------------------------------------------
+
+    def _rebaseline(self):
+        """The current facts become what the approval rests on: at approval, and after each act
+        this gate allows (the approved plan anticipated its own acts)."""
+        self._baseline = premises.snapshot(self._world)
+
+    def _premises_changed(self):
+        return (self.watches_premises and self._baseline is not None
+                and premises.snapshot(self._world) != self._baseline)
+
+    def _premise_rereview(self):
+        """Facts changed for a reason other than the plan's own acts: the rest of the plan goes
+        back to review under the current facts, told what changed. The new verdict replaces the
+        old approval whatever it says, since the old approval's premises no longer hold."""
+        now = premises.snapshot(self._world)
+        changed = premises.changes(self._baseline, now)
+        amended = copy.deepcopy(self.plan)
+        amended.status, amended.review_notes, amended.amended, amended.revision = "proposed", [], True, False
+        requested = {"end": amended.end, "tools": list(amended.tools), "max_uses": dict(amended.max_uses),
+                     "targets": amended.targets_shown()}
+        self.premise_rereviews += 1
+        self.plan = self._review(amended, context=premises.context_text(changed, self.plan.premises))
+        self._baseline = now
+        self._record("(premise re-review)", requested, self.plan.status.upper(),
+                     "facts changed since approval: " + "; ".join(changed) + " | " + "; ".join(self.plan.review_notes))
+        return self.plan
+
+    def _allow(self, tool, args, reason):
+        result = super()._allow(tool, args, reason)
+        if self.watches_premises and self._baseline is not None:
+            self._rebaseline()
+        return result
 
     def _step_check(self, tool, args):
         """The fast, rule-based check. Returns (ok, reason, departure)."""
@@ -236,6 +298,9 @@ class TAAGate(_GateBase):
         live, why = self.warrant.is_live(self._world)
         if not live:
             return False, f"warrant not live: {why}", False
+        capped = self._cap_check(tool, args)
+        if capped:
+            return False, capped, False      # a fixed limit, not a departure: no review can widen it
         if not self.registry.is_registered(tool):
             return False, f"'{tool}' is not in the tool registry (treated as most consequential)", True
         if tool not in self.plan.tools:
@@ -303,6 +368,7 @@ class TAAGate(_GateBase):
             previous, self.plan = self.plan, reviewed
             covers, _, _ = self._step_check(tool, args)
             if covers:
+                self._rebaseline()     # this plan was just approved on the current facts
                 return True, f"departure ({why}) re-reviewed and approved: {'; '.join(reviewed.review_notes)}"
             self.plan = previous
             self._refused_on_review(tool, args, grave)
@@ -316,6 +382,17 @@ class TAAGate(_GateBase):
         if self._always_allowed(tool):
             return self._allow(tool, args, "always allowed: needs no authority")
         ok, reason, departure = self._step_check(tool, args)
+        if ok and self._premises_changed():
+            # v0.13: the approval this act relies on rested on facts that have since changed.
+            reviewed = self._premise_rereview()
+            ok, reason, departure = self._step_check(tool, args)
+            if not ok:
+                # Just reviewed on the current facts, so a departure is not sent to review again.
+                self._refused_on_review(tool, args, grave=any(r["kind"] == "grave" for r in reviewed.referrals))
+                note = f"premise re-review no longer covers this act: {reason}"
+                self._record(tool, args, "REFUSED", note)
+                return {"ok": False, "error": note}
+            reason = f"re-approved after facts changed; {reason}"
         if not ok and departure:
             remembered = self._recall(tool, args)
             if remembered:
@@ -338,6 +415,7 @@ class PlanLockedGate(TAAGate):
     the plan is locked at approval, and anything it did not specify is refused outright.
     Comparator for whether TAAGate's re-review (Iudicium) earns its keep."""
     name = "plan-locked (plan review + live warrant + step check, no re-review)"
+    watches_premises = False           # no re-review of any kind, including after facts change
 
     def request(self, tool, args):
         if self._always_allowed(tool):
@@ -359,6 +437,7 @@ class HybridGate(TAAGate):
     in TAA; a departure goes to TAA's re-review, which is already a fresh check, so it is not
     checked twice. What counts as consequential is defined in one place: taa/consequence.py."""
     name = "hybrid (TAA + action-time check on consequential acts)"
+    watches_premises = False           # v0.13: kept on its v0.11 consequence rule, as a comparator
 
     def __init__(self, tools, warrant, registry, world, reviewer, act_check, notify=None):
         super().__init__(tools, warrant, registry, world, reviewer, notify)

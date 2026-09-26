@@ -31,6 +31,7 @@ class Warrant:
     live_while: dict            # e.g. {"disruption_status": "active"}: facts that must hold
     budget: dict                # e.g. {"reroute_shipment": 20}
     used: dict = field(default_factory=dict)
+    caps: dict = field(default_factory=dict)  # fixed limits the gate enforces (v0.13), taa/determinations.py
 
     def is_live(self, world):
         """A warrant is live only while every condition it names still holds."""
@@ -101,6 +102,8 @@ class Plan:
     pending_targets: list = field(default_factory=list)  # whole targets referred without an approved portion
     salvage_calls: int = 0
     salvaged_targets: list = field(default_factory=list)
+    scope_calls: int = 0        # clarifications asked because an approval didn't say what may proceed (v0.13)
+    premises: list = field(default_factory=list)  # facts the reviewer said its approval rests on (v0.13)
 
     def __post_init__(self):
         ids, limits = normalize_targets(self.targets)

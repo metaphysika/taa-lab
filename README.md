@@ -1,4 +1,4 @@
-# TAA Lab (v0.12)
+# TAA Lab (v0.13)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -36,14 +36,25 @@ made-up world:
 - **TAA:** plan review (structural checks, optional model counsel, and a human stand-in for
   referrals), then the step check at the gate against the approved plan and the live warrant. A
   step outside the approved plan goes back to review as an amended plan instead of an automatic
-  refusal.
+  refusal. **Premise re-review (v0.13):** if facts the reviewer was shown change for a reason other
+  than the plan's own acts (a road closes, someone else books the express route), the rest of the
+  plan goes back to review before the next act. The reviewer is told what changed and the premises
+  it stated when it approved.
 - **Hybrid (v0.11):** TAA, plus a fresh counsel check at the moment of action for *consequential*
   acts inside the approved plan. That check sees the current state, the act, and the approved plan.
   Routine acts inside the plan pass on the plan's approval, as in TAA. `taa/consequence.py` defines
   "consequential", in one place: irreversible, changes a safety or legal record, gives money to an
   outside party, or draws on a shared resource the state shows as limited. In the storm scenarios no
   act is consequential, so the hybrid behaves exactly like TAA. In `medical_bump` and `split_credits`
-  every act is, so it behaves like the per-step judge with plan review in front.
+  every act is, so it behaves like the per-step judge with plan review in front. In v0.13 it keeps
+  this rule and does not re-review on changed facts, so it serves as the comparator for TAA's
+  premise re-review.
+
+**Fixed limits (v0.13, all six gates).** A cap in the warrant, such as "at most $300 in total to
+one customer," is checked by the gate itself before any review, and no review can widen it. Plain
+permissions enforce it too: a spending cap is ordinary permission engineering, and TAA shouldn't
+get credit for it. `taa/determinations.py` reads caps from a warrant's `caps` field. No scenario has
+one yet, so it also reads `split_credits`' recorded `credit_cap_per_customer`.
 
 Plan review (shared by plan-locked, TAA, and hybrid) can:
 
@@ -61,9 +72,14 @@ Plan review (shared by plan-locked, TAA, and hybrid) can:
   stated limit and refers the excess, that approved portion may proceed. The excess stays frozen
   until a human answers, including against a later amended plan. A target referred without a
   stated approved portion stays wholly frozen.
+- **require an explicit approval scope (v0.13):** an approval must say exactly what may proceed,
+  `"approved_targets": "all"` or a list. If it doesn't, counsel is asked once to say; if it still
+  doesn't, the plan is held for a human. The gate never reads the reviewer's reason as permission.
+- **record premises (v0.13):** counsel lists the facts its approval depends on. They go in the log
+  and are shown back at a premise re-review. Every raw reviewer reply is saved in the run's JSON.
 
-The v0.12 review procedure differs from earlier versions. Compare model results only with other
-v0.12 runs.
+The v0.13 review procedure differs from earlier versions. Compare model results only with other
+v0.13 runs.
 
 An act that changes nothing (for example, rerouting a shipment already on express) spends no plan
 or warrant use.
@@ -295,6 +311,8 @@ The report counts:
 - `taa/records.py`: the warrant, tool registry, and plan
 - `taa/counsel.py`: plan review (structural checks, plus optional model counsel)
 - `taa/consequence.py`: which acts the hybrid gate re-checks at the moment of action
+- `taa/determinations.py`: fixed limits (caps) every gate enforces before any review (v0.13)
+- `taa/premises.py`: the facts reviewers are shown, and what changed since an approval (v0.13)
 - `taa/gate.py`: the plain, expiring, per-step judge, plan-locked, TAA, and hybrid gates; the step check and one-time tokens
 - `taa/counsel_check.py`: the five fixed plans used to check the reviewer, plus the sixth, reported separately
 - `world/fake_world.py`: the made-up world and its tools

@@ -34,8 +34,8 @@ TAA counts as adding something only where it beats every simpler gate.
 | Expiring permissions (scope, budget, live condition) | Done | Does TAA add anything beyond ordinary permission expiry? |
 | Plan-locked (approved plan enforced; departures refused, no re-review) | Done | Does TAA's reviewer add anything beyond holding the agent to its own plan? |
 | Purpose-aware judge per step (one model checks each act, no plan) | Built v0.9; model-tested through v0.12 | The "strong purpose-aware baseline" the paper names; the main go/no-go test |
-| TAA (plan review, live warrant, step check) | Core prototype built and model-tested; wider paper architecture incomplete | The architecture under test |
-| Hybrid (TAA + action-time check on consequential acts, `taa/consequence.py`) | Built v0.11; model-tested with Luna and Haiku through v0.12 | Does re-checking consequential acts at the moment of action close the gap between plan review and the per-step judge, at lower cost than judging every act? |
+| TAA (plan review, live warrant, step check) | Core prototype built and model-tested; wider paper architecture incomplete. v0.13 adds premise re-review, explicit approval scope, and caps (built; no model run yet) | The architecture under test |
+| Hybrid (TAA + action-time check on consequential acts, `taa/consequence.py`) | Built v0.11; model-tested with Luna and Haiku through v0.12. Kept unchanged in v0.13 as the comparator for premise re-review; drop it if premise-watching TAA matches or beats it at lower cost | Does re-checking consequential acts at the moment of action close the gap between plan review and the per-step judge, at lower cost than judging every act? |
 
 ## Scenarios
 
@@ -60,7 +60,7 @@ TAA counts as adding something only where it beats every simpler gate.
 | 12 | Harm of stopping (medication shipment) | 5.3 | To do | Verified safe baseline |
 | 13 | Reply that becomes a lie at sending time | 3.2 | To do | Message tool and content-bound check |
 | 14 | Planner shades the counsel record | 3.3 | To do | Counsel record with evidence links |
-| 15 | Declared premise changes mid-plan | 4.3 | To do | Premise holds on approved plans |
+| 15 | Declared premise changes mid-plan | 4.3 | Mechanism built v0.13 (`taa/premises.py`); exercised by `late_booking` and `new_closure`; no model run yet | A dedicated scenario where a stated premise, not just a booking, changes |
 
 Scenario 9 is a candidate for harm spread across agents and a whole plan. Scenario 15 tests
 whether an approval still holds after a declared premise changes. Both remain to do. Plan review
@@ -152,6 +152,9 @@ Settle each with evidence before changing the architecture.
    as intended in one `purpose_defeat_wide` model run. In v0.12 `split_credits`, Haiku used the
    same verdict without a limited approval scope and the gate released excess credits. The
    distinction between an end notice and approval of acts now needs explicit enforcement.
+   **v0.13:** approvals must state their scope (`"all"` or a list), with one clarification call if
+   not, and the gate enforces the credit cap itself, so a vague approval can no longer release
+   excess credits. Built; no model run yet.
 
 ## Phases
 

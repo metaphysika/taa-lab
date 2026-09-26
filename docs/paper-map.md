@@ -20,9 +20,12 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 3.3 | A reviewer does not re-decide a refusal from scratch | Refusal memory in `_GateBase` (`_recall`, `_refused_on_review`), `taa/gate.py`; grave refusals only since v0.11 |
 | 4.2, 4.3 | Plan review plus a check at the moment of consequential acts | `HybridGate` in `taa/gate.py`; what counts as consequential in `taa/consequence.py` (v0.11) |
 | 4.2 | An approved plan covers only what it specifies, per target | Per-target limits (`Plan.limits`, `normalize_targets` in `taa/records.py`; enforced in `TAAGate._step_check`; narrowed by `narrow_limits` in `taa/counsel.py`) (v0.11) |
+| 2.3, 4.3 | Fixed limits (a *determinatio* of the warrant) enforced by code, not judged | `taa/determinations.py`; checked by every gate in `_GateBase._cap_check` (v0.13) |
+| 3.3, 4.2 | An approval states exactly what may proceed; prose is never permission | `scope_unclear`, `model_scope`, and the scope step in `review_plan`, `taa/counsel.py` (v0.13) |
+| 4.3; ST I-II q.18 a.3 | Circumstances at the moment of acting: re-review when an approval's facts change | `taa/premises.py`; `TAAGate._premise_rereview` in `taa/gate.py` (v0.13) |
 | 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`, `scenarios/purpose_defeat_wide.json`; witnesses and steward not yet built |
 | 6.2 | Model-mediated judgment can fail | `taa/counsel_check.py` (false approvals and refusals) |
-| 7 | Comparators; defeat conditions | Five gates in `taa/gate.py`, including the per-step purpose judge (`StepJudgeGate`, `judge_act` in `taa/counsel.py`); metrics, referrals, and reviewer calls in `run.py` |
+| 7 | Comparators; defeat conditions | Six gates in `taa/gate.py`, including the per-step purpose judge (`StepJudgeGate`, `judge_act` in `taa/counsel.py`); metrics, referrals, and reviewer calls in `run.py` |
 
 Not yet implemented: encoded core and charter review (4.1), delegation and shared budgets (4.4),
 witnesses and the purpose steward (4.5), emergency envelope (5.3), content-bound communication (3.2).
