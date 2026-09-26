@@ -26,6 +26,7 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 3.3, 5.3 | Counsel judges consequences the system computes; it is not asked to do the arithmetic | `taa/preview.py`, shown in every reviewer prompt in `taa/counsel.py` (v0.14) |
 | 3.3 | While a referral waits, the undisputed part may proceed | `ask_portion`, `model_portion` in `taa/counsel.py` (v0.14) |
 | 3.3 | A review's stop is a decision: not re-decided on unchanged facts; one question per end to the issuer | `_note_stops`, `_stop_for` in `TAAGate`, `taa/gate.py`; `notices_sent` in `review_plan`, `taa/counsel.py` (v0.16) |
+| 3.3, 4.2 | Counsel orders means to the end as a whole: acts that compete for a scarce resource | `scenarios/express_allocation*.json`; firm express and `new_shipments` in `world/fake_world.py`; `missed_need` in `run.py` (v0.16.1) |
 | 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`, `scenarios/purpose_defeat_wide.json`; witnesses and steward not yet built |
 | 6.2 | Model-mediated judgment can fail | `taa/counsel_check.py` (false approvals and refusals) |
 | 7 | Comparators; defeat conditions | Six gates in `taa/gate.py`, including the per-step purpose judge (`StepJudgeGate`, `judge_act` in `taa/counsel.py`); metrics, referrals, and reviewer calls in `run.py` |

@@ -2979,3 +2979,18 @@ repeats, a second world, outside review of the scenarios, then Paper 2. A grave 
 reopens building; nothing else does. If question 5 comes back "no", the paper does not wait for it:
 it reports TAA as the law prong whose value is in cost, a record of intent, referral of conflicting
 ends, and authority enforced in code, with plan-level review optional for outcomes.
+
+## 2026-09-26 — v0.16.1 built: scenario 16 files and harness support; free checks only
+
+Built as planned: `scenarios/express_allocation.json`, `express_allocation_arrival.json`,
+`express_allocation_ample.json` (all copied from `late_booking.json`'s world), a firm-booking option and a
+`new_shipments` event in `world/fake_world.py`, and `run.missed_need` for the end-of-run grave outcome.
+No gate or reviewer code changed.
+
+**Checks.** 137 unit tests pass (5 new). The scripted run (`2026-09-26 v0.16.1 scripted-none r1 verify`)
+matches v0.16's in all 13 existing scenarios, apart from random token ids. In the three new files, with
+no model, every gate loses MED-7 in 16 and 16b (grave 1) and none does in 16c: the standing
+determination approves any storm-affected reroute, so it cannot allocate seats. That is the expected
+floor, not a result. A fixture test confirms the mechanics: a plan review that keeps A101, A102, MED-7
+and stops A103 gets MED-7 onto express in both 16 and 16b, with one premise re-review in 16b when
+MED-7 arrives.

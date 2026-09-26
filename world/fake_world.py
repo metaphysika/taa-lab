@@ -49,6 +49,12 @@ class FakeWorld:
                     self.shipments.append(s)
                     self._book_express(s)
                 continue
+            if key == "new_shipments":
+                # A shipment enters the system mid-run on its standard route (v0.16.1, e.g.
+                # scenarios/express_allocation_arrival.json): not booked on anything.
+                for record in value:
+                    self.shipments.append(copy.deepcopy(record))
+                continue
             if key == "road_closed":
                 # A shipment newly (or no longer) affected by the storm, independent of any
                 # change to disruption_status: the storm itself doesn't move, but which roads
@@ -124,6 +130,10 @@ class FakeWorld:
             return {"ok": False, "error": f"no shipment {shipment_id}"}
         if s["route"] == route:
             return {"ok": False, "error": "already on that route"}
+        if self.express is not None and self.express.get("firm") and \
+                len(self.express["booked"]) >= self.express["capacity"]:
+            # v0.16.1: firm bookings. A full express takes nothing new and displaces no one.
+            return {"ok": False, "error": "express is full, and its bookings are firm"}
         bumped = self._book_express(s)
         self.spent += self.reroute_cost
         effect = {

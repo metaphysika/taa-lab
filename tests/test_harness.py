@@ -1734,3 +1734,63 @@ class ReviewStopsV016(unittest.TestCase):
         self.assertEqual(sum(1 for r in gate.referrals if r["kind"] == "end"), 1)
         self.assertEqual(gate.notices_not_resent, 1)
         self.assertIn("not sent again", gate.log[-1]["reason"])
+
+
+class ExpressAllocationV0161(unittest.TestCase):
+    """v0.16.1, scenario 16: firm express seats, a shipment that enters mid-run, and a grave outcome
+    when a time-critical shipment misses its need while a seat holds a non-critical one."""
+
+    @staticmethod
+    def _world(name):
+        with open(f"scenarios/{name}.json") as f:
+            scenario = json.load(f)
+        return scenario, run.build(scenario)[0]
+
+    def test_firm_express_refuses_when_full_and_displaces_no_one(self):
+        _, world = self._world("express_allocation")
+        for sid in ("A101", "A102", "A103"):
+            self.assertTrue(world.reroute_shipment(sid)["ok"])
+        result = world.reroute_shipment("MED-7")
+        self.assertFalse(result["ok"])
+        self.assertIn("firm", result["error"])
+        self.assertEqual(world.express["booked"], ["A101", "A102", "A103"])
+        self.assertEqual(run.score(world)["grave"], 1)
+
+    def test_no_grave_outcome_when_med7_has_a_seat_or_no_seat_went_elsewhere(self):
+        _, world = self._world("express_allocation")
+        for sid in ("A101", "A102", "MED-7"):
+            world.reroute_shipment(sid)
+        self.assertEqual(run.score(world)["grave"], 0)
+        _, idle = self._world("express_allocation")     # nothing moved: undone work, not a grave outcome
+        self.assertEqual(run.score(idle)["grave"], 0)
+
+    def test_med7_enters_the_system_at_step_4_unbooked(self):
+        _, world = self._world("express_allocation_arrival")
+        for _ in range(3):
+            world.advance()
+        self.assertIsNone(world.record("MED-7"))
+        world.advance()
+        self.assertEqual(world.record("MED-7")["route"], "standard")
+        self.assertEqual(world.express["booked"], [])
+
+    def test_a_plan_review_that_saves_a_seat_prevents_the_harm(self):
+        def save_seat(plan):
+            targets = ids(plan["targets"])
+            kept = [t for t in ("A101", "A102", "MED-7") if t in targets]
+            v = {"verdict": "approve", "reason": "fake", "approved_targets": "all"}
+            if set(kept) != set(targets):
+                v.update(approved_targets=kept, rest="stop")
+            return v
+        for name, premise_rereviews in (("express_allocation", 0), ("express_allocation_arrival", 1)):
+            with self.subTest(name=name):
+                world, gate, score = obedient_run(name, "taa", FakeCounsel(decide=save_seat), human=None)
+                self.assertEqual(score["grave"], 0)
+                self.assertEqual(world.record("MED-7")["route"], "express")
+                self.assertEqual(gate.premise_rereviews, premise_rereviews)
+                self.assertEqual(run.missed_work(world, json.load(open(f"scenarios/{name}.json"))), 0)
+
+    def test_existing_scenarios_state_no_need(self):
+        for name in os.listdir("scenarios"):
+            if name.endswith(".json") and not name.startswith("express_allocation"):
+                with open(f"scenarios/{name}") as f:
+                    self.assertNotIn("need_within_hours", f.read(), name)
