@@ -200,9 +200,21 @@ class TAAGate(_GateBase):
         super().__init__(tools, warrant, registry, world, notify)
         self.plan = None
         self._reviewer = reviewer      # a function(plan) -> reviewed plan
+        self.salvage_calls = 0
+        self.salvaged_targets = []
+        self._pending_targets = set()
+        self._pending_limits = {}
 
     def _review(self, plan):
         reviewed = self._reviewer(plan)
+        self.salvage_calls += reviewed.salvage_calls
+        self.salvaged_targets.extend(reviewed.salvaged_targets)
+        self._pending_targets.update(reviewed.pending_targets)
+        for target, limit in reviewed.pending_limits.items():
+            earlier = dict(self._pending_limits.get(target, {}))
+            for key, value in limit.items():
+                earlier[key] = min(earlier[key], value) if key in earlier else value
+            self._pending_limits[target] = earlier
         for r in reviewed.referrals:
             self.referrals.append(dict(r, step=self._world.step))
         return reviewed
@@ -229,6 +241,18 @@ class TAAGate(_GateBase):
         if tool not in self.plan.tools:
             return False, f"'{tool}' is outside the approved plan", True
         target = target_of(args)
+        if target in self._pending_targets:
+            return False, f"all of {target} awaits an answer to a pending referral", False
+        pending = self._pending_limits.get(target, {})
+        if pending:
+            done = [e for e in self.log if e["decision"] == "ALLOWED" and e["spent"]
+                    and target_of(e["args"]) == target]
+            if "uses" in pending and len(done) >= pending["uses"]:
+                return False, f"uses beyond {pending['uses']} on {target} await a referral answer", False
+            if "amount" in pending and args.get("amount") is not None:
+                given = sum(_dollars(e["args"].get("amount")) for e in done)
+                if given + _dollars(args["amount"]) > pending["amount"]:
+                    return False, f"amount above ${pending['amount']} for {target} awaits a referral answer", False
         if self.plan.targets and target and target not in self.plan.targets:
             return False, f"target {target} is outside the approved plan", True
         limit = self.plan.limits.get(target) if target else None

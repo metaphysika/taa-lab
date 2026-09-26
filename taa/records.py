@@ -97,6 +97,10 @@ class Plan:
     dropped_targets: list = field(default_factory=list)   # targets counsel did not approve
     referrals: list = field(default_factory=list)          # questions sent to the human at this review
     limits: dict = field(default_factory=dict)  # per-target limits: id -> {"uses": n, "amount": dollars}
+    pending_limits: dict = field(default_factory=dict)  # approved ceiling while a larger request awaits an answer
+    pending_targets: list = field(default_factory=list)  # whole targets referred without an approved portion
+    salvage_calls: int = 0
+    salvaged_targets: list = field(default_factory=list)
 
     def __post_init__(self):
         ids, limits = normalize_targets(self.targets)

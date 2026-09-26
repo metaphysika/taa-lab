@@ -1,4 +1,4 @@
-# TAA Lab (v0.11.1)
+# TAA Lab (v0.12)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -45,7 +45,7 @@ made-up world:
   act is consequential, so the hybrid behaves exactly like TAA. In `medical_bump` and `split_credits`
   every act is, so it behaves like the per-step judge with plan review in front.
 
-Plan review (shared by plan-locked and TAA) can, since v0.8:
+Plan review (shared by plan-locked, TAA, and hybrid) can:
 
 - **approve part of a plan:** counsel approves the targets the warrant's purpose covers and stops,
   or refers to the human, the rest;
@@ -54,6 +54,16 @@ Plan review (shared by plan-locked and TAA) can, since v0.8:
   goes to the human handler as a notice that does not hold up the plan;
 - **take one revised plan after a stop:** the agent is told the reviewer's reason and may propose
   once more. If that is stopped too, the run continues with no approved plan.
+- **salvage safe targets after a stop (v0.12):** a stopped plan gets one follow-up review asking
+  which targets, if any, are safe on their own, including lower per-target limits. The original
+  grave notice still goes out. Reports count these extra calls and the targets they recover.
+- **hold only a referred excess (v0.12):** when counsel explicitly approves a target up to a
+  stated limit and refers the excess, that approved portion may proceed. The excess stays frozen
+  until a human answers, including against a later amended plan. A target referred without a
+  stated approved portion stays wholly frozen.
+
+The v0.12 review procedure differs from earlier versions. Compare model results only with other
+v0.12 runs.
 
 An act that changes nothing (for example, rerouting a shipment already on express) spends no plan
 or warrant use.
@@ -228,8 +238,8 @@ When plan review refers a plan to a human (Iudicium), `--human` decides who answ
   approves record changes in advance, and the credit scenario approves credits to storm-delayed
   customers (with no cap, so it can't see a split).
 - `--human ask`: the run pauses and asks you in the terminal. Best with `--repeat 1`.
-- `--human none`: nobody answers, so a referral blocks the whole plan. Useful for showing what
-  happens when review capacity runs out.
+- `--human none`: nobody answers. A whole-plan referral blocks the plan; a partial referral holds
+  the disputed targets or portions. Useful for showing what happens when review capacity runs out.
 
 Approve-and-refer notices need no answer: `standing` logs them, `ask` shows them in the terminal,
 and `none` logs them as unanswered. The plan goes ahead in every case.

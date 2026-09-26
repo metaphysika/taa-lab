@@ -230,6 +230,8 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             sc["remembered"] = sum(1 for e in gate.log if e.get("remembered"))
             sc["fresh_rereviews"] = gate.fresh_rereviews
             sc["action_checks"] = getattr(gate, "action_checks", 0)
+            sc["salvage_calls"] = getattr(gate, "salvage_calls", 0)
+            sc["salvaged_targets"] = len(getattr(gate, "salvaged_targets", []))
             sc.update(checks(world, gate))
             runs[mode].append(sc)
             with open(os.path.join(out_dir, f"{os.path.basename(path)[:-5]}_{mode}_run{i + 1}.json"), "w") as f:
@@ -267,12 +269,13 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             r = runs[mode]
             lines.append(f"| {names[mode]} | " + " | ".join(f"{sum(x[c] for x in r)}/{len(r)} runs"
                                                              for c in scenario["checks"]) + " |")
-    lines += ["", "| Gate | Refused from memory (grave refusals only) | Fresh re-reviews of an act refused before | Action-time checks (hybrid) |",
-              "|---|---|---|---|"]
+    lines += ["", "| Gate | Refused from memory (grave refusals only) | Fresh re-reviews of an act refused before | Action-time checks (hybrid) | Salvage calls | Salvaged targets |",
+              "|---|---|---|---|---|---|"]
     for mode in MODES:
         r = runs[mode]
         lines.append(f"| {names[mode]} | {spread([x['remembered'] for x in r])} | {spread([x['fresh_rereviews'] for x in r])} | "
-                     f"{spread([x['action_checks'] for x in r])} |")
+                     f"{spread([x['action_checks'] for x in r])} | {spread([x['salvage_calls'] for x in r])} | "
+                     f"{spread([x['salvaged_targets'] for x in r])} |")
     if a.repeat > 1:
         lines += ["", "_Averages across runs; the range is shown in parentheses when runs differed._"]
     skipped_total = sum(x["skipped"] for m in runs.values() for x in m)
@@ -381,7 +384,8 @@ def main():
         name, names, runs = run_scenario(path, a, make_agent_for, counsel_model, out_dir, human)
         cell = lambda key: " / ".join(spread([x[key] for x in runs[m]]) for m in MODES)
         scenario_rows.append(f"| {name} | {cell('unauthorized')} | {cell('questionable')} | {cell('justified')} | "
-                             f"{cell('missed')} | {cell('grave')} | {cell('referrals')} | {cell('reviewer_calls')} | {outcomes(runs['taa'])} |")
+                             f"{cell('missed')} | {cell('grave')} | {cell('referrals')} | {cell('reviewer_calls')} | "
+                             f"{cell('salvage_calls')} | {cell('salvaged_targets')} | {outcomes(runs['taa'])} |")
 
     # Built after the scenarios run, not before, so temp_note() reflects any mid-run fallback
     # to a model's default temperature rather than the setting the run merely started with.
@@ -389,8 +393,8 @@ def main():
                f"**Agent:** {a.agent}{temp_note(agent_model)}  |  **Counsel:** {a.counsel}{temp_note(counsel_model)}  |  "
                f"**Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
                "Each cell shows **plain permissions / expiring permissions / per-step judge / plan-locked / TAA / hybrid**.", "",
-               "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified acts | Legitimate work left undone | Grave acts | Referrals to the human | Reviewer calls | TAA plan outcome |",
-               "|---|---|---|---|---|---|---|---|---|"] + scenario_rows
+               "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified acts | Legitimate work left undone | Grave acts | Referrals to the human | Reviewer calls | Salvage calls | Salvaged targets | TAA plan outcome |",
+               "|---|---|---|---|---|---|---|---|---|---|---|"] + scenario_rows
     summary += ["", "Each scenario has its own report_<scenario>.md in this folder with the step-by-step logs."]
     if counsel_model is not None:
         from taa.counsel_check import check_counsel

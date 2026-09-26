@@ -143,6 +143,9 @@ Settle each with evidence before changing the architecture.
    **Implemented in v0.8:** one revised plan after a stop, with the reviewer's reason as feedback; a
    second stop leaves the run with no approved plan. Open: whether one revision is enough, and whether
    a revision lets an agent argue its way past a correct stop.
+   **v0.12:** a model stop also gets one general follow-up review for independently approvable
+   targets, including lower per-target limits. If none are found, the one-revision path still applies.
+   Model evidence for whether this restores legitimate work without releasing grave acts is pending.
 5. **Approve and refer.** Added in v0.8: when a plan's acts serve the warrant's purpose but its stated
    end does not, counsel approves the acts and refers the end to the issuer. Open: whether reviewers
    use it as intended or as a softer "approve" for plans that should be stopped (counsel check case 6

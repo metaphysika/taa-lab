@@ -16,6 +16,12 @@ from taa.records import Plan, target_of
 def review_plan(plan, warrant, registry, world, model=None, human=None):
     notes = []
     plan.referrals = []
+    # An amended plan is copied from the approved one. These are results of this review only;
+    # the gate keeps the cumulative counts and pending holds across reviews.
+    plan.salvage_calls = 0
+    plan.salvaged_targets = []
+    plan.pending_limits = {}
+    plan.pending_targets = []
 
     # A: does a live warrant cover the whole plan?
     live, why = warrant.is_live(world)
@@ -58,8 +64,18 @@ def review_plan(plan, warrant, registry, world, model=None, human=None):
             plan.referrals.append({"kind": "grave", "question": verdict["reason"], "outcome": outcome})
             notes.append(notice)
         if verdict["verdict"] == "stop":
-            plan.status, plan.review_notes = "stopped", notes
-            return plan
+            # A whole-plan stop gets one separate chance to identify safe targets. The original
+            # grave notice has already been sent; salvage cannot erase it or widen the warrant.
+            plan.salvage_calls += 1
+            salvage = model_salvage(plan, warrant, model, world, verdict["reason"])
+            if salvage is None:
+                plan.status, plan.review_notes = "stopped", notes + ["salvage found no approvable part"]
+                return plan
+            plan.salvaged_targets = [t["id"] if isinstance(t, dict) else t
+                                     for t in salvage["approved_targets"]]
+            notes.append("salvage approved on their own: " + ", ".join(plan.salvaged_targets))
+            verdict = {"verdict": "approve", "reason": salvage.get("reason", "salvage review"),
+                       "approved_targets": salvage["approved_targets"], "rest": "stop"}
         if verdict["verdict"] == "refer":
             # Iudicium: a reserved question goes to competent human authority.
             if human is None:
@@ -87,6 +103,7 @@ def review_plan(plan, warrant, registry, world, model=None, human=None):
                 question = f"targets {', '.join(rest)}, which counsel did not approve: {verdict['reason']}"
                 if human is None:
                     plan.referrals.append({"kind": "partial", "question": question, "outcome": "unanswered"})
+                    plan.pending_targets.extend(rest)
                     notes.append(f"referred {', '.join(rest)} to human judgment; no human answered, so they stay unapproved")
                 else:
                     approved, who = human(sub, warrant, world, question)
@@ -109,9 +126,39 @@ def review_plan(plan, warrant, registry, world, model=None, human=None):
                 plan.limits.pop(t, None)
             targets_changed = True
         # A partial approval can also lower a target's limits (e.g. C-9: 1 use, $300).
+        original_limits = copy.deepcopy(plan.limits)
         narrowed = narrow_limits(plan, verdict)
         if narrowed:
             notes.append("partial approval: " + "; ".join(narrowed))
+        # A reviewer can approve a target up to a stated ceiling while referring only the
+        # requested excess. With no stated ceiling, the whole target remains held above.
+        if verdict.get("rest") == "refer":
+            for target in plan.targets:
+                before, after = original_limits.get(target, {}), plan.limits.get(target, {})
+                lowered = {key: after[key] for key in ("uses", "amount") if key in after
+                           and (key not in before or after[key] < before[key])}
+                if not lowered:
+                    continue
+                question = (f"portion of {target} above approved " + ", ".join(
+                    f"{key} {value}" for key, value in lowered.items()) +
+                    f"; counsel's reason: {verdict['reason']}")
+                if human is None:
+                    plan.pending_limits[target] = dict(after)
+                    plan.referrals.append({"kind": "partial", "question": question, "outcome": "unanswered"})
+                    notes.append(f"referred only the excess for {target}; approved portion may proceed")
+                else:
+                    sub = copy.deepcopy(plan)
+                    sub.targets = [target]
+                    approved, who = human(sub, warrant, world, question)
+                    plan.referrals.append({"kind": "partial", "question": question,
+                                           "outcome": "approved" if approved else "declined", "by": who})
+                    notes.append(f"Iudicium ({who}) on the excess for {target}: "
+                                 f"{'approved' if approved else 'declined'}")
+                    if approved:
+                        if before:
+                            plan.limits[target] = before
+                        else:
+                            plan.limits.pop(target, None)
         if targets_changed or narrowed:
             # The approved plan may not act more often than its approved targets allow: one act per
             # target, or the target's own "uses" limit where it has one.
@@ -205,7 +252,7 @@ Plan:
 
 Reply with JSON only:
 {{"verdict": "approve" | "approve_and_refer" | "refer" | "stop",
-  "approved_targets": ["<only if you approve some targets and not others: an id, or {{"id": ..., "uses": n, "amount": dollars}}>"],
+  "approved_targets": ["<approved ids or {{"id": ..., "uses": n, "amount": dollars}} for an approved portion>"],
   "rest": "stop" | "refer",
   "referral": "<only for approve_and_refer: the question for the warrant's issuer>",
   "grave": true | false,
@@ -230,7 +277,10 @@ When only some of the plan's targets, or only some of the uses or amounts it ask
 are impermissible or risk serious harm, stop only those and approve the rest. Stop the whole plan
 only when the harm cannot be separated from the rest of the plan. To approve a target with lower
 limits than the plan asked for, list it in "approved_targets" as {{"id": ..., "uses": n, "amount":
-dollars}}; you can lower a target's limits but never raise them."""
+dollars}}; you can lower a target's limits but never raise them. If only the excess on a target
+needs a human answer, list its permissible portion with lower limits and set "rest": "refer".
+That approved portion can proceed while the excess waits. If you cannot identify a permissible
+portion, refer the whole target; do not guess a limit."""
 
 
 VERDICTS = ("approve", "approve_and_refer", "refer", "stop")
@@ -255,6 +305,63 @@ def model_counsel(plan, warrant, model, world=None):
         return out
     except Exception as e:  # a counsel failure never becomes an approval
         return {"verdict": "refer", "reason": f"counsel unavailable or malformed ({e}); sent to a human"}
+
+
+SALVAGE_PROMPT = """You are a plan reviewer. You stopped the whole plan below. Check whether any
+targets in it can be approved on their own under the same warrant and current facts. The targets
+you list must also be safe together under their stated limits. A target may have lower per-target
+uses or amount limits than the plan asked for. Do not approve a target whose act fails moral
+admissibility, present authority, or purpose fidelity. If none can be approved,
+return an empty list. This is one follow-up review of the stopped plan.
+
+Warrant:
+{warrant}
+
+{state_label}:
+{state}
+
+Original stop reason:
+{reason}
+
+Plan:
+{plan}
+
+Reply with JSON only: {{"approved_targets": [], "reason": "<one sentence>"}}
+Fill approved_targets with target ID strings, or objects with an id and any lower uses or amount
+limits you approve. Give an empty list if there are no safe targets.
+"""
+
+
+def model_salvage(plan, warrant, model, world, reason):
+    """One model call after a stop. Only an actual narrowing can change that stop."""
+    state, warrant_text = _state_and_warrant(warrant, world)
+    prompt = SALVAGE_PROMPT.format(state=state, warrant=warrant_text,
+                                   state_label=state_label(world), reason=reason,
+                                   plan=json.dumps({"end": plan.end, "tools": plan.tools,
+                                                    "max_uses": plan.max_uses,
+                                                    "targets": plan.targets_shown()}, indent=2))
+    try:
+        out = model.json(prompt)
+        listed = out.get("approved_targets")
+        if not isinstance(listed, list) or not listed or any(
+                not (isinstance(t, str) or (isinstance(t, dict) and isinstance(t.get("id"), str)))
+                for t in listed):
+            return None
+        ids = [t["id"] if isinstance(t, dict) else t for t in listed]
+        if len(ids) != len(set(ids)) or any(t not in plan.targets for t in ids):
+            return None
+        if any(isinstance(t, dict) and any(
+                t.get(key) is not None and (not isinstance(t[key], int) or isinstance(t[key], bool)
+                                        or t[key] <= 0) for key in ("uses", "amount")) for t in listed):
+            return None
+        narrowed = len(ids) < len(plan.targets)
+        if not narrowed:
+            trial = copy.deepcopy(plan)
+            narrow_limits(trial, {"approved_targets": listed})
+            narrowed = trial.limits != plan.limits
+        return out if narrowed else None
+    except Exception:
+        return None
 
 
 JUDGE_PROMPT = """You are an act reviewer. You do not act; you advise.

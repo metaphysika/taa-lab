@@ -486,7 +486,9 @@ class RevisedPlan(unittest.TestCase):
         narrow = {"end": "move affected", "tools": ["reroute_shipment"], "max_uses": {"reroute_shipment": 3},
                   "targets": CLOSED, "tool": None, "reason": "wait"}
         agent_model = FakeCounsel(replies=[dict(narrow), dict(narrow)] + [dict(narrow)] * 20)
-        counsel = FakeCounsel(replies=[{"verdict": "stop", "reason": "REASON-XYZ"}, {"verdict": "approve", "reason": "ok"}])
+        counsel = FakeCounsel(replies=[{"verdict": "stop", "reason": "REASON-XYZ"},
+                                       {"approved_targets": [], "reason": "nothing safe in this plan"},
+                                       {"verdict": "approve", "reason": "ok"}])
         world, gate, _, _ = run.run_once("taa", scenario, lambda: LLMAgent(scenario, agent_model), counsel,
                                          standing_determination)
         self.assertEqual(run.plan_outcome(gate), "approved (revised)")
@@ -1024,6 +1026,123 @@ class PartialByDefaultWording(unittest.TestCase):
         from taa.counsel import purpose_rules
         self.assertIn(purpose_rules("act"), HYBRID_PROMPT)
         self.assertIn(purpose_rules("act"), JUDGE_PROMPT)
+
+
+class PlanReviewV012(unittest.TestCase):
+    """Fixed replies test the review procedure, not a model's judgment."""
+
+    def test_stopped_mixed_plan_salvages_safe_targets_and_keeps_grave_notice(self):
+        from agents.obedient_agent import ObedientAgent
+        scenario = json.load(open("scenarios/wrongful_order.json"))
+        counsel = FakeCounsel(replies=[
+            {"verdict": "stop", "grave": True, "reason": "one requested act is grave"},
+            {"approved_targets": ["T1", "T2", "T3"], "reason": "these dispatches are safe"}])
+        world, gate, _, _ = run.run_once("locked", scenario,
+            lambda: ObedientAgent(scenario), counsel, None)
+        sc = run.score(world)
+        self.assertEqual((sc["grave"], sc["justified"]), (0, 3))
+        self.assertEqual((gate.salvage_calls, gate.salvaged_targets), (1, ["T1", "T2", "T3"]))
+        self.assertEqual(gate.reviewer_calls, 2)
+        self.assertTrue(any(r["kind"] == "grave" for r in gate.referrals))
+        self.assertIn("salvage approved", gate.log[0]["reason"])
+
+    def test_salvage_cannot_reapprove_an_unchanged_stopped_plan(self):
+        from taa.counsel import review_plan
+        from taa.records import Plan
+        world, warrant, registry = run.build(json.load(open("scenarios/split_credits.json")))
+        plan = Plan(end="x", warrant_id=warrant.id, tools=["issue_credit"],
+                    max_uses={"issue_credit": 4}, targets=["C-9"])
+        counsel = FakeCounsel(replies=[{"verdict": "stop", "reason": "unsafe"},
+                                       {"approved_targets": ["C-9"], "reason": "changed my mind"}])
+        reviewed = review_plan(plan, warrant, registry, world, counsel, None)
+        self.assertEqual(reviewed.status, "stopped")
+        self.assertEqual(reviewed.salvage_calls, 1)
+        self.assertEqual(counsel.calls, 2)
+
+    def test_re_review_stop_also_gets_one_salvage_call(self):
+        from taa.counsel import review_plan
+        from taa.gate import TAAGate
+        from taa.records import Plan
+        world, warrant, registry = run.build(json.load(open("scenarios/purpose_defeat.json")))
+        counsel = FakeCounsel(replies=[
+            {"verdict": "approve", "reason": "initial plan is sound"},
+            {"verdict": "stop", "reason": "departure is unsound"},
+            {"approved_targets": ["A101"], "reason": "A101 alone is sound"}])
+        gate = TAAGate(world.tools(), warrant, registry, world,
+            reviewer=lambda p: review_plan(p, warrant, registry, world, counsel, None))
+        gate.submit_plan(Plan(end="x", warrant_id=warrant.id, tools=["reroute_shipment"],
+                              max_uses={"reroute_shipment": 2}, targets=["A101", "A102"]))
+        world.advance()
+        self.assertFalse(gate.request("reroute_shipment", {"shipment_id": "A104"})["ok"])
+        self.assertEqual((gate.salvage_calls, gate.salvaged_targets), (1, ["A101"]))
+        self.assertEqual(counsel.calls, 3)
+
+    def test_amended_plan_does_not_count_an_earlier_salvage_again(self):
+        from taa.counsel import review_plan
+        from taa.gate import TAAGate
+        from taa.records import Plan
+        world, warrant, registry = run.build(json.load(open("scenarios/purpose_defeat.json")))
+        counsel = FakeCounsel(replies=[
+            {"verdict": "stop", "reason": "one target is unsound"},
+            {"approved_targets": ["A101"], "reason": "A101 is sound"},
+            {"verdict": "approve", "reason": "amended plan is sound"}])
+        gate = TAAGate(world.tools(), warrant, registry, world,
+            reviewer=lambda p: review_plan(p, warrant, registry, world, counsel, None))
+        gate.submit_plan(Plan(end="x", warrant_id=warrant.id, tools=["reroute_shipment"],
+                              max_uses={"reroute_shipment": 2}, targets=["A101", "A102"]))
+        world.advance()
+        gate.request("reroute_shipment", {"shipment_id": "A102"})
+        self.assertEqual((gate.salvage_calls, gate.salvaged_targets), (1, ["A101"]))
+        self.assertEqual(counsel.calls, 3)
+
+    def test_partial_referral_allows_only_the_stated_credit_and_holds_excess(self):
+        from agents.obedient_agent import ObedientAgent
+        from taa.records import Plan
+        scenario = json.load(open("scenarios/split_credits.json"))
+        for mode in ("locked", "taa"):
+            with self.subTest(mode=mode):
+                counsel = FakeCounsel(replies=[{"verdict": "approve", "reason": "excess needs finance",
+                    "approved_targets": [{"id": "C-9", "uses": 1, "amount": 300},
+                                         "C-1", "C-2", "C-3"], "rest": "refer"}])
+                world, gate, _, _ = run.run_once(mode, scenario,
+                    lambda: ObedientAgent(scenario), counsel, None)
+                sc = run.score(world)
+                self.assertEqual((sc["grave"], sc["justified"]), (0, 4))
+                self.assertEqual(gate.reviewer_calls, 1)
+                self.assertEqual(gate._pending_limits["C-9"], {"uses": 1, "amount": 300})
+                self.assertTrue(any(r["kind"] == "partial" and "above approved" in r["question"]
+                                    for r in gate.referrals))
+                counsel.replies.append({"verdict": "approve", "reason": "new plan asks for the excess"})
+                gate.submit_plan(Plan(end="try again", warrant_id=gate.warrant.id,
+                    tools=["issue_credit"], max_uses={"issue_credit": 7},
+                    targets=[{"id": "C-9", "uses": 4, "amount": 1200}]))
+                self.assertFalse(gate.request("issue_credit", {"customer_id": "C-9", "amount": 300})["ok"])
+                self.assertIn("await a referral answer", gate.log[-1]["reason"])
+                self.assertEqual(counsel.calls, 2)  # no act re-review can bypass the pending portion
+
+    def test_whole_target_referral_stays_frozen_across_a_new_plan(self):
+        from taa.counsel import review_plan
+        from taa.gate import TAAGate
+        from taa.records import Plan
+        world, warrant, registry = run.build(json.load(open("scenarios/split_credits.json")))
+        counsel = FakeCounsel(replies=[
+            {"verdict": "approve", "reason": "C-9 needs finance", "approved_targets": ["C-1"], "rest": "refer"},
+            {"verdict": "approve", "reason": "second plan"}])
+        gate = TAAGate(world.tools(), warrant, registry, world,
+            reviewer=lambda p: review_plan(p, warrant, registry, world, counsel, None))
+        gate.submit_plan(Plan(end="x", warrant_id=warrant.id, tools=["issue_credit"],
+                              max_uses={"issue_credit": 2}, targets=["C-9", "C-1"]))
+        gate.submit_plan(Plan(end="x", warrant_id=warrant.id, tools=["issue_credit"],
+                              max_uses={"issue_credit": 1}, targets=["C-9"]))
+        world.advance()
+        self.assertFalse(gate.request("issue_credit", {"customer_id": "C-9", "amount": 300})["ok"])
+        self.assertIn("pending referral", gate.log[-1]["reason"])
+        self.assertEqual(counsel.calls, 2)
+
+    def test_salvage_prompt_names_no_scenario(self):
+        from taa.counsel import SALVAGE_PROMPT
+        for word in ("brake", "dialysis", "credit", "C-9", "MED-7"):
+            self.assertNotIn(word, SALVAGE_PROMPT)
 
 
 class LateBooking(unittest.TestCase):
