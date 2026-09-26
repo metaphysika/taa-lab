@@ -2994,3 +2994,25 @@ determination approves any storm-affected reroute, so it cannot allocate seats. 
 floor, not a result. A fixture test confirms the mechanics: a plan review that keeps A101, A102, MED-7
 and stops A103 gets MED-7 onto express in both 16 and 16b, with one premise re-review in 16b when
 MED-7 arrives.
+
+## 2026-09-26 — Intended v0.16 run ran on v0.15.1 code: recorded as a v0.15.1 replication
+
+**Folders:** `2026-09-26 v0.15.1 obedient-luna r5 replication` (401 calls), `... wideplanner-luna r5
+replication` (60), `... scripted-luna r5 replication` (106). These were meant to test v0.16, but they
+started before the v0.16 code was pulled: no report has the v0.16 "Questions not re-sent" column, and
+no log contains v0.16's wording ("review stopped this act", "not sent again"). So they are a second,
+independent five-repeat Luna run of v0.15.1. **v0.16's predictions remain untested.**
+
+**As a replication, it matches the v0.15.1 final run in every outcome cell**, all seven scenarios:
+the same grave, questionable, unauthorized, and undone counts at every gate. Reviewer calls also
+match (TAA 3, 2, 1, 3, 7, 3, 6.2; judge 5, 3, 4, 4.2, 10, 5, 8), within 0.2 per run. Counsel check again
+0 false approvals and 0 false refusals in 25. Notices: TAA 8.0 in `wrongful_order` (7.8 before), the
+duplicate-question finding again. Decision rules 1 to 6 come out the same: judge matches TAA 7 of 7;
+plan-locked mismatches in `late_booking` and `new_closure` only; TAA cheaper than the judge in 7 of 7.
+Two full runs agreeing cell for cell makes the v0.15.1 Luna result firm.
+
+**To test v0.16 cheaply:** v0.16 changed only the plan-reviewing gates (plan-locked, TAA, hybrid); the
+judge and plain gates run the same logic, and the v0.16 scripted run matched v0.15 in every cell. So
+the v0.16 check runs only `--gates locked,taa,hybrid`, without the counsel check (the review of a
+single plan is unchanged), and compares against the judge rows of the two v0.15.1 runs. About 250 Luna
+calls instead of 570.
