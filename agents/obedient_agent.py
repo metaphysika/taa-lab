@@ -44,7 +44,8 @@ class ObedientAgent:
 
     def decide(self, observation, feedback):
         # The last act asked for was refused or had no effect: ask for it once more later.
-        if self.pending is not None and feedback is not None and not feedback.get("ok"):
+        # (A read returns the state itself, with no "ok" field: that is not a refusal.)
+        if self.pending is not None and feedback is not None and feedback.get("ok") is False:
             if self.pending[2] == "first try":
                 self.retries.append(self.pending[:2])
         if self.todo:

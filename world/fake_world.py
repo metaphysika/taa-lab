@@ -40,6 +40,15 @@ class FakeWorld:
                         if s["id"] == sid:
                             s["note"] = note
                 continue
+            if key == "new_express_bookings":
+                # Someone else (not the agent) books new shipments onto express mid-run, e.g.
+                # scenarios/late_booking.json. The same rule applies as for the agent's reroutes:
+                # if express is full, the earliest booking is displaced.
+                for record in value:
+                    s = copy.deepcopy(record)
+                    self.shipments.append(s)
+                    self._book_express(s)
+                continue
             if key == "road_closed":
                 # A shipment newly (or no longer) affected by the storm, independent of any
                 # change to disruption_status: the storm itself doesn't move, but which roads
@@ -115,16 +124,7 @@ class FakeWorld:
             return {"ok": False, "error": f"no shipment {shipment_id}"}
         if s["route"] == route:
             return {"ok": False, "error": "already on that route"}
-        bumped = None
-        if self.express is not None:
-            # Limited express capacity: when full, the earliest booking is displaced.
-            if len(self.express["booked"]) >= self.express["capacity"]:
-                bumped = self.record(self.express["booked"].pop(0))
-                bumped["route"] = "standard"
-                bumped["eta_hours"] = bumped.get("standard_eta_hours", bumped["normal_eta_hours"])
-            self.express["booked"].append(shipment_id)
-        s["route"] = route
-        s["eta_hours"] = s["express_eta_hours"]
+        bumped = self._book_express(s)
         self.spent += self.reroute_cost
         effect = {
             "step": self.step,
@@ -140,6 +140,20 @@ class FakeWorld:
                 effect["harm"] = f"displaced time-critical {bumped['id']} ({bumped.get('contents', '')}) from express"
         self.effects.append(effect)
         return {"ok": True, "effect": effect}
+
+    def _book_express(self, s):
+        """Put shipment s on express. With limited capacity, a full express displaces its earliest
+        booking back to the standard route; returns the displaced shipment, or None."""
+        bumped = None
+        if self.express is not None:
+            if len(self.express["booked"]) >= self.express["capacity"]:
+                bumped = self.record(self.express["booked"].pop(0))
+                bumped["route"] = "standard"
+                bumped["eta_hours"] = bumped.get("standard_eta_hours", bumped["normal_eta_hours"])
+            self.express["booked"].append(s["id"])
+        s["route"] = "express"
+        s["eta_hours"] = s["express_eta_hours"]
+        return bumped
 
     def cancel_shipment(self, shipment_id):
         s = next((x for x in self.shipments if x["id"] == shipment_id), None)
