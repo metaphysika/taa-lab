@@ -40,6 +40,8 @@ from taa.records import Warrant, ToolRegistry
 from taa.gate import BaselineGate, ExpiringGate, HybridGate, PlanLockedGate, StepJudgeGate, TAAGate
 
 MODES = ("baseline", "expiring", "judge", "locked", "taa", "hybrid")
+MODE_LABELS = {"baseline": "plain permissions", "expiring": "expiring permissions", "judge": "per-step judge",
+               "locked": "plan-locked", "taa": "TAA", "hybrid": "hybrid"}
 SCRIPTED_AGENTS = ("scripted", "wideplanner", "obedient")
 from taa.counsel import judge_act, review_plan, send_notice
 from taa.determinations import caps_for
@@ -236,10 +238,10 @@ def temp_note(model):
 def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
     scenario = json.load(open(path))
     make_agent = make_agent_for(scenario)
-    runs = {m: [] for m in MODES}
+    runs = {m: [] for m in a.gates}
     first = {}
     for i in range(a.repeat):
-        for mode in MODES:
+        for mode in a.gates:
             if a.repeat > 1:
                 print(f"[{scenario['name']}] run {i + 1}/{a.repeat}, {mode}", flush=True)
             world, gate, reasons, skipped = run_once(mode, scenario, make_agent, counsel_model, human)
@@ -268,7 +270,7 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             if i == 0:
                 first[mode] = (gate, reasons)
 
-    names = {m: first[m][0].name for m in MODES}
+    names = {m: first[m][0].name for m in a.gates}
     agent_obj = make_agent()
     lines = [f"# {scenario['name']}", "",
              f"**Question:** {scenario['question']}", "",
@@ -279,7 +281,7 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
              f"**Runs per gate:** {a.repeat}", "",
              "| Gate | Justified acts | Legitimate work left undone | Questionable (letter yes, purpose no) | Unauthorized acts | Grave acts | Money spent | Referrals to the human (needing an answer / notices) | Reviewer calls | Plan outcome |",
              "|---|---|---|---|---|---|---|---|---|---|"]
-    for mode in MODES:
+    for mode in a.gates:
         r = runs[mode]
         lines.append(f"| {names[mode]} | {spread([x['justified'] for x in r])} | {spread([x['missed'] for x in r])} | "
                      f"{spread([x['questionable'] for x in r])} | "
@@ -292,13 +294,13 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
                   "notice_received": "Notice received"}
         lines += ["", "| Gate | " + " | ".join(titles[c] for c in scenario["checks"]) + " |",
                   "|---|" + "---|" * len(scenario["checks"])]
-        for mode in MODES:
+        for mode in a.gates:
             r = runs[mode]
             lines.append(f"| {names[mode]} | " + " | ".join(f"{sum(x[c] for x in r)}/{len(r)} runs"
                                                              for c in scenario["checks"]) + " |")
     lines += ["", "| Gate | Refused from memory (grave refusals only) | Fresh re-reviews of an act refused before | Action-time checks (hybrid) | Salvage calls | Salvaged targets | Premise re-reviews (TAA) | Scope clarification calls | Portion follow-up calls | Refused by a fixed limit |",
               "|---|---|---|---|---|---|---|---|---|---|"]
-    for mode in MODES:
+    for mode in a.gates:
         r = runs[mode]
         lines.append(f"| {names[mode]} | {spread([x['remembered'] for x in r])} | {spread([x['fresh_rereviews'] for x in r])} | "
                      f"{spread([x['action_checks'] for x in r])} | {spread([x['salvage_calls'] for x in r])} | "
@@ -323,7 +325,7 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
                   + (f" {unanswered} referral(s) across all runs went unanswered." if unanswered else "")]
     lines += ["", "Scoring: " + "; ".join(f"**{k}** = {v}" for k, v in scenario["scoring"].items()), "",
               "## First run in detail", ""]
-    for mode in MODES:
+    for mode in a.gates:
         gate, reasons = first[mode]
         lines += [f"### {names[mode]}", "", "**Gate log**", "", log_table(gate), ""]
         if a.agent not in SCRIPTED_AGENTS:
@@ -347,10 +349,19 @@ def main():
     ap.add_argument("--human", choices=["none", "standing", "ask"], default="standing",
                     help="who answers plans referred to human judgment: nobody (referral = not approved), "
                          "a standing determination made in advance (default), or you in the terminal")
+    ap.add_argument("--gates", default=",".join(MODES),
+                    help="which gates to run, comma-separated (default: all six): " + ", ".join(MODES))
+    ap.add_argument("--no-counsel-check", action="store_true",
+                    help="skip the fixed counsel check (6 reviewer calls per repeat); for iteration runs")
     ap.add_argument("--list-models", action="store_true")
     ap.add_argument("--provider", choices=["gemini", "claude", "ollama", "openai"], default="gemini",
                     help="which provider --list-models asks")
     a = ap.parse_args()
+    chosen = [g.strip() for g in a.gates.split(",") if g.strip()]
+    unknown = [g for g in chosen if g not in MODES]
+    if unknown or not chosen:
+        ap.error(f"unknown gate(s) {', '.join(unknown) or '(none given)'}; choose from {', '.join(MODES)}")
+    a.gates = tuple(m for m in MODES if m in chosen)      # always in the usual order
 
     def make_model(provider, role="agent", cache={}):
         # OpenAI is the only provider with a separate env var for the counsel model, so agent
@@ -412,21 +423,23 @@ def main():
     scenario_rows = []
     for path in paths:
         name, names, runs = run_scenario(path, a, make_agent_for, counsel_model, out_dir, human)
-        cell = lambda key: " / ".join(spread([x[key] for x in runs[m]]) for m in MODES)
+        cell = lambda key: " / ".join(spread([x[key] for x in runs[m]]) for m in a.gates)
         scenario_rows.append(f"| {name} | {cell('unauthorized')} | {cell('questionable')} | {cell('justified')} | "
                              f"{cell('missed')} | {cell('grave')} | {cell('referrals')} | {cell('reviewer_calls')} | "
-                             f"{cell('salvage_calls')} | {cell('salvaged_targets')} | {outcomes(runs['taa'])} |")
+                             f"{cell('salvage_calls')} | {cell('salvaged_targets')} | {outcomes(runs['taa']) if 'taa' in runs else 'not run'} |")
 
     # Built after the scenarios run, not before, so temp_note() reflects any mid-run fallback
     # to a model's default temperature rather than the setting the run merely started with.
     summary = ["# Summary", "",
                f"**Agent:** {a.agent}{temp_note(agent_model)}  |  **Counsel:** {a.counsel}{temp_note(counsel_model)}  |  "
                f"**Referrals answered by:** {a.human}  |  **Runs per gate:** {a.repeat}", "",
-               "Each cell shows **plain permissions / expiring permissions / per-step judge / plan-locked / TAA / hybrid**.", "",
+               "Each cell shows **" + " / ".join(MODE_LABELS[m] for m in a.gates) + "**.", "",
                "| Scenario | Unauthorized acts | Questionable acts (letter yes, purpose no) | Justified acts | Legitimate work left undone | Grave acts | Referrals to the human | Reviewer calls | Salvage calls | Salvaged targets | TAA plan outcome |",
                "|---|---|---|---|---|---|---|---|---|---|---|"] + scenario_rows
     summary += ["", "Each scenario has its own report_<scenario>.md in this folder with the step-by-step logs."]
-    if counsel_model is not None:
+    if a.no_counsel_check and counsel_model is not None:
+        summary += ["", "**Counsel check:** skipped (`--no-counsel-check`)."]
+    elif counsel_model is not None:
         from taa.counsel_check import check_counsel
         cw, cwarrant, _ = build(json.load(open("scenarios/purpose_defeat.json")))
         print("Checking whether the plan reviewer still says no...", flush=True)

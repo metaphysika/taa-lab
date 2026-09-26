@@ -1,4 +1,4 @@
-# TAA Lab (v0.14)
+# TAA Lab (v0.14.1)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -89,7 +89,13 @@ preview. Every reviewer also sees the disruption status, and every gate tells th
 limit refuses an act.
 
 The v0.14 review procedure differs from earlier versions. Compare model results only with other
-v0.14 runs.
+v0.14 runs. v0.14.1 changes only the harness (run options, a new scenario, saved counsel-check
+replies), so v0.14 and v0.14.1 results compare directly.
+
+**Cheaper iteration runs (v0.14.1).** `--gates taa,judge` runs only the listed gates (default: all
+six; names: baseline, expiring, judge, locked, taa, hybrid). `--no-counsel-check` skips the fixed
+counsel check (6 reviewer calls per repeat). Final runs should use all six gates and the counsel
+check.
 
 An act that changes nothing (for example, rerouting a shipment already on express) spends no plan
 or warrant use.

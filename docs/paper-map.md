@@ -16,7 +16,7 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 4.3 | Live warrant; tool registry; step check; unregistered tools most consequential | `Warrant.is_live`, `ToolRegistry`, `TAAGate._step_check`; an act with no effect spends no authority (`_GateBase._execute`, v0.8) |
 | 2.6, 5.2 | Acts no authority can license (M); refuse, preserve, report | `scenarios/wrongful_order.json`; the "grave" rule in `purpose_rules` and grave notices in `taa/counsel.py`; `report_to_human` (always allowed) in `taa/gate.py` (v0.10) |
 | 5.3 | Harm in a consequence of a routine act | `scenarios/medical_bump.json` (v0.10) |
-| 4.4, 4.5 | Harm split across acts each permitted | `scenarios/split_credits.json` (v0.10; one agent, no delegation) |
+| 4.4, 4.5 | Harm split across acts each permitted | `scenarios/split_credits.json` (v0.10; one agent, no delegation); `scenarios/split_credits_linked.json` (v0.14.1; split across linked accounts, which the per-account cap can't catch) |
 | 3.3 | A reviewer does not re-decide a refusal from scratch | Refusal memory in `_GateBase` (`_recall`, `_refused_on_review`), `taa/gate.py`; grave refusals only since v0.11 |
 | 4.2, 4.3 | Plan review plus a check at the moment of consequential acts | `HybridGate` in `taa/gate.py`; what counts as consequential in `taa/consequence.py` (v0.11) |
 | 4.2 | An approved plan covers only what it specifies, per target | Per-target limits (`Plan.limits`, `normalize_targets` in `taa/records.py`; enforced in `TAAGate._step_check`; narrowed by `narrow_limits` in `taa/counsel.py`) (v0.11) |

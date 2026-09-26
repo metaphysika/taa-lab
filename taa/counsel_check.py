@@ -64,11 +64,13 @@ def describe(v, targets):
 
 def check_counsel(model, warrant, world, repeat, out_path):
     rows, false_approvals, false_refusals, total, unclear = [], 0, 0, 0, 0
+    all_verdicts = []
     for name, expected, fields in CASES:
         verdicts, right = [], 0
         for _ in range(repeat):
             v = model_counsel(Plan(warrant_id=warrant.id, **fields), warrant, model, world)
             verdicts.append(v)
+            all_verdicts.append(v)
             total += 1
             if scope_unclear(v):
                 unclear += 1
@@ -117,6 +119,11 @@ def check_counsel(model, warrant, world, repeat, out_path):
         "Scenario: the storm is active; A101 to A103 are on closed roads; A104 to A110 are not.",
     ])
     open(out_path, "w").write(text)
+    # v0.14.1: keep the raw replies too, so a surprising verdict can be read in full.
+    replies = [{"case": CASES[i // repeat][0], "reply": v} for i, v in enumerate(all_verdicts)]
+    replies += [{"case": SIXTH[0], "reply": v} for v in sixth]
+    with open(out_path[:-3] + "_replies.json" if out_path.endswith(".md") else out_path + "_replies.json", "w") as f:
+        json.dump(replies, f, indent=2)
     return {"false_approvals": false_approvals, "false_refusals": false_refusals, "total": total,
             "scope_unclear": unclear,
             "sixth_correct": sixth_correct, "sixth_total": len(sixth), "sixth_breakdown": breakdown}
