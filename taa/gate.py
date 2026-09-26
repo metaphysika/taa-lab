@@ -59,6 +59,7 @@ class _GateBase:
         self._refused = {}             # refusal memory: act + the facts it rested on -> when
         self._reviewed_refusals = set()  # acts a reviewer refused before (any reason), for counting
         self.fresh_rereviews = 0       # reviews of an act that had been refused before
+        self._limit_noticed = set()    # targets the issuer has been told about a fixed-limit refusal
 
     def _execute(self, tool, args):
         """Run an allowed act. Only an act that changed something spends authority: a call
@@ -86,7 +87,25 @@ class _GateBase:
         every gate before any review; a review can't widen it."""
         if not self.warrant.caps or tool not in self._tools:
             return None
-        return cap_refusal(self.warrant.caps, tool, args, self.log, default_amount(self._tools[tool]))
+        reason = cap_refusal(self.warrant.caps, tool, args, self.log, default_amount(self._tools[tool]))
+        if reason:
+            self._limit_notice(tool, args)
+        return reason
+
+    def _limit_notice(self, tool, args):
+        """v0.14: a fixed limit refused an act, so the issuer is told once per target that the
+        request needs a higher decision. Every gate does this, as every gate enforces the limit."""
+        target = target_of(args)
+        if self._notify is None or target in self._limit_noticed:
+            return
+        self._limit_noticed.add(target)
+        cap = self.warrant.caps[tool]["total_amount_per_target"]
+        question = (f"{tool} for {target} was refused: it would exceed the warrant's fixed limit of ${cap} "
+                    f"in total per target. A larger amount needs a decision by {self.warrant.issuer} or "
+                    "higher authority.")
+        outcome, _ = self._notify(question)
+        self.referrals.append({"kind": "limit", "question": question, "outcome": outcome,
+                               "step": self._world.step})
 
     # ---- refusal memory (the per-step judge, TAA, and the hybrid alike) ----------------------
     # Since v0.11, only a refusal the reviewer flagged as GRAVE is remembered. While the facts it
@@ -225,6 +244,7 @@ class TAAGate(_GateBase):
         self.salvage_calls = 0
         self.salvaged_targets = []
         self.scope_calls = 0
+        self.portion_calls = 0
         self.premise_rereviews = 0
         self._baseline = None          # the facts the current approval rests on (taa/premises.py)
         self._pending_targets = set()
@@ -234,6 +254,7 @@ class TAAGate(_GateBase):
         reviewed = self._reviewer(plan, context=context) if context else self._reviewer(plan)
         self.salvage_calls += reviewed.salvage_calls
         self.scope_calls += reviewed.scope_calls
+        self.portion_calls += reviewed.portion_calls
         self.salvaged_targets.extend(reviewed.salvaged_targets)
         self._pending_targets.update(reviewed.pending_targets)
         for target, limit in reviewed.pending_limits.items():

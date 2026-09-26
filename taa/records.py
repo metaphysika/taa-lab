@@ -103,6 +103,7 @@ class Plan:
     salvage_calls: int = 0
     salvaged_targets: list = field(default_factory=list)
     scope_calls: int = 0        # clarifications asked because an approval didn't say what may proceed (v0.13)
+    portion_calls: int = 0      # follow-ups asking what part of an unanswered referral may proceed now (v0.14)
     premises: list = field(default_factory=list)  # facts the reviewer said its approval rests on (v0.13)
 
     def __post_init__(self):

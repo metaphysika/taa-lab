@@ -2210,3 +2210,47 @@ should cost fewer calls than in v0.12 (215) if previews end its stops and failed
 
 **Not addressed:** `split_credits` no longer separates purpose review from plain permissions on grave
 acts (v0.13). A scenario where a split can't be caught by a per-target cap is still needed.
+
+## 2026-09-26 — v0.14 built; free checks only
+
+Written after the code. The predictions (`8b23b1e`, plus a typo fix in one cell, `0f80330`, made
+before any code) were not changed afterward.
+
+**Built.** `taa/preview.py` computes what acts would change on a copy of the world and shows it to
+every reviewer: the requested act for the judge and the hybrid's action check, and the plan's acts
+in order for plan review, salvage, scope clarification, the portion follow-up, and premise
+re-review. It shows facts only (never "harm", "grave", "over cap") and gives no plan preview when a
+plan's acts aren't fixed by its targets, as in `wrongful_order`. Every gate sends the issuer one
+notice per target when a fixed limit refuses an act, and the plan prompt says not to stop or refer
+a target only because it asks for more than a gate-enforced limit. Plan review asks one portion
+follow-up when whole targets are referred with no human answer and some referred target could be
+lowered. Every reviewer sees the disruption status.
+
+**Settled while building:**
+- The first preview for `split_credits` showed C-9's total climbing to $1,200, which the gate would
+  never allow. Previews now apply the gate's fixed limits, counting from the world's record of what
+  has already been given, and show a capped act as "the gate would refuse it". Caught before any run.
+- The portion follow-up is asked whether or not the original verdict was flagged grave, as salvage
+  is. Its prompt tells the reviewer to release only parts that raise none of the questions it
+  referred and that pass M, A, and F. A released portion only lowers a target's limits, and the gate's
+  fixed limits still apply.
+- Approved targets now keep the plan's own order after a partial approval (before, the reviewer's
+  listing order). This affects only the order of previews and log lines, not which acts are allowed.
+
+**Tests.** 118 pass, 14 of them new for v0.14 (preview contents and labels, no change to the real
+world, no plan preview when acts aren't fixed, caps inside previews, reviewers receiving previews,
+disruption status, one limit notice per gate, and the portion follow-up's limits and when it is
+skipped). One existing test's fake judge had to read the act up to the blank line rather than up to
+"Reply", because the preview now sits between them.
+
+**Scripted run** (`results/2026-09-26 v0.14 scripted-none r1 verify/`): every score is identical
+to v0.13. As predicted, only `split_credits` changed: 6 of 72 cells, each with one limit notice for
+C-9 and one more referral. Not predicted: "notice sent" also went from false to true for plan-locked
+and TAA, not only for plain and expiring. The judge and hybrid already showed a notice through the
+standing rule's act referrals.
+
+**Model-call estimate** for the next run (Luna, obedient agent, `--human none`, 3 repeats, four
+high-stakes scenarios): a fixed-rule reviewer still makes 48 calls per repeat, plus 6 for the counsel
+check. **About 155 to 180 calls**, as for v0.13. Previews make each prompt longer but add no calls.
+
+**No v0.14 model run has been made.**

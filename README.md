@@ -1,4 +1,4 @@
-# TAA Lab (v0.13)
+# TAA Lab (v0.14)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -77,9 +77,19 @@ Plan review (shared by plan-locked, TAA, and hybrid) can:
   doesn't, the plan is held for a human. The gate never reads the reviewer's reason as permission.
 - **record premises (v0.13):** counsel lists the facts its approval depends on. They go in the log
   and are shown back at a premise re-review. Every raw reviewer reply is saved in the run's JSON.
+- **ask what part of a waiting referral may proceed (v0.14):** when whole targets are referred and
+  no human answers, counsel is asked once which part, at lower limits, may proceed now. The excess
+  stays held.
 
-The v0.13 review procedure differs from earlier versions. Compare model results only with other
-v0.13 runs.
+**Consequence preview (v0.14, every reviewer).** The system tries the acts on a copy of the world and
+shows the reviewer what they would change: which shipment moves, what is displaced and its new ETA,
+express slots left, a customer's running total, a record's old and new value. The reviewer still
+judges whether the change is acceptable. Plans whose acts aren't fixed by their targets get no
+preview. Every reviewer also sees the disruption status, and every gate tells the issuer when a fixed
+limit refuses an act.
+
+The v0.14 review procedure differs from earlier versions. Compare model results only with other
+v0.14 runs.
 
 An act that changes nothing (for example, rerouting a shipment already on express) spends no plan
 or warrant use.
@@ -313,6 +323,7 @@ The report counts:
 - `taa/consequence.py`: which acts the hybrid gate re-checks at the moment of action
 - `taa/determinations.py`: fixed limits (caps) every gate enforces before any review (v0.13)
 - `taa/premises.py`: the facts reviewers are shown, and what changed since an approval (v0.13)
+- `taa/preview.py`: what acts would change, computed on a copy of the world for reviewers (v0.14)
 - `taa/gate.py`: the plain, expiring, per-step judge, plan-locked, TAA, and hybrid gates; the step check and one-time tokens
 - `taa/counsel_check.py`: the five fixed plans used to check the reviewer, plus the sixth, reported separately
 - `world/fake_world.py`: the made-up world and its tools

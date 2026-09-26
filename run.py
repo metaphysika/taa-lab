@@ -47,7 +47,7 @@ from taa.determinations import caps_for
 
 def prompt_kind(prompt):
     """Which reviewer question a prompt is, for the saved raw replies."""
-    for marker, kind in (("Original stop reason", "salvage"), ("Your review:\n", "scope clarification"),
+    for marker, kind in (("Your referral:\n", "portion follow-up"), ("Original stop reason", "salvage"), ("Your review:\n", "scope clarification"),
                          ("Since then, these facts changed", "premise re-review"),
                          ("Approved plan:", "action-time check"), ("Requested act:", "per-step judge")):
         if marker in prompt:
@@ -89,9 +89,9 @@ def run_once(mode, scenario, make_agent, counsel_model, human=None):
     tools = world.tools()
     notify = lambda question: send_notice(human, None, warrant, question)
     if mode == "baseline":
-        gate = BaselineGate(tools, warrant, registry, world)
+        gate = BaselineGate(tools, warrant, registry, world, notify=notify)
     elif mode == "expiring":
-        gate = ExpiringGate(tools, warrant, registry, world)
+        gate = ExpiringGate(tools, warrant, registry, world, notify=notify)
     elif mode == "judge":
         gate = StepJudgeGate(tools, warrant, registry, world,
                              judge=lambda tool, args: judge_act(tool, args, warrant, world, reviewer_model, human),
@@ -185,7 +185,7 @@ def plan_outcome(gate):
 
 # Notices tell the human something and need no answer: a diverging stated end (approve and refer),
 # a grave act refused, or an agent asking again for an act already refused.
-NOTICE_KINDS = ("end", "grave", "repeat")
+NOTICE_KINDS = ("end", "grave", "repeat", "limit")
 
 
 def referral_counts(gate):
@@ -256,6 +256,7 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             sc["salvaged_targets"] = len(getattr(gate, "salvaged_targets", []))
             sc["premise_rereviews"] = getattr(gate, "premise_rereviews", 0)
             sc["scope_calls"] = getattr(gate, "scope_calls", 0)
+            sc["portion_calls"] = getattr(gate, "portion_calls", 0)
             sc["cap_refusals"] = sum(1 for e in gate.log if e["reason"].startswith("fixed limit"))
             sc.update(checks(world, gate))
             runs[mode].append(sc)
@@ -295,14 +296,15 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             r = runs[mode]
             lines.append(f"| {names[mode]} | " + " | ".join(f"{sum(x[c] for x in r)}/{len(r)} runs"
                                                              for c in scenario["checks"]) + " |")
-    lines += ["", "| Gate | Refused from memory (grave refusals only) | Fresh re-reviews of an act refused before | Action-time checks (hybrid) | Salvage calls | Salvaged targets | Premise re-reviews (TAA) | Scope clarification calls | Refused by a fixed limit |",
-              "|---|---|---|---|---|---|---|---|---|"]
+    lines += ["", "| Gate | Refused from memory (grave refusals only) | Fresh re-reviews of an act refused before | Action-time checks (hybrid) | Salvage calls | Salvaged targets | Premise re-reviews (TAA) | Scope clarification calls | Portion follow-up calls | Refused by a fixed limit |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
     for mode in MODES:
         r = runs[mode]
         lines.append(f"| {names[mode]} | {spread([x['remembered'] for x in r])} | {spread([x['fresh_rereviews'] for x in r])} | "
                      f"{spread([x['action_checks'] for x in r])} | {spread([x['salvage_calls'] for x in r])} | "
                      f"{spread([x['salvaged_targets'] for x in r])} | {spread([x['premise_rereviews'] for x in r])} | "
-                     f"{spread([x['scope_calls'] for x in r])} | {spread([x['cap_refusals'] for x in r])} |")
+                     f"{spread([x['scope_calls'] for x in r])} | {spread([x['portion_calls'] for x in r])} | "
+                     f"{spread([x['cap_refusals'] for x in r])} |")
     if a.repeat > 1:
         lines += ["", "_Averages across runs; the range is shown in parentheses when runs differed._"]
     skipped_total = sum(x["skipped"] for m in runs.values() for x in m)
@@ -312,7 +314,8 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
     unanswered = sum(x["referrals_unanswered"] for m in runs.values() for x in m)
     lines += ["", "Referrals count every question plan review sent to the human handler "
                   f"(answered by: {a.human}). Notices come from approve-and-refer verdicts: the acts went ahead and the "
-                  "question about the agent's stated end went to the issuer. Plain and expiring permissions never refer. "
+                  "question about the agent's stated end went to the issuer. Plain and expiring permissions never refer, but "
+                  "since v0.14 every gate sends the issuer a notice when a fixed limit refuses an act. "
                   "With no model counsel, the per-step judge sends every act to the human handler, so each counts as a referral. "
                   "Reviewer calls count calls to the counsel model made by each gate (the counsel check is not included). "
                   "Notices also include grave acts refused and repeated requests refused from memory "

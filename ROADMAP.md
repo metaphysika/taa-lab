@@ -34,7 +34,7 @@ TAA counts as adding something only where it beats every simpler gate.
 | Expiring permissions (scope, budget, live condition) | Done | Does TAA add anything beyond ordinary permission expiry? |
 | Plan-locked (approved plan enforced; departures refused, no re-review) | Done | Does TAA's reviewer add anything beyond holding the agent to its own plan? |
 | Purpose-aware judge per step (one model checks each act, no plan) | Built v0.9; model-tested through v0.12 | The "strong purpose-aware baseline" the paper names; the main go/no-go test |
-| TAA (plan review, live warrant, step check) | Core prototype built and model-tested; wider paper architecture incomplete. v0.13 adds premise re-review, explicit approval scope, and caps (built; no model run yet) | The architecture under test |
+| TAA (plan review, live warrant, step check) | Core prototype built and model-tested; wider paper architecture incomplete. v0.13 adds premise re-review, explicit approval scope, and caps; v0.14 adds consequence previews, limit notices, and a portion follow-up (built; no model run yet) | The architecture under test |
 | Hybrid (TAA + action-time check on consequential acts, `taa/consequence.py`) | Built v0.11; model-tested with Luna and Haiku through v0.12. Kept unchanged in v0.13 as the comparator for premise re-review; drop it if premise-watching TAA matches or beats it at lower cost | Does re-checking consequential acts at the moment of action close the gap between plan review and the per-step judge, at lower cost than judging every act? |
 
 ## Scenarios
@@ -77,6 +77,8 @@ results do not depend on one design.
 
 - Counsel checks and live runs with Luna and Claude Haiku completed; Gemini and a local Ollama
   reviewer remain to do.
+- **From v0.14 (owner, 2026-09-26):** iterate with Luna only; run the frozen final version once with
+  Haiku as a held-out reviewer. Fixes aimed at Haiku-only failures are tested only in that run.
 - Counsel check with a reviewer prompted to reason from natural-law principles, against one given
   plain instructions.
 - If purpose judgments swing widely between reviewers, the law side must carry more of the load:
