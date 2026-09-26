@@ -118,6 +118,9 @@ below are drafts for the owner to confirm or change.
    refused request 11 times. TAA used fewer reviewer calls than the judge: 1 versus 4 with a
    cooperative agent and 12 versus 14 with a persistent one. Those runs predated refusal memory.
    Later v0.11 and v0.12 runs added cases and Haiku, but still have only three repeats per cell.
+   **2026-09-26:** the denominator (7 scenario runs) and the extended criteria (grave acts and
+   legitimate work undone as well) were fixed in `LAB_NOTEBOOK.md` before the frozen v0.15.1 final
+   run, which is the first to meet the five-repeat condition.
    The formal five-repeat threshold has not been met. Scenario 9 and a long-task cost comparison
    remain to do before claiming a whole-plan advantage.
 3. **Over-refusal.** If TAA blocks legitimate work in more than 1 run in 10, plan review needs

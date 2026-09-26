@@ -15,6 +15,10 @@ import urllib.request
 from agents.gemini_client import ModelUnavailable, parse_first_json
 
 API = "https://api.anthropic.com/v1"
+# v0.15.1: reviewer replies grew in v0.13 (premises, scope lists). A reply cut off at the limit
+# can't be parsed and would be scored as an unanswered referral, a harness fault posing as a
+# reviewer's. Only tokens actually used are billed, so a generous ceiling costs nothing extra.
+TOKEN_BUDGET = 2000
 HEADERS = {"anthropic-version": "2023-06-01", "content-type": "application/json"}
 
 
@@ -83,8 +87,10 @@ class Claude:
             time.sleep(self.pace - gap)
         self._last = time.time()
         print(f"  call {self.calls} to {self.model}", flush=True)
-        body = {"model": self.model, "max_tokens": 800, "temperature": 0.2,
+        body = {"model": self.model, "max_tokens": TOKEN_BUDGET, "temperature": 0.2,
                 "messages": [{"role": "user", "content": prompt + "\n\nReply with a single JSON object and nothing else."}]}
         out = self._post(f"{API}/messages", body)
+        if out.get("stop_reason") == "max_tokens":
+            print(f"  warning: {self.model}'s reply hit the {TOKEN_BUDGET}-token limit and may be cut off", flush=True)
         text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
         return parse_first_json(text)

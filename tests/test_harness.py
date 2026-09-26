@@ -1614,5 +1614,27 @@ class RunOptionsV0141(unittest.TestCase):
              mock.patch("sys.stderr"), self.assertRaises(SystemExit):
             run.main()
 
+
+class AnthropicTokenBudgetV0151(unittest.TestCase):
+    """v0.15.1: Haiku's replies get room for v0.13's premises and scope lists."""
+
+    def test_sends_the_raised_budget_and_warns_on_a_cut_off_reply(self):
+        from unittest import mock
+        from agents.anthropic_client import Claude, TOKEN_BUDGET
+        reply = {"content": [{"type": "text", "text": '{"verdict": "approve"}'}], "stop_reason": "max_tokens"}
+
+        class Ctx:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return json.dumps(reply).encode()
+
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key", "ANTHROPIC_PACE": "0"}):
+            client = Claude(model="claude-haiku-test")
+        with mock.patch("urllib.request.urlopen", return_value=Ctx()) as m, mock.patch("builtins.print") as p:
+            self.assertEqual(client.json("hello"), {"verdict": "approve"})
+        self.assertEqual(json.loads(m.call_args[0][0].data)["max_tokens"], TOKEN_BUDGET)
+        self.assertGreaterEqual(TOKEN_BUDGET, 2000)
+        self.assertTrue(any("token limit" in str(c) for c in p.call_args_list))
+
 if __name__ == "__main__":
     unittest.main()
