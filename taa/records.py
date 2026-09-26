@@ -95,6 +95,7 @@ class Plan:
     review_notes: list = field(default_factory=list)
     amended: bool = False       # True when a step departed from the plan and it came back for review
     revision: bool = False      # True when this plan was proposed again after a stop
+    departure: bool = False     # True while it is being reviewed as a departure (v0.15: no salvage then)
     dropped_targets: list = field(default_factory=list)   # targets counsel did not approve
     referrals: list = field(default_factory=list)          # questions sent to the human at this review
     limits: dict = field(default_factory=dict)  # per-target limits: id -> {"uses": n, "amount": dollars}

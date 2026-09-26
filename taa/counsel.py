@@ -76,6 +76,11 @@ def review_plan(plan, warrant, registry, world, model=None, human=None, context=
             outcome, notice = send_notice(human, plan, warrant, f"grave act in a plan: {verdict['reason']}")
             plan.referrals.append({"kind": "grave", "question": verdict["reason"], "outcome": outcome})
             notes.append(notice)
+        if verdict["verdict"] == "stop" and plan.departure:
+            # v0.15: a stopped departure leaves the previous approved plan in force, so a salvage
+            # call could not change what happens next.
+            plan.status, plan.review_notes = "stopped", notes + ["departure stopped; the previous plan stays in force (no salvage call)"]
+            return plan
         if verdict["verdict"] == "stop":
             # A whole-plan stop gets one separate chance to identify safe targets. The original
             # grave notice has already been sent; salvage cannot erase it or widen the warrant.
@@ -172,7 +177,7 @@ def review_plan(plan, warrant, registry, world, model=None, human=None, context=
             if not kept:
                 # An empty partial approval is also a whole-plan stop. A full referral is
                 # different: its targets must wait for the human answer already requested.
-                if verdict.get("rest") != "refer":
+                if verdict.get("rest") != "refer" and not plan.departure:
                     plan.salvage_calls += 1
                     salvage = model_salvage(plan, warrant, model, world, verdict["reason"])
                     if salvage is not None:

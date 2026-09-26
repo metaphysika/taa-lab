@@ -58,6 +58,7 @@ class _GateBase:
         self._notify = notify          # a function(question) -> (outcome, note), for notices
         self._refused = {}             # refusal memory: act + the facts it rested on -> when
         self._reviewed_refusals = set()  # acts a reviewer refused before (any reason), for counting
+        self._ordinary_refusals = {}   # memory key -> ordinary refusals on those facts (v0.15)
         self.fresh_rereviews = 0       # reviews of an act that had been refused before
         self._limit_noticed = set()    # targets the issuer has been told about a fixed-limit refusal
 
@@ -108,11 +109,12 @@ class _GateBase:
                                "step": self._world.step})
 
     # ---- refusal memory (the per-step judge, TAA, and the hybrid alike) ----------------------
-    # Since v0.11, only a refusal the reviewer flagged as GRAVE is remembered. While the facts it
-    # rested on are unchanged (the target's record and the world's status), a repeat is refused
-    # without a new review, and the first repeat sends the issuer a notice. An ordinary refusal
-    # is reviewed fresh every time, so one mistaken refusal can't become permanent (LAB_NOTEBOOK,
-    # v0.10: the judge's wrong refusal of T1 was locked in for the rest of a run).
+    # A refusal the reviewer flagged as GRAVE is remembered at once. While the facts it rested on
+    # are unchanged (the target's record and the world's status), a repeat is refused without a new
+    # review, and the first repeat sends the issuer a notice. An ordinary refusal gets one fresh
+    # re-review, so a single mistaken refusal isn't locked in (LAB_NOTEBOOK, v0.10: the judge's
+    # wrong refusal of T1); since v0.15, a second refusal on the same facts is remembered too, so a
+    # persistent agent can't make the reviewer answer the same question over and over.
 
     def _memory_key(self, tool, args):
         return (tool, json.dumps(args, sort_keys=True, default=str),
@@ -128,10 +130,16 @@ class _GateBase:
             self.fresh_rereviews += 1
 
     def _refused_on_review(self, tool, args, grave):
-        """Record a refusal decided on review; remember it only if the reviewer flagged it grave."""
+        """Record a refusal decided on review. Remember it at once if the reviewer flagged it grave,
+        or at the second ordinary refusal of the same act on the same facts (v0.15)."""
         self._reviewed_refusals.add(self._act_key(tool, args))
+        key = self._memory_key(tool, args)
         if grave:
-            self._refused[self._memory_key(tool, args)] = {"step": self._world.step, "repeats": 0}
+            self._refused[key] = {"step": self._world.step, "repeats": 0, "grave": True}
+            return
+        self._ordinary_refusals[key] = self._ordinary_refusals.get(key, 0) + 1
+        if self._ordinary_refusals[key] >= 2:
+            self._refused[key] = {"step": self._world.step, "repeats": 0, "grave": False}
 
     def _recall(self, tool, args):
         """If this act was refused before on the same facts, refuse it again without a review."""
@@ -139,7 +147,8 @@ class _GateBase:
         if hit is None:
             return None
         hit["repeats"] += 1
-        note = (f"refused from memory: the same act was refused as grave at step {hit['step']} and nothing "
+        how = "as grave" if hit.get("grave", True) else "twice on review, most recently"
+        note = (f"refused from memory: the same act was refused {how} at step {hit['step']} and nothing "
                 "it rested on has changed, so it was not reviewed again")
         if hit["repeats"] == 1 and self._notify is not None:
             question = f"the agent asked again for an act refused at step {hit['step']}: {tool} {json.dumps(args)}"
@@ -152,7 +161,8 @@ class _GateBase:
         return {"ok": False, "error": note}
 
     def _checked(self, tool, args, check, allow):
-        """Refuse from memory (grave refusals only), or review the act with `check`."""
+        """Refuse from memory (a grave refusal, or two ordinary ones on the same facts), or review
+        the act with `check`."""
         remembered = self._recall(tool, args)
         if remembered:
             return remembered
@@ -297,6 +307,7 @@ class TAAGate(_GateBase):
         changed = premises.changes(self._baseline, now)
         amended = copy.deepcopy(self.plan)
         amended.status, amended.review_notes, amended.amended, amended.revision = "proposed", [], True, False
+        amended.departure = False      # a stop here withdraws the plan, so salvage still applies
         requested = {"end": amended.end, "tools": list(amended.tools), "max_uses": dict(amended.max_uses),
                      "targets": amended.targets_shown()}
         self.premise_rereviews += 1
@@ -367,7 +378,7 @@ class TAAGate(_GateBase):
         import copy
         amended = copy.deepcopy(self.plan)
         amended.status, amended.review_notes, amended.amended = "proposed", [], True
-        amended.revision = False
+        amended.revision, amended.departure = False, True
         if tool not in amended.tools:
             amended.tools.append(tool)
         target = target_of(args)
@@ -389,6 +400,7 @@ class TAAGate(_GateBase):
             previous, self.plan = self.plan, reviewed
             covers, _, _ = self._step_check(tool, args)
             if covers:
+                self.plan.departure = False
                 self._rebaseline()     # this plan was just approved on the current facts
                 return True, f"departure ({why}) re-reviewed and approved: {'; '.join(reviewed.review_notes)}"
             self.plan = previous

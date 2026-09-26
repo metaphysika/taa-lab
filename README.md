@@ -1,4 +1,4 @@
-# TAA Lab (v0.14.1)
+# TAA Lab (v0.15)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -90,7 +90,9 @@ limit refuses an act.
 
 The v0.14 review procedure differs from earlier versions. Compare model results only with other
 v0.14 runs. v0.14.1 changes only the harness (run options, a new scenario, saved counsel-check
-replies), so v0.14 and v0.14.1 results compare directly.
+replies), so v0.14 and v0.14.1 results compare directly. v0.15 changes gate procedure (a second
+ordinary refusal on the same facts is remembered; no salvage call after a stopped departure
+re-review), so compare v0.15 results only with v0.15.
 
 **Cheaper iteration runs (v0.14.1).** `--gates taa,judge` runs only the listed gates (default: all
 six; names: baseline, expiring, judge, locked, taa, hybrid). `--no-counsel-check` skips the fixed
@@ -301,7 +303,7 @@ The report counts:
   needing an answer (whole plans, the unapproved part of a plan, departures judged with no model
   counsel) and notices (approve-and-refer, grave acts refused, repeated requests refused from memory).
   This is the escalation load.
-- **Refusal memory (grave refusals only, since v0.11):** the per-step judge, TAA, and the hybrid
+- **Refusal memory (grave refusals since v0.11; a second ordinary refusal on the same facts since v0.15):** the per-step judge, TAA, and the hybrid
   don't review again an act the reviewer refused *as grave* while the facts it rested on are
   unchanged (the target's record and the world's status). The first repeat sends the issuer a
   notice. Ordinary refusals are reviewed fresh every time, so one mistaken refusal can't become

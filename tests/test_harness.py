@@ -638,11 +638,11 @@ class PerStepJudge(unittest.TestCase):
         score, gate = model_run("purpose_defeat", "judge", WidePlanner, counsel)
         self.assertEqual((score["justified"], score["questionable"]), (3, 0))
         self.assertEqual(gate.reviewer_calls, len(judged))
-        # One call per act: A104's refusal is ordinary (not flagged grave), so since v0.11 each of its
-        # 10 repeats is reviewed fresh rather than refused from memory.
-        self.assertEqual(gate.reviewer_calls, 14)
-        self.assertEqual(gate.fresh_rereviews, 10)
-        self.assertFalse(any(e.get("remembered") for e in gate.log))
+        # A104's refusal is ordinary (not flagged grave): since v0.15 it gets one fresh re-review,
+        # and the second refusal on the same facts is remembered for its other 9 repeats.
+        self.assertEqual(gate.reviewer_calls, 5)
+        self.assertEqual(gate.fresh_rereviews, 1)
+        self.assertEqual(sum(1 for e in gate.log if e.get("remembered")), 9)
         for prompt in counsel.prompts:
             self.assertIn(purpose_rules("act"), prompt)
         model_run("purpose_defeat", "taa", WidePlanner, counsel)
@@ -861,14 +861,29 @@ class NoticeSentVsReceived(unittest.TestCase):
 class RefusalMemory(unittest.TestCase):
     """v0.10: an act refused on unchanged facts is refused again without a new review."""
 
-    def test_ordinary_refusals_are_reviewed_fresh(self):
-        # v0.11: A104's refusal is not flagged grave, so every repeat gets a fresh re-review.
+    def test_ordinary_refusals_get_one_fresh_review_then_are_remembered(self):
+        # v0.15: A104's refusal is not flagged grave, so its first repeat is reviewed fresh (a single
+        # mistaken refusal isn't locked in); refused again on the same facts, it is remembered.
         from agents.wide_planner import WidePlanner
-        _, gate = model_run("purpose_defeat", "taa", WidePlanner, FakeCounsel(decide=closed_only))
-        self.assertEqual(gate.reviewer_calls, 12)                  # the plan, and 11 re-reviews of A104
-        self.assertEqual(gate.fresh_rereviews, 10)
-        self.assertFalse(any(e.get("remembered") for e in gate.log))
-        self.assertFalse(any(r["kind"] == "repeat" for r in gate.referrals))
+        for mode in ("taa", "judge"):
+            with self.subTest(mode=mode):
+                _, gate = model_run("purpose_defeat", mode, WidePlanner, FakeCounsel(decide=closed_only))
+                self.assertEqual(gate.reviewer_calls, {"taa": 3, "judge": 5}[mode])
+                self.assertEqual(gate.fresh_rereviews, 1)
+                remembered = [e for e in gate.log if e.get("remembered")]
+                self.assertEqual(len(remembered), 9)
+                self.assertIn("refused twice on review", remembered[0]["reason"])
+                self.assertEqual(sum(1 for r in gate.referrals if r["kind"] == "repeat"), 1)
+
+    def test_one_ordinary_refusal_is_not_remembered(self):
+        from taa.gate import BaselineGate
+        world, warrant, registry = run.build(json.load(open("scenarios/purpose_defeat.json")))
+        gate = BaselineGate(world.tools(), warrant, registry, world)
+        world.advance()
+        gate._refused_on_review("reroute_shipment", {"shipment_id": "A104"}, grave=False)
+        self.assertIsNone(gate._recall("reroute_shipment", {"shipment_id": "A104"}))
+        gate._refused_on_review("reroute_shipment", {"shipment_id": "A104"}, grave=False)
+        self.assertIsNotNone(gate._recall("reroute_shipment", {"shipment_id": "A104"}))
 
     def test_grave_refusals_are_remembered_by_every_reviewing_gate(self):
         # The same refusal flagged grave: one review, then refused from memory with one notice.
@@ -1103,7 +1118,8 @@ class PlanReviewV012(unittest.TestCase):
         self.assertEqual((reviewed.status, reviewed.targets), ("approved", ["A101"]))
         self.assertEqual(reviewed.salvage_calls, 1)
 
-    def test_re_review_stop_also_gets_one_salvage_call(self):
+    def test_re_review_stop_gets_no_salvage_call(self):
+        # v0.15: a stopped departure leaves the previous plan in force, so no salvage call is made.
         from taa.counsel import review_plan
         from taa.gate import TAAGate
         from taa.records import Plan
@@ -1118,8 +1134,10 @@ class PlanReviewV012(unittest.TestCase):
                               max_uses={"reroute_shipment": 2}, targets=["A101", "A102"]))
         world.advance()
         self.assertFalse(gate.request("reroute_shipment", {"shipment_id": "A104"})["ok"])
-        self.assertEqual((gate.salvage_calls, gate.salvaged_targets), (1, ["A101"]))
-        self.assertEqual(counsel.calls, 3)
+        self.assertEqual((gate.salvage_calls, gate.salvaged_targets), (0, []))
+        self.assertEqual(counsel.calls, 2)
+        self.assertIn("no salvage call", gate.log[-1]["reason"])
+        self.assertEqual(gate.plan.targets, ["A101", "A102"])       # the previous plan stays in force
 
     def test_amended_plan_does_not_count_an_earlier_salvage_again(self):
         from taa.counsel import review_plan

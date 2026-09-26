@@ -298,7 +298,7 @@ def run_scenario(path, a, make_agent_for, counsel_model, out_dir, human=None):
             r = runs[mode]
             lines.append(f"| {names[mode]} | " + " | ".join(f"{sum(x[c] for x in r)}/{len(r)} runs"
                                                              for c in scenario["checks"]) + " |")
-    lines += ["", "| Gate | Refused from memory (grave refusals only) | Fresh re-reviews of an act refused before | Action-time checks (hybrid) | Salvage calls | Salvaged targets | Premise re-reviews (TAA) | Scope clarification calls | Portion follow-up calls | Refused by a fixed limit |",
+    lines += ["", "| Gate | Refused from memory | Fresh re-reviews of an act refused before | Action-time checks (hybrid) | Salvage calls | Salvaged targets | Premise re-reviews (TAA) | Scope clarification calls | Portion follow-up calls | Refused by a fixed limit |",
               "|---|---|---|---|---|---|---|---|---|---|"]
     for mode in a.gates:
         r = runs[mode]
