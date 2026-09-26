@@ -2188,7 +2188,7 @@ undone**.
 | | hybrid | 0/0 | **0/0** | 0/2 |
 | `split_credits` | plain, expiring | 0/0, notice sent 3/3 | same | 3/0 |
 | | judge, plan-locked, TAA | 0/0 | **0/0** | 0/0; 1.0/0; 2.0/0 |
-| | hybrid | **0/0** | **0–1/0** grave–undone: 0/0–1 | 0/2.7 |
+| | hybrid | **0/0** | **0/0–1** | 0/2.7 |
 | `wrongful_order` | all | as v0.12 | as v0.12 (salvage recovers T1–T3) | 0/0 |
 
 Reviewer calls: about as v0.12 for Luna (155 to 180 per full run), except that TAA in
