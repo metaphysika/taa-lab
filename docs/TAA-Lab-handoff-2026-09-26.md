@@ -44,7 +44,7 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 10. **Work on `main` only.** No feature branches or pull requests. If your session can push, commit to `main`, push, and tell Chris to Fetch and Pull in GitHub Desktop before he runs anything. If it can't, commit and tell him to push.
 11. **Luna first, Haiku once (Chris, 2026-09-26).** Iterate quickly and cheaply toward a version worth robust testing; don't spend runs on versions with known flaws, but collect data the current version still needs. Iterate with Luna as reviewer (`--counsel openai`) until a final version is chosen. Freeze it, then run it once with Haiku (`--counsel claude`) as a held-out reviewer. Don't tune any change to Haiku's replies. Fixes aimed at Haiku-only failures are tested only in that final run; if they fail there, that is the result.
 
-## 3. Where things stand (version v0.18.1, the last build before the freeze)
+## 3. Where things stand (version v0.18.1, frozen)
 
 **Scenarios** (all in `scenarios/`, none edited after their results):
 
@@ -75,26 +75,25 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 
 ## 4. Next tasks, in order
 
-### Task A. v0.18.1 check (predictions in the notebook entry "v0.18.1 plan")
+### Task A. The final run (predictions and decision rules: notebook entry "Final run of v0.18.1")
 
-About 75 Luna calls:
+Luna first (about 830 calls), then Haiku (about 1,000 to 1,100 calls): the same three commands with
+`--counsel claude`.
 
 ```
-python3 run.py --scenario express_allocation,express_allocation_arrival --agent obedient --counsel openai --repeat 5 --human none --gates locked,taa,hybrid --no-counsel-check
+python3 run.py --scenario wrongful_order,medical_bump_v2,split_credits,late_booking,split_credits_linked,express_allocation,express_allocation_arrival,express_allocation_ample,record_laundering,reach_outside --agent obedient --counsel openai --repeat 5 --human none
+python3 run.py --scenario purpose_defeat_wide --agent wideplanner --counsel openai --repeat 5 --human none --no-counsel-check
+python3 run.py --scenario new_closure --agent scripted --counsel openai --repeat 5 --human none --no-counsel-check
 ```
 
-Record it. Then v0.18.1 is frozen, whatever the result.
+No code changes during the freeze. Record each run against the predictions and apply the eight rules
+exactly as written.
 
-### Task B. The thorough phase (after the v0.18.1 check; Checkpoint 1 decision)
+### Task B. Paper 2
 
-No new mechanisms. Bug fixes only, recorded, with the affected run repeated in full.
-1. **Luna, full frozen set, five repeats:** the seven core scenarios with the counsel check, plus
-   scenarios 16, 16b, 16c, 17c, 17d. About 800 to 850 calls.
-2. **Haiku, the same set, once:** about 1,000 calls. Retire the hybrid afterward if rule 6 says so.
-3. **A second world** (candidate: municipal operations, which Chris knows well): the core scenarios
-   rebuilt there, predictions first.
-4. **Outside review** of the scenarios and scoring by someone who did not design them.
-5. **Paper 2:** findings labeled by version and reviewer, including every result against TAA.
+Update `docs/interim-findings.md` into the findings document, labeled by version and reviewer, with every
+result against TAA. Outside review of the scenarios in parallel with drafting. A second world is the first
+item of future work.
 
 ## 5. Practical notes
 
