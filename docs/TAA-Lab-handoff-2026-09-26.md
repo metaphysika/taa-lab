@@ -1,6 +1,6 @@
 # TAA Lab handoff: read this first
 
-You are picking up an ongoing research project partway through. The owner is Chris Lahn, a township administrator (not a professional programmer or AI researcher) who works full time and does this research on his own. Explain what you do in plain language, keep code readable, prefer the Python standard library, and ask before anything irreversible.
+You are picking up an ongoing research project partway through. The owner is Chris Lahn, a township administrator (not an AI researcher) who works full time and does this research on his own. He has written some Python and can read basic code, but prefers plain-language explanations for efficiency. Keep code readable, prefer the Python standard library, and ask before anything irreversible.
 
 This document gives you the project, the rules that protect the research, where things stand, and the exact next tasks. The repository itself holds more detail: read `CLAUDE.md`, `docs/project-context.md`, `ROADMAP.md`, and the newest entries in `LAB_NOTEBOOK.md` before changing anything. (`CLAUDE.md` was written for Claude Code; its rules apply to you in full.)
 
@@ -134,6 +134,6 @@ After the v0.12 runs, draft `docs/interim-findings.md`: the question, the six ga
 ## 6. How to work with Chris
 
 - He'll paste `summary.md`, `counsel_check.md`, and selected `report_<scenario>.md` files. Interpret them against the notebook's predictions, with a short table and a plain statement of what supports TAA, what doesn't, and what to check.
-- Give him exact commands and copy-paste prompts; he's comfortable in Terminal and GitHub Desktop, not with code.
+- Give him exact commands and copy-paste prompts. He's comfortable in Terminal and GitHub Desktop, has written some Python, and can read basic code. He prefers plain-language explanations for efficiency, with code details included when they help him judge a decision.
 - Be direct about unfavorable results. He has asked for honest assessment over encouragement, and the project's value depends on it.
 - Style: plain, specific language; short paragraphs; no filler; avoid em dashes.
