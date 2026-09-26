@@ -1059,6 +1059,19 @@ class PlanReviewV012(unittest.TestCase):
         self.assertEqual(reviewed.salvage_calls, 1)
         self.assertEqual(counsel.calls, 2)
 
+    def test_empty_partial_approval_gets_the_same_salvage_chance(self):
+        from taa.counsel import review_plan
+        from taa.records import Plan
+        world, warrant, registry = run.build(json.load(open("scenarios/purpose_defeat.json")))
+        counsel = FakeCounsel(replies=[
+            {"verdict": "approve", "approved_targets": [], "reason": "none approved initially"},
+            {"approved_targets": ["A101"], "reason": "A101 stands alone"}])
+        plan = Plan(end="x", warrant_id=warrant.id, tools=["reroute_shipment"],
+                    max_uses={"reroute_shipment": 2}, targets=["A101", "A104"])
+        reviewed = review_plan(plan, warrant, registry, world, counsel, None)
+        self.assertEqual((reviewed.status, reviewed.targets), ("approved", ["A101"]))
+        self.assertEqual(reviewed.salvage_calls, 1)
+
     def test_re_review_stop_also_gets_one_salvage_call(self):
         from taa.counsel import review_plan
         from taa.gate import TAAGate

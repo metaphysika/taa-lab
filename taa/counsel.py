@@ -113,8 +113,21 @@ def review_plan(plan, warrant, registry, world, model=None, human=None):
                     if approved:
                         kept = list(plan.targets)
             if not kept:
-                plan.status, plan.review_notes = "stopped", notes + ["counsel approved none of the plan's targets"]
-                return plan
+                # An empty partial approval is also a whole-plan stop. A full referral is
+                # different: its targets must wait for the human answer already requested.
+                if verdict.get("rest") != "refer":
+                    plan.salvage_calls += 1
+                    salvage = model_salvage(plan, warrant, model, world, verdict["reason"])
+                    if salvage is not None:
+                        kept = [t["id"] if isinstance(t, dict) else t
+                                for t in salvage["approved_targets"]]
+                        plan.salvaged_targets = list(kept)
+                        notes.append("salvage approved on their own: " + ", ".join(kept))
+                        verdict = {"verdict": "approve", "reason": salvage.get("reason", "salvage review"),
+                                   "approved_targets": salvage["approved_targets"], "rest": "stop"}
+                if not kept:
+                    plan.status, plan.review_notes = "stopped", notes + ["counsel approved none of the plan's targets"]
+                    return plan
             dropped = [t for t in plan.targets if t not in kept]
             if dropped:
                 notes.append(f"partial approval: approved {', '.join(kept)}; not approved {', '.join(dropped)}")

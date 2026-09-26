@@ -1767,9 +1767,10 @@ records the unanswered excess and holds it across later plans; a target referred
 portion remains wholly held. The reviewer prompt now describes both choices. No rule supplies a
 safe amount on the reviewer's behalf. The per-step judge's code and prompt were not changed.
 
-**Free verification:** `python3 -m unittest discover tests` passed (85 tests). Fixed-reply tests
+**Free verification:** `python3 -m unittest discover tests` passed (86 tests). Fixed-reply tests
 covered a whole-plan stop salvaging T1–T3 while preserving the grave notice, salvage on a departure
-re-review, a failed salvage retaining the stop, an amended plan not recounting earlier salvage,
+re-review, an empty partial approval getting the same salvage chance, a failed salvage retaining
+the stop, an amended plan not recounting earlier salvage,
 C-9's first $300 proceeding while the referred excess stays held, and a new plan failing to bypass
 both partial and whole-target referrals. These fixed
 replies test the mechanism, not a model reviewer's ability to find the right subset.
