@@ -3263,3 +3263,35 @@ each review; `taa/preview.py` runs that target first; counsel is told it happens
 pass (1 new, reproducing the v0.17 path: an over-broad grave stop, two approved departures, then A103's
 re-review now previews A103 before MED-7 and MED-7 is saved). The scripted run (`2026-09-26 v0.18
 scripted-none r1 verify`) is identical to v0.17's in all 18 scenarios, apart from random token ids.
+
+## 2026-09-26 — v0.18.1 plan: an earlier approval is protected in code (outside review; predictions before code; no v0.18 model run exists)
+
+**Source.** An outside review of the v0.17 result (Sol, via the owner): the v0.17 grave act was a
+failure to carry an approval through to execution. Review had judged that MED-7 needed a seat; a later
+review then let A103 go first. The v0.18 fix shows the reviewer the true order, but it still relies on
+the reviewer to get it right the second time. Sol's recommendation: "a later review must not silently
+turn 'MED-7 before A103' into permission for 'A103 before MED-7'"; code should enforce it. Adopted.
+v0.18 has not been run with a model, so this goes in before its check as v0.18.1.
+
+**The change.** Before a departure re-review, the gate tries the requested act on a copy of the world,
+followed by the approved plan's remaining acts, and compares with the remaining acts alone. If the
+departure would make an already-approved remaining act impossible, it is refused by code, without a
+review, and the issuer is told once per protected target (notice kind "conflict"): only a person can
+change an earlier approval. Like caps, this is a determinate rule. It applies only to departures,
+since a departure's approval is what could silently reverse an earlier one. A premise re-review is
+exempt: the facts changed, so it re-decides the whole remaining plan by design. Acts inside the
+approved plan are exempt too: the reviewer approved them together, in the plan's order.
+
+**Predictions (Luna, `--gates locked,taa,hybrid`, 5 repeats), replacing the v0.18 ones:**
+- 16 `express_allocation`: TAA and hybrid 0 grave / 0 undone in 5 of 5, now guaranteed by code whenever
+  MED-7 was approved first: a departure that takes its seat is refused. Plan-locked unchanged.
+- 16b: unchanged, 1 grave at every gate. MED-7 was never approved (the reviewer would not approve a
+  shipment not yet in the system), so there is nothing to protect.
+- No change in any other scenario: no departure there makes an approved remaining act impossible. The
+  scripted run must match v0.18 in every cell.
+
+**Where this points (for the paper).** If it works, it names a plan-layer benefit a per-act judge
+cannot have: an approval becomes a commitment the gate enforces, so a later judgment cannot silently
+undo an earlier one. A per-act judge has no earlier approval to protect.
+
+**Freeze.** v0.18.1 is the version frozen after its check run, whatever the result.
