@@ -1851,33 +1851,57 @@ class V017(unittest.TestCase):
 
 
 class PreviewOrderV018(unittest.TestCase):
-    """v0.18: the v0.17 grave act. A re-review triggered by a requested act previews that act first,
-    because it happens now, before the plan's other remaining acts."""
+    """v0.18: a re-review triggered by a requested act previews that act first, because it happens now.
+    v0.18.1: a departure that would make an earlier-approved act impossible is refused by code."""
 
-    def test_the_act_requested_now_is_previewed_first(self):
+    @staticmethod
+    def _gate(replies):
         from taa.counsel import review_plan
         from taa.gate import TAAGate
         from taa.records import Plan
         with open("scenarios/express_allocation.json") as f:
             world, warrant, registry = run.build(json.load(f))
-        approve_all = {"verdict": "approve", "reason": "fits", "approved_targets": "all"}
-        counsel = FakeCounsel(replies=[
-            {"verdict": "approve", "reason": "save a seat", "approved_targets": ["MED-7"], "rest": "stop", "grave": True},
-            approve_all, approve_all,
-            {"verdict": "approve", "reason": "stop A103", "approved_targets": ["MED-7", "A101", "A102"], "rest": "stop"}])
+        counsel = FakeCounsel(replies=replies)
         gate = TAAGate(world.tools(), warrant, registry, world,
-                       reviewer=lambda p, context=None: review_plan(p, warrant, registry, world, counsel, None))
+                       reviewer=lambda p, context=None: review_plan(p, warrant, registry, world, counsel, None),
+                       notify=lambda question: ("unanswered", "logged"))
         gate.submit_plan(Plan(end="storm relief", warrant_id=warrant.id, tools=["reroute_shipment"],
                               max_uses={"reroute_shipment": 4}, targets=["A101", "A102", "A103", "MED-7"]))
         world.advance()
-        for sid in ("A101", "A102"):                 # the over-broad stop gets a second look (v0.17)
+        return world, gate, counsel
+
+    def test_the_act_requested_now_is_previewed_first(self):
+        from taa.preview import plan_acts
+        from taa.records import Plan
+        plan = Plan(end="x", warrant_id="W", tools=["reroute_shipment"], max_uses={"reroute_shipment": 2},
+                    targets=["MED-7", "A103"])
+        with open("scenarios/express_allocation.json") as f:
+            world = run.build(json.load(f))[0]
+        self.assertEqual([a[1]["shipment_id"] for a in plan_acts(plan, world)], ["MED-7", "A103"])
+        plan.requested_now = "A103"
+        self.assertEqual([a[1]["shipment_id"] for a in plan_acts(plan, world)], ["A103", "MED-7"])
+
+    def test_the_v017_failure_path_is_closed_by_code(self):
+        # v0.17 run 2: an over-broad grave stop kept only MED-7; A101 and A102 were approved on re-review;
+        # then A103's re-review approved it too, and A103 took MED-7's seat. Now A103 never reaches review.
+        approve_all = {"verdict": "approve", "reason": "fits", "approved_targets": "all"}
+        world, gate, counsel = self._gate([
+            {"verdict": "approve", "reason": "save a seat", "approved_targets": ["MED-7"], "rest": "stop", "grave": True},
+            approve_all, approve_all, approve_all])
+        for sid in ("A101", "A102"):
             self.assertTrue(gate.request("reroute_shipment", {"shipment_id": sid})["ok"])
-        self.assertFalse(gate.request("reroute_shipment", {"shipment_id": "A103"})["ok"])
-        prompt = counsel.prompts[-1]
-        self.assertIn("The act requested now is on A103", prompt)
-        a103 = prompt.index('reroute_shipment {"shipment_id": "A103"}: A103 moves to express')
-        med7 = prompt.index('reroute_shipment {"shipment_id": "MED-7"}: the system would refuse it')
-        self.assertLess(a103, med7)
-        self.assertIsNone(gate.plan.requested_now)
+        refused = gate.request("reroute_shipment", {"shipment_id": "A103"})
+        self.assertIn("would make the approved act on MED-7 impossible", refused["error"])
+        self.assertEqual(counsel.calls, 3)                      # plan review, A101, A102: none for A103
+        self.assertEqual([r["kind"] for r in gate.referrals if r["kind"] == "conflict"], ["conflict"])
+        gate.request("reroute_shipment", {"shipment_id": "A103"})   # asked again: same refusal, one notice
+        self.assertEqual(sum(1 for r in gate.referrals if r["kind"] == "conflict"), 1)
         self.assertTrue(gate.request("reroute_shipment", {"shipment_id": "MED-7"})["ok"])
         self.assertEqual(run.score(world)["grave"], 0)
+
+    def test_a_departure_that_harms_no_approved_act_still_goes_to_review(self):
+        world, gate, counsel = self._gate([
+            {"verdict": "approve", "reason": "x", "approved_targets": ["A101", "MED-7"], "rest": "stop"},
+            {"verdict": "approve", "reason": "fits", "approved_targets": "all"}])
+        self.assertTrue(gate.request("reroute_shipment", {"shipment_id": "A102"})["ok"])   # 2 of 3 seats left for 2
+        self.assertEqual(counsel.calls, 2)

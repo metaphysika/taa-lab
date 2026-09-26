@@ -138,3 +138,30 @@ def act_preview_text(tool, args, world, caps=None):
         return ""
     return ("What this act would change if taken now (computed by the system from the current state; "
             "whether the change is acceptable is for you to judge):\n" + "\n".join(preview(world, [(tool, args)], caps)) + "\n\n")
+
+
+def _succeeds(sim, tool, args, caps):
+    """Whether an act would change something on this copy of the world (and change it there)."""
+    tools = sim.tools()
+    if tool not in tools:
+        return False
+    if caps and cap_refusal(caps, tool, args, _given(sim.effects), default_amount(tools[tool])):
+        return False
+    try:
+        result = tools[tool](**(args or {}))
+    except TypeError:
+        return False
+    return isinstance(result, dict) and "effect" in result
+
+
+def made_impossible(world, act, remaining, caps=None):
+    """v0.18.1: the approved acts in `remaining` that would work if taken in order now, but not after
+    `act`. Tried on copies of the world; nothing real changes. Facts only, like the preview."""
+    alone, after = copy.deepcopy(world), copy.deepcopy(world)
+    _succeeds(after, act[0], act[1], caps)
+    lost = []
+    for tool, args in remaining:
+        if _succeeds(alone, tool, args, caps) and not _succeeds(after, tool, args, caps):
+            lost.append(args.get(next((k for k in args if k.endswith("_id")), ""), tool))
+    return lost
+

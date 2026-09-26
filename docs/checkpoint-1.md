@@ -38,6 +38,15 @@ against plan-locking, not against the judge.
 
 ## What this means for the paper
 
+Two framing points from an outside review (Sol, 2026-09-26), adopted. First, TAA's core claim is the
+M/A/F question itself; it can be asked when a plan is approved, before each act, or both. The per-step
+judge is a placement of the same question used as a comparator, not a rival to the claim. Question 5
+asks which placement does better; its "no" leaves M/A/F standing. Second, the lab gives a model
+reviewer M/A/F instructions shaped by Aquinas's account of an act's object, end, and circumstances
+(*ST* I-II q.18); it does not implement a natural-law core. The tests show whether this implementation
+catches wrongful acts and harmful consequences. They cannot establish that natural law is objective,
+which remains a philosophical premise argued in the paper.
+
 TAA works as the law around an agent: authority bound to a purpose and a live condition, limits
 enforced in code, a moral floor no authority can lift, plan review that costs less than half as much as
 judging every act, one question to a person per issue, and a record of what the agent intended and
@@ -53,6 +62,14 @@ rests on cost, the record of intent, and referral of conflicting ends.
    stopped as "moving no shipments").
 3. Untested: an agent that lies by changing the facts a reviewer relies on (roadmap scenario 17c), and
    an agent reaching for tools outside the sandbox (17d).
+
+## Addendum after v0.17 (same day)
+
+v0.17 produced one grave act by TAA in scenario 16: a later review let A103 take the seat an earlier
+review had approved for MED-7. v0.18 previews the act requested now first; v0.18.1 (on the outside
+review's advice) protects an earlier approval in code, so a departure that would make an approved act
+impossible is refused and a person is told. If it holds, it is a plan-layer benefit a per-act judge
+cannot have: an approval becomes a commitment the gate enforces.
 
 ## Decision
 

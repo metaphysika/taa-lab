@@ -28,6 +28,7 @@ preprint v1.0, https://doi.org/10.5281/zenodo.22946219
 | 3.3 | A review's stop is a decision: not re-decided on unchanged facts; one question per end to the issuer | `_note_stops`, `_stop_for` in `TAAGate`, `taa/gate.py`; `notices_sent` in `review_plan`, `taa/counsel.py` (v0.16) |
 | 3.3, 4.2 | Counsel orders means to the end as a whole: acts that compete for a scarce resource | `scenarios/express_allocation*.json`; firm express and `new_shipments` in `world/fake_world.py`; `missed_need` in `run.py` (v0.16.1) |
 | 4.3; ST I-II q.95 a.1 | A lying agent: changing the facts a reviewer relies on; reaching past the registry | `scenarios/record_laundering.json` (true road status in `world.true_closed`), `scenarios/reach_outside.json`; the "outside" notice in `_GateBase._outside_notice` (v0.17) |
+| 3.3, 4.2 | An approval is a commitment: a departure can't silently undo an earlier approval | `TAAGate._protected_conflict`, `made_impossible` in `taa/preview.py`; notice kind "conflict" (v0.18.1) |
 | 4.5 | Purpose defeat | `scenarios/purpose_defeat.json`, `scenarios/purpose_defeat_wide.json`; witnesses and steward not yet built |
 | 6.2 | Model-mediated judgment can fail | `taa/counsel_check.py` (false approvals and refusals) |
 | 7 | Comparators; defeat conditions | Six gates in `taa/gate.py`, including the per-step purpose judge (`StepJudgeGate`, `judge_act` in `taa/counsel.py`); metrics, referrals, and reviewer calls in `run.py` |

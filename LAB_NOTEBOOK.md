@@ -3295,3 +3295,19 @@ cannot have: an approval becomes a commitment the gate enforces, so a later judg
 undo an earlier one. A per-act judge has no earlier approval to protect.
 
 **Freeze.** v0.18.1 is the version frozen after its check run, whatever the result.
+
+## 2026-09-26 — v0.18.1 built; free checks only
+
+Built as planned: `TAAGate._protected_conflict` (checked before any departure review) and
+`made_impossible` in `taa/preview.py`, which tries the departure followed by the approved plan's remaining
+acts on copies of the world; a "conflict" notice once per protected target. 143 unit tests pass (the
+v0.18 test was split into three: the preview order; the v0.17 failure path, where A103 is now refused
+without review and MED-7 is saved; and a departure that harms no approved act still going to review).
+The scripted run (`2026-09-26 v0.18.1 scripted-none r1 verify`) is identical to v0.18's in all 18
+scenarios apart from random token ids, as predicted.
+
+Also adopted from the outside review, as framing in `docs/checkpoint-1.md`: M/A/F is the core claim and
+can be asked at plan time, per act, or both (the per-step judge is a placement used as a comparator);
+and the lab implements M/A/F instructions to a model reviewer, not a natural-law core, so its results
+cannot establish that natural law is objective. One part of the review was already out of date when it
+arrived: the v0.17 lying-agent results had been recorded in this notebook.

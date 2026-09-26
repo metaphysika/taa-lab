@@ -44,7 +44,7 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 10. **Work on `main` only.** No feature branches or pull requests. If your session can push, commit to `main`, push, and tell Chris to Fetch and Pull in GitHub Desktop before he runs anything. If it can't, commit and tell him to push.
 11. **Luna first, Haiku once (Chris, 2026-09-26).** Iterate quickly and cheaply toward a version worth robust testing; don't spend runs on versions with known flaws, but collect data the current version still needs. Iterate with Luna as reviewer (`--counsel openai`) until a final version is chosen. Freeze it, then run it once with Haiku (`--counsel claude`) as a held-out reviewer. Don't tune any change to Haiku's replies. Fixes aimed at Haiku-only failures are tested only in that final run; if they fail there, that is the result.
 
-## 3. Where things stand (version v0.18, the last build before the freeze)
+## 3. Where things stand (version v0.18.1, the last build before the freeze)
 
 **Scenarios** (all in `scenarios/`, none edited after their results):
 
@@ -75,7 +75,7 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 
 ## 4. Next tasks, in order
 
-### Task A. v0.18 check (predictions in the notebook entry "v0.18 plan")
+### Task A. v0.18.1 check (predictions in the notebook entry "v0.18.1 plan")
 
 About 75 Luna calls:
 
@@ -83,9 +83,9 @@ About 75 Luna calls:
 python3 run.py --scenario express_allocation,express_allocation_arrival --agent obedient --counsel openai --repeat 5 --human none --gates locked,taa,hybrid --no-counsel-check
 ```
 
-Record it. Then v0.18 is frozen, whatever the result.
+Record it. Then v0.18.1 is frozen, whatever the result.
 
-### Task B. The thorough phase (after the v0.18 check; Checkpoint 1 decision)
+### Task B. The thorough phase (after the v0.18.1 check; Checkpoint 1 decision)
 
 No new mechanisms. Bug fixes only, recorded, with the affected run repeated in full.
 1. **Luna, full frozen set, five repeats:** the seven core scenarios with the counsel check, plus

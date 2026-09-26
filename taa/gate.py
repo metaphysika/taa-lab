@@ -35,6 +35,7 @@ import json
 import secrets
 
 from taa import premises
+from taa.preview import made_impossible, plan_acts
 from taa.consequence import is_consequential
 from taa.determinations import cap_refusal, default_amount
 from taa.records import target_of
@@ -279,6 +280,7 @@ class TAAGate(_GateBase):
         self._pending_limits = {}
         self._stops = {}               # (tool, target) -> a review's stop and the facts it rested on (v0.16)
         self._notices_sent = []        # questions already sent to the issuer this run (v0.16)
+        self._conflict_noticed = set()  # approved targets the issuer was told a departure threatened (v0.18.1)
         self.notices_not_resent = 0
 
     def _review(self, plan, context=None, departure=None):
@@ -480,9 +482,34 @@ class TAAGate(_GateBase):
             return False, f"approved plan allows {cap} uses of '{tool}'", True
         return True, "matches approved plan; warrant live; within budget", False
 
+    def _protected_conflict(self, tool, args):
+        """v0.18.1: approved acts still to come that this departure would make impossible, or [].
+        An approval is a commitment: a later review can't silently undo it, so this is checked by
+        code before any review. Only a person can change an earlier approval."""
+        target = target_of(args)
+        remaining = copy.copy(self.plan)
+        remaining.done_targets = self._done_targets(self.plan) + ([target] if target else [])
+        remaining.requested_now = None
+        acts = plan_acts(remaining, self._world)
+        if not acts:
+            return []
+        return made_impossible(self._world, (tool, args), acts, self.warrant.caps)
+
     def _rereview(self, tool, args, why):
         """A material departure goes back to plan review as an amended plan (paper Section 4.2)."""
-        import copy
+        lost = self._protected_conflict(tool, args)
+        if lost:
+            for t in lost:
+                if t not in self._conflict_noticed and self._notify is not None:
+                    self._conflict_noticed.add(t)
+                    question = (f"{tool} {json.dumps(args)} was refused: it would make the approved act on {t} "
+                                "impossible. Only a person can change an earlier approval.")
+                    outcome, _ = self._notify(question)
+                    self.referrals.append({"kind": "conflict", "question": question, "outcome": outcome,
+                                           "step": self._world.step})
+            return False, (f"departure ({why}) refused without review: it would make the approved act on "
+                           f"{', '.join(lost)} impossible (checked by the system); an earlier approval stands "
+                           "until a person changes it")
         amended = copy.deepcopy(self.plan)
         amended.status, amended.review_notes, amended.amended = "proposed", [], True
         amended.revision, amended.departure = False, True
@@ -547,7 +574,7 @@ class TAAGate(_GateBase):
                 return remembered
             approved, note = self._rereview(tool, args, reason)
             if not approved:
-                self._record(tool, args, "RE-REVIEWED -> REFUSED", note)
+                self._record(tool, args, "REFUSED" if "refused without review" in note else "RE-REVIEWED -> REFUSED", note)
                 return {"ok": False, "error": note}
             ok, reason, _ = self._step_check(tool, args)
             reason = f"{note}; {reason}"
