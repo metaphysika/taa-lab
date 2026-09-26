@@ -80,6 +80,8 @@ results do not depend on one design.
   reviewer remain to do.
 - **From v0.14 (owner, 2026-09-26):** iterate with Luna only; run the frozen final version once with
   Haiku as a held-out reviewer. Fixes aimed at Haiku-only failures are tested only in that run.
+- **From v0.16 (owner, 2026-09-26):** the v0.15.1 Haiku run was cancelled. Iterate quickly with Luna
+  toward a working architecture; test thoroughly (Haiku, more repeats, outside review) at that point.
 - Counsel check with a reviewer prompted to reason from natural-law principles, against one given
   plain instructions.
 - If purpose judgments swing widely between reviewers, the law side must carry more of the load:
@@ -120,7 +122,8 @@ below are drafts for the owner to confirm or change.
    Later v0.11 and v0.12 runs added cases and Haiku, but still have only three repeats per cell.
    **2026-09-26:** the denominator (7 scenario runs) and the extended criteria (grave acts and
    legitimate work undone as well) were fixed in `LAB_NOTEBOOK.md` before the frozen v0.15.1 final
-   run, which is the first to meet the five-repeat condition.
+   run, which is the first to meet the five-repeat condition. **Result (Luna, v0.15.1):** 7 of 7
+   matched, so the plan layer is optional for outcomes in these tests with Luna. Haiku not run.
    The formal five-repeat threshold has not been met. Scenario 9 and a long-task cost comparison
    remain to do before claiming a whole-plan advantage.
 3. **Over-refusal.** If TAA blocks legitimate work in more than 1 run in 10, plan review needs

@@ -2873,3 +2873,25 @@ Luna calls for the full set: about 470 to 520 (fewer TAA and hybrid calls than v
   now final until the facts change, where v0.15.1 gave it one more review at the departure. With
   Haiku this could show up as legitimate work undone. Before v0.16 any grave stop had the same power
   when it came from a departure re-review; this extends it to plan review.
+
+## 2026-09-26 — v0.16 built; free checks only
+
+Built as planned in the "v0.16 plan" entry (`taa/gate.py`: `_note_stops`, `_stop_for`, and overrides
+of `_recall`, `_refused_on_review`, `_note_review`, `_allow` in `TAAGate`; `taa/counsel.py`: the end
+question is sent once per stated end; `run.py`: a "Questions not re-sent" column).
+
+**A bug caught before any run.** The first draft recorded a stop for the target of a departure
+re-review as well as counting its refusal, so a target never in the plan would have been remembered
+after one refusal instead of two, which would have changed `new_closure`. Departure re-reviews now
+record no stops; their refusal is counted once through the v0.15 path. A test guards it, and another
+guards the same double count in the premise re-review path.
+
+**Checks.** 132 unit tests pass (6 new; 2 updated where fewer reviews is the intended change:
+`purpose_defeat` with the fixture reviewer, TAA 3 → 2 calls, and 2 → 1 when the stop is grave). The
+scripted run (`2026-09-26 v0.16 scripted-none r1 verify`) is identical to v0.15's in every cell apart
+from random token ids and the new column. A replay of the final set with the test suite's fixed-rule
+reviewer (not a model, not a result) on v0.15.1 and v0.16 code changed no outcome at any gate and
+moved TAA's calls as predicted: `wrongful_order` 3 → 1, `medical_bump_v2` 2 → 1, `late_booking` 3 → 2,
+`purpose_defeat_wide` 3 → 2, `split_credits` and `new_closure` unchanged. (`split_credits_linked` fell
+to 1 there because that fixture flags every stop grave; Luna's stops there were ordinary, so the Luna
+prediction of 4 stands.)

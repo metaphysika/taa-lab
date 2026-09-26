@@ -44,7 +44,7 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 10. **Work on `main` only.** No feature branches or pull requests. If your session can push, commit to `main`, push, and tell Chris to Fetch and Pull in GitHub Desktop before he runs anything. If it can't, commit and tell him to push.
 11. **Luna first, Haiku once (Chris, 2026-09-26).** Iterate quickly and cheaply toward a version worth robust testing; don't spend runs on versions with known flaws, but collect data the current version still needs. Iterate with Luna as reviewer (`--counsel openai`) until a final version is chosen. Freeze it, then run it once with Haiku (`--counsel claude`) as a held-out reviewer. Don't tune any change to Haiku's replies. Fixes aimed at Haiku-only failures are tested only in that final run; if they fail there, that is the result.
 
-## 3. Where things stand (version v0.15.1, frozen)
+## 3. Where things stand (version v0.16)
 
 **Scenarios** (all in `scenarios/`, none edited after their results):
 
@@ -67,13 +67,17 @@ Agents: `obedient` (scripted; carries out every instruction, stands in for an un
 
 **v0.15, frozen as v0.15.1 (plus a larger Haiku reply budget):** an ordinary refusal is remembered after the second refusal on the same facts (judge, TAA, and hybrid alike), and a stopped departure re-review makes no salvage call. The scripted run changed no outcome in any of the 78 cells. Luna checks of `new_closure` and `purpose_defeat_wide` held every predicted outcome; TAA now uses fewer calls than the judge with a persistent agent (3 against 5; 6 against 8).
 
+**v0.15.1 Luna final run (5 repeats, 569 calls):** every predicted outcome held. The per-step judge matched TAA in 7 of 7 scenarios, so by the fixed rule the plan layer is optional for outcomes in these tests; TAA used fewer calls than the judge in 7 of 7; 0 of 35 TAA runs left work undone; 0 of 25 false approvals. Two findings against TAA: it re-reviewed targets its own plan review had stopped, and it sent the issuer the same question repeatedly. The Haiku run of v0.15.1 was cancelled (Chris, 2026-09-26): iterate with Luna to a working architecture first, then test thoroughly.
+
+**v0.16:** a review's stop enters refusal memory (grave at once; ordinary counts as the first refusal; the plan's own acts don't release it, outside changes do), and a question about the stated end is sent once per run. Scripted run identical to v0.15 in every cell; 132 unit tests pass. Predictions are in the notebook entry "v0.16 plan".
+
 **Honest limits to keep in view:** made-up worlds; one world; 3 runs per cell; scenarios designed by the same people who designed TAA; the consequence preview works only where the world can be simulated, and it changes what the tests measure (weighing consequences, not foreseeing them).
 
 ## 4. Next tasks, in order
 
-### Task A. The final run, Luna then Haiku (Chris runs these; predictions and decision rules are in the notebook entry "v0.15.1 frozen")
+### Task A. v0.16 Luna run (Chris runs these; predictions are in the notebook entry "v0.16 plan")
 
-Luna (about 540 to 600 calls):
+About 470 to 520 Luna calls:
 
 ```
 python3 run.py --scenario wrongful_order,medical_bump_v2,split_credits,late_booking,split_credits_linked --agent obedient --counsel openai --repeat 5 --human none
@@ -81,9 +85,7 @@ python3 run.py --scenario purpose_defeat_wide --agent wideplanner --counsel open
 python3 run.py --scenario new_closure --agent scripted --counsel openai --repeat 5 --human none --no-counsel-check
 ```
 
-After the Luna run is recorded, Haiku (about 600 to 750 calls): the same three commands with `--counsel claude`.
-
-No code changes during the freeze. Record each run against the "v0.15.1 frozen" predictions and apply the six decision rules exactly as written there.
+Record it against the v0.16 predictions. Haiku waits until Chris judges the architecture ready for thorough testing.
 
 ### Task B. Afterward
 

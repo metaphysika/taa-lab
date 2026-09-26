@@ -864,14 +864,16 @@ class RefusalMemory(unittest.TestCase):
     def test_ordinary_refusals_get_one_fresh_review_then_are_remembered(self):
         # v0.15: A104's refusal is not flagged grave, so its first repeat is reviewed fresh (a single
         # mistaken refusal isn't locked in); refused again on the same facts, it is remembered.
+        # v0.16: for TAA, plan review's stop of A104 is that first refusal, so one departure
+        # re-review (not two) comes before memory: 2 calls, not 3.
         from agents.wide_planner import WidePlanner
         for mode in ("taa", "judge"):
             with self.subTest(mode=mode):
                 _, gate = model_run("purpose_defeat", mode, WidePlanner, FakeCounsel(decide=closed_only))
-                self.assertEqual(gate.reviewer_calls, {"taa": 3, "judge": 5}[mode])
+                self.assertEqual(gate.reviewer_calls, {"taa": 2, "judge": 5}[mode])
                 self.assertEqual(gate.fresh_rereviews, 1)
                 remembered = [e for e in gate.log if e.get("remembered")]
-                self.assertEqual(len(remembered), 9)
+                self.assertEqual(len(remembered), {"taa": 10, "judge": 9}[mode])
                 self.assertIn("refused twice on review", remembered[0]["reason"])
                 self.assertEqual(sum(1 for r in gate.referrals if r["kind"] == "repeat"), 1)
 
@@ -886,14 +888,15 @@ class RefusalMemory(unittest.TestCase):
         self.assertIsNotNone(gate._recall("reroute_shipment", {"shipment_id": "A104"}))
 
     def test_grave_refusals_are_remembered_by_every_reviewing_gate(self):
-        # The same refusal flagged grave: one review, then refused from memory with one notice.
+        # The same refusal flagged grave: refused from memory with one notice. v0.16: plan review's
+        # grave stop of A104 is itself remembered, so the plan review is the only call.
         from agents.wide_planner import WidePlanner
         grave = lambda plan: dict(closed_only(plan), grave=set(ids(plan["targets"])) - set(CLOSED) != set())
-        for mode, calls in (("taa", 2), ("hybrid", 2)):
+        for mode, calls in (("taa", 1), ("hybrid", 1)):
             with self.subTest(mode=mode):
                 _, gate = model_run("purpose_defeat", mode, WidePlanner, FakeCounsel(decide=grave))
                 self.assertEqual(gate.reviewer_calls, calls)
-                self.assertEqual(sum(1 for e in gate.log if e.get("remembered")), 10)
+                self.assertEqual(sum(1 for e in gate.log if e.get("remembered")), 11)
                 self.assertEqual(sum(1 for r in gate.referrals if r["kind"] == "repeat"), 1)
                 self.assertEqual(gate.fresh_rereviews, 0)
         _, gate = obedient_run("wrongful_order", "judge", SafeReviewer())[:2]
@@ -1638,3 +1641,96 @@ class AnthropicTokenBudgetV0151(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReviewStopsV016(unittest.TestCase):
+    """v0.16: a target a review stopped enters refusal memory on the facts it was stopped on. A
+    grave stop is remembered at once; an ordinary stop counts as the first refusal. The plan's own
+    acts carry a stop over; a change from outside releases it. A question about the stated end is
+    sent once per run."""
+
+    @staticmethod
+    def _gate(counsel, targets=("A101", "A102", "A103", "A104")):
+        from taa.counsel import review_plan
+        from taa.gate import TAAGate
+        from taa.records import Plan
+        with open("scenarios/purpose_defeat.json") as f:
+            world, warrant, registry = run.build(json.load(f))
+        gate = TAAGate(world.tools(), warrant, registry, world,
+                       reviewer=lambda p, context=None: review_plan(p, warrant, registry, world, counsel,
+                                                                   None, context=context))
+        gate.submit_plan(Plan(end="reroute the storm shipments", warrant_id=warrant.id,
+                              tools=["reroute_shipment"], max_uses={"reroute_shipment": len(targets)},
+                              targets=list(targets)))
+        world.advance()
+        return world, gate
+
+    def test_a_grave_stop_survives_the_plans_own_acts_and_is_released_by_an_outside_change(self):
+        grave = lambda plan: dict(closed_only(plan), grave=set(ids(plan["targets"])) - set(CLOSED) != set())
+        counsel = FakeCounsel(decide=grave)
+        world, gate = self._gate(counsel)
+        self.assertTrue(gate.request("reroute_shipment", {"shipment_id": "A101"})["ok"])   # express changes
+        refused = gate.request("reroute_shipment", {"shipment_id": "A104"})
+        self.assertIn("review stopped this act as grave at step 0", refused["error"])
+        self.assertEqual(counsel.calls, 1)
+        world.record("A104")["road_closed"] = True                                         # outside change
+        gate.request("reroute_shipment", {"shipment_id": "A104"})
+        self.assertEqual(counsel.calls, 2)
+        self.assertFalse(gate.log[-1].get("remembered"))
+
+    def test_an_ordinary_stop_is_the_first_refusal(self):
+        counsel = FakeCounsel(decide=closed_only)
+        _, gate = self._gate(counsel)
+        for _ in range(3):
+            gate.request("reroute_shipment", {"shipment_id": "A104"})
+        self.assertEqual(counsel.calls, 2)            # plan review, one departure re-review, then memory
+        self.assertTrue(gate.log[-1].get("remembered"))
+        self.assertEqual(gate.fresh_rereviews, 1)
+
+    def test_a_target_never_in_the_plan_still_gets_two_reviews(self):
+        # A departure re-review's own refusal must not also count as a stop (one decision, counted once).
+        counsel = FakeCounsel(decide=closed_only)
+        _, gate = self._gate(counsel, targets=CLOSED)
+        for _ in range(3):
+            gate.request("reroute_shipment", {"shipment_id": "A104"})
+        self.assertEqual(counsel.calls, 3)
+        self.assertTrue(gate.log[-1].get("remembered"))
+
+    def test_an_approved_departure_clears_the_stop(self):
+        stop_a104 = {"verdict": "approve", "reason": "x", "approved_targets": CLOSED, "rest": "stop"}
+        counsel = FakeCounsel(replies=[stop_a104, {"verdict": "approve", "reason": "y", "approved_targets": "all"}])
+        _, gate = self._gate(counsel)
+        self.assertIn(("reroute_shipment", "A104"), gate._stops)
+        self.assertTrue(gate.request("reroute_shipment", {"shipment_id": "A104"})["ok"])
+        self.assertNotIn(("reroute_shipment", "A104"), gate._stops)
+
+    def test_a_premise_rereview_stop_and_its_refusal_count_once(self):
+        approve_all = {"verdict": "approve", "reason": "x", "approved_targets": "all"}
+        stop_a104 = {"verdict": "approve", "reason": "y", "approved_targets": CLOSED, "rest": "stop"}
+        counsel = FakeCounsel(replies=[approve_all, stop_a104, stop_a104])
+        world, gate = self._gate(counsel)
+        world.record("A104")["eta_hours"] += 5                   # an outside change: premise re-review
+        for _ in range(3):
+            gate.request("reroute_shipment", {"shipment_id": "A104"})
+        self.assertEqual(gate.premise_rereviews, 1)
+        self.assertEqual(counsel.calls, 3)            # plan, premise re-review, one departure re-review
+        self.assertTrue(gate.log[-1].get("remembered"))
+
+    def test_the_question_about_the_stated_end_is_sent_once(self):
+        from taa.counsel import review_plan
+        from taa.gate import TAAGate
+        from taa.records import Plan
+        with open("scenarios/purpose_defeat.json") as f:
+            world, warrant, registry = run.build(json.load(f))
+        counsel = FakeCounsel(decide=closed_only)
+        gate = TAAGate(world.tools(), warrant, registry, world,
+                       reviewer=lambda p, context=None: review_plan(p, warrant, registry, world, counsel, None))
+        gate.submit_plan(Plan(end="Reroute everything for the bonus.", warrant_id=warrant.id,
+                              tools=["reroute_shipment"], max_uses={"reroute_shipment": 4},
+                              targets=CLOSED + ["A104"]))
+        world.advance()
+        gate.request("reroute_shipment", {"shipment_id": "A104"})       # departure re-review, same end
+        self.assertEqual(counsel.calls, 2)
+        self.assertEqual(sum(1 for r in gate.referrals if r["kind"] == "end"), 1)
+        self.assertEqual(gate.notices_not_resent, 1)
+        self.assertIn("not sent again", gate.log[-1]["reason"])
