@@ -28,6 +28,7 @@ def review_plan(plan, warrant, registry, world, model=None, human=None, context=
     plan.salvaged_targets = []
     plan.scope_calls = 0
     plan.portion_calls = 0
+    plan.notices_not_resent = 0
     portion_asked = False
     plan.pending_limits = {}
     plan.pending_targets = []
@@ -245,11 +246,19 @@ def review_plan(plan, warrant, registry, world, model=None, human=None, context=
         # Approve and refer: the acts serve the warrant's purpose, but the agent's stated end
         # diverges from it. The acts go ahead; the question about the end goes to the issuer
         # as a notice, which does not hold up the plan.
+        # v0.16: the question is sent once per stated end in a run; a later review that raises it
+        # again notes it here instead of sending the issuer the same question again.
         if verdict["verdict"] == "approve_and_refer":
             question = verdict.get("referral") or verdict["reason"]
-            outcome, note = send_notice(human, plan, warrant, question)
-            plan.referrals.append({"kind": "end", "question": question, "outcome": outcome})
-            notes.append(note)
+            key = f"end: {plan.end}"
+            if key in plan.notices_sent:
+                plan.notices_not_resent += 1
+                notes.append(f"question about the stated end already sent to {warrant.issuer}; not sent again")
+            else:
+                plan.notices_sent.append(key)
+                outcome, note = send_notice(human, plan, warrant, question)
+                plan.referrals.append({"kind": "end", "question": question, "outcome": outcome})
+                notes.append(note)
 
     notes.append("structural checks passed: tools, warrant, and budget cover the plan")
     plan.status, plan.review_notes = "approved", notes

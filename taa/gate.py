@@ -146,10 +146,13 @@ class _GateBase:
         hit = self._refused.get(self._memory_key(tool, args))
         if hit is None:
             return None
-        hit["repeats"] += 1
         how = "as grave" if hit.get("grave", True) else "twice on review, most recently"
-        note = (f"refused from memory: the same act was refused {how} at step {hit['step']} and nothing "
-                "it rested on has changed, so it was not reviewed again")
+        return self._refuse_from_memory(tool, args, hit, f"the same act was refused {how} at step {hit['step']}")
+
+    def _refuse_from_memory(self, tool, args, hit, what):
+        """Refuse a remembered act; the first repeat sends the issuer a notice."""
+        hit["repeats"] += 1
+        note = f"refused from memory: {what} and nothing it rested on has changed, so it was not reviewed again"
         if hit["repeats"] == 1 and self._notify is not None:
             question = f"the agent asked again for an act refused at step {hit['step']}: {tool} {json.dumps(args)}"
             outcome, notice = self._notify(question)
@@ -259,9 +262,21 @@ class TAAGate(_GateBase):
         self._baseline = None          # the facts the current approval rests on (taa/premises.py)
         self._pending_targets = set()
         self._pending_limits = {}
+        self._stops = {}               # (tool, target) -> a review's stop and the facts it rested on (v0.16)
+        self._notices_sent = []        # questions already sent to the issuer this run (v0.16)
+        self.notices_not_resent = 0
 
-    def _review(self, plan, context=None):
+    def _review(self, plan, context=None, departure=None):
+        """`departure`: the (tool, args) a departure re-review is about. Its refusal is counted by
+        _refused_on_review, and a partial approval there leaves the previous plan in force, so it
+        records no stops; an approval of the departing target clears that target's stop."""
+        asked = [t for t in plan.targets if t]
+        tools = list(plan.tools)
+        plan.notices_sent = self._notices_sent
         reviewed = self._reviewer(plan, context=context) if context else self._reviewer(plan)
+        if departure is None:
+            self._note_stops(asked, tools, reviewed)
+        self.notices_not_resent += getattr(reviewed, "notices_not_resent", 0)
         self.salvage_calls += reviewed.salvage_calls
         self.scope_calls += reviewed.scope_calls
         self.portion_calls += reviewed.portion_calls
@@ -275,6 +290,62 @@ class TAAGate(_GateBase):
         for r in reviewed.referrals:
             self.referrals.append(dict(r, step=self._world.step))
         return reviewed
+
+    # ---- stops from review enter refusal memory (v0.16) -------------------------------------
+    # A target a review left out of the plan, or a stopped plan's targets, was decided on the facts
+    # at that review. A grave stop is remembered at once; an ordinary stop counts as the first
+    # refusal, so one departure re-review is still allowed (the v0.15 rule). The plan's own acts
+    # do not release a stop (the reviewer saw them coming); a change from outside does.
+
+    def _note_stops(self, asked, tools, reviewed):
+        if any(n.startswith("A fails") for n in reviewed.review_notes):
+            return                     # a structural stop, enforced by the step check anyway
+        if reviewed.status == "approved":
+            stopped = [t for t in asked if t not in reviewed.targets and t not in reviewed.pending_targets]
+        elif reviewed.status == "stopped":
+            stopped = asked
+        else:
+            return                     # referred: nobody has decided yet
+        for t in reviewed.targets:
+            for tool in tools:
+                self._stops.pop((tool, t), None)
+        grave = any(r["kind"] == "grave" for r in reviewed.referrals)
+        for t in stopped:
+            for tool in tools:
+                self._stops[(tool, t)] = {"facts": self._world.fingerprint(t), "step": self._world.step,
+                                          "grave": grave, "repeats": 0, "counted": set()}
+
+    def _stop_for(self, tool, args):
+        """The review stop covering this act, if the facts it rested on still hold."""
+        target = target_of(args)
+        stop = self._stops.get((tool, target))
+        if stop is None or stop["facts"] != self._world.fingerprint(target):
+            return None
+        return stop
+
+    def _recall(self, tool, args):
+        remembered = super()._recall(tool, args)
+        if remembered:
+            return remembered
+        stop = self._stop_for(tool, args)
+        if stop is None or not stop["grave"]:
+            return None
+        return self._refuse_from_memory(tool, args, stop, f"review stopped this act as grave at step {stop['step']}")
+
+    def _refused_on_review(self, tool, args, grave):
+        # An ordinary stop by an earlier review counts as the first refusal on these facts, once.
+        stop = self._stop_for(tool, args)
+        key = self._memory_key(tool, args)
+        if not grave and stop is not None and key not in stop["counted"]:
+            stop["counted"].add(key)
+            self._ordinary_refusals[key] = self._ordinary_refusals.get(key, 0) + 1
+        super()._refused_on_review(tool, args, grave)
+
+    def _note_review(self, tool, args):
+        if self._act_key(tool, args) not in self._reviewed_refusals and (tool, target_of(args)) in self._stops:
+            self.fresh_rereviews += 1      # reviewing an act an earlier review stopped
+            return
+        super()._note_review(tool, args)
 
     def submit_plan(self, plan):
         """Plan review. After a stop the agent may submit one revised plan (plan.revision);
@@ -318,9 +389,13 @@ class TAAGate(_GateBase):
         return self.plan
 
     def _allow(self, tool, args, reason):
+        before = {t: self._world.fingerprint(t) for (_, t) in self._stops}
         result = super()._allow(tool, args, reason)
         if self.watches_premises and self._baseline is not None:
             self._rebaseline()
+        for (_, t), stop in self._stops.items():
+            if stop["facts"] == before[t]:     # only this act changed its facts: the stop carries over
+                stop["facts"] = self._world.fingerprint(t)
         return result
 
     def _step_check(self, tool, args):
@@ -392,7 +467,7 @@ class TAAGate(_GateBase):
             if "amount" in lim and args.get("amount") is not None:
                 lim["amount"] += _dollars(args["amount"])
         self._note_review(tool, args)
-        reviewed = self._review(amended)
+        reviewed = self._review(amended, departure=(tool, args))
         grave = any(r["kind"] == "grave" for r in reviewed.referrals)
         if reviewed.status == "approved":
             # Adopt the reviewed plan only if it actually covers this act: a partial approval
@@ -401,6 +476,9 @@ class TAAGate(_GateBase):
             covers, _, _ = self._step_check(tool, args)
             if covers:
                 self.plan.departure = False
+                for t in self.plan.targets:        # approved now: earlier stops no longer apply
+                    for plan_tool in self.plan.tools:
+                        self._stops.pop((plan_tool, t), None)
                 self._rebaseline()     # this plan was just approved on the current facts
                 return True, f"departure ({why}) re-reviewed and approved: {'; '.join(reviewed.review_notes)}"
             self.plan = previous
@@ -421,6 +499,9 @@ class TAAGate(_GateBase):
             ok, reason, departure = self._step_check(tool, args)
             if not ok:
                 # Just reviewed on the current facts, so a departure is not sent to review again.
+                stop = self._stop_for(tool, args)
+                if stop is not None:           # that review's stop is this refusal: count it once
+                    stop["counted"].add(self._memory_key(tool, args))
                 self._refused_on_review(tool, args, grave=any(r["kind"] == "grave" for r in reviewed.referrals))
                 note = f"premise re-review no longer covers this act: {reason}"
                 self._record(tool, args, "REFUSED", note)
