@@ -1,4 +1,4 @@
-# TAA Lab (v0.17)
+# TAA Lab (v0.18)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -100,6 +100,9 @@ its stated need); gates and reviewers are unchanged, so v0.16 and v0.16.1 result
 v0.17 changes gate procedure (a grave stop is final at once only when a review stopped a single
 target; re-reviews are told which targets are already done; a notice for any tool outside the
 registry, at every gate), so compare v0.17 results only with v0.17.
+v0.18 changes one thing: a re-review triggered by a requested act previews that act first, since it
+happens before the plan's other remaining acts. Compare v0.18 results only with v0.18. **v0.18 is the
+version frozen after Checkpoint 1** (`docs/checkpoint-1.md`) for the thorough phase.
 
 **Cheaper iteration runs (v0.14.1).** `--gates taa,judge` runs only the listed gates (default: all
 six; names: baseline, expiring, judge, locked, taa, hybrid). `--no-counsel-check` skips the fixed

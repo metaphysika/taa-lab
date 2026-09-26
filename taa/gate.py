@@ -290,6 +290,7 @@ class TAAGate(_GateBase):
         plan.notices_sent = self._notices_sent
         plan.done_targets = self._done_targets(plan)
         reviewed = self._reviewer(plan, context=context) if context else self._reviewer(plan)
+        reviewed.requested_now = None  # v0.18: true only for the review it was set for
         if departure is None:
             self._note_stops(asked, tools, reviewed)
         self.notices_not_resent += getattr(reviewed, "notices_not_resent", 0)
@@ -400,7 +401,7 @@ class TAAGate(_GateBase):
         return (self.watches_premises and self._baseline is not None
                 and premises.snapshot(self._world) != self._baseline)
 
-    def _premise_rereview(self):
+    def _premise_rereview(self, now=None):
         """Facts changed for a reason other than the plan's own acts: the rest of the plan goes
         back to review under the current facts, told what changed. The new verdict replaces the
         old approval whatever it says, since the old approval's premises no longer hold."""
@@ -409,6 +410,7 @@ class TAAGate(_GateBase):
         amended = copy.deepcopy(self.plan)
         amended.status, amended.review_notes, amended.amended, amended.revision = "proposed", [], True, False
         amended.departure = False      # a stop here withdraws the plan, so salvage still applies
+        amended.requested_now = now    # v0.18: the act that met the changed facts is previewed first
         requested = {"end": amended.end, "tools": list(amended.tools), "max_uses": dict(amended.max_uses),
                      "targets": amended.targets_shown()}
         self.premise_rereviews += 1
@@ -484,6 +486,7 @@ class TAAGate(_GateBase):
         amended = copy.deepcopy(self.plan)
         amended.status, amended.review_notes, amended.amended = "proposed", [], True
         amended.revision, amended.departure = False, True
+        amended.requested_now = target_of(args)   # v0.18: this act happens now, before the rest
         if tool not in amended.tools:
             amended.tools.append(tool)
         target = target_of(args)
@@ -526,7 +529,7 @@ class TAAGate(_GateBase):
         ok, reason, departure = self._step_check(tool, args)
         if ok and self._premises_changed():
             # v0.13: the approval this act relies on rested on facts that have since changed.
-            reviewed = self._premise_rereview()
+            reviewed = self._premise_rereview(target_of(args))
             ok, reason, departure = self._step_check(tool, args)
             if not ok:
                 # Just reviewed on the current facts, so a departure is not sent to review again.

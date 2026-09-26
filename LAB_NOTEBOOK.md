@@ -3255,3 +3255,11 @@ first, so the preview there is unchanged.
 
 **After this run, v0.18 is frozen** (the second and last build after Checkpoint 1) and the thorough
 phase begins, whatever the result. A failure here is recorded and reported, not fixed.
+
+## 2026-09-26 — v0.18 built; free checks only
+
+Built as planned (`Plan.requested_now`, set by `TAAGate._rereview` and `_premise_rereview`, cleared after
+each review; `taa/preview.py` runs that target first; counsel is told it happens now). 141 unit tests
+pass (1 new, reproducing the v0.17 path: an over-broad grave stop, two approved departures, then A103's
+re-review now previews A103 before MED-7 and MED-7 is saved). The scripted run (`2026-09-26 v0.18
+scripted-none r1 verify`) is identical to v0.17's in all 18 scenarios, apart from random token ids.

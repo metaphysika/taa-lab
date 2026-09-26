@@ -109,6 +109,7 @@ class Plan:
     notices_sent: list = field(default_factory=list)  # questions already sent this run; the gate shares one list (v0.16)
     notices_not_resent: int = 0  # questions this review raised again and did not send again (v0.16)
     done_targets: list = field(default_factory=list)  # targets already carried out, told to a re-review (v0.17)
+    requested_now: str = None   # the target of the act that triggered this re-review; previewed first (v0.18)
 
     def __post_init__(self):
         ids, limits = normalize_targets(self.targets)

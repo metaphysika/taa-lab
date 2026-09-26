@@ -40,7 +40,10 @@ def plan_acts(plan, world):
     if any(p.default is inspect.Parameter.empty for name, p in params.items() if name != id_param):
         return None
     acts = []
-    for target in plan.targets:
+    now = getattr(plan, "requested_now", None)
+    # v0.18: the act requested now happens before the plan's other remaining acts, so it goes first.
+    order = ([now] if now in plan.targets else []) + [t for t in plan.targets if t != now]
+    for target in order:
         if target in getattr(plan, "done_targets", []):
             continue                   # v0.17: already carried out; not shown as if still planned
         limit = plan.limits.get(target, {})

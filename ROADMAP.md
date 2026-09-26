@@ -91,6 +91,9 @@ own code or host. That is security engineering (isolation, least privilege, moni
 response), the enforcement prong beside TAA's law prong, and belongs to researchers with the right
 facilities.
 
+**Status 2026-09-26:** Checkpoint 1 written (`docs/checkpoint-1.md`). The two builds it allowed are done
+(v0.17, v0.18). v0.18 is frozen after its check run; the thorough phase is next.
+
 **Checkpoint 1 (fixed 2026-09-26, LAB_NOTEBOOK):** when the v0.16 Luna run and the scenario 16 run
 are recorded, write a one-page assessment against six questions. After it, at most two more build
 versions, then freeze and begin the thorough phase (Haiku, five repeats, a second world, outside

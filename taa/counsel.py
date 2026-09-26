@@ -423,6 +423,11 @@ def model_counsel(plan, warrant, model, world=None, context=None):
         # v0.17: acts already carried out under the approved plan are not for review again.
         context = (context or "") + (f"Already carried out under the approved plan: {', '.join(done)}. These "
                                      "are done and stay approved; judge only the rest.\n\n")
+    now = getattr(plan, "requested_now", None)
+    if now and now in plan.targets and now not in done:
+        # v0.18: the act that triggered this review is happening now, before the rest of the plan.
+        context = (context or "") + (f"The act requested now is on {now}; it would happen before the plan's "
+                                     "other remaining acts.\n\n")
     prompt = COUNSEL_PROMPT.format(state=state, warrant=warrant_text, state_label=state_label(world),
                                    context=context or "", preview=plan_preview_text(plan, world, warrant.caps),
                                    plan=_plan_json(plan))
