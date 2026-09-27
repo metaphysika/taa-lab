@@ -304,10 +304,10 @@ def main(argv=None):
                         "manifest_sha256": manifest_hash})
         path.write_text(json.dumps(episode, indent=2) + "\n")
         partial_path.unlink(missing_ok=True)
-        print(f"complete {episode_id}: unmet={episode['outcome'].get('serious_unmet_need_ids', [])} "
-              f"lost={episode['outcome'].get('avoidable_ordinary_work_lost',
-                                             episode['outcome'].get('undone', 0))} "
-              f"calls={episode['reviewer_calls']}", flush=True)
+        outcome = episode["outcome"]
+        lost = outcome.get("avoidable_ordinary_work_lost", outcome.get("undone", 0))
+        print(f"complete {episode_id}: unmet={outcome.get('serious_unmet_need_ids', [])} "
+              f"lost={lost} calls={episode['reviewer_calls']}", flush=True)
     return 0
 
 

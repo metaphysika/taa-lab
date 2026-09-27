@@ -3525,3 +3525,24 @@ If smoke permits the predeclared Luna pilot, F01 and F05 should again serve U in
 Resume now verifies hashes of the runner, relevant code, and dated price file as well as the manifest. A changed file ends the old stage instead of mixing evidence. It also stores the same hashes in each provider's run metadata and in the shared stage-budget record. This patch changes recording and resume checks, not authority or resource behavior. I predict the 32 core and six claim-free regression fixture outcomes, calls, and prompt census will match v0.19.3. The paid-development predictions above carry forward unchanged to v0.19.3.1; no v0.19.3 paid calls occurred.
 
 The v0.19.3.1 free rerun completed 32 core and six regression episodes. The case/mode outcomes and reviewer-call counts match v0.19.3 exactly; the prompt census remains 81 core calls with 230,799 estimated input tokens and 30 regression calls with 64,653 estimated input tokens per repeat. The 172-test unit suite and historical scripted suite passed after this patch. The current paid-development commands and application stops are recorded in `docs/obligations-paid-development-checkpoint.md`. No paid call has been made for this follow-up.
+
+### 2026-09-27 — Review of the v0.19.3.1 free stage (before any paid follow-up call)
+
+Reviewed commit ba59b26 against `docs/followup-testing-roadmap.md`. One defect fixed, with no change
+in behavior: `scripts/run_study.py` split an f-string expression across lines, which only Python 3.12+
+accepts. On Python 3.11, `tests/test_study.py` and `tests/test_obligations.py` failed to import, so
+the suite reported 149 tests with 2 import errors. After the fix all 172 tests pass on 3.11, every
+tracked Python file compiles, and the 18 legacy scripted scenarios match
+`2026-09-26 v0.18.1 scripted-none r1 verify` in every cell (the two premise-watch repairs do not change
+any legacy scripted outcome). No study behavior, scenario, scorer, or price changed, so the v0.19.3.1
+free results and the smoke/pilot manifests stand. The runner's code hash changes, so any resume
+check starts fresh; no paid stage had begun. Haiku 4.5's listed price ($1/$5 per million input/output
+tokens) was confirmed on Anthropic's pricing page on 2026-09-27; the Luna price could not be checked
+from this environment.
+
+Gap noted for the owner, Astra, and Sol before the pilot's freeze: every authority settlement,
+denial, and withdrawal in F01–F08 is valid by stipulation and applied by the world directly, so no case
+asks whether an authenticated authority's decision is itself wrongful. The only coverage of TAA's
+moral limit overriding an authenticated bad instruction is the `wrongful_order` regression. A paired
+case is proposed in chat (an issuer withdraws a still-needed urgent commitment for a commercial reason);
+not built.
