@@ -1,4 +1,4 @@
-# TAA Lab (v0.19.4.1 development)
+# TAA Lab (v0.19.5 development)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -10,6 +10,10 @@ judge with the same policy, and a free expiring-policy control. Its saved
 v0.19.4 fixtures are structural checks using fake reviewers; F09 tests an
 authenticated wrongful withdrawal with a model-mediated M/F check;
 v0.19.4.1 repairs study-runner key loading before paid client construction.
+v0.19.5 counts an explicit stopped remainder in a partial plan approval as a
+reviewer refusal of the omitted requested act. No policy or scenario changed.
+Its frozen follow-up manifests and hashes are in `studies/obligations-freeze-v0195.json`;
+the final Luna and Haiku runs have not been executed.
 No new paid reviewer run has been made. Paid smoke, pilot, and frozen evaluation
 require a separate authorized budget.
 

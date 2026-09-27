@@ -11,6 +11,19 @@ from taa.records import target_of
 MODES = ("taa_control", "taa_obligations", "judge_obligations", "expiring_obligations")
 
 
+def _reviewer_rejected_target(reply, target):
+    """A partial approval with a stopped remainder refuses its omitted target."""
+    if reply["verdict"] in ("stop", "refuse"):
+        return True
+    approved = reply.get("approved_targets")
+    if (reply["verdict"] not in ("approve", "approve_and_refer")
+            or reply.get("rest") != "stop" or not isinstance(approved, list)):
+        return False
+    approved_ids = {entry if isinstance(entry, str) else entry.get("id")
+                    for entry in approved if isinstance(entry, (str, dict))}
+    return target not in approved_ids
+
+
 class StudyModel:
     """Same visible candidate and resource facts before every model question."""
 
@@ -68,7 +81,9 @@ class StudyModel:
         try:
             reply = self.inner.json(full_prompt)
             self.verdicts.append({"step": self.world.step, "kind": kind if self.recorder else None,
-                                  "verdict": reply.get("verdict") if isinstance(reply, dict) else None})
+                                  "verdict": reply.get("verdict") if isinstance(reply, dict) else None,
+                                  "approved_targets": reply.get("approved_targets") if isinstance(reply, dict) else None,
+                                  "rest": reply.get("rest") if isinstance(reply, dict) else None})
             return reply
         except Exception as exc:
             self.failures.append({"step": self.world.step, "category": type(exc).__name__})
@@ -165,7 +180,7 @@ class StudyGate:
                                       "executed": bool(result.get("ok") and tool == "reroute_shipment"),
                                       "reviewer_calls": getattr(self.model, "calls", 0) - calls_before,
                                       "reviewer_rejected_requested_act": any(
-                                          v["verdict"] in ("stop", "refuse") for v in new_verdicts),
+                                          _reviewer_rejected_target(v, target) for v in new_verdicts),
                                       "grave_review_referrals": len(new_grave),
                                       "error": result.get("error")})
         self.ledger.reconcile()
