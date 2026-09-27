@@ -23,7 +23,7 @@ HEADERS = {"anthropic-version": "2023-06-01", "content-type": "application/json"
 
 
 class Claude:
-    def __init__(self, model=None):
+    def __init__(self, model=None, recorder=None):
         self.key = os.environ.get("ANTHROPIC_API_KEY")
         if not self.key:
             raise SystemExit("Set ANTHROPIC_API_KEY first (see README).")
@@ -31,6 +31,7 @@ class Claude:
         self.pace = float(os.environ.get("ANTHROPIC_PACE", "1.3"))
         self._last = 0.0
         self.model = model or os.environ.get("ANTHROPIC_MODEL") or self._pick_model()
+        self.recorder = recorder
 
     def _headers(self):
         return {**HEADERS, "x-api-key": self.key}
@@ -59,10 +60,19 @@ class Claude:
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=self._headers())
         waits = [5, 10, 20, 40, 60]
         for attempt in range(len(waits) + 1):
+            attempt_id = self.recorder.before_attempt(body) if self.recorder else None
+            finished = False
             try:
                 with urllib.request.urlopen(req, timeout=120) as r:
-                    return json.loads(r.read())
+                    response = json.loads(r.read())
+                if self.recorder:
+                    finished = True
+                    self.recorder.finish_attempt(attempt_id, response=response, status=200)
+                return response
             except urllib.error.HTTPError as e:
+                if self.recorder and not finished:
+                    finished = True
+                    self.recorder.finish_attempt(attempt_id, error=f"HTTP {e.code}", status=e.code)
                 detail = e.read().decode(errors="replace")[:1500]
                 if e.code in (429, 500, 503, 529):
                     if attempt < len(waits):
@@ -78,6 +88,10 @@ class Claude:
                 if e.code == 404:
                     raise SystemExit(f"Model '{self.model}' not found. Run: python3 run.py --list-models --provider claude\n{detail}") from None
                 raise RuntimeError(f"Anthropic API error {e.code}: {detail}") from None
+            except Exception as e:
+                if self.recorder and not finished:
+                    self.recorder.finish_attempt(attempt_id, error=type(e).__name__)
+                raise
 
     def json(self, prompt):
         """Send a prompt and return the model's reply parsed as JSON."""
@@ -93,4 +107,14 @@ class Claude:
         if out.get("stop_reason") == "max_tokens":
             print(f"  warning: {self.model}'s reply hit the {TOKEN_BUDGET}-token limit and may be cut off", flush=True)
         text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
-        return parse_first_json(text)
+        if self.recorder:
+            self.recorder.raw_reply(text)
+        try:
+            parsed = parse_first_json(text)
+        except Exception as e:
+            if self.recorder:
+                self.recorder.raw_reply(text, error=type(e).__name__)
+            raise
+        if self.recorder:
+            self.recorder.raw_reply(text, parsed=parsed)
+        return parsed

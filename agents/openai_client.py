@@ -42,7 +42,7 @@ def choose_model(models):
 
 
 class OpenAI:
-    def __init__(self, model=None):
+    def __init__(self, model=None, recorder=None):
         self.key = os.environ.get("OPENAI_API_KEY")
         if not self.key:
             raise SystemExit("Set OPENAI_API_KEY first (see README).")
@@ -55,6 +55,7 @@ class OpenAI:
         # the run so later calls do not hit the same 400 again.
         self._omit_temperature = False
         self._token_param = "max_completion_tokens"
+        self.recorder = recorder
 
     @property
     def temperature(self):
@@ -84,10 +85,19 @@ class OpenAI:
         attempted_fix = False
         for attempt in range(len(waits) + 1):
             req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=self._headers())
+            attempt_id = self.recorder.before_attempt(body) if self.recorder else None
+            finished = False
             try:
                 with urllib.request.urlopen(req, timeout=120) as r:
-                    return json.loads(r.read())
+                    response = json.loads(r.read())
+                if self.recorder:
+                    finished = True
+                    self.recorder.finish_attempt(attempt_id, response=response, status=200)
+                return response
             except urllib.error.HTTPError as e:
+                if self.recorder and not finished:
+                    finished = True
+                    self.recorder.finish_attempt(attempt_id, error=f"HTTP {e.code}", status=e.code)
                 detail = e.read().decode(errors="replace")[:1500]
                 if e.code == 400 and not attempted_fix and self._adjust_for_400(body, detail):
                     attempted_fix = True
@@ -109,6 +119,10 @@ class OpenAI:
                 if e.code == 400:
                     raise ModelUnavailable(f"OpenAI rejected the request (400): {detail}") from None
                 raise RuntimeError(f"OpenAI API error {e.code}: {detail}") from None
+            except Exception as e:
+                if self.recorder and not finished:
+                    self.recorder.finish_attempt(attempt_id, error=type(e).__name__)
+                raise
 
     def _adjust_for_400(self, body, detail):
         """If OpenAI rejected a custom temperature, or rejected one max-tokens key name and
@@ -149,10 +163,22 @@ class OpenAI:
         if not self._omit_temperature:
             body["temperature"] = 0.2
         text = self._reply_text(self._post(f"{API}/chat/completions", body))
+        if self.recorder:
+            self.recorder.raw_reply(text)
         if not text.strip():
             print(f"  {self.model} gave an empty reply; retrying once before giving up.", flush=True)
             text = self._reply_text(self._post(f"{API}/chat/completions", body))
-        return parse_first_json(text)
+            if self.recorder:
+                self.recorder.raw_reply(text)
+        try:
+            parsed = parse_first_json(text)
+        except Exception as e:
+            if self.recorder:
+                self.recorder.raw_reply(text, error=type(e).__name__)
+            raise
+        if self.recorder:
+            self.recorder.raw_reply(text, parsed=parsed)
+        return parsed
 
     @staticmethod
     def _reply_text(out):

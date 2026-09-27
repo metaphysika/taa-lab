@@ -21,12 +21,20 @@ def visible_state(world):
     shipments = [{k: sh[k] for k in keys if k in sh} for sh in world.shipments]
     extra = {name: copy.deepcopy(getattr(world, name)) for name in ("vehicles", "customers", "express")
              if getattr(world, name)}
+    if getattr(world, "study_version", None):
+        extra["claims"] = copy.deepcopy(world.claims)
+        extra["resource_policy"] = copy.deepcopy(world.resource_policy)
     return shipments, extra
 
 
 def snapshot(world):
     """The facts to watch: everything a reviewer is shown, plus the disruption status."""
     shipments, extra = visible_state(world)
+    # Holds are an effect of the gate's own accounting. Authority/source/version changes
+    # are external premises; changes from held to consumed alone must not flood review.
+    if "claims" in extra:
+        extra["claims"] = [{k: v for k, v in c.items() if k != "reservation_status"}
+                           for c in extra["claims"]]
     return {"disruption_status": world.disruption_status, "shipments": shipments, **extra}
 
 

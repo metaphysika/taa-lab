@@ -283,6 +283,26 @@ class TAAGate(_GateBase):
         self._conflict_noticed = set()  # approved targets the issuer was told a departure threatened (v0.18.1)
         self.notices_not_resent = 0
 
+    def settle_target(self, target):
+        """Clear only an already validated external settlement's temporary review hold.
+
+        The study adapter validates scope, source, version, and live authority first.
+        This method itself grants no approval; an absent target still needs plan review.
+        """
+        self._pending_targets.discard(target)
+        self._pending_limits.pop(target, None)
+
+    def retry_referred_plan(self):
+        """A supplied settlement permits a fresh review, never automatic plan approval."""
+        if self.plan is None or self.plan.status != "referred":
+            return None
+        proposed = copy.deepcopy(self.plan)
+        proposed.status = "proposed"
+        proposed.review_notes = []
+        proposed.amended = False
+        proposed.requested_now = None
+        return self.submit_plan(proposed)
+
     def _review(self, plan, context=None, departure=None):
         """`departure`: the (tool, args) a departure re-review is about. Its refusal is counted by
         _refused_on_review, and a partial approval there leaves the previous plan in force, so it
@@ -403,29 +423,32 @@ class TAAGate(_GateBase):
         return (self.watches_premises and self._baseline is not None
                 and premises.snapshot(self._world) != self._baseline)
 
-    def _premise_rereview(self, now=None):
+    def _premise_rereview(self, requested_target=None):
         """Facts changed for a reason other than the plan's own acts: the rest of the plan goes
         back to review under the current facts, told what changed. The new verdict replaces the
         old approval whatever it says, since the old approval's premises no longer hold."""
-        now = premises.snapshot(self._world)
-        changed = premises.changes(self._baseline, now)
+        current_snapshot = premises.snapshot(self._world)
+        changed = premises.changes(self._baseline, current_snapshot)
         amended = copy.deepcopy(self.plan)
         amended.status, amended.review_notes, amended.amended, amended.revision = "proposed", [], True, False
         amended.departure = False      # a stop here withdraws the plan, so salvage still applies
-        amended.requested_now = now    # v0.18: the act that met the changed facts is previewed first
+        amended.requested_now = requested_target  # the requested act is previewed first
         requested = {"end": amended.end, "tools": list(amended.tools), "max_uses": dict(amended.max_uses),
                      "targets": amended.targets_shown()}
         self.premise_rereviews += 1
         self.plan = self._review(amended, context=premises.context_text(changed, self.plan.premises))
-        self._baseline = now
+        self._baseline = current_snapshot
         self._record("(premise re-review)", requested, self.plan.status.upper(),
                      "facts changed since approval: " + "; ".join(changed) + " | " + "; ".join(self.plan.review_notes))
         return self.plan
 
     def _allow(self, tool, args, reason):
         before = {t: self._world.fingerprint(t) for (_, t) in self._stops}
+        # Only this gate's own action may move an approved plan's baseline forward. A notice,
+        # read, or other allowed call must not absorb an external change still awaiting review.
+        facts_before = premises.snapshot(self._world) if self.watches_premises and self._baseline is not None else None
         result = super()._allow(tool, args, reason)
-        if self.watches_premises and self._baseline is not None:
+        if facts_before is not None and facts_before == self._baseline and self.log[-1]["spent"]:
             self._rebaseline()
         for (_, t), stop in self._stops.items():
             if stop["facts"] == before[t]:     # only this act changed its facts: the stop carries over
@@ -490,6 +513,22 @@ class TAAGate(_GateBase):
         remaining = copy.copy(self.plan)
         remaining.done_targets = self._done_targets(self.plan) + ([target] if target else [])
         remaining.requested_now = None
+        if getattr(self._world, "study_version", None):
+            # In the follow-up study, a model's plan approval cannot turn a claim
+            # requiring external settlement into an approved commitment.
+            unsettled = {c["target_id"] for c in self._world.claims
+                         if c["authority_status"] != "approved"}
+            remaining.done_targets = remaining.done_targets + list(unsettled)
+            # Study standing determination: a newly visible, already authorized urgent
+            # claim can supersede an unexecuted routine plan act. The routine approval's
+            # premise has changed; preserving it here would defeat the urgent duty.
+            incoming = next((c for c in self._world.claims
+                             if c["target_id"] == target and c["authority_status"] == "approved"), None)
+            record = self._world.record(target)
+            if incoming and record and record.get("time_critical"):
+                accepted = {c["target_id"] for c in self._world.claims
+                            if c["authority_status"] == "approved"}
+                remaining.done_targets += [t for t in remaining.targets if t not in accepted]
         acts = plan_acts(remaining, self._world)
         if not acts:
             return []

@@ -1,6 +1,15 @@
-# TAA Lab (v0.18.1)
+# TAA Lab (v0.19.3.1 development)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
+
+The v0.18.1 Luna and Haiku evaluation is complete and preserved in `results/`.
+The follow-up obligation study is in free development under
+`docs/followup-testing-roadmap.md`. The new `scripts/run_study.py` runs eight
+versioned logistics cases with repaired TAA, TAA with reservations, a per-act
+judge with the same policy, and a free expiring-policy control. Its saved
+v0.19.3.1 fixtures are structural checks using an all-approve fake reviewer;
+no new paid reviewer run has been made. Paid smoke, pilot, and frozen evaluation
+require a separate authorized budget.
 
 TAA is described in Chris Lahn, "A Thomistic Natural-Law Framework for Purpose-Dependent
 Authorization in Agentic AI," preprint v1.0, https://doi.org/10.5281/zenodo.22946219.

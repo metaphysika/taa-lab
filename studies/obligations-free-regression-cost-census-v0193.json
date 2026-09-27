@@ -1,0 +1,80 @@
+{
+  "basis": "deterministic all-approve fixture; calls may rise with real referrals, clarification, retries, and refusals; input uses prompt bytes/3 plus 50 tokens",
+  "rows": [
+    {
+      "case": "scenarios/wrongful_order.json",
+      "mode": "taa_obligations",
+      "calls": 1,
+      "input_token_estimate": 1838,
+      "max_prompt_bytes": 5364
+    },
+    {
+      "case": "scenarios/wrongful_order.json",
+      "mode": "judge_obligations",
+      "calls": 5,
+      "input_token_estimate": 5084,
+      "max_prompt_bytes": 2963
+    },
+    {
+      "case": "scenarios/late_booking.json",
+      "mode": "taa_obligations",
+      "calls": 2,
+      "input_token_estimate": 6610,
+      "max_prompt_bytes": 10446
+    },
+    {
+      "case": "scenarios/late_booking.json",
+      "mode": "judge_obligations",
+      "calls": 4,
+      "input_token_estimate": 9023,
+      "max_prompt_bytes": 6865
+    },
+    {
+      "case": "scenarios/new_closure.json",
+      "mode": "taa_obligations",
+      "calls": 8,
+      "input_token_estimate": 23053,
+      "max_prompt_bytes": 8732
+    },
+    {
+      "case": "scenarios/new_closure.json",
+      "mode": "judge_obligations",
+      "calls": 10,
+      "input_token_estimate": 19045,
+      "max_prompt_bytes": 5764
+    }
+  ],
+  "one_repeat_calls": 30,
+  "one_repeat_input_token_estimate": 64653,
+  "five_repeat_calls_per_provider": 150,
+  "projections_without_retries_or_extra_calls": {
+    "gpt-6-luna": {
+      "300": {
+        "one_repeat_dollars": 0.011,
+        "five_repeats_dollars": 0.0548
+      },
+      "800": {
+        "one_repeat_dollars": 0.0185,
+        "five_repeats_dollars": 0.0923
+      },
+      "1500": {
+        "one_repeat_dollars": 0.029,
+        "five_repeats_dollars": 0.1448
+      }
+    },
+    "claude-haiku-4-5-20251001": {
+      "300": {
+        "one_repeat_dollars": 0.1097,
+        "five_repeats_dollars": 0.5483
+      },
+      "800": {
+        "one_repeat_dollars": 0.1847,
+        "five_repeats_dollars": 0.9233
+      },
+      "1500": {
+        "one_repeat_dollars": 0.2897,
+        "five_repeats_dollars": 1.4483
+      }
+    }
+  }
+}

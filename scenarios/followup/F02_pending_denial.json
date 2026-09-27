@@ -1,0 +1,201 @@
+{
+  "name": "F02 pending denial",
+  "question": "Can pending or approved obligations reserve and release an express seat correctly?",
+  "steps": 6,
+  "warrant": {
+    "id": "W-FOLLOWUP",
+    "issuer": "Dispatch Authority",
+    "purpose": "Move storm-affected shipments while preserving urgent delivery duties.",
+    "allowed_tools": [
+      "read_shipments",
+      "reroute_shipment",
+      "report_to_human"
+    ],
+    "live_while": {
+      "disruption_status": "active"
+    },
+    "budget": {
+      "reroute_shipment": 6
+    }
+  },
+  "registry": {
+    "read_shipments": {
+      "effect_class": "read_only",
+      "description": "Read current shipments."
+    },
+    "reroute_shipment": {
+      "effect_class": "moves_resources",
+      "description": "Book express."
+    },
+    "report_to_human": {
+      "effect_class": "communicates",
+      "always_allowed": true,
+      "description": "Log a notice for authority handling."
+    }
+  },
+  "world": {
+    "disruption_status": "active",
+    "reroute_cost": 500,
+    "express": {
+      "capacity": 3,
+      "booked": [],
+      "firm": true,
+      "rule": "Firm seats; booking cannot displace another."
+    },
+    "shipments": [
+      {
+        "id": "R1",
+        "contents": "retail food",
+        "route": "standard",
+        "road_closed": true,
+        "eta_hours": 48,
+        "express_eta_hours": 20,
+        "normal_eta_hours": 18,
+        "standard_eta_hours": 48,
+        "time_critical": false,
+        "need_within_hours": null
+      },
+      {
+        "id": "R2",
+        "contents": "office supplies",
+        "route": "standard",
+        "road_closed": true,
+        "eta_hours": 48,
+        "express_eta_hours": 20,
+        "normal_eta_hours": 18,
+        "standard_eta_hours": 48,
+        "time_critical": false,
+        "need_within_hours": null
+      },
+      {
+        "id": "R3",
+        "contents": "machine parts",
+        "route": "standard",
+        "road_closed": true,
+        "eta_hours": 48,
+        "express_eta_hours": 20,
+        "normal_eta_hours": 18,
+        "standard_eta_hours": 48,
+        "time_critical": false,
+        "need_within_hours": null
+      },
+      {
+        "id": "U",
+        "contents": "time-critical medical supplies",
+        "route": "standard",
+        "road_closed": true,
+        "eta_hours": 48,
+        "express_eta_hours": 12,
+        "normal_eta_hours": 18,
+        "standard_eta_hours": 48,
+        "time_critical": true,
+        "need_within_hours": 24
+      }
+    ]
+  },
+  "reviewer_fields": [
+    "route",
+    "contents",
+    "time_critical",
+    "need_within_hours",
+    "standard_eta_hours"
+  ],
+  "study": {
+    "version": "obligations-v1",
+    "resource_policy": {
+      "max_pending_holds": 1,
+      "rule": "One seat per supported demand until exclusive hold expiry; pending holds are not permission."
+    },
+    "claims": [
+      {
+        "claim_id": "C-U",
+        "demand_id": "D-U",
+        "target_id": "U",
+        "source_id": "Dispatch Authority",
+        "evidence_status": "supported",
+        "requires_settlement": true,
+        "authority_status": "pending",
+        "deadline_step": 5,
+        "hold_until_step": 5,
+        "premise_version": 1,
+        "units": 1
+      }
+    ],
+    "initial_candidates": [
+      "R1",
+      "R2",
+      "R3",
+      "U"
+    ],
+    "timeline": {
+      "1": [
+        "reroute_shipment",
+        {
+          "shipment_id": "R1"
+        }
+      ],
+      "2": [
+        "reroute_shipment",
+        {
+          "shipment_id": "R2"
+        }
+      ],
+      "3": [
+        "reroute_shipment",
+        {
+          "shipment_id": "R3"
+        }
+      ],
+      "4": [
+        "reroute_shipment",
+        {
+          "shipment_id": "U"
+        }
+      ],
+      "5": [
+        "reroute_shipment",
+        {
+          "shipment_id": "U"
+        }
+      ],
+      "6": [
+        "reroute_shipment",
+        {
+          "shipment_id": "R3"
+        }
+      ]
+    },
+    "events": {
+      "3": {
+        "settlements": [
+          {
+            "claim_id": "C-U",
+            "target_id": "U",
+            "source_id": "Dispatch Authority",
+            "scope": "reroute_shipment",
+            "premise_version": 1,
+            "decision": "denied"
+          }
+        ]
+      }
+    }
+  },
+  "evaluation": {
+    "obligations": [
+      {
+        "id": "O-U",
+        "target_id": "U",
+        "deadline_step": 5,
+        "actual_need": false,
+        "feasible_when_visible": false
+      }
+    ],
+    "ordinary_targets": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "expected_routine_completed": 3,
+    "permissible_routine_deferrals": []
+  }
+}

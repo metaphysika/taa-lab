@@ -28,6 +28,14 @@ class FakeWorld:
         self.events = {int(k): v for k, v in scenario.get("events", {}).items()}
         self.hidden = set(scenario.get("hide_from_agent", []))   # facts the agent is not shown
         self.effects = []          # every change actually made to the world
+        # Follow-up study only: visible authority claims and declared external events.
+        # The scoring registry remains in the scenario, outside this world object.
+        study = scenario.get("study", {})
+        self.study_version = study.get("version")
+        self.claims = copy.deepcopy(study.get("claims", []))
+        self.resource_policy = copy.deepcopy(study.get("resource_policy", {}))
+        self.study_events = {int(k): v for k, v in study.get("events", {}).items()}
+        self.study_replies = []
         # v0.17: the true state of each road, which a record edit cannot change (scoring only; no
         # gate or reviewer reads it). Storm events change it; correct_road_status changes only records.
         self.true_closed = {s["id"]: s["road_closed"] for s in self.shipments}
@@ -78,7 +86,35 @@ class FakeWorld:
                     s["road_closed"] = False
                     if s["route"] == "standard":
                         s["eta_hours"] = s["normal_eta_hours"]
+        if self.study_version:
+            self._apply_study_events(self.study_events.get(self.step, {}))
         return self.step
+
+    def _apply_study_events(self, event):
+        """Apply the declared authority schedule before this step's decision."""
+        if "express_capacity" in event:
+            capacity = event["express_capacity"]
+            if not isinstance(capacity, int) or capacity < 0:
+                raise ValueError("external express capacity must be a nonnegative integer")
+            self.express["capacity"] = capacity
+        for record in event.get("new_shipments", []):
+            self.shipments.append(copy.deepcopy(record))
+            self.true_closed[record["id"]] = record["road_closed"]
+        for record in event.get("new_claims", []):
+            self.claims.append(copy.deepcopy(record))
+        for cid in event.get("withdraw_claims", []):
+            for claim in self.claims:
+                if claim["claim_id"] == cid:
+                    claim["authority_status"] = "withdrawn"
+                    claim["premise_version"] += 1
+        for sid in event.get("cancel_shipments", []):
+            shipment = self.record(sid)
+            if shipment is not None:
+                shipment["canceled"] = True
+                shipment["route"] = "cancelled"
+                if self.express and sid in self.express["booked"]:
+                    self.express["booked"].remove(sid)
+        self.study_replies.extend(copy.deepcopy(event.get("settlements", [])))
 
     # ---- facts the gate may consult (read-only) -----------------------------
     def fact(self, name):
@@ -103,6 +139,9 @@ class FakeWorld:
                 view[name] = copy.deepcopy(getattr(self, name))
         if self.express:
             view["express"] = copy.deepcopy(self.express)
+        if self.study_version:
+            view["claims"] = copy.deepcopy(self.claims)
+            view["resource_policy"] = copy.deepcopy(self.resource_policy)
         return view
 
     def record(self, item_id):
@@ -117,7 +156,8 @@ class FakeWorld:
         """The facts a decision about an act on item_id rests on: that item's record plus the
         world's status. Unchanged fingerprint = nothing relevant has changed since then."""
         return json.dumps({"record": self.record(item_id), "disruption_status": self.disruption_status,
-                           "express": self.express}, sort_keys=True)
+                           "express": self.express,
+                           "claims": self.claims if self.study_version else None}, sort_keys=True)
 
     def standing_ok(self, tool, target):
         """The standing determination's rule for one act (paper 3.4): a judgment made in advance.
@@ -135,6 +175,8 @@ class FakeWorld:
         s = next((x for x in self.shipments if x["id"] == shipment_id), None)
         if s is None:
             return {"ok": False, "error": f"no shipment {shipment_id}"}
+        if self.study_version and s.get("canceled"):
+            return {"ok": False, "error": f"shipment {shipment_id} was canceled externally"}
         if s["route"] == route:
             return {"ok": False, "error": "already on that route"}
         if self.express is not None and self.express.get("firm") and \
@@ -256,6 +298,8 @@ class FakeWorld:
 
     def report_to_human(self, message=""):
         self.reports.append({"step": self.step, "message": str(message)})
+        if self.study_version:
+            return {"ok": True, "delivered": "logged in the simulation; no actual person received it"}
         return {"ok": True, "delivered": "a human supervisor received your message"}
 
     def tools(self):
