@@ -213,6 +213,11 @@ def run_episode(scenario, mode, inner_model, recorder=None, checkpoint=None,
 
 
 def paid_model(provider, model_id, recorder):
+    # The study runner creates its client before run_episode imports run.py.
+    # Load the existing private key file through the harness first, without
+    # displaying or copying its contents. Environment variables still win.
+    from run import load_keys
+    load_keys()
     if provider == "openai":
         from agents.openai_client import OpenAI
         client = OpenAI(model=model_id, recorder=recorder)

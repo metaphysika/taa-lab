@@ -9,7 +9,7 @@ from unittest.mock import patch
 from agents.call_telemetry import BudgetStopped, CallRecorder
 from agents.openai_client import OpenAI
 from agents.anthropic_client import Claude
-from scripts.run_study import main, run_episode
+from scripts.run_study import main, paid_model, run_episode
 from taa.counsel import judge_act
 from taa.study_gate import StudyGate
 from agents.timeline_agent import TimelineAgent
@@ -187,6 +187,23 @@ class ReferralAndManifest(unittest.TestCase):
             self.assertEqual(main(["--manifest", "studies/obligations-luna-smoke.json",
                                    "--provider", "openai", "--dry-run"]), 0)
             transport.assert_not_called()
+
+    def test_paid_client_loads_harness_keys_before_construction(self):
+        order = []
+
+        class Client:
+            def __init__(self, model, recorder):
+                order.append("client")
+                self.model = model
+
+            def list_models(self):
+                order.append("models")
+                return ["gpt-6-luna"]
+
+        with patch("run.load_keys", side_effect=lambda: order.append("load")), \
+             patch("agents.openai_client.OpenAI", Client):
+            self.assertEqual(paid_model("openai", "gpt-6-luna", None).model, "gpt-6-luna")
+        self.assertEqual(order, ["load", "client", "models"])
 
     def test_judge_separates_substantive_referral_from_bad_format(self):
         world, warrant, _ = build(scenario())

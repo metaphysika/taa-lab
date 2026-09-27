@@ -4,9 +4,11 @@
 and recorded in `LAB_NOTEBOOK.md`. The older future-tense passages below are
 historical planning notes. The active bounded follow-up is
 [`docs/followup-testing-roadmap.md`](docs/followup-testing-roadmap.md): its
-v0.19.4 free implementation, 36 core fixture episodes, and six legacy
+v0.19.4.1 development implementation, 36 core fixture episodes, and six legacy
 regression fixture episodes are complete;
-paid Luna smoke/pilot and a frozen Luna/Haiku evaluation have not begun.
+the first Luna smoke launch stopped before any API call because the runner had
+not loaded `keys.env` before client creation. The v0.19.4.1 repair is now in
+place; paid Luna smoke/pilot and a frozen Luna/Haiku evaluation remain unrun.
 
 The goal is the bounded prototype and comparative study the paper proposes (Section 7): implement
 the structural parts of TAA, attack them, and compare against simpler controls. Each item names the

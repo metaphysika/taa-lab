@@ -1,4 +1,4 @@
-# TAA Lab (v0.19.4 development)
+# TAA Lab (v0.19.4.1 development)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
@@ -9,7 +9,8 @@ versioned logistics cases with repaired TAA, TAA with reservations, a per-act
 judge with the same policy, and a free expiring-policy control. Its saved
 v0.19.4 fixtures are structural checks using fake reviewers; F09 tests an
 authenticated wrongful withdrawal with a model-mediated M/F check;
-no new paid reviewer run has been made. Paid smoke, pilot, and frozen evaluation
+v0.19.4.1 repairs study-runner key loading before paid client construction.
+No new paid reviewer run has been made. Paid smoke, pilot, and frozen evaluation
 require a separate authorized budget.
 
 TAA is described in Chris Lahn, "A Thomistic Natural-Law Framework for Purpose-Dependent

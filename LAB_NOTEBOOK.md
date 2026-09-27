@@ -3616,3 +3616,27 @@ unmet in F09 even when P is refused, and that harm must stay in the table. A cor
 shared by the per-act judge would support the moral-check principle without establishing an
 incremental benefit from TAA's plan layer. A correct result in one reviewer does not predict
 the other reviewer. No claim about the encoded L0-E core follows from either result.
+
+### 2026-09-27 — v0.19.4.1 pre-call key-loading repair, prediction before free checks
+
+Chris's first paid smoke command stopped with `Set OPENAI_API_KEY first` before any provider call.
+The repo's ignored `keys.env` exists, but `scripts/run_study.py` constructs the paid client before
+importing `run.py`, which normally loads that file. The failed launch left only a manifest record
+and stage-budget record in the v0.19.4 smoke output; it created no spending ledger or episode.
+Preserve those records. For v0.19.4.1, load keys through the existing harness path before paid
+client construction, without printing or copying credentials. **Prediction before tests:** the
+new unit check will confirm loader-before-client order; the full unit and historical scripted
+checks will pass; smoke and pilot dry runs will still make no network call and show the same cases
+and stop limits. Scenario and reviewer behavior are unchanged, so the v0.19.4 model predictions
+carry forward. No v0.19.4 model answer exists to pool with a later run.
+
+The v0.19.4.1 repair passed its loader-before-client unit check. All 176 unit checks and the
+historical scripted suite passed; the revised smoke and pilot dry runs showed four and 15 episodes
+with their original per-stage limits, without constructing a paid client. The v0.19.4 failed
+pre-call launch remains in its original output directory. Fresh v0.19.4.1 smoke and pilot manifests
+use new output directories and a new spending ledger. No provider request was made in this repair.
+
+Chris clarified that the prior roughly $7 cost is an order-of-magnitude guide, not a demand to
+save cents on individual runs. The aim is a comparable small study, with no surprise expense in
+the hundreds or thousands. Keep difficult cases and make any later budget change explicit after
+measured pilot usage. The current smoke and pilot application stops remain in force.

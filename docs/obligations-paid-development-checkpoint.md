@@ -1,10 +1,10 @@
 # TAA Lab follow-up: paid development checkpoint
 
-Updated September 27, 2026 for v0.19.4 development. This is not the final study freeze or permission to spend.
+Updated September 27, 2026 for v0.19.4.1 development. This is not the final study freeze or permission to spend.
 
 ## Free work completed
 
-The two premise-watch defects have direct regression tests. The follow-up adds a separate authority, claim, and reservation ledger; the original eight unchanged logistics cases plus F09; a repaired TAA control; a TAA reservation arm; a per-act judge with the same resource rule and authority replies; and a free expiring-policy arm. Fake reviewers completed 36 all-approve core episodes, focused moral-refusal checks, and six claim-free legacy regression episodes. These prove plumbing and scoring behavior only. `python3 -m unittest discover tests` passed 175 tests, and `python3 run.py --scenario all` passed the historical scripted run.
+The two premise-watch defects have direct regression tests. The follow-up adds a separate authority, claim, and reservation ledger; the original eight unchanged logistics cases plus F09; a repaired TAA control; a TAA reservation arm; a per-act judge with the same resource rule and authority replies; and a free expiring-policy arm. Fake reviewers completed 36 all-approve core episodes, focused moral-refusal checks, and six claim-free legacy regression episodes. These prove plumbing and scoring behavior only. `python3 -m unittest discover tests` passed 176 tests, and `python3 run.py --scenario all` passed the historical scripted run.
 
 The free core fixture found that repaired TAA control misses U in F01, F05, and F07, while the three policy arms serve U. Every arm leaves U unmet in F04 despite serving V. The scorer retains that unmet need, unnecessary-in-hindsight holds, and ordinary work separately. The claim-free fake reviewer permits the wrongful order and late-booking harm, confirming that the regression wrapper still exposes those requests. No model or human has judged this new study yet.
 
@@ -23,6 +23,8 @@ For planning only, the nine-case core matrix is 440 fixture calls per provider o
 ## Proposed development batch and stop limits
 
 The proposed authorization is up to **$1.00 in estimated API charges for Luna smoke and pilot combined**. The smoke command stops at 40 logical reviews, 60 provider attempts, or $0.25 of stage spending. If its traces pass inspection, the pilot stops at 90 logical reviews, 120 provider attempts, or $0.75 of additional stage spending. Both commands share a $7 global application ledger; the development authorization is the tighter limit for these two commands. A missing usage record, changed returned model ID, or absent dated price stops expansion. Ambiguous transport attempts retain a cost reserve. These are application-side limits, not a guaranteed provider billing cap.
+
+The first v0.19.4 smoke launch stopped before client construction with `Set OPENAI_API_KEY first` and made no provider call. The runner had created only a manifest record and stage-budget record, which remain in its v0.19.4 output directory. v0.19.4.1 loads the repo's existing ignored `keys.env` through the harness before creating a paid client. The smoke and pilot manifests now use fresh v0.19.4.1 output directories and a fresh spending ledger; do not resume the failed v0.19.4 directory. The cases and stop limits are unchanged.
 
 From Terminal in the repository:
 
