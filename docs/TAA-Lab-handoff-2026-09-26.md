@@ -89,7 +89,7 @@ python3 run.py --scenario new_closure --agent scripted --counsel openai --repeat
 No code changes during the freeze. Record each run against the predictions and apply the eight rules
 exactly as written.
 
-### Task B. Paper 2 (first-pass draft: `docs/TAA-Paper-2-draft-v0.1.docx`, 2026-09-27)
+### Task B. Paper 2 (draft v0.4 (release candidate): `docs/TAA-Paper-2-draft-v0.4.docx`, 2026-09-27; earlier drafts kept)
 
 Update `docs/interim-findings.md` into the findings document, labeled by version and reviewer, with every
 result against TAA. Outside review of the scenarios in parallel with drafting. A second world is the first
