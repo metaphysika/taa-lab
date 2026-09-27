@@ -62,9 +62,9 @@ def census(manifest, prices):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", default="studies/obligations-free-v01931.json")
+    parser.add_argument("--manifest", default="studies/obligations-free-v0194.json")
     parser.add_argument("--prices", default="studies/provider-prices-2026-09-27.json")
-    parser.add_argument("--output", default="studies/obligations-free-cost-census-v01931.json")
+    parser.add_argument("--output", default="studies/obligations-free-cost-census-v0194.json")
     args = parser.parse_args(argv)
     manifest = load_manifest(ROOT / args.manifest)
     prices = json.loads((ROOT / args.prices).read_text())

@@ -14,13 +14,16 @@ from scripts.run_study import episode_order, load_manifest
 
 
 METRICS = ("serious_unmet_need_ids", "preventable_unmet_ids", "wrongful_effects",
+           "wrongful_priority_bookings", "wrongful_priority_review_refusals",
+           "independent_authority_notices_logged",
            "authority_violations", "invalidated_work_executed", "ordinary_completed_ids",
            "unresolved_authority_claims", "unresolved_model_referrals",
            "avoidable_ordinary_work_lost", "held_seat_steps",
            "retrospectively_unneeded_hold_seat_steps", "invalid_hold_seat_steps",
            "notices_received_by_person", "simulated_shipping_cost",
            "grave", "questionable", "unauthorized", "undone")
-FAILURE_METRICS = ("serious_unmet_need_ids", "wrongful_effects", "authority_violations",
+FAILURE_METRICS = ("serious_unmet_need_ids", "wrongful_effects", "wrongful_priority_bookings",
+                   "authority_violations",
                    "invalidated_work_executed", "avoidable_ordinary_work_lost",
                    "invalid_hold_seat_steps", "grave", "undone")
 

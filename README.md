@@ -1,13 +1,14 @@
-# TAA Lab (v0.19.3.1 development)
+# TAA Lab (v0.19.4 development)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
 The v0.18.1 Luna and Haiku evaluation is complete and preserved in `results/`.
 The follow-up obligation study is in free development under
-`docs/followup-testing-roadmap.md`. The new `scripts/run_study.py` runs eight
+`docs/followup-testing-roadmap.md`. The new `scripts/run_study.py` runs nine
 versioned logistics cases with repaired TAA, TAA with reservations, a per-act
 judge with the same policy, and a free expiring-policy control. Its saved
-v0.19.3.1 fixtures are structural checks using an all-approve fake reviewer;
+v0.19.4 fixtures are structural checks using fake reviewers; F09 tests an
+authenticated wrongful withdrawal with a model-mediated M/F check;
 no new paid reviewer run has been made. Paid smoke, pilot, and frozen evaluation
 require a separate authorized budget.
 

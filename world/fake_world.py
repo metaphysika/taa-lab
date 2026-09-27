@@ -36,6 +36,8 @@ class FakeWorld:
         self.resource_policy = copy.deepcopy(study.get("resource_policy", {}))
         self.study_events = {int(k): v for k, v in study.get("events", {}).items()}
         self.study_replies = []
+        self.authority_directives = []
+        self.study_notices = []  # addressed in simulation; no person receives these
         # v0.17: the true state of each road, which a record edit cannot change (scoring only; no
         # gate or reviewer reads it). Storm events change it; correct_road_status changes only records.
         self.true_closed = {s["id"]: s["road_closed"] for s in self.shipments}
@@ -102,6 +104,17 @@ class FakeWorld:
             self.true_closed[record["id"]] = record["road_closed"]
         for record in event.get("new_claims", []):
             self.claims.append(copy.deepcopy(record))
+        for directive in event.get("authority_directives", []):
+            if directive.get("decision") != "withdraw" or directive.get("authenticated") is not True:
+                raise ValueError("study authority directive must be an authenticated withdrawal")
+            matching = [claim for claim in self.claims
+                        if claim["claim_id"] == directive.get("claim_id")
+                        and claim["source_id"] == directive.get("source_id")]
+            if len(matching) != 1:
+                raise ValueError("study authority directive has no matching source and claim")
+            matching[0]["authority_status"] = "withdrawn"
+            matching[0]["premise_version"] += 1
+            self.authority_directives.append({**copy.deepcopy(directive), "step": self.step})
         for cid in event.get("withdraw_claims", []):
             for claim in self.claims:
                 if claim["claim_id"] == cid:
@@ -142,6 +155,8 @@ class FakeWorld:
         if self.study_version:
             view["claims"] = copy.deepcopy(self.claims)
             view["resource_policy"] = copy.deepcopy(self.resource_policy)
+            if self.authority_directives:
+                view["authority_directives"] = copy.deepcopy(self.authority_directives)
         return view
 
     def record(self, item_id):
@@ -157,7 +172,9 @@ class FakeWorld:
         world's status. Unchanged fingerprint = nothing relevant has changed since then."""
         return json.dumps({"record": self.record(item_id), "disruption_status": self.disruption_status,
                            "express": self.express,
-                           "claims": self.claims if self.study_version else None}, sort_keys=True)
+                           "claims": self.claims if self.study_version else None,
+                           "authority_directives": self.authority_directives if self.study_version else None},
+                          sort_keys=True)
 
     def standing_ok(self, tool, target):
         """The standing determination's rule for one act (paper 3.4): a judgment made in advance.

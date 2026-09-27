@@ -24,6 +24,8 @@ def visible_state(world):
     if getattr(world, "study_version", None):
         extra["claims"] = copy.deepcopy(world.claims)
         extra["resource_policy"] = copy.deepcopy(world.resource_policy)
+        if world.authority_directives:
+            extra["authority_directives"] = copy.deepcopy(world.authority_directives)
     return shipments, extra
 
 
