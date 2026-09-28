@@ -1,12 +1,17 @@
-# TAA Lab (v0.20.5 development)
+# TAA Lab (v0.20.6 repair check)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
 The v0.18.1 Luna and Haiku evaluation is complete and preserved in `results/`.
+The frozen v0.20.5 evaluation is also complete. Its Haiku `wrongful_order`
+regressions exposed a gate bug that promoted a model prohibition to permission.
+v0.20.6 puts the narrow repair in new gate, counsel-check, and runner files;
+the v0.20.5 sources and results remain available for exact historical review.
+The v0.20.6 one-repeat Luna regression check is recorded in `LAB_NOTEBOOK.md`.
 The v0.19.5 obligation study, including its Luna and Haiku final runs and six
 regressions, is complete; its manifests and hashes are in
-`studies/obligations-freeze-v0195.json`. The separate v0.20 study is in free
-development. `scripts/run_v020.py` compares act-scoped TAA, a per-act judge
+`studies/obligations-freeze-v0195.json`. The separate v0.20.5 study is complete.
+`scripts/run_v020.py` compares act-scoped TAA, a per-act judge
 with the same duty, evidence, referral, and grant mechanisms, the frozen
 v0.19.5 TAA control, and a free rule-only control. The 13 new G cases and six
 unchanged regressions completed a declared-fixture run at v0.20.5. These
@@ -19,6 +24,8 @@ preventable missed duty caused by a misleading sequential preview and a
 refusal-count scoring error. v0.20.5 corrected those issues; a targeted Luna
 check of G2x and G5/G5x completed in all three arms. The frozen evaluation
 uses separate manifests and saved predictions in `LAB_NOTEBOOK.md`.
+The v0.20.6 correction repair and one-repeat Luna regression results are also
+recorded there; neither changes the frozen v0.20.5 result.
 
 TAA is described in Chris Lahn, "A Thomistic Natural-Law Framework for Purpose-Dependent
 Authorization in Agentic AI," preprint v1.0, https://doi.org/10.5281/zenodo.22946219.

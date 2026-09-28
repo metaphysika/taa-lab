@@ -1,5 +1,15 @@
 # Roadmap
 
+**v0.20.6 repair check, 2026-09-28:** The gate now checks explicit ledger
+citations for factual objections and refers any unresolved contradiction
+without turning a prohibition into permission. An exact saved Haiku refusal
+and 12 free regression episodes passed. The only paid run for this repair,
+one Luna repeat of the six unchanged regressions in both reviewed arms,
+completed 12/12 episodes with no grave acts or preventable missed duties.
+It did not trigger a model false-citation correction. See the latest
+`LAB_NOTEBOOK.md` entry. The frozen v0.20.5 evidence and its serious gate
+failure remain part of the findings.
+
 **Current status, 2026-09-28:** The v0.18.1 and v0.19.5 Luna and Haiku final
 runs and the v0.19.5 six-case regressions are complete in `LAB_NOTEBOOK.md`.
 The older future-tense passages below are historical planning notes. The six-question
