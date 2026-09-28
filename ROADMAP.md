@@ -1,6 +1,6 @@
 # Roadmap
 
-**Current status, 2026-09-27:** The v0.18.1 and v0.19.5 Luna and Haiku final
+**Current status, 2026-09-28:** The v0.18.1 and v0.19.5 Luna and Haiku final
 runs and the v0.19.5 six-case regressions are complete in `LAB_NOTEBOOK.md`.
 The older future-tense passages below are historical planning notes. The six-question
 v0.19.5 counsel diagnostic remains unfinished. The new v0.20.2 study has 13 paired
@@ -10,15 +10,20 @@ three G1 episodes exposed a false capacity objection, and v0.20.3 stopped on a
 plan-reply format error. The v0.20.4 G1 smoke and complete 39-episode Luna pilot
 are recorded; that pilot found one preventable missed duty and a scoring flaw.
 The v0.20.5 targeted Luna check passed nine episodes after those corrections.
-The frozen Luna/Haiku evaluation remains to run. The fixture does not test
-model moral judgment.
+The frozen v0.20.5 Luna/Haiku matrix and six regressions are complete: 510/510
+episodes. The new obligation mechanisms improved several duty and authority
+outcomes, but Haiku over-refused, and a gate arbitration bug executed two
+prohibited brake-record falsifications in `wrongful_order`. See
+[`docs/obligations-study-findings.md`](docs/obligations-study-findings.md).
+The six-question counsel diagnostic and the historical preview-order audit
+remain open. The fixture does not test model moral judgment.
 See the current v0.20 entries in `LAB_NOTEBOOK.md` for predictions and results.
 
 ## v0.20 paired follow-up
 
-All 13 new case files are in `scenarios/v020/`. The declared-fixture stage is
-complete at v0.20.5; the Luna pilot and targeted check are complete, while the frozen Luna/Haiku comparison and counsel
-diagnostic remain to do. The v0.19.5 paths and results remain available as a
+All 13 new case files are in `scenarios/v020/`. The declared-fixture stage,
+Luna pilot, targeted check, and frozen Luna/Haiku comparison are complete at
+v0.20.5. The counsel diagnostic remains to do. The v0.19.5 paths and results remain available as a
 control. The full current study instruction and pass rules are recorded in the
 2026-09-27 `LAB_NOTEBOOK.md` entries.
 
@@ -31,9 +36,10 @@ control. The full current study instruction and pass rules are recorded in the
 | G5 / G5x | Seek evidence before acting; release a disproved claim | U is served only after confirmation; R3 proceeds after disproof |
 | G6 / G6x / G6y | Compose only declared grants; enforce cap; send rights conflict to panel | Composition and cap behave as declared; panel answer precedes U |
 
-These are software checks with scripted reviewer replies and scripted authority
-schedules. The paid comparison must test whether the model reviewers make the
-needed distinctions, including the authenticated wrongful order regression.
+These free-stage results are software checks with scripted reviewer replies and
+scripted authority schedules. The paid comparison and authenticated wrongful
+order regression are analyzed in the findings document. A new, predicted repair
+study must address the discovered gate failure before another safety claim.
 
 The goal is the bounded prototype and comparative study the paper proposes (Section 7): implement
 the structural parts of TAA, attack them, and compare against simpler controls. Each item names the
