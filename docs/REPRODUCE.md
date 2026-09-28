@@ -1,7 +1,16 @@
 # Reproducing the Paper 2 results
 
-This guide reproduces the final run reported in *Law for an Arrow That Steers Itself* (TAA Paper 2):
-version **v0.18.1**, twelve scenarios, six gates, five repeats per cell, with two reviewer models.
+This guide reproduces the three studies reported in *Law for an Arrow That Steers Itself* (TAA Paper 2):
+
+| Study | Version | What it tests |
+|---|---|---|
+| First | v0.18.1 | Six gates, twelve scenarios, five repeats per cell |
+| Second | v0.19.5 | Protecting pending and approved obligations (F01–F09, F02b supplement, regressions) |
+| Third | v0.20.5, repaired in v0.20.6 | Duties, dispositions, evidence-bound objections, and composed grants (G cases, regressions) |
+
+Each study is frozen: its manifests record SHA-256 hashes of the cases, code, and prompts, and the
+runners refuse to start if those files have changed. Predictions for every run are dated in
+`LAB_NOTEBOOK.md` before the run.
 
 ## What you need
 
@@ -28,7 +37,7 @@ python3 run.py --scenario all
 The second command runs every scenario with a scripted stand-in reviewer. Its output should match
 `results/2026-09-26 v0.18.1 scripted-none r1 verify/` in every cell, apart from random token ids.
 
-## The final run
+## The first study (v0.18.1)
 
 Each reviewer is run with the same three commands. With Luna (`--counsel openai`, about 830 model
 calls):
@@ -42,6 +51,40 @@ python3 run.py --scenario new_closure --agent scripted --counsel openai --repeat
 With Haiku, replace `--counsel openai` with `--counsel claude` (about 960 calls). Model outputs vary
 from run to run, so expect small differences in cells where the reported range is wider than zero.
 
+## The second study (v0.19.5)
+
+Manifests are in `studies/`, and their hashes are in `studies/obligations-freeze-v0195.json`.
+Use `--provider openai` for Luna or `--provider claude` for Haiku. Add `--dry-run` first to check a
+manifest without calling a model.
+
+```
+python3 scripts/run_study.py --manifest studies/obligations-final-core-v0195.json --provider openai
+python3 scripts/run_study.py --manifest studies/obligations-final-core-v0195-haiku.json --provider claude
+python3 scripts/run_study.py --manifest studies/obligations-supplement-F02b-v0195.json --provider openai
+python3 scripts/run_study.py --manifest studies/obligations-final-regression-v0195.json --provider openai
+python3 scripts/run_study.py --manifest studies/obligations-final-free-control-v0195.json
+```
+
+The Haiku core manifest is an operational copy of the Luna core with a different output folder and
+runaway stops; the notebook entry of 2026-09-27 explains why.
+
+## The third study (v0.20.5) and its repair (v0.20.6)
+
+Hashes are in `studies/v020-freeze-v0205.json`.
+
+```
+python3 scripts/run_v020.py --manifest studies/v020-free-v0205.json
+python3 scripts/run_v020.py --manifest studies/v020-final-core-v0205-luna.json --provider openai
+python3 scripts/run_v020.py --manifest studies/v020-final-regression-v0205-luna.json --provider openai
+python3 scripts/run_v020.py --manifest studies/v020-final-core-v0205-haiku.json --provider claude
+python3 scripts/run_v020.py --manifest studies/v020-final-regression-v0205-haiku.json --provider claude
+python3 scripts/run_v0206.py --manifest studies/v0206-free-regression-luna.json
+python3 scripts/run_v0206.py --manifest studies/v0206-smoke-regression-luna.json --provider openai
+```
+
+The v0.20.5 Haiku `wrongful_order` regressions contain the gate defect reported in the paper
+(Section 5.4). The v0.20.6 files repair it in new modules, so both versions can be rerun exactly.
+
 ## Where things are
 
 | What | Where |
@@ -53,7 +96,10 @@ from run to run, so expect small differences in cells where the reported range i
 | Consequence preview | `taa/preview.py` |
 | The simulated world and its tools | `world/fake_world.py` |
 | Predictions, decision rules, and every recorded result, dated | `LAB_NOTEBOOK.md` |
-| The final run as reported | `results/2026-09-26 v0.18.1 *-{luna,haiku} r5 FINAL/` |
+| The first study as reported | `results/2026-09-26 v0.18.1 *-{luna,haiku} r5 FINAL/` |
+| The second study | `results/2026-09-27 v0.19.5 obligations-*` |
+| The third study and its repair | `results/2026-09-27 v0.20.5 obligations-final-*`, `results/2026-09-28 v0.20.6 *` |
+| Plain-language findings for the later studies | `docs/obligations-study-findings.md` |
 | Which part of Paper 1 each piece of code implements | `docs/paper-map.md` |
 
 Each results folder has a `summary.md`, a `report_<scenario>.md` with step-by-step logs, and one JSON

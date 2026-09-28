@@ -37,7 +37,11 @@ Authorization in Agentic AI," preprint v1.0, https://doi.org/10.5281/zenodo.2294
 | `LAB_NOTEBOOK.md` | Dated findings from every run |
 | `docs/paper-map.md` | Which code implements which part of the paper |
 | `docs/project-context.md` | Decisions and findings so far: read this first in a new session |
-| `docs/*.pdf` | The paper and the research brief |
+| `docs/*.pdf` | Paper 1 and the research brief |
+| `docs/TAA-Paper-2-preprint-v1.0.docx` | Paper 2, *Law for an Arrow That Steers Itself* (preprint) |
+| `docs/REPRODUCE.md` | How to rerun all three studies |
+| `docs/process/` | Working notes from building the lab with AI assistants |
+| `LICENSE`, `LICENSE-CONTENT.md` | MIT for code; CC BY 4.0 for papers, data, and results |
 | `tests/` | Free checks that run on every push (GitHub Actions) |
 | `results/` | Every run, kept as evidence |
 
