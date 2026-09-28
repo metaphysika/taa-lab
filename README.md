@@ -1,21 +1,24 @@
-# TAA Lab (v0.19.5 development)
+# TAA Lab (v0.20.5 development)
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
 The v0.18.1 Luna and Haiku evaluation is complete and preserved in `results/`.
-The follow-up obligation study is in free development under
-`docs/followup-testing-roadmap.md`. The new `scripts/run_study.py` runs nine
-versioned logistics cases with repaired TAA, TAA with reservations, a per-act
-judge with the same policy, and a free expiring-policy control. Its saved
-v0.19.4 fixtures are structural checks using fake reviewers; F09 tests an
-authenticated wrongful withdrawal with a model-mediated M/F check;
-v0.19.4.1 repairs study-runner key loading before paid client construction.
-v0.19.5 counts an explicit stopped remainder in a partial plan approval as a
-reviewer refusal of the omitted requested act. No policy or scenario changed.
-Its frozen follow-up manifests and hashes are in `studies/obligations-freeze-v0195.json`;
-the final Luna and Haiku runs have not been executed.
-No new paid reviewer run has been made. Paid smoke, pilot, and frozen evaluation
-require a separate authorized budget.
+The v0.19.5 obligation study, including its Luna and Haiku final runs and six
+regressions, is complete; its manifests and hashes are in
+`studies/obligations-freeze-v0195.json`. The separate v0.20 study is in free
+development. `scripts/run_v020.py` compares act-scoped TAA, a per-act judge
+with the same duty, evidence, referral, and grant mechanisms, the frozen
+v0.19.5 TAA control, and a free rule-only control. The 13 new G cases and six
+unchanged regressions completed a declared-fixture run at v0.20.5. These
+scripted replies check software behavior, not model or human judgment.
+An initial v0.20.2 Luna pilot was stopped after three completed G1 episodes
+when a false capacity objection exposed a prompt defect; its results are kept.
+The v0.20.3 pilot then stopped on a plan-reply format error. A focused
+v0.20.4 Luna G1 smoke and the 13-case pilot completed. The pilot found one
+preventable missed duty caused by a misleading sequential preview and a
+refusal-count scoring error. v0.20.5 corrected those issues; a targeted Luna
+check of G2x and G5/G5x completed in all three arms. The frozen evaluation
+uses separate manifests and saved predictions in `LAB_NOTEBOOK.md`.
 
 TAA is described in Chris Lahn, "A Thomistic Natural-Law Framework for Purpose-Dependent
 Authorization in Agentic AI," preprint v1.0, https://doi.org/10.5281/zenodo.22946219.
