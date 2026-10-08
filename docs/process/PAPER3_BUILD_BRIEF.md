@@ -161,3 +161,13 @@ Two rules hold at every stage. No paid or rate-limited run starts without Chris 
 - Gemini model metadata may be listed now. The five neutral generation calls require written approval of their cost estimate first.
 - Work and commit locally on `main`; Chris will push directly. This supersedes the original formation-branch workflow.
 - Chris approved **Qwen 3.8 27B (`qwen/qwen3.8-27b`) on Groq Free** in place of Llama 3.3 70B, which current Groq documentation lists as enterprise access. Substitute Qwen wherever this original brief calls for the fifth Llama model; repeat count and held-out role remain the same. No Groq billing may be enabled.
+
+## Gemini replacement approved by Chris, 2026-10-08
+
+After the preserved Gemini 2.5 Flash-Lite HTTP 404, Chris explicitly approved
+`gemini-3.1-flash-lite` and its neutral connectivity check. Use this pinned
+model for the Google slot, preserving its held-out role and repeat count.
+Standard text rates are $0.25 input / $1.50 output per million tokens, including
+thinking output. The replacement is listed by the existing key. A new dated
+price file and a separate Gemini-only neutral manifest preserve old evidence.
+This approval does not pass Gate 1 or authorize Stage 2.

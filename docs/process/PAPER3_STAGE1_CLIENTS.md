@@ -8,6 +8,12 @@ returned HTTP 403. Google still lists the pinned Gemini model; Groq metadata
 also returned HTTP 403. No request was retried. Gate 1 remains open pending
 resolution of these two access failures. See the 2026-10-08 notebook entries.
 
+Chris subsequently approved Gemini 3.1 Flash-Lite as the Google replacement.
+Its separately named neutral run returned HTTP 402 on one attempt, with no
+retry. Google documents this as depleted Prepay credit balance; actual account
+balance has not been inspected. The owner should check AI Studio Billing.
+The successful three model checks remain valid; Gate 1 remains open.
+
 ## Approved scope
 
 Chris approved new formation-specific clients, Python 3.9, and local commits on
@@ -147,3 +153,27 @@ Both GitHub workflows passed for checkpoint `57dc7ad`, including the Python 3.9
 formation job. See the 2026-10-08 notebook entry for run links. All 215 tests and
 the required scripted scenario check also passed locally on Python 3.9.6 in a
 temporary copy of the committed repository.
+
+
+## Approved Gemini replacement (2026-10-08)
+
+Current Google slot: `gemini-3.1-flash-lite`, held out with the same repeat
+count. Standard text rates: $0.25 input / $1.50 output per million tokens;
+cached input $0.025. See `studies/provider-prices-2026-10-08.json`. The earlier
+table and batch estimate document the original five-model check, preserved
+unchanged in its manifest and evidence.
+
+The runner now accepts `--manifest`, fingerprints its selected price file and
+effective settings, and requires Groq Free confirmation only for manifests
+containing Groq. The Gemini replacement manifest limits calls/attempts to one:
+
+```bash
+python3 scripts/formation_connectivity.py --manifest studies/formation-connectivity-gemini31-v021.json --estimate
+```
+
+The approved run used the same command with `--approved-cost` in place of
+`--estimate`. It is now terminal after HTTP 402; repeating that command will
+not retry it. After billing is resolved, use a newly named manifest/output
+folder and preserve both previous Gemini failures. No further generation was
+made and no account billing settings were changed. All 217 tests and the
+scripted checks passed locally on Python 3.9.6.

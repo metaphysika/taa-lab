@@ -4711,3 +4711,64 @@ requests. The status codes alone do not establish either failure's cause.
 2.5 generation access and Groq API access before separately named checks of the
 two failed models. Preserve both existing runs and do not repeat the successful
 checks. Any model replacement needs Chris's approval. No Stage 2 work began.
+
+
+## 2026-10-08 — Approved Gemini replacement and prediction before its check
+
+Chris explicitly approved Gemini 3.1 Flash-Lite and its neutral check. Google
+limits 2.5 access to previously active users; this is a plausible explanation
+for the earlier 404, not a proven cause. The replacement appears in the saved
+key-visible model metadata. Standard text rates verified against Google's
+pricing page are $0.25 input / $1.50 output per million tokens; cached text
+input is $0.025. Dated file: studies/provider-prices-2026-10-08.json.
+The original price file, manifest, and failure evidence remain untouched.
+
+**Prediction before generation:** gemini-3.1-flash-lite should return parsed
+{"ok": true}, with valid usage and matching model identity, to the unchanged
+neutral system/user prompt. Errors, identity mismatch, missing usage, silence,
+truncation, or malformed replies are connectivity failures, not formation
+results. This check discloses no study stimuli.
+
+Separate manifest: studies/formation-connectivity-gemini31-v021.json.
+One call / one attempt, no retries. Input allowance 2,000 tokens and output
+ceiling 8,192 project $0.012788. Batch application stop is $0.013, inside the
+existing approved $0.10 neutral envelope. Existing Google reserve $0.0033068
+is retained in the same $8 formation-wide Google ledger. Only Gemini is run;
+Luna, Haiku, and Groq are not called. Sampling/effort/thinking overrides remain
+omitted. Runner selection now supports separately named manifests and hashes
+the selected price file and effective manifest for resume safety. Historical
+runs remain preserved; changed fingerprints cannot silently resume them.
+
+
+## 2026-10-08 — Gemini 3.1 neutral result: payment-required stop
+
+The new Gemini-only manifest made exactly one logical call / one attempt.
+Google returned HTTP 402. No reply, model identity, or token usage was supplied;
+no retry was made. Evidence remains at
+`results/2026-10-08 v0.21 formation-connectivity r1 gemini31/`.
+The new request reserve $0.012363 is retained conservatively, not claimed as
+an actual charge. Google cumulative estimate including both failed-request
+reserves is $0.0156698; whole formation accounting is $0.0157905, including
+the $0.0001207 settled successful OpenAI/Anthropic calls. The ledger remains
+far below the $8 application stop and $10 owner ceiling.
+
+Google documents HTTP 402 as depleted Prepay credit balance and requires a
+positive prepaid balance even when Tier 1 is displayed. This is the documented
+interpretation of the status; the assistant has not inspected the account's
+actual balance. Chris should check AI Studio Billing > Available credits for
+the billing account attached to his key's project. If zero, add prepaid credits;
+if positive, investigate billing-account linkage or contact billing support.
+Reference: https://ai.google.dev/gemini-api/docs/billing#prepay
+No billing settings or payments were changed by the assistant.
+
+Version v0.21.1 records the runner's separate-manifest support and effective
+manifest/price fingerprint protection. All 217 tests passed on Python 3.9.6,
+including two new resume/fingerprint regressions; the required scripted check
+passed and is retained at
+`results/2026-10-08 v0.21.1 scripted-none r1 gemini31 verify/`.
+No historical frozen source, scenario, manifest, or model evidence was edited.
+
+**Gate 1 remains open.** Luna and both Haiku models have passed; the approved
+Gemini replacement remains unconfirmed because of billing, and Groq remains
+unconfirmed after HTTP 403. A later Gemini check needs a new named manifest
+and output folder preserving this terminal failure. No Stage 2 work began.

@@ -1,4 +1,4 @@
-"""Estimate or run Stage 1's five neutral checks. No study stimuli."""
+"""Estimate or run Stage 1 neutral checks. No study stimuli."""
 import argparse
 import hashlib
 import json
@@ -32,12 +32,14 @@ def estimate(manifest, prices):
             "basis": "one attempt per model; full output ceilings, not predicted actual usage; Groq Free account required"}
 
 
-def fingerprint():
-    paths = [MANIFEST, ROOT / "studies/provider-prices-2026-10-07.json", Path(__file__).resolve()]
+def fingerprint(manifest=None, manifest_path=None):
+    manifest_path = manifest_path or MANIFEST
+    manifest = manifest or json.loads(manifest_path.read_text())
+    paths = [manifest_path, ROOT / manifest["price_file"], Path(__file__).resolve()]
     paths += sorted((ROOT / "formation").glob("*.py"))
     paths += [ROOT / "agents/call_telemetry.py", ROOT / "agents/gemini_client.py"]
     hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
-    digest = hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest()
+    digest = hashlib.sha256(json.dumps({"source_sha256": hashes, "effective_manifest": manifest}, sort_keys=True).encode()).hexdigest()
     return digest, hashes
 
 
@@ -53,7 +55,7 @@ def journal_spend(path):
     return sum(charges.get(aid, reserve) for aid, reserve in reserves.items())
 
 
-def run(manifest, prices, output):
+def run(manifest, prices, output, manifest_path=None):
     output.mkdir(parents=True, exist_ok=True)
     # This command is sequential; exclude other formation spending commands.
     ledgers = ROOT / "results/formation-spending-v021"
@@ -65,7 +67,7 @@ def run(manifest, prices, output):
         raise SystemExit("Another run or interrupted lock exists; inspect it before resuming")
     try:
         os.write(fd, str(os.getpid()).encode())
-        digest, hashes = fingerprint()
+        digest, hashes = fingerprint(manifest, manifest_path)
         store = TrialStore(output / "progress.jsonl", digest)
         evidence_path = output / "manifest.json"
         if not evidence_path.exists():
@@ -80,7 +82,7 @@ def run(manifest, prices, output):
             if not store.should_run(trial):
                 continue
             cap = min(8, prior + manifest["batch_estimated_stop_dollars"] - spent_stage)
-            recorder = FormationRecorder(log, prices, trial, max_logical=2, max_attempts=2,
+            recorder = FormationRecorder(log, prices, trial, max_logical=manifest.get("max_calls_per_model", 2), max_attempts=manifest.get("max_attempts_per_model", 2),
                                          max_dollars=cap, prior_spend=prior, ledger_path=ledger)
             cls = {"openai": OpenAIChat, "claude": ClaudeChat, "google": GeminiChat, "groq": GroqChat}[provider]
             kwargs = {}
@@ -112,12 +114,14 @@ def run(manifest, prices, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", type=Path, default=MANIFEST, help="separately versioned neutral manifest")
     parser.add_argument("--estimate", action="store_true")
     parser.add_argument("--list-gemini-models", action="store_true")
     parser.add_argument("--approved-cost", action="store_true", help="only after Chris's written approval")
     parser.add_argument("--confirm-groq-free-account", action="store_true", help="owner confirms Groq account is Free, with no billing enabled")
     args = parser.parse_args()
-    manifest = json.loads(MANIFEST.read_text())
+    manifest_path = args.manifest.resolve()
+    manifest = json.loads(manifest_path.read_text())
     prices = json.loads((ROOT / manifest["price_file"]).read_text())["models"]
     if args.list_gemini_models:
         load_keys(ROOT / "keys.env")
@@ -131,9 +135,9 @@ def main():
     if args.estimate or not args.approved_cost:
         print(json.dumps(estimate(manifest, prices), indent=2))
         return
-    if not args.confirm_groq_free_account:
+    if any(item["provider"] == "groq" for item in manifest["models"]) and not args.confirm_groq_free_account:
         raise SystemExit("Confirm your Groq account is Free, without billing, before this batch")
-    if not run(manifest, prices, ROOT / manifest["output_dir"]):
+    if not run(manifest, prices, ROOT / manifest["output_dir"], manifest_path=manifest_path):
         raise SystemExit("Connectivity remains incomplete; inspect progress and evidence")
 
 

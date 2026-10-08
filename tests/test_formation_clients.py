@@ -235,3 +235,26 @@ class FormationTests(unittest.TestCase):
     def test_python39_syntax(self):
         for path in list((ROOT/"formation").glob("*.py")) + [ROOT/"scripts/formation_connectivity.py"]:
             ast.parse(path.read_text(), feature_version=(3, 9))
+
+
+class ConnectivityManifestTests(unittest.TestCase):
+    def test_selected_manifest_prices_are_fingerprinted(self):
+        from scripts.formation_connectivity import fingerprint
+        path = ROOT / "studies/formation-connectivity-gemini31-v021.json"
+        manifest = json.loads(path.read_text())
+        digest, hashes = fingerprint(manifest, path)
+        self.assertIn("studies/provider-prices-2026-10-08.json", hashes)
+        self.assertNotIn("studies/provider-prices-2026-10-07.json", hashes)
+        changed = dict(manifest, batch_estimated_stop_dollars=.02)
+        self.assertNotEqual(digest, fingerprint(changed, path)[0])
+
+    def test_effective_output_change_rejects_resume(self):
+        from scripts.formation_connectivity import fingerprint
+        path = ROOT / "studies/formation-connectivity-gemini31-v021.json"
+        manifest = json.loads(path.read_text())
+        with tempfile.TemporaryDirectory() as folder:
+            progress = Path(folder) / "progress.jsonl"
+            TrialStore(progress, fingerprint(manifest, path)[0])
+            changed = dict(manifest, output_dir="results/different")
+            with self.assertRaises(ValueError):
+                TrialStore(progress, fingerprint(changed, path)[0])
