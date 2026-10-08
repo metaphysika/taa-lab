@@ -1,7 +1,10 @@
 # Paper 3 Stage 1: client infrastructure
 
-Stage 1's free implementation is complete. The five neutral connectivity calls
-await Chris's written cost approval. Gate 1 has not been passed.
+Stage 1's free implementation is complete. On 2026-10-08 Chris approved the
+$0.10 neutral batch and confirmed Groq Free. The first local attempt stopped
+before any provider request because OPENAI_API_KEY was unavailable. Credentials
+must be supplied privately on this Mac, followed by a separately named run
+that preserves the startup failure. Gate 1 has not been passed.
 
 ## Approved scope
 
@@ -138,4 +141,7 @@ output is preserved under `results/2026-10-07 v0.21 scripted-none r1 stage1 veri
 These fixtures verify software, not model behavior or formation predictions.
 Local execution used Python 3.13.3. New files also pass Python 3.9 grammar
 checks; a separate CI workflow tests the formation fixtures on Python 3.9.
-That CI execution awaits the owner's push and is not claimed as already passed.
+Both GitHub workflows passed for checkpoint `57dc7ad`, including the Python 3.9
+formation job. See the 2026-10-08 notebook entry for run links. All 215 tests and
+the required scripted scenario check also passed locally on Python 3.9.6 in a
+temporary copy of the committed repository.

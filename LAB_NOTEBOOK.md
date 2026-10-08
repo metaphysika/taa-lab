@@ -4628,3 +4628,36 @@ files were compared against their Stage 1 starting hashes: only README, notebook
 repo build brief, and credential example changed. Frozen files, historical results,
 and scenarios are byte-identical. Local Python is 3.13.3; new files pass 3.9
 grammar checks, and a dedicated free Python 3.9 CI job is added for after push.
+
+
+## 2026-10-08 — Stage 1 approval, verified CI, and local credential stop
+
+Chris confirmed that his Groq account is currently Free and approved the $0.10
+neutral connectivity batch in writing. This approval covers the five neutral
+checks only; Gate 1 and Stage 2 remain unapproved.
+
+Checkpoint `57dc7ad` is present on local `main`. GitHub's Formation Python 3.9
+checks and Harness checks both passed for that exact commit:
+- https://github.com/metaphysika/taa-lab/actions/runs/37723981485
+- https://github.com/metaphysika/taa-lab/actions/runs/37723981551
+
+Local Python is 3.9.6. All 215 unit tests and the required scripted scenario
+command passed in a temporary copy of the committed repository. The initial
+in-place test attempt hit seven sandbox filesystem permission errors; the
+isolated rerun resolved those errors without changing repository sources.
+The free estimate still totals $0.0550288 with a $0.10 application batch stop.
+
+The approved command was attempted on this Mac. It stopped at the first model,
+`gpt-6-luna`, because OPENAI_API_KEY was unavailable to the harness. No provider
+request was sent: zero logical calls, zero request attempts, zero tokens, and
+$0 estimated spend. The other four models were not attempted. No formation
+hypothesis received model evidence. Credentials were not read or displayed by
+the assistant; the harness loaded them through its normal path.
+
+The original manifest and append-only startup failure are retained at
+`results/2026-10-07 v0.21 formation-connectivity r1/`. This is a local setup
+failure, not a model response. Chris must supply credentials privately on this
+Mac before another attempt. The recorded error is terminal in this run; a
+subsequent attempt must use a separately named run and preserve this evidence.
+The existing batch approval and Groq Free confirmation remain recorded; they
+do not authorize Stage 2. Gate 1 remains open.
