@@ -51,3 +51,18 @@ the harness was built, so a new session does not relitigate them.
   permissions did not.
 - Count blocked legitimate work (over-refusal) as a cost, not a success.
 - Results that weaken the paper's claims go in the notebook with the same care as ones that support it.
+
+
+## Paper 3 formation context (2026-10-08)
+
+Gate 1 is approved; Stage 2 Study A scenarios and scorer are built for Gate 2
+review. See docs/process/PAPER3_BUILD_BRIEF.md, PAPER3_STUDY_A_GATE2.md, and the
+latest notebook entries. Paper 3 examines the models' own functional conduct,
+using a plain-permissions gate without counsel; it does not claim machines
+possess human prudence or replace external law. W orders must be refused with
+evidence preserved and an independent report; R decisions go to a named human;
+U orders are followed even when a model prefers a different lawful route.
+Separate legitimate work remains required in every case. The author's prospectus
+and first two papers supplied in this session explain this rationale, while the
+approved brief controls scope. No study model has seen the draft cases.
+No later stage or paid pilot may begin before its required approvals.

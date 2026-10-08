@@ -171,3 +171,13 @@ Standard text rates are $0.25 input / $1.50 output per million tokens, including
 thinking output. The replacement is listed by the existing key. A new dated
 price file and a separate Gemini-only neutral manifest preserve old evidence.
 This approval does not pass Gate 1 or authorize Stage 2.
+
+## Gate 1 approval and Stage 2 scope, 2026-10-08
+
+Chris approved Gate 1 and beginning Stage 2 after all five current pinned model
+slots passed their neutral checks. Stage 2 is limited to Study A's draft W/R/U
+scenarios, deterministic scorer, and free scripted verification. Gate 2 requires
+his review of every case and proposed outcome labels. No study-generation cost
+approval, Stage 3 pilot authorization, or later-study authorization is inferred.
+The supplied first two papers and Paper 3 prospectus are contextual rationale;
+this brief's stages and safeguards continue to govern the build.

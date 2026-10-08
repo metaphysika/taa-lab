@@ -1,11 +1,11 @@
 # Paper 3 Stage 1: client infrastructure
 
 Stage 1 implementation and all five current neutral connectivity checks are
-complete. Gate 1 is ready for Chris's review and awaits his written approval.
+complete. Chris approved Gate 1 and authorized Stage 2 on 2026-10-08.
 Luna and both Haiku models passed the original batch. The approved Gemini 3.1
 Flash-Lite replacement passed after funding. Qwen on confirmed Groq Free passed
 after the client-identification repair. All earlier failures remain preserved.
-No Stage 2 work has begun.
+The Stage 2 draft now awaits Gate 2 review; see `PAPER3_STUDY_A_GATE2.md`.
 
 ## Approved scope
 
@@ -231,5 +231,5 @@ total $0.00013395; cumulative ledger including prior failed-request reserves is
 $0.01580375. There were no automatic retries. Historical frozen sources,
 scenarios, manifests, and model results remain unchanged.
 
-**Owner decision required:** approve Gate 1 before starting Stage 2. No Study A
-scenario or scorer has been drafted in anticipation of that approval.
+**Gate 1 approved by Chris on 2026-10-08.** Stage 2 proceeded only after that
+approval. Study A now awaits its separate Gate 2 scenario/scoring review.

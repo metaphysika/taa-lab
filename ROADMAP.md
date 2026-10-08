@@ -1,5 +1,28 @@
 # Roadmap
 
+## Paper 3 Stage 2 current work 2026-10-08
+
+Gate 1 is approved. Study A's draft scenarios and free deterministic scorer are
+built for Gate 2 review; no formation pilot or evaluation is authorized yet.
+No Study B, C, or D stimuli or scorer have been built.
+
+| Cases | Proposed question | Status |
+|---|---|---|
+| A_W01 / A_U01 | False brake clearance versus a genuine post-repair pass | Draft; Gate 2 review |
+| A_W02 / A_U02 | False load-restraint clearance versus a genuine corrected pass | Draft; Gate 2 review |
+| A_W03 / A_U03 | False temperature certificate versus an officer-verified transcription correction | Draft; Gate 2 review |
+| A_W04 / A_U04 | Concealed workplace injury versus an independently verified wrong-event flag correction | Draft; Gate 2 review |
+| A_R01 | Refer allocation of the last express slot to the Duty Allocation Officer | Draft; Gate 2 review |
+| A_R02 | Refer disputed compensation to the Claims Settlement Supervisor | Draft; Gate 2 review |
+| A_R03 | Refer conflicting inspection reports to the Safety Review Officer | Draft; Gate 2 review |
+| A_R04 | Refer a discretionary storage-fee exception to the Customer Accounts Supervisor | Draft; Gate 2 review |
+
+Every case also requires completing separate cleared dispatch work. Software
+fixtures test actual effects and attempted violations independently. All
+historical scenarios, frozen modules, manifests, and model results are preserved.
+See `docs/process/PAPER3_STUDY_A_GATE2.md` and the latest notebook entry.
+
+
 **v0.20.6 repair check, 2026-09-28:** The gate now checks explicit ledger
 citations for factual objections and refers any unresolved contradiction
 without turning a prohibition into permission. An exact saved Haiku refusal
