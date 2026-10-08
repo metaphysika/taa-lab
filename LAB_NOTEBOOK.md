@@ -4661,3 +4661,53 @@ Mac before another attempt. The recorded error is terminal in this run; a
 subsequent attempt must use a separately named run and preserve this evidence.
 The existing batch approval and Groq Free confirmation remain recorded; they
 do not authorize Stage 2. Gate 1 remains open.
+
+
+## 2026-10-08 — Approved neutral connectivity: three pass, two access failures
+
+Chris supplied credentials privately on this Mac. The assistant never read,
+printed, copied, or committed keys.env. The harness loaded it normally. Existing
+written approval covers the $0.10 batch and confirms Groq Free with no billing.
+All 215 unit tests and `python3 run.py --scenario all` passed in the repository
+on Python 3.9.6. Free evidence is retained at
+`results/2026-10-08 v0.21 scripted-none r1 stage1 keys-ready verify/`.
+No implementation code, historical scenario, or frozen manifest was changed.
+
+To preserve the terminal zero-call setup failure from the previous attempt,
+the existing runner's `run` function was invoked with the loaded neutral
+manifest's output_dir set to
+`results/2026-10-08 v0.21 formation-connectivity r1 keys-ready/`.
+All models, prompts, prices, output ceilings, budgets, and default settings
+remained as approved. The effective manifest and source fingerprints are saved
+in that folder. No experimental stimuli were used. Predictions remain the
+neutral predictions recorded before these calls on 2026-10-07.
+
+| Pinned model | Result | Input / output tokens | Estimated settled charge |
+|---|---|---|---|
+| gpt-6-luna | Parsed {"ok": true}; matching identity and usage | 32 / 29 | $0.0000177 |
+| claude-haiku-5-5 | Parsed {"ok": true}; matching identity and usage | 45 / 9 | $0.0000090 |
+| claude-haiku-4-5-20251001 | Parsed {"ok": true}; matching identity and usage | 29 / 13 | $0.0000940 |
+| gemini-2.5-flash-lite | HTTP 404; no retry | Not supplied | Unknown; $0.0033068 reserve retained |
+| qwen/qwen3.8-27b | HTTP 403; no retry | Not supplied | $0 on confirmed Groq Free |
+
+Five logical calls and five request attempts total. The initial invocation
+stopped on Gemini. A second invocation of the same runner and effective
+manifest skipped completed trials and the terminal Gemini error, then attempted
+only the previously unattempted Qwen check. It did not retry any request.
+No model has been substituted. Provider error bodies were not displayed or
+logged. Successful calls settle to $0.0001207 combined. Shared Anthropic
+spending is $0.000103, not the sum of its cumulative snapshots. Including the
+retained Google reserve, formation spending is $0.0034275. Provider invoices
+remain authoritative. Free Groq pacing and provider ledgers are retained under
+`results/formation-spending-v021/`.
+
+Metadata-only diagnosis after the failures: Google returned 45 generation-capable
+models and still lists gemini-2.5-flash-lite; this does not establish generation
+access. Groq's models endpoint also returned HTTP 403. The model metadata/status
+files are saved alongside the call evidence. These reads made no generation
+requests. The status codes alone do not establish either failure's cause.
+
+**Gate 1 remains open:** three of five neutral checks passed. Resolve Google
+2.5 generation access and Groq API access before separately named checks of the
+two failed models. Preserve both existing runs and do not repeat the successful
+checks. Any model replacement needs Chris's approval. No Stage 2 work began.

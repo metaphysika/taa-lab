@@ -1,10 +1,12 @@
 # Paper 3 Stage 1: client infrastructure
 
-Stage 1's free implementation is complete. On 2026-10-08 Chris approved the
-$0.10 neutral batch and confirmed Groq Free. The first local attempt stopped
-before any provider request because OPENAI_API_KEY was unavailable. Credentials
-must be supplied privately on this Mac, followed by a separately named run
-that preserves the startup failure. Gate 1 has not been passed.
+Stage 1's free implementation is complete. Chris approved the $0.10 neutral
+batch and confirmed Groq Free on 2026-10-08. After a preserved zero-call local
+credential stop, the separately named keys-ready run attempted all five models.
+Luna and both Haiku models passed; Gemini returned HTTP 404 and Qwen on Groq
+returned HTTP 403. Google still lists the pinned Gemini model; Groq metadata
+also returned HTTP 403. No request was retried. Gate 1 remains open pending
+resolution of these two access failures. See the 2026-10-08 notebook entries.
 
 ## Approved scope
 

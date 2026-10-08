@@ -1,6 +1,6 @@
 # TAA Lab (v0.21 formation development)
 
-Stage 1 of the formation study adds isolated multi-turn API clients and neutral connectivity checks. The five-model checks await owner cost approval; no formation study has been run. See `docs/process/PAPER3_BUILD_BRIEF.md` and `docs/process/PAPER3_STAGE1_CLIENTS.md`.
+Stage 1 of the formation study adds isolated multi-turn API clients and neutral connectivity checks. The approved neutral checks passed for Luna and both Haiku models; Gemini and Groq access failures leave Gate 1 open. No formation study has been run. See `docs/process/PAPER3_BUILD_BRIEF.md` and `docs/process/PAPER3_STAGE1_CLIENTS.md`.
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
