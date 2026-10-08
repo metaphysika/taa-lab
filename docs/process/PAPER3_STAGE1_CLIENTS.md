@@ -9,10 +9,11 @@ also returned HTTP 403. No request was retried. Gate 1 remains open pending
 resolution of these two access failures. See the 2026-10-08 notebook entries.
 
 Chris subsequently approved Gemini 3.1 Flash-Lite as the Google replacement.
-Its separately named neutral run returned HTTP 402 on one attempt, with no
-retry. Google documents this as depleted Prepay credit balance; actual account
-balance has not been inspected. The owner should check AI Studio Billing.
-The successful three model checks remain valid; Gate 1 remains open.
+Its first separately named check returned HTTP 402. After Chris added $5,
+a new funded check passed on one attempt with matching identity, valid usage,
+and parsed {"ok": true}; estimated request cost $0.00001325. Four current model
+slots are verified. Groq's HTTP 403 remains unresolved; Gate 1 remains open.
+All earlier failures and accounting reserves are preserved.
 
 ## Approved scope
 
@@ -177,3 +178,15 @@ not retry it. After billing is resolved, use a newly named manifest/output
 folder and preserve both previous Gemini failures. No further generation was
 made and no account billing settings were changed. All 217 tests and the
 scripted checks passed locally on Python 3.9.6.
+
+
+### Funded check result
+
+`studies/formation-connectivity-gemini31-funded-v021.json` selects the same
+approved Gemini model, prices, prompt, ceilings, and one-attempt limit in a new
+output folder. It passed after the owner funded the account. Evidence is at
+`results/2026-10-08 v0.21 formation-connectivity r1 gemini31 funded/`.
+The runner command is `python3 scripts/formation_connectivity.py --manifest
+studies/formation-connectivity-gemini31-funded-v021.json --approved-cost`.
+A repeated invocation skips the completed check. Do not rerun it to troubleshoot
+Groq. The account's actual balance and credit allocation were not inspected.

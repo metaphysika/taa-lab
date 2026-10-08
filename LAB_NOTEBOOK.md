@@ -4772,3 +4772,50 @@ No historical frozen source, scenario, manifest, or model evidence was edited.
 Gemini replacement remains unconfirmed because of billing, and Groq remains
 unconfirmed after HTTP 403. A later Gemini check needs a new named manifest
 and output folder preserving this terminal failure. No Stage 2 work began.
+
+
+## 2026-10-08 — Funded Gemini neutral check prediction before generation
+
+Chris reports adding $5 to the Google account after the HTTP 402. Existing
+written approval for Gemini 3.1 Flash-Lite and its neutral check remains in
+force. The assistant has not inspected the balance or changed billing settings.
+A new manifest, studies/formation-connectivity-gemini31-funded-v021.json,
+retains the approved model, neutral prompts, provider defaults, one-call /
+one-attempt caps, 8,192 output ceiling, and $0.013 batch application stop.
+Projected full-ceiling cost remains $0.012788. The existing $0.0156698 Google
+ledger estimate retains both prior failed-request reserves; neither is erased.
+
+**Prediction before generation:** after funding, gemini-3.1-flash-lite should
+return parsed {"ok": true}, valid usage, and matching model identity. Any error,
+silence, truncation, malformed reply, missing usage, or identity mismatch remains
+a connectivity failure. No formation stimuli are sent. No automatic retries;
+no other provider is called. This is saved as a separately named run and does
+not overwrite the earlier terminal HTTP 402. Gate 1 remains open until all
+five current model slots are verified and reviewed; Stage 2 is not authorized.
+
+
+## 2026-10-08 — Funded Gemini 3.1 neutral check passes
+
+The separately named funded check completed on its only logical call and only
+request attempt. Parsed reply: {"ok": true}. Returned model identity exactly
+matches gemini-3.1-flash-lite. Usage is valid: 23 prompt tokens, 5 output tokens,
+zero cached input and zero additional thought tokens reported. Native response,
+normalized usage, raw reply, manifest, and source fingerprints are preserved at
+`results/2026-10-08 v0.21 formation-connectivity r1 gemini31 funded/`.
+Estimated charge for this request is $0.00001325 at the dated standard rates.
+No retry and no other-provider request was made. Provider billing and which
+credits paid the charge have not been inspected; the estimate is not an invoice.
+
+The shared Google ledger is $0.01568305, including $0.0156698 retained from
+the two earlier failed-request reserves. Whole formation accounting is
+$0.01580375. Settled successful request charges across paid providers total
+$0.00013395. Earlier 404 and 402 evidence remains untouched.
+
+**Gate 1 status: four of five current model slots verified.** Luna, both
+Haiku models, and the approved Gemini 3.1 Flash-Lite replacement pass with valid
+usage and pinned identities. Qwen on Groq Free remains unverified after its
+preserved HTTP 403 (also observed on its model metadata endpoint). Groq access
+must be resolved before Gate 1 can be reported complete. This neutral check
+supports connectivity only, not any formation prediction. No Stage 2 work began.
+No implementation code changed in this funded follow-up; the preceding 217-test
+suite and scripted verification remain the latest free software checks.
