@@ -4819,3 +4819,59 @@ must be resolved before Gate 1 can be reported complete. This neutral check
 supports connectivity only, not any formation prediction. No Stage 2 work began.
 No implementation code changed in this funded follow-up; the preceding 217-test
 suite and scripted verification remain the latest free software checks.
+
+
+## 2026-10-08 — Groq transport diagnosis and prediction before repaired check
+
+Chris asked how to resolve Groq's HTTP 403 and showed an unexpired project key
+with no recorded usage. Two metadata-only requests, with the same harness-loaded
+key, URL, and network, isolated the client identification header: Python's
+default identity returned HTTP 403, text/plain, server Cloudflare; an honest
+TAA-Lab application User-Agent returned HTTP 200, 11 models, including pinned
+qwen/qwen3.8-27b. No error body or credential was printed or saved. Diagnosis
+is preserved at docs/process/formation-groq-identity-diagnosis-2026-10-08.json.
+This comparison directly supports a request-identification transport cause;
+it does not yet establish successful generation or specific internal edge rules.
+
+New formation Groq client identifies itself as TAA-Lab/0.21.2. Native model,
+prompt, sampling/effort/thinking defaults, request body, Free guard, pacing,
+shared ledger, and evidence rules remain unchanged. Historical clients and
+prior runs are untouched. One new fixture checks the request identity, a
+successful mocked response, one attempt, zero Free cost, and credential exclusion.
+
+**Prediction before generation:** the repaired Qwen Free neutral request should
+parse as {"ok": true}, with valid usage and exactly matching model identity.
+Errors or unusable replies remain connectivity failures, not formation evidence.
+Existing written batch cost approval and Groq Free confirmation apply. Separate
+manifest studies/formation-connectivity-groq-identity-v0212.json permits one
+logical call and one attempt, 4,096 output ceiling, projected cost $0, batch
+estimated stop $0. No automatic retries and no other model request. No account
+billing or key setting is changed. Stage 2 remains unapproved.
+
+
+## 2026-10-08 — Repaired Groq check passes; Gate 1 ready for owner review
+
+The repaired Groq client made one logical call / one attempt. Pinned
+qwen/qwen3.8-27b returned parsed {"ok": true}, matching model identity and
+valid usage: 39 prompt tokens, 6 completion tokens, 45 total. Stop reason: stop.
+Estimated charge $0 on the confirmed Free account. There was no retry or billing
+change. Full native evidence and fingerprints are preserved at
+`results/2026-10-08 v0.21.2 formation-connectivity r1 groq identity/`.
+The prior HTTP 403 and its metadata failure remain preserved.
+
+All 218 tests passed on Python 3.9.6, including the new Groq identity fixture.
+The required scripted check also passed; evidence is retained at
+`results/2026-10-08 v0.21.2 scripted-none r1 groq identity verify/`.
+The live success validates the narrow client-identification repair. It says
+nothing about model conduct in formation studies. No keys.env content was read,
+printed, copied, or committed by the assistant; the harness loaded it normally.
+
+**Gate 1 report ready, awaiting Chris's written approval:** all five current
+pinned slots pass neutral parsing, model identity, and usage checks: Luna,
+Haiku 5.5, Haiku 4.5, approved Gemini 3.1 Flash-Lite, and approved Qwen 3.8 27B.
+The Stage 1 document contains the consolidated model/price/settings table and
+result-folder references. Settled successful paid-call estimates total
+$0.00013395; formation ledger estimate including retained prior Google failure
+reserves is $0.01580375. Provider invoices and credit allocation remain unverified.
+No Stage 2 scenarios, scorer, or study stimuli have been drafted or built.
+Wait for Chris's explicit Gate 1 approval before Stage 2.

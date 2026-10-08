@@ -146,6 +146,21 @@ class FormationTests(unittest.TestCase):
         with self.assertRaises(RatePaused):
             FreeTierLimiter(self.root/"rate.json").before(10)
 
+    def test_groq_application_identity_and_neutral_response(self):
+        model = "qwen/qwen3.8-27b"
+        client = GroqChat(model, self.recorder(model), max_output_tokens=4096,
+                          limiter=FreeTierLimiter(self.root / "rate.json"),
+                          free_tier_confirmed=True)
+        response = self.openai_reply(model=model)
+        with patch("urllib.request.urlopen", return_value=Reply(response)) as send:
+            self.assertEqual(client.json("neutral"), {"ok": True})
+        request = send.call_args[0][0]
+        self.assertEqual(request.get_header("User-agent"),
+                         "TAA-Lab/0.21.2 (Python standard-library API client)")
+        self.assertEqual(send.call_count, 1)
+        self.assertEqual(client.recorder.spent, 0)
+        self.assertNotIn("fixture-secret", (self.root / "calls.jsonl").read_text())
+
     def test_free_groq_guard(self):
         with self.assertRaises(ValueError):
             GroqChat("qwen/qwen3.8-27b", self.recorder("qwen/qwen3.8-27b"))

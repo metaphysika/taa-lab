@@ -140,6 +140,11 @@ class GroqChat(OpenAIChat):
         super().__init__(model, recorder, base_url="https://api.groq.com/openai/v1",
                          key_name="GROQ_API_KEY", **kwargs)
 
+    def headers(self, key):
+        # Groq's edge rejects urllib's default identity. Identify this application.
+        return dict(super().headers(key), **{
+            "User-Agent": "TAA-Lab/0.21.2 (Python standard-library API client)"})
+
 
 class ClaudeChat(ChatClient):
     provider = "claude"

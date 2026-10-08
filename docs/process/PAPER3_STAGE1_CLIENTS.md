@@ -1,19 +1,11 @@
 # Paper 3 Stage 1: client infrastructure
 
-Stage 1's free implementation is complete. Chris approved the $0.10 neutral
-batch and confirmed Groq Free on 2026-10-08. After a preserved zero-call local
-credential stop, the separately named keys-ready run attempted all five models.
-Luna and both Haiku models passed; Gemini returned HTTP 404 and Qwen on Groq
-returned HTTP 403. Google still lists the pinned Gemini model; Groq metadata
-also returned HTTP 403. No request was retried. Gate 1 remains open pending
-resolution of these two access failures. See the 2026-10-08 notebook entries.
-
-Chris subsequently approved Gemini 3.1 Flash-Lite as the Google replacement.
-Its first separately named check returned HTTP 402. After Chris added $5,
-a new funded check passed on one attempt with matching identity, valid usage,
-and parsed {"ok": true}; estimated request cost $0.00001325. Four current model
-slots are verified. Groq's HTTP 403 remains unresolved; Gate 1 remains open.
-All earlier failures and accounting reserves are preserved.
+Stage 1 implementation and all five current neutral connectivity checks are
+complete. Gate 1 is ready for Chris's review and awaits his written approval.
+Luna and both Haiku models passed the original batch. The approved Gemini 3.1
+Flash-Lite replacement passed after funding. Qwen on confirmed Groq Free passed
+after the client-identification repair. All earlier failures remain preserved.
+No Stage 2 work has begun.
 
 ## Approved scope
 
@@ -190,3 +182,54 @@ The runner command is `python3 scripts/formation_connectivity.py --manifest
 studies/formation-connectivity-gemini31-funded-v021.json --approved-cost`.
 A repeated invocation skips the completed check. Do not rerun it to troubleshoot
 Groq. The account's actual balance and credit allocation were not inspected.
+
+
+## Gate 1 report (2026-10-08, v0.21.2)
+
+All five current slots returned parsed {"ok": true}, with valid provider usage
+and exactly matching pinned model identity. Prices below are USD per million
+tokens, from the dated first-party price sources in the repository:
+
+| Current pinned model | Input / output price | Neutral check input / output tokens | Estimated settled charge |
+|---|---|---|---|
+| gpt-6-luna | $0.10 / $0.50 | 32 / 29 | $0.0000177 |
+| claude-haiku-5-5 | $0.10 / $0.50 | 45 / 9 | $0.0000090 |
+| claude-haiku-4-5-20251001 | $1.00 / $5.00 | 29 / 13 | $0.0000940 |
+| gemini-3.1-flash-lite | $0.25 / $1.50 | 23 / 5 | $0.00001325 |
+| qwen/qwen3.8-27b on confirmed Groq Free | $0 / $0 | 39 / 6 | $0 |
+
+Google slot choice: Gemini 3.1 Flash-Lite, explicitly approved after the older
+2.5 model returned HTTP 404; 3.1 costs less than the current 3.5 Flash-Lite and
+was listed by the owner's key. The funded generation check confirms access.
+The earlier 402 was preserved and resolved after owner funding. Credit allocation
+and invoices have not been inspected. Price files retain their checked dates.
+
+All clients omit sampling, effort, and thinking overrides, leaving provider
+defaults. Google requests application/json MIME; other clients request JSON in
+the neutral prompt. Paid-model output ceiling: 8,192; Qwen: 4,096. Native bodies,
+responses, usage, stop reasons, raw replies, identities, and source hashes remain
+in their run folders. A neutral pass is infrastructure evidence only.
+
+Groq's metadata comparison isolated request identification: default Python
+urllib identity received 403 from the Cloudflare edge; honest TAA-Lab identity
+received 200 with the same key and endpoint. The formation Groq client now sends
+`User-Agent: TAA-Lab/0.21.2 (Python standard-library API client)`. A separate
+one-attempt generation check passed at $0. No billing was enabled, model switched,
+key replaced, or rate guard relaxed. See the saved diagnosis file.
+
+Evidence folders:
+- `results/2026-10-08 v0.21 formation-connectivity r1 keys-ready/` (Luna and Haiku passes; original Gemini/Groq failures).
+- `results/2026-10-08 v0.21 formation-connectivity r1 gemini31/` (preserved 402).
+- `results/2026-10-08 v0.21 formation-connectivity r1 gemini31 funded/` (Gemini pass).
+- `results/2026-10-08 v0.21.2 formation-connectivity r1 groq identity/` (Qwen pass).
+
+Free checks: 218 tests and the required scripted run pass locally on Python
+3.9.6. The original checkpoint's Python 3.9 and main CI workflows passed;
+CI for these new local commits awaits Chris's push. Spending stops remain $8
+per paid provider with a shared Anthropic ledger. Successful paid-call estimates
+total $0.00013395; cumulative ledger including prior failed-request reserves is
+$0.01580375. There were no automatic retries. Historical frozen sources,
+scenarios, manifests, and model results remain unchanged.
+
+**Owner decision required:** approve Gate 1 before starting Stage 2. No Study A
+scenario or scorer has been drafted in anticipation of that approval.
