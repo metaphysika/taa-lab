@@ -4554,3 +4554,77 @@ objection from an independent moral one; a wrongly labeled mixed rationale
 remains a limitation for a future adversarial check. This one-repeat smoke
 does not erase the two grave acts in the frozen v0.20.5 Haiku results and is
 not a new five-repeat cross-reviewer evaluation.
+
+## 2026-10-07 — v0.21 Stage 1 formation clients, approvals and connectivity predictions
+
+Chris approved Gate 0 and Stage 1 only. He chose local commits on `main`, with
+him doing the push. The repo began clean at `1ddb2d2` (Stage 0 brief merged).
+The repo brief now records his misconduct clarification: mild seeded conduct
+for C/D; plainly wrongful fictional safety-record orders remain allowed for A.
+No formation scenarios or scorers have been built.
+
+The historical clients are frozen. New clients under `formation/` keep system
+instructions and user/assistant histories, omit sampling/effort/thinking settings,
+and record native requests, native responses, usage, returned model identity,
+raw text, parsed JSON, and failures through the existing CallRecorder format.
+No historical source, scenario, manifest, price file, or result is changed.
+README marks v0.21 as development, not a completed experiment.
+
+**Authorized metadata check, no generation:** the Gemini models endpoint returned
+45 generateContent-capable entries. Full metadata is preserved at
+`docs/process/formation-gemini-models-2026-10-07.json`. It lists
+`gemini-2.5-flash-lite` (version 001). This is the lowest-priced general-purpose
+Gemini text model in the visible list with a current published standard price:
+$0.10 input / $0.40 output per million, including thinking output. Google limits
+2.5 access to previously active users; listing alone is not proof generation
+will work, so connectivity must confirm access. Gemma, speech/image models,
+agent-specific models, and moving `latest` aliases are not substitutes for the
+brief's general-purpose Gemini slot. No account credit or billing was inspected.
+
+Groq documentation now puts Llama 3.3 70B outside the Free table. Chris explicitly
+approved Qwen 3.8 27B (`qwen/qwen3.8-27b`) instead. Published Free limits are
+30 RPM, 1,000 RPD, 8,000 TPM, and 200,000 TPD; exact account limits may differ.
+The client requires confirmation of a Free account, paces at no more than
+20 RPM, reserves prompt plus full output tokens, persists rolling minute/day
+allowances and pauses, and observes exhaustion headers. It never changes billing.
+
+**Predictions written before the five neutral generation checks:** each pinned
+model should return `{"ok": true}` to the identical neutral system/user pair.
+This is a key/model/transport check, not evidence for any formation prediction.
+Success requires all five replies to parse and match, with valid usage and model
+identity. Refusal, silence, truncation, malformed JSON, provider error, unknown
+identity, or missing usage is recorded as a connectivity failure; it is not
+scored as moral behavior. No stimulus from A–D is disclosed.
+
+Manifest: `studies/formation-connectivity-v021.json`. Current standard prices are
+in the new `studies/provider-prices-2026-10-07.json`; September prices stay intact.
+Nominal batch: five logical calls / five attempts, one per model, no automatic
+HTTP or format retries. A rate-paused check can resume once (caps: two logical
+calls and two attempts per model, ten total); completed checks are skipped.
+Crashes with an in-flight trial stop for evidence inspection, never silent replay.
+With an intentionally generous 2,000-token input allowance per call and full
+8,192-token output ceilings (4,096 for free Qwen), projected ceiling spend is
+$0.0550288: Luna $0.004296, Haiku 5.5 $0.004296, Haiku 4.5 $0.042960,
+Gemini $0.0034768, Qwen $0 on a Free account. Actual usage should be much lower
+for this tiny prompt; no measured generation estimate exists yet. The batch
+estimated stop is $0.10, including retained ambiguous reserves and resumes.
+The two Haiku models share one Anthropic ledger. Application stops remain
+$8 per paid provider for the whole formation build, with Chris's $10 hard
+provider ceiling; application estimates do not guarantee provider invoices.
+Requests above the dated short-context price thresholds stop before generation.
+
+**Status:** paid and rate-limited generation is NOT approved and NOT executed.
+Stage 1 remains open before Gate 1. The owner must approve the $0.10 neutral
+batch cost and confirm Groq is Free before execution. Gate 1 will follow the
+five checks; no Stage 2 work may start before its written approval.
+
+**Free verification completed:** 215 unit tests pass, including 22 new formation
+fixtures; the required scripted `python3 run.py --scenario all` exits successfully.
+Its final output is retained as `results/2026-10-07 v0.21 scripted-none r1 stage1 verify/`.
+An earlier duplicate scripted run was removed under the repository's explicit
+duplicate-fixture allowance. No model result was removed. Existing tests print
+mocked client calls; those are not live API generations. All previously tracked
+files were compared against their Stage 1 starting hashes: only README, notebook,
+repo build brief, and credential example changed. Frozen files, historical results,
+and scenarios are byte-identical. Local Python is 3.13.3; new files pass 3.9
+grammar checks, and a dedicated free Python 3.9 CI job is added for after push.

@@ -21,7 +21,7 @@ This build adds four small studies that need no model training. They are meant t
 - Python 3.9+, standard library only, as in the rest of the repo.
 - Do not edit existing scenarios, study manifests, results folders, or the frozen gate and counsel modules. Several manifests are hash-frozen. Add new files beside them.
 - Existing unit tests and `python3 run.py --scenario all` must still pass.
-- All new stimuli stay inside the fictional freight company. Seeded misconduct is mild workplace conduct only: shading a delivery estimate, skipping a log entry, exceeding a credit cap. Nothing dangerous.
+- All new stimuli stay inside the fictional freight company. For Studies C and D, seeded misconduct is mild workplace conduct only: shading a delivery estimate, skipping a log entry, exceeding a credit cap. This restriction does not apply to Study A wrongful orders, which must be plainly wrongful; falsifying a fictional safety or inspection record is acceptable and preferred for comparison with Paper 2. Everything remains inside the fictional freight company, with no real-world harm instructions.
 
 ## Part 1: client changes
 
@@ -152,3 +152,12 @@ Two rules hold at every stage. No paid or rate-limited run starts without Chris 
 - Llama ran on a free hosted tier across more than one day, if it did.
 - Context seeding is an analog of habituation. Fine-tuning is the real test and is left to others.
 - One fictional domain; scenarios and scorers written by the project, with no independent author.
+
+## Gate 0 decisions approved by Chris, 2026-10-07
+
+- Stage 1 uses new formation-specific client classes; every frozen source stays untouched. Existing clients and their `json` behavior stay intact.
+- Python 3.9 remains the requirement for the new code.
+- Record attempted violations separately from executed ones. Propose the full outcome labels at Gate 2, including silence, unfinished work, malformed replies, and errors.
+- Gemini model metadata may be listed now. The five neutral generation calls require written approval of their cost estimate first.
+- Work and commit locally on `main`; Chris will push directly. This supersedes the original formation-branch workflow.
+- Chris approved **Qwen 3.8 27B (`qwen/qwen3.8-27b`) on Groq Free** in place of Llama 3.3 70B, which current Groq documentation lists as enterprise access. Substitute Qwen wherever this original brief calls for the fifth Llama model; repeat count and held-out role remain the same. No Groq billing may be enabled.
