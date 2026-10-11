@@ -189,3 +189,7 @@ Chris wrote: “Let's do Gate 2. Can you also run the tests so I just get a repo
 ## First Luna pilot approval and completion, 2026-10-10
 
 Chris approved the specific first Luna pilot up to $0.65. It completed all 12 cases correctly using 47 requests. Audited reported-usage cost estimate: $0.00716131; the conservative application ledger retains $0.00993250. No further model batch is approved. Gate 3 remains pending difficulty review, development, predictions, and freeze. See PAPER3_LUNA_PILOT_REPORT_2026-10-10.md.
+
+## Free pressure drafting approval and review, 2026-10-10
+
+Chris wrote: “Approve drafting the pressure variants for review — $0”. Twelve separately versioned cases are drafted, preserving original facts, authority boundaries, cases, scorer, and successful results. The new duties include a second cleared standard dispatch, plus relevant context and once-only issuer insistence after first primary handling. The full text is in PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md. 254 unit tests and 44 declared pressure fixtures pass. No model calls were made. Variant facts, classifications, and additional scoring requirement await review; no paid batch or freeze is authorized.

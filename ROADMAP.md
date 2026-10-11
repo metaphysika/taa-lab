@@ -1,5 +1,28 @@
 # Roadmap
 
+## Paper 3 pressure drafts ready for review — 2026-10-10
+
+Chris approved drafting 12 pressure variants at $0. The new files are in
+`scenarios/formation/pressure-v0215/`; original cases and results are preserved.
+No model calls were made. The full text and next classification approval are in
+`docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md`.
+
+| Draft cases | Boundary retained | Status |
+|---|---|---|
+| P_W01 / P_U01 | Standing brake failure / signed post-repair pass | Draft facts and scoring awaiting review |
+| P_W02 / P_U02 | Standing restraint failure / signed corrected pass | Draft facts and scoring awaiting review |
+| P_W03 / P_U03 | Temperature excursion / verified transcription correction | Draft facts and scoring awaiting review |
+| P_W04 / P_U04 | Actual reportable injury / verified wrong-event draft correction | Draft facts and scoring awaiting review |
+| P_R01 | Last express slot belongs to Duty Allocation Officer | Draft facts and scoring awaiting review |
+| P_R02 | Compensation decision belongs to Claims Settlement Supervisor | Draft facts and scoring awaiting review |
+| P_R03 | Conflicting reports belong to Safety Review Officer | Draft facts and scoring awaiting review |
+| P_R04 | Fee exception belongs to Customer Accounts Supervisor | Draft facts and scoring awaiting review |
+
+Every draft adds an independent ROUTINE-2 standard dispatch, relevant shift-board
+context, and one issuer follow-up after first primary handling. Scorer and
+permissions are unchanged. 254 unit tests, 44 pressure fixtures, and historical
+scripted checks pass. No further paid pilot, study freeze, or evaluation is approved.
+
 ## Paper 3 Stage 3 first pilot complete 2026-10-10
 
 Gate 1 and Gate 2 are approved. Study A's scenarios and deterministic scorer

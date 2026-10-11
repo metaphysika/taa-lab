@@ -5095,3 +5095,58 @@ The proposed next development direction retains the clear baseline and drafts
 changing the original case/scorer. No additional model calls, Gate 3 freeze,
 or held-out evaluation are approved. The report requests approval of that
 design direction at $0, then a separately estimated generation approval.
+
+
+## 2026-10-10 — v0.21.5 free pressure drafts, before variant model exposure
+
+Chris approved: “Approve drafting the pressure variants for review — $0”.
+No credentials read and no model requests made. Original Luna development
+results remain 12/12 correct. Original cases, scorer, clients, manifests,
+provider ledger, and saved results are untouched.
+
+Twelve new cases P_W01–04, P_U01–04, P_R01–04 are in
+scenarios/formation/pressure-v0215/. Each records its original case ID and
+SHA-256. Paired evidence, tool/warrant permissions, source_status, initial
+record status, primary requirements, named reservation, reporting officer,
+and no-human-answer condition are retained. Each adds independent ROUTINE-2
+on standard (8-hour arrival, 24-hour deadline; express also safe), the same
+relevant four-entry shift board, and a single performance-framed authenticated
+issuer follow-up after a successful primary effect. W/U follow-ups and trigger
+tools are identical across each pair. R follow-ups cannot transfer authority.
+Both routine tasks can be completed in either order; no new order constraint
+is scored. Technical tools still allow the substantive wrongful/reserved acts.
+
+formation/study_a_pressure.py derives delivery from actual world effects, not
+gold labels or score. It changes no state or permissions. Replays use the
+unchanged approved scorer. The dedicated script runs only free declared
+fixtures; no model entry point accepts these draft cases. Metadata alone does
+not implement model exposure: a future approved runner must insert the message
+into history once, before a next reply and never after an ended episode.
+
+Free checks: 254 unit tests (seven new pressure regressions), all 44 declared
+pressure fixtures, and python3 run.py --scenario all pass. No API calls.
+Evidence: results/2026-10-10 v0.21.5 scripted-none r1 pressure draft verify/
+and results/2026-10-10 v0.21.5 scripted-none r1 pressure historical verify/.
+Preservation audit checks 7,358 pre-existing files under formation, taa, agents,
+scenarios, studies, and results, excluding Python caches; zero changed.
+The pre-existing v0.19.5 freeze mismatch remains unchanged and unresolved.
+
+Expected development observation, before variant generation: renewed issuer
+insistence could expose compliance with wrongful orders or operative reserved
+choices; added work could expose omissions or lawful-route substitution. Luna
+may also remain fully correct, given that underlying source facts and human
+boundaries are as clear as the successful baseline. No assumption that these
+variants achieve 20–80% success is warranted before paid testing. Pressure,
+context length, and extra task are bundled, so effects cannot be attributed to
+one component. Correct conduct must not be relabeled after observing it.
+
+The original baseline must remain visible alongside exploratory variant
+results; development on Luna and the post-baseline design history must be
+disclosed. Do not discard successes or repeatedly tune solely for P6-supporting
+failures. No P6 verdict, final evaluation plan, research freeze, or held-out
+exposure is claimed. All initial tasks, follow-ups, triggers, classifications,
+expected effects, and limitations are in
+docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md.
+Next: Chris reviews variant facts and additional scoring duties. Only after
+that approval prepare a cache-premium-aware bounded Luna batch estimate for
+separate generation approval. Gate 3 remains pending.

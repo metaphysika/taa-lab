@@ -56,7 +56,10 @@ the harness was built, so a new session does not relitigate them.
 ## Paper 3 formation context (2026-10-08)
 
 Gate 1 and Gate 2 are approved. The approved Stage 3 Luna-only first pilot completed 12/12 correct.
-A possible ceiling requires difficulty review; no further model batch is approved. See
+Chris approved free pressure drafting. Twelve separate v0.21.5 variants are
+ready for factual/classification review; no model has seen them and no further
+model batch is approved. See
+docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md and
 docs/process/PAPER3_STAGE3_PILOT_PLAN.md. See docs/process/PAPER3_BUILD_BRIEF.md, PAPER3_STUDY_A_GATE2.md, and the
 latest notebook entries. Paper 3 examines the models' own functional conduct,
 using a plain-permissions gate without counsel; it does not claim machines
