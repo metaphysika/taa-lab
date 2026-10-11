@@ -1,0 +1,123 @@
+"""Declared fixtures only: no model calls, credentials, or network traffic."""
+import hashlib
+import json
+import shutil
+import sys
+import tempfile
+from collections import Counter
+from pathlib import Path
+from unittest.mock import patch
+
+ROOT = Path('/workspace/taa-lab')
+sys.path.insert(0, str(ROOT))
+from formation.evaluation_runner_v0218 import ADAPTERS, run_batch
+from scripts.formation_study_a_gate3 import verify_freeze
+from tests.test_formation_evaluation_v0218 import Response
+
+MODEL = 'claude-haiku-4-5-20251001'
+PREP = ROOT / 'results/2026-10-11 v0.22.0 haiku45-none r5 offline preparation'
+PLAN = json.loads((ROOT / 'studies/formation-study-a-evaluation-plan-v0217.json').read_text())
+cells = [c for c in PLAN['cells'] if c['model'] == MODEL]
+assert len(cells) == 120
+assert verify_freeze() == 59
+ledger = ROOT / 'results/formation-spending-v021/claude.json'
+before_ledger = hashlib.sha256(ledger.read_bytes()).hexdigest()
+fixture_paths = ['studies/formation-study-a-fixtures-v0213.json',
+                 'studies/formation-study-a-pressure-fixtures-v0215.json']
+fixtures = []
+for path in fixture_paths:
+    fixtures += json.loads((ROOT / path).read_text())['fixtures']
+packets = []
+for cell in cells:
+    packets += next(f['packets'] for f in fixtures
+                    if f['case_id'] == cell['case_id'] and f['name'] == 'required_conduct')
+requests = []
+with tempfile.TemporaryDirectory() as temporary:
+    folder = Path(temporary)
+    root = folder / 'isolated-root'
+    output = folder / 'DECLARED-FIXTURE-OUTPUT'
+    files = set(ADAPTERS) | {PLAN['price_file'], 'studies/formation-study-a-evaluation-plan-v0217.json',
+                           'studies/formation-study-a-freeze-v0217.json',
+                           'results/formation-spending-v021/claude.json'} | {c['path'] for c in cells}
+    for name in files:
+        target = root / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / name, target)
+    raws = iter(p['raw'] for p in packets)
+
+    def send(request, **kwargs):
+        assert request.full_url == 'https://api.anthropic.com/v1/messages'
+        body = json.loads(request.data)
+        assert body['model'] == MODEL and body['max_tokens'] == 2048
+        assert body['system'] == PLAN['system']
+        assert set(body) == {'model', 'system', 'messages', 'max_tokens'}
+        assert len(request.data) <= 32000
+        requests.append(body)
+        return Response(MODEL, 'claude', next(raws))
+
+    with patch('formation.evaluation_runner_v0218.load_keys') as keys, \
+         patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'declared-fixture-only'}), \
+         patch('urllib.request.urlopen', side_effect=send) as transport:
+        try:
+            run_batch(MODEL, 3.0, output, root=root)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Unapproved batch was accepted')
+        keys.assert_not_called()
+        transport.assert_not_called()
+        assert not output.exists()
+        summary = run_batch(MODEL, 3.0, output, approved=True, root=root)
+        assert summary['status'] == 'complete' and summary['completed_cells'] == 120
+        assert summary['planned_cells'] == 120
+        assert summary['records'] == [dict(c, outcome='correct', attempted=True,
+                                            identity_valid=True, status='complete') for c in cells]
+        assert transport.call_count == len(packets) == len(requests)
+        calls_before_resume = transport.call_count
+        isolated_ledger_before_resume = (root / 'results/formation-spending-v021/claude.json').read_bytes()
+        resumed = run_batch(MODEL, 3.0, output, approved=True, root=root)
+        assert resumed['completed_cells'] == 120
+        assert transport.call_count == calls_before_resume
+        assert isolated_ledger_before_resume == (root / 'results/formation-spending-v021/claude.json').read_bytes()
+        try:
+            run_batch(MODEL, 4.0, output, approved=True, root=root)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Resume cap expansion was accepted')
+        assert transport.call_count == calls_before_resume
+        keys.assert_called()
+    assert not (root / 'results/formation-spending-v021/run.lock').exists()
+    manifest = json.loads((output / 'execution-manifest.json').read_text())
+    assert manifest['budget'] == 3.0 and manifest['cells'] == cells
+    prior = json.loads(ledger.read_text())['estimated_api_dollars']
+    journal = [json.loads(line) for line in (output / 'calls.jsonl').read_text().splitlines()]
+    starts = [e for e in journal if e['event'] == 'attempt_start']
+    ends = [e for e in journal if e['event'] == 'attempt_end']
+    assert len(starts) == len(ends) == len(packets)
+    assert all(e['model_returned'] == MODEL and not e['error'] and not e['usage_missing'] for e in ends)
+    assert round(json.loads((root / 'results/formation-spending-v021/claude.json').read_text())['estimated_api_dollars']
+                 - prior, 8) == round(summary['batch_estimated_dollars'], 8)
+    result = {
+        'phase': 'DECLARED NATIVE-RESPONSE FIXTURE; not an experimental model observation',
+        'model_transport': MODEL, 'fixture_episodes': 120, 'passed': 120,
+        'repeats': 5, 'arms': dict(Counter(c['arm'] for c in cells)),
+        'mocked_requests': len(packets), 'actual_network_requests': 0, 'model_calls': 0,
+        'actual_api_cost_dollars': 0, 'mocked_accounting_dollars': summary['batch_estimated_dollars'],
+        'proposed_batch_cap_dollars': 3.0, 'prior_cumulative_ledger_dollars': prior,
+        'approval_barrier_passed': True, 'resume_without_duplicate_requests_passed': True,
+        'resume_cap_expansion_rejected': True, 'native_wire_defaults_and_pinned_identity_passed': True,
+        'max_wire_bytes': max(len(json.dumps(b).encode()) for b in requests),
+        'frozen_files_verified': verify_freeze(),
+        'real_provider_ledger_sha256_before': before_ledger,
+        'fixture_input_sha256': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in fixture_paths},
+        'adapter_sha256': manifest['adapter_sha256'],
+        'declared_records': summary['records']}
+assert hashlib.sha256(ledger.read_bytes()).hexdigest() == before_ledger
+assert not (ROOT / 'results/formation-spending-v021/run.lock').exists()
+result['real_provider_ledger_unchanged'] = True
+with (PREP / 'haiku45-declared-fixture-summary.json').open('x') as out:
+    json.dump(result, out, indent=2)
+    out.write('\n')
+print('120/120 Haiku 4.5 declared fixtures pass; %d mocked requests; 0 model calls; $0 actual API cost.' % len(packets))
+print('Approval barrier, completed resume, immutable cap, fixed wire settings and unchanged real cumulative ledger verified.')

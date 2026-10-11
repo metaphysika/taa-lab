@@ -432,3 +432,35 @@ New evidence and updated ledger are preserved. No other model/stage advanced.
 Next proposed approval: offline preparation of Haiku 4.5's frozen Study A cost
 plan, without model calls. See
 `docs/process/PAPER3_HAIKU55_FROZEN_COMBINED_REPORT_2026-10-11.md`.
+
+## 2026-10-11 — Haiku 4.5 offline preparation complete; spending unapproved
+
+Owner approved offline preparation only. No model calls, probes or health checks.
+Pinned claude-haiku-4-5-20251001: 120 frozen cells, five repeats per arm,
+60 baseline/60 pressure, 20 of each W/R/U per arm; threshold 16/20 per kind.
+All 59 frozen hashes and three original execution adapter hashes match.
+Fresh conversations, full history, provider defaults and 12-turn/32,000-byte/
+2,048-output-token limits remain; at most 1,440 requests.
+
+Proposed separate cap $3.00. Original pilot forecast $1.652535; completed
+Haiku 5.5 settled usage scaled to half the episodes at tenfold rates $2.62841950,
+or $2.63924075 including its timeout reserve. Full-ceiling envelope $72.34920;
+completion within $3 is not guaranteed. Frozen prices dated 2026-10-10
+are unchanged; offline forecasting only, actual provider billing authoritative.
+Claude ledger remains $0.52795115 including $0.000103 earlier neutral check.
+The $8 cumulative formation stop remains; if approved, new cumulative ceiling
+$3.52795115. No transfer of unused Haiku 5.5 allowance or ledger reset.
+
+Free checks: 284 unit tests pass; 120/120 full-batch native fixtures pass with
+490 mocked requests, zero actual model calls and $0 cost. Approval barrier,
+pinned wire settings, cumulative accounting, completed resume without repeats
+and rejection of changed cap on resume verified with an isolated ledger.
+Historical scripted suite passes. Real ledger hash unchanged; no active run
+lock or Haiku 4.5 evaluation output. Cloud credential and enforced destination
+readiness confirmed without displaying credential values or sending a probe.
+Use isolated Python 3.11.17 to preserve archived spending sum verification.
+
+Preparation and cost plan are committed on main. No generation is approved.
+Next exact approval: “Approve Haiku 4.5’s frozen Study A evaluation up to $3.00.”
+See studies/formation-study-a-haiku45-evaluation-cost-plan-v0220.json and
+`docs/process/PAPER3_HAIKU45_FROZEN_PREPARATION_2026-10-11.md`.
