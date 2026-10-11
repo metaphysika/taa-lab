@@ -5794,3 +5794,82 @@ model/stage advanced. Commit/push preparation directly on main; no Mac step need
 Separate next approval: “Approve Qwen 3.8 27B’s frozen Study A evaluation on
 Groq Free at $0, including resumes after pre-request quota pauses; stop without
 retrying any issued failure.” Record that approval before any live generation.
+
+
+## 2026-10-11 — Qwen frozen evaluation approved before generation
+
+Owner separately approved Qwen 3.8 27B frozen Study A on Groq Free at $0,
+including resumes after pre-request quota pauses, stopping without retrying
+any issued failure. Approval receipt binds the unchanged cost plan and all
+240 ordered cells. Frozen hypotheses, criteria, settings and denominators
+remain unchanged. No paid tier, quota change, trimming or other stage approved.
+
+Main 531a4dc848b961a81f9161bec40173aba54b6850 equals fetched origin/main.
+All 59 frozen files, three adapter hashes, prep evidence, cumulative ledgers
+and prior Groq quota state match; no active lock or prior Qwen output. Cloud
+key presence/ready state and POST host permission checked without values or
+probes. Offline 284 tests, 240 declared episodes and failure/quota fixtures
+passed. Existing cumulative Groq $0 preserved, shared $8 stop unchanged.
+
+Run original scripts/formation_study_a_evaluation.py with exact pinned
+qwen/qwen3.8-27b, --budget 0 --approved-cost --confirm-groq-free-account, output
+results/2026-10-11 v0.22.0 qwen38-none r10 study-a evaluation, Python 3.11.17.
+Same checkout/output on every authorized pre-request quota resume; skip all
+completed requests/episodes, preserve partial packets and pressure delivery.
+Stop for review on issued rejection, timeout, uncertainty, identity/usage
+failure or guard stop. No other model or stage may advance. No credential
+values or keys.env inspected/copied/committed.
+
+
+Qwen launch correction before generation: prepared command used connectivity
+flag --confirm-groq-free-account; actual evaluation CLI uses --confirm-groq-free.
+First launch exited argparse (code 2), without calls, manifest or ledger/quota
+change. Preserve the initial log and command-correction receipt. Correct only
+the CLI flag; approved scope, scientific inputs, $0 Free cap and output unchanged.
+
+
+## 2026-10-11 — Qwen authorized evaluation started with quota supervision
+
+Written $0 Groq Free approval and pre-request quota resume authorization recorded
+before generation, binding the original frozen cost plan. Initial command flag
+mistake (--confirm-groq-free-account instead of evaluation --confirm-groq-free)
+exited argparse without requests, manifest or ledger/quota changes. Initial log,
+correction receipt and original prepared plan preserved; actual command corrected
+without scientific, cost or scope change. Same root/output and Python 3.11.17.
+
+Startup audit at safe pre-request pause: three issued requests and three retained
+native responses, every identity/usage valid, no errors/uncertainty/retries, $0
+batch and cumulative Groq estimate. No complete episode yet; A_R01 repeat 1
+contains three saved packets. Remaining 239 cells untouched. Provisional paused
+row error label is not a final outcome. All 59 frozen files, three adapter hashes,
+exact ordered cells/settings and other provider ledgers match; quota preserved
+and updated only by successful requests. No shared run lock while paused.
+
+Persistent external controller invokes unchanged evaluation CLI only at authorized
+pre-request quota resumes, waits for real 61-second/rolling daily/server limits,
+verifies evidence before each launch, and stops without retrying any issued error,
+timeout, uncertainty, identity/usage failure or guard/inflight state. Same checkout
+and output retained. No paid upgrade, trimming, quota reset or other stage.
+Five offline controller guard tests passed; repository tests and historical scripted
+suite rechecked. Controller method, runtime receipt, startup audit and raw evidence
+saved with a snapshot hash index. Temporary controller maintenance hold used only
+to commit evidence at a safe paused boundary; released after push.
+
+Hourly supervision automation configured and verified. It checks the original
+Cloud controller, never duplicates an active runner, restarts only an absent
+controller at verified pre-request pause under existing approval, and stops if
+original environment/root is unavailable. Quiet during normal progress/quota
+waiting; notify only on actionable failure or completion, preserve/commit evidence
+and disable supervision at terminal outcome. No new approval needed for already
+authorized quota resumes. Daily limits can require multiple days.
+
+Report: docs/process/PAPER3_QWEN38_FROZEN_EVALUATION_STARTUP_2026-10-11.md.
+Receipt: studies/formation-study-a-qwen38-evaluation-approval-2026-10-11.json.
+Evidence: results/2026-10-11 v0.22.0 qwen38-none r10 study-a evaluation/.
+Continue solely this approved frozen batch; no other model/stage advanced. Old
+model evidence, both Study A timeouts and cumulative charges retained. Never
+inspect/copy/commit credential values or keys.env. Startup evidence and Groq
+ledger/quota committed/pushed directly on main. Later live files legitimately
+advance beyond this three-request snapshot; snapshot hashes are historical.
+No Mac step required. Full P6 remains inconclusive pending Qwen completion and
+under existing frozen completeness/identity rules.

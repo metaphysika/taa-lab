@@ -1,0 +1,82 @@
+"""Offline controller guard tests over isolated copies; no CLI/provider calls."""
+import ast
+import json
+import shutil
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+ROOT = Path('/workspace/taa-lab')
+OUTPUT = ROOT / 'results/2026-10-11 v0.22.0 qwen38-none r10 study-a evaluation'
+tree = ast.parse(Path('/workspace/haiku55-runtime/qwen38_controller.py').read_text())
+assert isinstance(tree.body[-1], ast.Try)
+tree.body.pop()  # Definitions only: never start the live main loop.
+ns = {'__name__': 'offline_controller_definitions'}
+exec(compile(tree, 'declared-controller-fixture', 'exec'), ns)
+
+class ControllerChecks(unittest.TestCase):
+    def test_minute_and_server_reset_boundaries(self):
+        for quota, expected in [({'events': [[999, 100]]}, 1060.5),
+                                ({'events': [], 'paused_until': 1200}, 1200.5)]:
+            with patch.dict(ns, read=lambda p: quota), patch.object(ns['time'], 'time', return_value=1000):
+                self.assertEqual(ns['quota_ready_at'](), expected)
+
+    def test_daily_tokens_requests_and_expiration(self):
+        for quota, expected in [({'events': [[999, 195000]]}, 87399.5),
+                                ({'events': [[999, 1]] * 1000}, 87399.5),
+                                ({'events': [[-90000, 195000]]}, 1000.5)]:
+            with patch.dict(ns, read=lambda p: quota), patch.object(ns['time'], 'time', return_value=1000):
+                self.assertEqual(ns['quota_ready_at'](), expected)
+
+    def test_approved_partial_checkpoint_is_resumable(self):
+        summary, attempts, reason = ns['inspect']()
+        self.assertEqual(summary['status'], 'paused')
+        self.assertEqual(attempts, 3)
+        self.assertIn('minute', reason)
+
+    def test_issued_errors_identity_usage_and_uncertainty_block_resume(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            out = root / 'isolated-output'
+            out.mkdir()
+            for relative in list(ns['PLAN']['adapter_sha256']) + list(ns['PLAN']['all_prior_ledger_sha256']):
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, target)
+            for name in ('execution-manifest.json', 'progress-summary.json', 'calls.jsonl', 'A_R01-r01-checkpoint.json'):
+                shutil.copyfile(OUTPUT / name, out / name)
+            original = (out / 'calls.jsonl').read_text()
+            with patch.dict(ns, ROOT=root, OUTPUT=out):
+                for failure in ('error', 'identity', 'usage', 'unclosed'):
+                    events = [json.loads(line) for line in original.splitlines()]
+                    end = next(e for e in events if e['event'] == 'attempt_end')
+                    if failure == 'error':
+                        end['error'] = 'declared timeout'
+                    elif failure == 'identity':
+                        end['model_returned'] = 'different-model'
+                    elif failure == 'usage':
+                        end['usage_missing'] = True
+                    else:
+                        events.remove(end)
+                    (out / 'calls.jsonl').write_text('\n'.join(json.dumps(e) for e in events) + '\n')
+                    with self.subTest(failure=failure), self.assertRaises(AssertionError):
+                        ns['inspect']()
+
+    def test_inflight_guard_and_fatal_checkpoints_block_resume(self):
+        original_read = ns['read']
+        checkpoint = ns['OUTPUT'] / 'A_R01-r01-checkpoint.json'
+        for state in ({'phase': 'inflight'}, {'phase': 'stopped'},
+                      {'phase': 'complete', 'result': {'fatal_transport': True}}):
+            def altered(path):
+                return state if path == checkpoint else original_read(path)
+            with self.subTest(phase=state['phase']), patch.dict(ns, read=altered), self.assertRaises(AssertionError):
+                ns['inspect']()
+
+with patch('subprocess.run') as cli, patch('urllib.request.urlopen') as provider:
+    result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(ControllerChecks))
+    cli.assert_not_called()
+    provider.assert_not_called()
+if not result.wasSuccessful():
+    raise SystemExit(1)
+print('Declared controller guards passed; no CLI launches, provider requests, or real evidence mutations.')

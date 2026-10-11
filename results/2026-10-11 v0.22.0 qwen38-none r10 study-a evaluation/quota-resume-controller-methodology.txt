@@ -1,0 +1,135 @@
+"""Run the unchanged approved CLI; resume only closed, pre-request quota pauses."""
+import fcntl
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path('/workspace/taa-lab')
+BASE = Path('/workspace/haiku55-runtime')
+sys.path.insert(0, str(ROOT))
+from scripts.formation_study_a_gate3 import verify_freeze
+
+PLAN_PATH = ROOT / 'studies/formation-study-a-qwen38-evaluation-cost-plan-v0220.json'
+APPROVAL_PATH = ROOT / 'studies/formation-study-a-qwen38-evaluation-approval-2026-10-11.json'
+PLAN = json.loads(PLAN_PATH.read_text())
+OUTPUT = ROOT / PLAN['output']
+STATUS = OUTPUT / 'controller-status.json'
+HOLD = BASE / 'qwen38-maintenance.hold'
+COMMAND = [sys.executable, 'scripts/formation_study_a_evaluation.py', '--model', 'qwen/qwen3.8-27b',
+           '--budget', '0', '--output', PLAN['output'], '--approved-cost', '--confirm-groq-free']
+MODEL = 'qwen/qwen3.8-27b'
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def read(path):
+    return json.loads(path.read_text())
+
+def status(state, **fields):
+    data = dict(state=state, pid=os.getpid(), updated_at_utc=datetime.now(timezone.utc).isoformat(),
+                checkout_root=str(ROOT), output=PLAN['output'], command=COMMAND, **fields)
+    temporary = STATUS.with_suffix('.tmp')
+    with temporary.open('w') as out:
+        json.dump(data, out, indent=2)
+        out.write('\n')
+        out.flush()
+        os.fsync(out.fileno())
+    temporary.replace(STATUS)
+
+def inspect():
+    assert sys.version_info[:2] == (3, 11)
+    approval = read(APPROVAL_PATH)
+    assert approval['cost_plan_sha256'] == sha(PLAN_PATH)
+    assert approval['pre_request_quota_resumes_authorized'] and not approval['issued_failure_retries_authorized']
+    assert verify_freeze() == 59
+    for path, digest in PLAN['adapter_sha256'].items():
+        assert sha(ROOT / path) == digest, 'adapter differs: ' + path
+    for path, digest in PLAN['all_prior_ledger_sha256'].items():
+        if path.endswith('/groq.json') or path.endswith('/groq-rate.json'):
+            continue
+        assert sha(ROOT / path) == digest, 'other ledger changed: ' + path
+    assert read(ROOT / 'results/formation-spending-v021/groq.json')['estimated_api_dollars'] == 0
+    assert not os.path.lexists(ROOT / 'results/formation-spending-v021/run.lock'), 'shared run lock exists'
+    manifest = read(OUTPUT / 'execution-manifest.json')
+    assert manifest['model'] == MODEL and manifest['budget'] == 0 and manifest['no_retry']
+    assert manifest['cells'] == PLAN['cells'] and manifest['adapter_sha256'] == PLAN['adapter_sha256']
+    events = [json.loads(line) for line in (OUTPUT / 'calls.jsonl').read_text().splitlines()]
+    starts = [e for e in events if e['event'] == 'attempt_start']
+    ends = [e for e in events if e['event'] == 'attempt_end']
+    assert len(starts) == len(ends) <= PLAN['max_requests'], 'uncertain/unclosed request'
+    assert {e['id'] for e in starts} == {e['id'] for e in ends}, 'unclosed request ids'
+    assert len({e['id'] for e in starts}) == len(starts), 'duplicate request id'
+    for e in ends:
+        assert not e.get('error') and not e.get('model_mismatch') and not e.get('usage_missing'), 'issued failure'
+        assert e.get('model_returned') == MODEL and e.get('estimated_charge_dollars') == 0, 'identity/cost failure'
+    summary = read(OUTPUT / 'progress-summary.json')
+    for row in summary['records']:
+        checkpoint = OUTPUT / ('%s-r%02d-checkpoint.json' % (row['case_id'], row['repeat']))
+        if checkpoint.exists():
+            state = read(checkpoint)
+            assert state['phase'] in ('complete', 'paused'), 'guard/inflight checkpoint; review required'
+            if state['phase'] == 'complete':
+                assert not state['result'].get('fatal_transport'), 'fatal issued failure; review required'
+                assert state['result']['identity_valid'], 'invalid completed identity; review required'
+    if summary['completed_cells'] == 240:
+        assert summary['status'] == 'complete' and len(summary['records']) == 240
+        return summary, len(starts), None
+    assert summary['status'] == 'paused', 'only pre-request quota pauses may resume'
+    paused = [r for r in summary['records'] if r['status'] == 'paused']
+    assert len(paused) == 1
+    row = paused[0]
+    checkpoint = read(OUTPUT / ('%s-r%02d-checkpoint.json' % (row['case_id'], row['repeat'])))
+    assert checkpoint['phase'] == 'paused'
+    return summary, len(starts), checkpoint['reason']
+
+def quota_ready_at():
+    now = time.time()
+    quota = read(ROOT / 'results/formation-spending-v021/groq-rate.json')
+    events = sorted(e for e in quota.get('events', []) if now - e[0] < 86400)
+    ready = max(now, quota.get('paused_until', 0))
+    if events:
+        ready = max(ready, events[-1][0] + 61)
+    while events and (len(events) >= 1000 or sum(e[1] for e in events) + 8000 > 200000):
+        ready = max(ready, events.pop(0)[0] + 86400)
+    return ready + 0.5
+
+def main():
+    lock = (BASE / 'qwen38-controller.lock').open('a')
+    fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    if STATUS.exists():
+        assert read(STATUS)['state'] not in ('stopped_for_review', 'complete'), 'terminal controller; no automatic restart'
+    launch = max(int(p.stem.split('-')[1]) for p in OUTPUT.glob('launch-*.log'))
+    while True:
+        summary, attempts, reason = inspect()
+        if reason is None:
+            status('complete', completed_cells=240, issued_requests=attempts, estimated_dollars=0)
+            return
+        while True:
+            ready = quota_ready_at()
+            remaining = ready - time.time()
+            hold = HOLD.exists()
+            if remaining <= 0.55 and not hold:
+                break
+            status('waiting_pre_request_quota', completed_cells=summary['completed_cells'],
+                   issued_requests=attempts, reason=reason, maintenance_hold=hold,
+                   next_allowed_utc=datetime.fromtimestamp(ready, timezone.utc).isoformat(), estimated_dollars=0)
+            time.sleep(min(30, max(1, remaining)))
+        inspect()
+        launch += 1
+        status('running_approved_resume', launch=launch, completed_cells=summary['completed_cells'],
+               issued_requests=attempts, estimated_dollars=0)
+        with (OUTPUT / ('launch-%06d.log' % launch)).open('x') as log:
+            result = subprocess.run(COMMAND, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+        assert result.returncode == 0, 'CLI failure; no automatic retry'
+
+try:
+    main()
+except Exception as error:
+    # Never retry a failed or uncertain call. No credentials or provider bodies in status.
+    status('stopped_for_review', reason=str(error) if isinstance(error, AssertionError) else type(error).__name__)
+    raise
