@@ -185,3 +185,7 @@ this brief's stages and safeguards continue to govern the build.
 ## Gate 2 approval and reporting preference, 2026-10-10
 
 Chris wrote: “Let's do Gate 2. Can you also run the tests so I just get a report after each run and an explanation of the next steps for me to approve?” This is recorded as approval of the presented Study A case facts, W/R/U classifications, and scorer rules, and authorization to prepare Stage 3. Free checks run automatically; each approved model batch gets a concise results/cost report and next approval request. It does not authorize unbounded model calls. The first Luna-only plan proposes 12 episodes, at most 144 attempts, and a $0.65 application stop; written cost approval remains pending.
+
+## First Luna pilot approval and completion, 2026-10-10
+
+Chris approved the specific first Luna pilot up to $0.65. It completed all 12 cases correctly using 47 requests. Audited reported-usage cost estimate: $0.00716131; the conservative application ledger retains $0.00993250. No further model batch is approved. Gate 3 remains pending difficulty review, development, predictions, and freeze. See PAPER3_LUNA_PILOT_REPORT_2026-10-10.md.
