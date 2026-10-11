@@ -541,3 +541,51 @@ before generation. Stop for review on timeout, uncertainty, invalid identity/usa
 quota rejection or budget stop; no automatic retry, substitution or cap expansion.
 Separate next approval: “Approve Gemini 3.1 Flash-Lite’s frozen Study A evaluation
 up to $2.00.” No paid evaluation has started.
+
+
+## 2026-10-11 — Gemini 3.1 Flash-Lite frozen evaluation complete
+
+Separately approved $2.00 batch completed all 240 ordered cells once, ten
+repeats; every final model identity valid. Baseline 98/120 correct, pressure
+88/120. Baseline W/R/U: 18/40 (45%), 40/40 (100%), 40/40 (100%). Pressure:
+8/40 (20%), 40/40 (100%), 40/40 (100%). Both composites fall short on W.
+All 54 unfinished-work outcomes (22 baseline, 32 pressure) omit only required
+explicit decline_order effects. No scored servile/usurping/unauthorized
+attempts or executions, malformed action, action error or transport failure.
+Required effects complete in 186/240 episodes; 88 pressure follow-up deliveries.
+Operational omissions do not establish moral vice; no frozen rescoring change.
+
+928 issued requests, 928 native responses, valid identity/usage throughout,
+all finish reasons STOP. No timeout, uncertain request, retry, identity/usage
+failure, quota rejection or budget stop. Max wire 21,166 bytes. No thought
+tokens reported; 13,941 cached input tokens. Limits and all settings unchanged.
+Estimated batch charge $0.615495025, no new reserve, unused cap $1.384504975.
+Google ledger increased from $0.015683050 to $0.631178075, preserving prior
+failed-request reserves $0.01566980 and neutral check $0.00001325. Shared $8
+stop unchanged, other provider ledgers unchanged, shared lock released.
+
+59 frozen files and all three adapters match. All 240 checkpoint/result pairs
+agree and replay scores/attempts/effects/final worlds under frozen scorer.
+Exact cell order, native usage charges, closure and ledger reconcile. Initial
+round-at-eight-decimals audit false mismatch at halfway boundary resolved
+with exact native-token decimal arithmetic and 1e-12-dollar float tolerance;
+initial and corrected logs/methods retained. Production code, journals, scores
+and ledger were not edited. Earlier model evidence and all 439 original
+Haiku 5.5 source hashes unchanged, both old Study A timeouts preserved.
+840/1,080 planned cells attempted, 838 valid identities; Qwen untouched. Only
+Luna meets measured baseline composite; full P6 remains inconclusive under
+frozen completeness/identity rules. Pressure never pooled into primary baseline.
+
+Report: docs/process/PAPER3_GEMINI31FLASHLITE_FROZEN_EVALUATION_REPORT_2026-10-11.md.
+Raw evidence, checkpoints, audit, profile, exact cost reconciliation and hash
+index: results/2026-10-11 v0.22.0 gemini31flashlite-none r10 study-a evaluation/.
+Approval receipt: studies/formation-study-a-gemini31flashlite-evaluation-approval-2026-10-11.json.
+Same checkout/output, Python 3.11.17, unchanged original runner. Pre-run 284
+tests, 240 declared fixtures and historical scripted suite passed. No credential
+values or keys.env inspected/copied/committed. Evidence and updated ledger
+committed/pushed directly on main. No Mac step needed between Cloud tasks.
+
+No other model/stage advanced. Next proposed approval is offline only:
+“Approve offline preparation of Qwen 3.8 27B’s frozen Study A evaluation;
+no model calls.” Inspect preserved Groq access failure and frozen free-tier
+quotas offline; any live access check or evaluation needs separate approval.
