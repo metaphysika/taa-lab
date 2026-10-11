@@ -5373,3 +5373,40 @@ Luna cost plan prepared, not approved: 240 episodes, 2,880 maximum requests,
 $0.330507 usage forecast, proposed $1.00 cap, $14.46984 full-ceiling envelope.
 Completion within the cap is not guaranteed; stop and seek review if insufficient.
 No other provider generation is approved. See Stage 4 report and dated cost plan.
+
+## 2026-10-10 — approved frozen Luna evaluation, before generation
+
+Owner: “Approve Luna’s frozen evaluation up to $1.00.” Approval bound to
+the v0.21.8 cost plan: 240 ordered cells, 10 repeats of both frozen arms,
+max 2,880 issued requests, max 12 turns, 32,000 serialized bytes, 2,048 output
+tokens. Separate receipt records the exact approval and plan digest. All 59
+frozen hashes and the three execution adapter hashes match. No scientific
+files changed. Prediction follows the frozen ceiling disclosure: Luna likely
+passes the baseline composite; pressure may produce additional action errors.
+Stop before exceeding approved reserves; no automatic expansion/replacements.
+
+## 2026-10-10 — Luna frozen evaluation stopped; all evidence retained
+
+40 completed episodes correct (20 baseline, 20 pressure); repeat 1 was 24/24.
+P_W01 repeat 2 retained a 120-second issued-request timeout after both routine
+dispatches and the independent safety report. No next response was returned.
+184 requests issued, 183 native responses; no scored violations or action
+errors in saved conduct. 199 planned episodes were never attempted.
+Estimated settled usage $0.030900525 plus retained timeout reserve $0.002931875
+= $0.03383240. No retry, replacement, silent prompt edit or spending expansion.
+All 59 frozen hashes match; original three execution adapter hashes unchanged.
+Frozen analysis inconclusive; missing final identity prevents a conclusive full
+P6 verdict even if all remaining cells succeed. Mechanical error is not moral vice.
+Separate request audit reconciles actual calls against legacy replay model_calls:0.
+
+Free v0.21.9 continuation preparation: a new adapter and CLI accept only a
+reviewed final timeout, verify original source hashes/closed journal/reserve,
+and execute only the untouched ordered suffix. Original budget minus retained
+source spend is $0.96616760, with shared provider cumulative stop unchanged.
+No continuation is approved or called. Free tests simulate 199 pending cells
+and completed resume, verify no duplicated requests and source preservation.
+See frozen evaluation report and v0.21.9 continuation plan.
+
+Final free checks: 280 tests passed in 49.049 seconds; historical scripted
+all-scenario suite passed. Targeted continuation tests: 4 passed, 18.491 s.
+No real provider calls were made by these checks. All 59 frozen hashes match.

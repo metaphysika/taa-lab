@@ -370,3 +370,13 @@ Gate 3 research design and frozen files are approved. Free Stage 4 execution
 adapters are ready and verified; 59 frozen hashes match. Await separate Luna
 evaluation approval up to $1.00. No evaluation model calls authorized yet.
 See `docs/process/PAPER3_STAGE4_ADAPTER_REPORT_v0218.md`.
+
+## Luna frozen evaluation update (2026-10-10)
+
+The approved Luna batch stopped on one preserved timeout after 40 correct
+episodes. 184 requests issued; estimate including retained reserve $0.03383240.
+199 episodes untouched. Overall P6 remains inconclusive under frozen identity
+rules. A separate free-tested continuation adapter/plan is prepared but awaits
+explicit approval; maximum remaining allowance $0.96616760 within original $1.
+Original results and adapters are unchanged; all 59 frozen hashes match. See
+`docs/process/PAPER3_LUNA_FROZEN_EVALUATION_REPORT_2026-10-10.md`.

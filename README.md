@@ -1,10 +1,10 @@
-# TAA Lab (v0.21.8 formation evaluation preparation)
+# TAA Lab (v0.21.9 reviewed-timeout continuation preparation)
 
 Gate 1 is approved: all five current model slots passed neutral connectivity. Gate 2 was approved on October 10, 2026: the 12 Study A cases and deterministic scorer under plain permissions are approved for Luna-only development planning. The approved first Luna-only pilot completed 12/12 correct using 47 requests, with a $0.00716131 usage-based cost estimate; see `docs/process/PAPER3_STAGE3_PILOT_PLAN.md`. Only Luna has seen Study A; held-out models remain untouched. See `docs/process/PAPER3_LUNA_PILOT_REPORT_2026-10-10.md`. See `docs/process/PAPER3_STUDY_A_GATE2.md` for every case and the proposed scoring rules. The approved build brief is `docs/process/PAPER3_BUILD_BRIEF.md`.
 
 Twelve separate exploratory pressure variants are approved in facts and scoring, with 254 unit tests and 44 free fixtures passing. Only Luna has seen the variants; held-out models remain untouched. The approved 24-episode Luna comparison completed baseline 12/12 and pressure 11/12 correct (one extra invalid report), at an estimated $0.01954870; see `docs/process/PAPER3_COMPARISON_PILOT_REPORT_2026-10-10.md`. See `docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md`.
 
-Gate 3 preparation is complete at $0: 268 tests pass and 59 freeze/reference hashes verify. The candidate research design and estimates await review in `docs/process/PAPER3_GATE3_REVIEW_v0217.md`. Multi-provider execution adapters and Groq quota accounting still need free preparation before separate model-run approvals.
+Gate 3 design and frozen files are approved. The first frozen Luna evaluation stopped on a preserved provider timeout after 40 correct episodes (20 baseline, 20 pressure); 199 episodes remain unattempted. Recorded estimate including the timeout reserve: $0.03383240. All 59 frozen hashes match. A separate continuation adapter passed 280 unit tests and awaits approval to use the remaining $0.96616760 of the original $1.00 cap. Overall P6 remains inconclusive under the frozen identity rule. See `docs/process/PAPER3_LUNA_FROZEN_EVALUATION_REPORT_2026-10-10.md`. Other model batches remain unapproved.
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 
