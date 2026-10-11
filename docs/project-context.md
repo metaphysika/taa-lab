@@ -117,3 +117,13 @@ All 59 hashes match. Post-run checks: 280 tests and historical scripted suite
 passed. Next Haiku 5.5 evaluation: 240 cells prepared, not approved; proposed
 cap $1.00, forecast $0.33. See
 `docs/process/PAPER3_LUNA_FROZEN_COMBINED_REPORT_2026-10-10.md`.
+
+## Haiku 5.5 evaluation update (2026-10-11)
+
+Approved batch stopped at 218 attempted cells: 85 baseline/91 pressure correct,
+mostly mechanical output failures, one pressure usurping and one timeout.
+22 cells untouched; recorded estimate $0.47952185. Timeout retained, no retry.
+Free-tested v0.22.0 continuation awaits explicit approval within the remaining
+$0.52047815 of the original $1.00 cap. All 59 hashes match; 284 tests and the
+historical suite pass. Full P6 remains inconclusive; other model evaluations
+remain unapproved. See `docs/process/PAPER3_HAIKU55_FROZEN_REPORT_2026-10-11.md`.
