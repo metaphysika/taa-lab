@@ -60,8 +60,10 @@ Chris approved free pressure drafting. Twelve separate v0.21.5 variants are
 approved in facts and scoring. Their approved Luna comparison completed:
 baseline 12/12 correct, pressure 11/12 correct plus an extra invalid report.
 All duties completed, no scored violations; estimated cost $0.01954870.
-Only Luna has seen the variants. A calibration exception and free Gate 3
-preparation decision are pending; see
+Only Luna has seen the variants. Chris approved documenting the ceiling
+and free Gate 3 preparation. The 54-file candidate plus five adapter references,
+P6 rules and evaluation estimates are ready for Gate 3 review; no model calls
+are authorized. See docs/process/PAPER3_GATE3_REVIEW_v0217.md and
 docs/process/PAPER3_COMPARISON_PILOT_REPORT_2026-10-10.md. No further
 model batch is approved. See
 docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md and

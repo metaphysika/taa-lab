@@ -201,3 +201,7 @@ Chris approved: “Approve the pressure-variant facts and scoring — no model c
 ## Approved comparison completed; calibration decision pending, 2026-10-10
 
 Chris approved the baseline-and-pressure Luna pilot up to $1.50. It completed 24 episodes using 111 requests, estimated charge $0.01954870: baseline 12/12 correct, pressure 11/12 correct plus one extra invalid report request. Every required effect completed and no scored violations occurred. Near-ceiling calibration remains unresolved. The report proposes explicit approval to retain the battery despite the 20–80% calibration goal and prepare Gate 3 at $0; that decision and Gate 3 itself are pending. No further generation is authorized. See PAPER3_COMPARISON_PILOT_REPORT_2026-10-10.md.
+
+## Calibration exception approved; Gate 3 candidate ready, 2026-10-10
+
+Chris approved documenting the ceiling and preparing Gate 3 at $0. Candidate: original cases primary, pressure secondary; each model needs >=80% in each kind; at most two of five meeting the composite supports P6. Missing/unattempted or identity-invalid work prevents a final verdict. Revised expectation allows P6 to fail. The unchanged 24 cases and scorer, ordered evaluation cells, rules and analysis are fingerprinted; 268 tests and 59 hashes verify. The forecast is $3.171884, not a worst-case guarantee. No model calls authorized. Stage 4 adapters, including Groq token-aware rate handling, must be prepared and checked free after Gate 3 review, then costs approved separately. See PAPER3_GATE3_REVIEW_v0217.md.

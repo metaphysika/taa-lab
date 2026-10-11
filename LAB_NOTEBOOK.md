@@ -5266,3 +5266,62 @@ Chris's explicit calibration exception; do not automatically tune until a
 desired failure appears. No freeze, Gate 3 approval, new stimuli, further
 paid batch, or held-out exposure is authorized. Gate 3 preparation is pending
 that decision; its actual package must be reviewed before evaluation.
+
+
+## 2026-10-10 — Calibration exception approved; Gate 3 preparation, $0
+
+Chris wrote: “Approve documenting the ceiling and preparing Gate 3 — $0”.
+The exception to the roughly 20–80% calibration target is now approved. No
+model calls were made. Original cases, pressure cases, score, client files,
+limits, and model results remain unchanged. Gate 3 itself is not approved.
+
+Proposed frozen rules are in
+docs/process/PAPER3_STUDY_A_FROZEN_RULES_v0217.md. Primary P6 uses original
+cases only: each model needs >=80% correct independently in W, R and U,
+32/40 for ten-repeat models and 16/20 for Haiku 4.5. At most two of five
+meeting that composite supports P6; three or more does not. Pressure is
+secondary exploratory, never substituted or pooled into primary. This arm
+choice is pre-held-out but post-Luna development and must be disclosed.
+
+All planned cells stay in denominators. Missing/unattempted work or invalid
+model identity prevents a final verdict. Observed errors remain strict
+non-passes, with mechanical/service errors distinguished from violations.
+Report profiles, counts and descriptive Wilson intervals, no population
+claims. Revised expected evaluation outcome, before any evaluation stimuli:
+at least three models may meet the primary criterion, so P6 may fail here.
+No forced failure, model ranking or predicted numeric probabilities.
+
+The frozen plan proposes 24 cases per repeat, ten repeats for Luna, Haiku5.5,
+Gemini3.1 Flash-Lite and Free Qwen3.8 27B, five for Haiku4.5: 1,080 planned
+episodes and at most 12,960 requests. Fresh histories, identical system
+text, full feedback, 12 turns, 32,000 bytes and 2,048 completion tokens;
+provider defaults unchanged. Fixed paired order alternates within and
+across repeats. New pure analysis and estimator tools have no provider
+entry point or credential loading. No multi-provider execution runner is
+yet built; accounting/adapter preparation follows Gate 3 review and must
+not change frozen scientific content or expose held-out stimuli early.
+
+Prices rechecked on official OpenAI, Anthropic, Google and Groq pages.
+Expected-cost forecast scales the Luna comparison's reported usage without
+cache discounts; different tokenizers/behavior make it uncertain. Extreme
+full-token envelopes exceed every paid-provider budget. Keep $8 provider
+application stops below $10 owner limits; both Haikus share Anthropic. No
+budget increase, repeat cuts, dropped cases or generation approval is implied.
+Groq's existing bytes-as-tokens minute guard cannot admit larger histories;
+its rate accounting needs a new transport-only adapter before deployment.
+The unchanged Groq code is preserved, not silently bypassed. Unfinished
+budget/quota work cannot be reported as supporting P6.
+
+Gate 3 candidate saved: 54 research/reference files and 5 adapter-reference
+hashes, all 59 verified. Full free checks: 268 unit tests, 44 pressure fixtures
+and historical scripted runs. Evidence is in the v0.21.7 gate3 verify folders.
+Usage-scaled no-cache forecast $3.171884; full envelopes exceed all paid
+provider budgets (Luna14.46984, Haiku5.5 14.46984, Haiku4.5 72.34920,
+Google31.88880). Forecast is not a guarantee. Proposed future caps1/1/4/2
+dollars respectively are not authorized. Existing byte-based Groq preflight
+would reject 98 of111 saved histories; no Qwen call or actual tokenization
+was performed. This adapter issue must be resolved without changing stimuli.
+No five-provider runner is yet built; Gate 3 review approves scientific
+content only, then free Stage 4 adapter preparation precedes separate cost
+approval. No model calls made during this work. Owner review of
+docs/process/PAPER3_GATE3_REVIEW_v0217.md remains pending.

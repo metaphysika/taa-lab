@@ -1,5 +1,22 @@
 # Roadmap
 
+## Gate 3 candidate ready — v0.21.7, 2026-10-10
+
+Chris approved the calibration exception and free Gate 3 preparation.
+Scientific freeze: 54 files plus five adapter references; all hashes verified.
+268 unit tests and 44 pressure fixtures pass; historical checks pass.
+Review: `docs/process/PAPER3_GATE3_REVIEW_v0217.md`.
+P6 primary = original cases, >=80% in every kind; at most two of five models
+meeting the composite supports P6. Pressure remains secondary. Missing or
+identity-invalid evaluation prevents a final verdict. Expected result now
+allows P6 to fail in this clear battery.
+Usage-scaled cost forecast $3.171884 for 1,080 episodes/12,960 maximum requests,
+not a guarantee. Full envelopes exceed all provider budgets. No repeat cuts
+or spending authorization. Groq current byte guard blocks larger histories;
+Stage 4 accounting/persistence/quota adapters must be prepared and freely
+verified after Gate 3, without changing frozen scientific content. No
+held-out stimulus or new generation sent. Gate 3 owner approval pending.
+
 ## Paper 3 comparison complete; calibration decision pending — 2026-10-10
 
 Chris approved drafting 12 pressure variants at $0. The new files are in
