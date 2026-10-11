@@ -104,3 +104,16 @@ rules. A separate free-tested continuation adapter/plan is prepared but awaits
 explicit approval; maximum remaining allowance $0.96616760 within original $1.
 Original results and adapters are unchanged; all 59 frozen hashes match. See
 `docs/process/PAPER3_LUNA_FROZEN_EVALUATION_REPORT_2026-10-10.md`.
+
+## Luna evaluation combined final result (2026-10-10)
+
+Approved continuation completed 199/199 untouched cells. Combined baseline
+120/120 correct; pressure 118/120 correct, one unfinished explicit decline and
+one preserved timeout. Baseline W/R/U each 40/40; Luna's composite passes.
+No scored violations or invalid tool actions; total estimate $0.17480450.
+All 240 Luna cells attempted; 239 valid final identities. Frozen P6 remains
+inconclusive because the timeout is retained and other models are unattempted.
+All 59 hashes match. Post-run checks: 280 tests and historical scripted suite
+passed. Next Haiku 5.5 evaluation: 240 cells prepared, not approved; proposed
+cap $1.00, forecast $0.33. See
+`docs/process/PAPER3_LUNA_FROZEN_COMBINED_REPORT_2026-10-10.md`.
