@@ -5889,3 +5889,23 @@ restart. Next step requires approval for offline 429 review and a continuation
 plan for untouched cells, retaining the failed episode without retry. No model
 calls or other-stage advancement during this audit. Full P6 stays inconclusive.
 Report: docs/process/PAPER3_QWEN38_FROZEN_EVALUATION_STOP_REPORT_2026-10-11.md.
+
+
+## 2026-10-11 — Qwen issued 429 reviewed offline; suffix plan prepared
+
+User approved offline review and planning only. All 59 frozen files, original
+adapter/cost-plan/controller hashes and source evidence match. Four results
+replay exactly, 20 attempts closed with 19 valid native responses; A_R02 repeat 1
+HTTP 429 retained without retry. Exactly 236 untouched cells start A_R03 repeat 1.
+Headers showed remaining quota; missing Retry-After produced default 24-hour
+client pause, not a proven provider reset. Cause remains unknown. Spending $0;
+all ledgers, failed 8,000-token reserve, quota and source files unchanged.
+Controller remains stopped; supervision off; no requests or probes.
+Prospective plan binds ordered suffix/source/settings/ledgers and requires a new
+Qwen continuation wrapper, offline fixtures and hash-pinned launch command;
+original full runner and Haiku-only continuation adapter are unsuitable. Four
+existing Haiku continuation fixture tests passed; no production code changed.
+Plan is not execution-ready. Next approval: offline continuation adapter and
+fixture preparation, no model calls; separate execution approval afterward.
+Plan: studies/formation-study-a-qwen38-continuation-plan-v0220.json.
+Report: docs/process/PAPER3_QWEN38_CONTINUATION_OFFLINE_REVIEW_2026-10-11.md.

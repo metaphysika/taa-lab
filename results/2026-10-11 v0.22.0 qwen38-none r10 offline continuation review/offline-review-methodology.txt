@@ -1,0 +1,100 @@
+"""Offline evidence review and prospective continuation plan; never loads credentials."""
+import json,hashlib,fcntl,sys,subprocess
+from pathlib import Path
+from datetime import datetime,timezone
+ROOT=Path('/workspace/taa-lab');sys.path.insert(0,str(ROOT))
+from scripts.formation_study_a_gate3 import verify_freeze
+from formation.study_a import load_cases,replay_episode
+from scripts.formation_connectivity import journal_spend
+SOURCE=ROOT/'results/2026-10-11 v0.22.0 qwen38-none r10 study-a evaluation'
+DEST=ROOT/'results/2026-10-11 v0.22.0 qwen38-none r10 offline continuation review'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def save(p,data):
+ with p.open('x') as f:json.dump(data,f,indent=2);f.write('\n')
+assert SOURCE.is_dir() and Path('/workspace/haiku55-runtime/venv/bin/python3').exists()
+head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+assert head=='a644723d493d750069fcbe869ddb8a7fac4d77ee'
+status=read(SOURCE/'controller-status.json');summary=read(SOURCE/'progress-summary.json')
+assert status['state']=='stopped_for_review' and summary['status']=='stopped'
+pid=Path('/proc')/str(status['pid'])/'cmdline'
+assert not(pid.exists() and b'qwen38_controller.py' in pid.read_bytes())
+with open('/workspace/haiku55-runtime/qwen38-controller.lock','a') as f:fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)
+assert not (ROOT/'results/formation-spending-v021/run.lock').exists()
+assert not Path('/workspace/haiku55-runtime/qwen38-maintenance.hold').exists()
+runtime=read(SOURCE/'runtime-receipt.json');assert sha(Path(runtime['controller_path']))==runtime['controller_sha256']
+assert read(SOURCE/'supervision-disabled.json')['automation_enabled'] is False
+old_index=read(SOURCE/'evidence-integrity.json')
+for p,h in old_index['sha256'].items():assert sha(ROOT/p)==h,p
+assert verify_freeze()==59
+cost_path=ROOT/'studies/formation-study-a-qwen38-evaluation-cost-plan-v0220.json';cost=read(cost_path)
+for field,digest in [('freeze_file','freeze_sha256'),('evaluation_plan','evaluation_plan_sha256'),('price_file','price_file_sha256'),('gate3_approval_receipt','gate3_approval_receipt_sha256')]:assert sha(ROOT/cost[field])==cost[digest]
+for p,h in cost['adapter_sha256'].items():assert sha(ROOT/p)==h
+approval_path=ROOT/'studies/formation-study-a-qwen38-evaluation-approval-2026-10-11.json'
+assert read(approval_path)['cost_plan_sha256']==sha(cost_path)
+manifest=read(SOURCE/'execution-manifest.json');assert manifest['cells']==cost['cells'] and manifest['adapter_sha256']==cost['adapter_sha256']
+rows=summary['records'];assert len(rows)==240
+prefix=[];pending=[]
+for cell,row in zip(cost['cells'],rows):
+ assert all(row[k]==v for k,v in cell.items())
+ name='%s-r%02d'%(cell['case_id'],cell['repeat'])
+ result=SOURCE/(name+'.json');checkpoint=SOURCE/(name+'-checkpoint.json')
+ if row['status']=='not_attempted':
+  assert row['attempted'] is False and not result.exists() and not checkpoint.exists();pending.append(cell)
+ else:
+  assert not pending and row['status']=='complete' and row['attempted']
+  state=read(checkpoint);res=read(result);assert state['phase']=='complete' and state['result']==res
+  replay=replay_episode(load_cases([ROOT/cell['path']])[0],state['packets'])
+  for k in ['score','attempts','effects','final_world']:assert replay[k]==res[k]
+  prefix.append(res)
+assert len(prefix)==4 and len(pending)==236 and pending[0]['case_id']=='A_R03' and pending[0]['repeat']==1
+assert all(r['identity_valid'] and not r.get('fatal_transport') for r in prefix[:3])
+assert prefix[-1]['case_id']=='A_R02' and prefix[-1]['repeat']==1 and prefix[-1]['fatal_transport'] and not prefix[-1]['identity_valid']
+assert prefix[-1]['score']['terminal_detail']=='issued request rate rejected; no retry'
+events=[json.loads(s) for s in (SOURCE/'calls.jsonl').read_text().splitlines()]
+starts={e['id']:e for e in events if e['event']=='attempt_start'};ends={e['id']:e for e in events if e['event']=='attempt_end'}
+responses={e['id']:e for e in events if e['event']=='native_response'}
+assert len(starts)==len(ends)==20 and set(starts)==set(ends) and len(responses)==19
+assert sum(e['event']=='attempt_start' for e in events)==20 and sum(e['event']=='attempt_end' for e in events)==20
+for aid,end in ends.items():
+ if aid=='A000020':
+  assert end['error']=='HTTP 429' and end['status']==429 and end['reserve_retained'] and end['estimated_charge_dollars'] is None and aid not in responses
+ else:
+  assert not end.get('error') and not end.get('model_mismatch') and not end.get('usage_missing')
+  assert end['model_returned']=='qwen/qwen3.8-27b' and end['usage']==responses[aid]['response']['usage'] and end['estimated_charge_dollars']==0
+  u=end['usage'];assert u['prompt_tokens']-u.get('prompt_tokens_details',{}).get('cached_tokens',0)+u['completion_tokens']<=8000
+quota=read(ROOT/'results/formation-spending-v021/groq-rate.json');assert len(quota['events'])==20 and quota['events'][-1][1]==8000
+assert journal_spend(SOURCE/'calls.jsonl')==summary['batch_estimated_dollars']==0
+ledger_paths=list((ROOT/'results/formation-spending-v021').glob('*.json'))
+assert read(ROOT/'results/formation-spending-v021/groq.json')['estimated_api_dollars']==0
+source_hashes={p.name:sha(p) for p in SOURCE.iterdir() if p.is_file()}
+headers=next(e['headers'] for e in events if e['event']=='response_headers' and e['id']=='A000020')
+request=next(e['body'] for e in events if e['event']=='native_request' and e['id']=='A000020')
+DEST.mkdir(exist_ok=False)
+review={'status':'offline_review_complete_execution_blocked','starting_commit':head,'checkout_root':str(ROOT),'source':str(SOURCE.relative_to(ROOT)),'source_sha256':source_hashes,'frozen_files_verified':59,'adapter_sha256':cost['adapter_sha256'],'cost_plan_sha256':sha(cost_path),'controller_sha256':runtime['controller_sha256'],'controller_active':False,'supervision_enabled':False,'shared_run_lock_absent':True,'issued_requests':20,'native_responses':19,'unclosed_attempts':[],'retained_failure':{'case_id':'A_R02','repeat':1,'attempt_id':'A000020','turn':4,'status':429,'error':'HTTP 429','safe_headers':headers,'native_usage_available':False,'request_body_bytes':len(json.dumps(request).encode()),'input_accounting_upper_estimate':starts['A000020']['input_token_upper_estimate'],'estimate_is_exact_tokens':False,'reserve_retained':True,'monetary_reserve_dollars':0,'quota_reservation_tokens':8000,'provider_error_body_not_retained':True,'cause':'unknown; reset/daily depletion or single-request sizing cannot be determined from saved headers alone','retries_allowed':False},'preserved_attempted_cells':cost['cells'][:4],'pending_cells':pending,'batch_dollars':0,'cumulative_groq_dollars':0,'quota_snapshot':quota,'paused_until_utc':datetime.fromtimestamp(quota['paused_until'],timezone.utc).isoformat(),'ledger_and_quota_sha256':{str(p.relative_to(ROOT)):sha(p) for p in ledger_paths},'model_calls_during_review':0,'transport_probes_during_review':0,'pending_cell_placeholder_errors_are_failures':False,'replay_verified_cells':4}
+save(DEST/'source-review.json',review)
+plan={'version':'0.22.0','status':'prospective_plan_requires_offline_adapter_preparation_and_separate_execution_approval','execution_ready':False,'checkout_root':str(ROOT),'output':str(SOURCE.relative_to(ROOT)),'python':'/workspace/haiku55-runtime/venv/bin/python3','model':'qwen/qwen3.8-27b','provider':'groq','free_tier_required':True,'original_cap_dollars':0,'already_accounted_dollars':0,'maximum_additional_dollars':0,'planned_remaining_episodes':236,'pending_cells':pending,'retained_prefix':cost['cells'][:4],'retained_failure':{'case_id':'A_R02','repeat':1,'attempt_id':'A000020','retry':False,'replace':False},'source_review':str((DEST/'source-review.json').relative_to(ROOT)),'source_review_sha256':sha(DEST/'source-review.json'),'reviewed_source':review,'frozen_bindings':{k:cost[k] for k in ['freeze_file','freeze_sha256','evaluation_plan','evaluation_plan_sha256','price_file','price_file_sha256','adapter_sha256','native_settings','max_wire_bytes','max_output_tokens','max_turns_per_episode']},'max_new_requests':236*12,'continuation_adapter_hashes':None,'execution_command':None,'execution_approval_recorded':False,'required_implementation':[
+'New separately hashed Qwen reviewed-issued-failure wrapper; never alter original frozen adapters or invoke original full-batch runner/controller.',
+'Operate in original checkout/output with a separate append-only continuation manifest/approval receipt; preserve original manifest, all four source results/checkpoints, original 20 journal events and historical snapshots byte-for-byte.',
+'Append unique monotonically increasing attempt/logical IDs to the existing journal; isolate new continuation accounting and append new numbered launch logs; record separate continuation controller status without replacing stopped original status.',
+'Only execute reviewed pending cells in exact frozen order, starting A_R03 repeat 1; never enter retained prefix, retry or replace A_R02 repeat 1.',
+'Validate reviewed source hashes and all values except absolute machine path (this run still requires original root); validate original ledger/quota snapshot initially, then authorized append-only progress on same output.',
+'Use unchanged native settings/model/prompt/history/scoring, 2048 output ceiling and 32000-byte bound, Groq full-slot limiter; no paid tier, trimming, altered token ceiling or model substitution.',
+'Preserve persisted paused_until and quota history; no manual reset/removal of failed 8000 slot. Normal rolling-window expiry only under existing limiter.',
+'Acquire exclusive shared provider run lock; stop on any lock, guard/inflight/unclosed attempt. No other ledger run concurrently.',
+'New continuation controller may resume only verified pre-request quota pauses. Every newly issued failure/timeout/uncertainty/identity/usage failure or usage over 8000 stops for separate review, never retries.',
+'At safe pre-request paused boundaries snapshot/commit/push explicit credential-free evidence directly on main with an owned maintenance hold, then release only that hold.',
+'Combine retained prefix with new suffix for all 240 frozen records; never promote retained transport failure to valid identity or hide incomplete cells; preserve old model evidence and cumulative ledgers.'
+],'offline_validation_required':[
+'Source reviewer must reject any altered source hash, cell order, extra attempted cell, missing checkpoint/result, invalid prior native identity/usage, unclosed attempt, altered ledger/quota or extra issued failure.',
+'Fixture-test all 236 suffix cells without network, exact 240 combined denominator including retained failure, same settings, unique appended IDs, source immutability and $0 accounting.',
+'Mocked pre-request quota pause/resume sends zero additional attempts while waiting; issued 429/timeout/identity/usage/over-8000/guard failure stops and cannot resume automatically.',
+'Test refusal without separate execution approval before loading credentials/constructing transport; reject another checkout/output, frozen/adaptor mismatch or existing shared lock.',
+'Rerun full unit suite and historical scripted suite after code changes; publish new adapter/controller hashes and final reviewed launch command before requesting model execution approval.'
+],'quota_findings':'Waiting until persisted pause expires is necessary but not proof the issued 429 cause is solved; provider remains authoritative. Completion cannot be guaranteed with unchanged Free limits/settings. If pre-request sizing review establishes an impossible request, stop for a user decision instead of trimming/upgrading. Any proposed new quota preflight requires separate documented adapter review without changing scientific settings.','next_step':'Offline adapter implementation and fixtures, no model calls. Execution approval follows readiness verification; current original controller stays stopped and automation disabled.'}
+save(ROOT/'studies/formation-study-a-qwen38-continuation-plan-v0220.json',plan)
+save(ROOT/'studies/formation-study-a-qwen38-continuation-offline-review-approval-2026-10-11.json',{'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'approval':'Approve offline review of Qwen’s HTTP 429 and a continuation plan for the 236 untouched episodes; retain A_R02 repeat 1 without retrying; no model calls.','starting_commit':head,'scope':'Offline source audit and prospective continuation plan only. No model requests, transport probes, retries, controller restart or execution authorization.','model_calls_authorized':False,'retained_failed_episode':'A_R02 repeat 1','original_checkout_root':str(ROOT),'source':str(SOURCE.relative_to(ROOT))})
+(DEST/'offline-review-methodology.txt').write_bytes(Path(__file__).read_bytes())
+assert source_hashes=={p.name:sha(p) for p in SOURCE.iterdir() if p.is_file()}
+assert review['ledger_and_quota_sha256']=={str(p.relative_to(ROOT)):sha(p) for p in ledger_paths}
+print('Offline review passed: 59 frozen files; 4 retained attempted, 236 untouched; source and ledgers unchanged; no model calls. Plan execution blocked pending adapter preparation.')
