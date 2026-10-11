@@ -1,0 +1,151 @@
+"""Offline Qwen planning; no credential reads, provider probes or model calls."""
+import hashlib
+import json
+import math
+import os
+import subprocess
+import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path('/workspace/taa-lab')
+sys.path.insert(0, str(ROOT))
+from formation.evaluation_runner_v0218 import ADAPTERS
+from scripts.formation_study_a_gate3 import verify_freeze
+
+MODEL = 'qwen/qwen3.8-27b'
+PREP = ROOT / 'results/2026-10-11 v0.22.0 qwen38-none r10 offline preparation'
+OUTPUT = 'results/2026-10-11 v0.22.0 qwen38-none r10 study-a evaluation'
+PLAN_PATH = 'studies/formation-study-a-qwen38-evaluation-cost-plan-v0220.json'
+
+def read(path):
+    return json.loads((ROOT / path).read_text())
+
+def sha(path):
+    return hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+
+def write(path, data):
+    with (ROOT / path).open('x') as out:
+        json.dump(data, out, indent=2)
+        out.write('\n')
+
+assert sys.version_info[:2] == (3, 11)
+assert verify_freeze() == 59
+assert not (ROOT / OUTPUT).exists()
+assert not os.path.lexists(ROOT / 'results/formation-spending-v021/run.lock')
+assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT).strip() == b'80a414067919a0e0db80f4c5e82563c3c182adc3'
+assert subprocess.check_output(['git', 'rev-parse', 'origin/main'], cwd=ROOT).strip() == b'80a414067919a0e0db80f4c5e82563c3c182adc3'
+for p in (ROOT / 'results').rglob('execution-manifest.json'):
+    assert json.loads(p.read_text()).get('model') != MODEL, str(p)
+frozen_path = 'studies/formation-study-a-evaluation-plan-v0217.json'
+frozen = read(frozen_path)
+cells = [c for c in frozen['cells'] if c['model'] == MODEL]
+assert len(cells) == 240
+price = read(frozen['price_file'])['models'][MODEL]
+assert price['free_account_required'] and price['input_per_million'] == price['output_per_million'] == 0
+ledgers = {str(p.relative_to(ROOT)): sha(p.relative_to(ROOT))
+           for p in sorted((ROOT / 'results/formation-spending-v021').glob('*.json'))}
+ledger_path = 'results/formation-spending-v021/groq.json'
+rate_path = 'results/formation-spending-v021/groq-rate.json'
+assert read(ledger_path)['estimated_api_dollars'] == 0
+assert sha(rate_path) == '85268f502cc5266ec1f5c955c290502c3e5d5dcc5bddf9ed091026657afcaa4a'
+success = 'results/2026-10-08 v0.21.2 formation-connectivity r1 groq identity/qwen_qwen3.8-27b-calls.jsonl'
+events = [json.loads(line) for line in (ROOT / success).read_text().splitlines()]
+ends = [e for e in events if e['event'] == 'attempt_end']
+assert len(ends) == 1 and ends[0]['model_returned'] == MODEL and not ends[0]['error']
+assert not ends[0]['usage_missing'] and ends[0]['usage']['prompt_tokens'] == 39
+assert ends[0]['usage']['completion_tokens'] == 6 and ends[0]['estimated_charge_dollars'] == 0
+historical = [success,
+    'results/2026-10-08 v0.21.2 formation-connectivity r1 groq identity/progress.jsonl',
+    'results/2026-10-08 v0.21 formation-connectivity r1 keys-ready/qwen_qwen3.8-27b-calls.jsonl',
+    'results/2026-10-08 v0.21 formation-connectivity r1 keys-ready/groq-metadata-status.json',
+    'docs/process/formation-groq-identity-diagnosis-2026-10-08.json']
+sources = [
+    (['results/2026-10-11 v0.21.9 haiku55-none r10 study-a evaluation/calls.jsonl',
+      'results/2026-10-11 v0.22.0 haiku55-none r10 study-a continuation/calls.jsonl'], 1),
+    (['results/2026-10-11 v0.22.0 haiku45-none r5 study-a evaluation/calls.jsonl'], 2),
+    (['results/2026-10-11 v0.22.0 gemini31flashlite-none r10 study-a evaluation/calls.jsonl'], 1)]
+forecasts = []
+for paths, scale in sources:
+    usage = [e['usage'] for p in paths for e in map(json.loads, (ROOT / p).read_text().splitlines())
+             if e['event'] == 'attempt_end' and not e.get('error')]
+    tokens = []
+    for u in usage:
+        if 'input_tokens' in u:
+            value = u['input_tokens'] + u.get('cache_creation_input_tokens', 0) + u['output_tokens']
+        else:
+            value = u['prompt_tokens'] - u.get('prompt_tokens_details', {}).get('cached_tokens', 0) + u['completion_tokens']
+        tokens.append(value)
+    forecasts.append({'source_journals': paths, 'episode_scale': scale,
+        'successful_requests_scaled': len(tokens) * scale, 'uncached_plus_output_tokens_scaled': sum(tokens) * scale,
+        'daily_200000_token_allowances': math.ceil(sum(tokens) * scale / 200000),
+        'maximum_observed_request_tokens': max(tokens), 'observed_requests_over_8000': sum(t > 8000 for t in tokens),
+        'request_spacing_hours_only': (len(tokens) * scale - 1) * 61 / 3600})
+phrase = ('Approve Qwen 3.8 27B’s frozen Study A evaluation on Groq Free at $0, '
+          'including resumes after pre-request quota pauses; stop without retrying any issued failure.')
+plan = {'version': 'v0.22.0', 'date': '2026-10-11',
+    'status': 'offline preparation complete; pending separate evaluation approval; no live Qwen Study A calls',
+    'approval_phrase': phrase, 'model': MODEL, 'provider': 'groq', 'repeats': 10,
+    'planned_episodes': 240, 'baseline_episodes': 120, 'pressure_episodes': 120,
+    'episodes_per_arm_per_kind': 40, 'minimum_correct_per_kind_for_composite': 32,
+    'max_requests': 2880, 'max_turns_per_episode': 12, 'max_wire_bytes': 32000, 'max_output_tokens': 2048,
+    'proposed_batch_cap_dollars': 0, 'usage_forecast_dollars': 0,
+    'full_ceiling_envelope_dollars': 0, 'free_account_required': True,
+    'free_account_basis': 'Owner Free-account confirmation recorded before the repaired 2026-10-08 neutral check; unchanged frozen price file says Groq remains confirmed Free. No billing or account setting inspected/changed.',
+    'completion_guaranteed': False, 'whole_formation_stop_per_provider_dollars': 8,
+    'prior_cumulative_groq_ledger_dollars': 0, 'prior_cumulative_groq_ledger_sha256': sha(ledger_path),
+    'prior_quota_state_sha256': sha(rate_path), 'all_prior_ledger_sha256': ledgers,
+    'historical_access': 'Earlier HTTP 403 preserved; repaired application User-Agent neutral check subsequently passed with exact pinned identity and valid usage. Earlier handoff omitted that later success. No new access check required by offline evidence; present availability remains unprobed.',
+    'historical_access_evidence_sha256': {p: sha(p) for p in historical},
+    'quota': {'frozen_rpm': 30, 'frozen_rpd': 1000, 'frozen_tpm': 8000, 'frozen_tpd': 200000,
+        'adapter_minimum_spacing_seconds': 61, 'reservation_per_request_tokens': 8000,
+        'daily_limits_rolling_seconds': 86400, 'settlement': 'uncached prompt tokens plus completion tokens',
+        'over_8000_reported_tokens': 'Retain native response and stop for review; never trim or replace episode.',
+        'pre_request_pause': 'No request issued; preserve packets/history/delivery evidence and resume identical command/output only after quota permits and evaluation approval explicitly covers these resumes.',
+        'issued_failure': 'Never automatically retry/resume after HTTP rejection, timeout, uncertainty, invalid identity/usage or guard stop.'},
+    'empirical_quota_forecasts': forecasts,
+    'duration_caveat': 'Other models only; Qwen tokenizer, cached usage and behavior unknown. Daily quota likely dominates; expect multiple days. 61-second spacing alone is not a completion-duration estimate. No external account use may consume this shared quota/ledger concurrently.',
+    'cells': cells, 'freeze_file': 'studies/formation-study-a-freeze-v0217.json',
+    'evaluation_plan': frozen_path, 'price_file': frozen['price_file'], 'prices_checked_utc_date': '2026-10-10',
+    'gate3_approval_receipt': 'studies/formation-study-a-gate3-approval-2026-10-10.json',
+    'adapter_sha256': {p: sha(p) for p in ADAPTERS},
+    'forecast_source_sha256': {p: sha(p) for paths, _ in sources for p in paths},
+    'checkout_root': str(ROOT), 'preparation_starting_commit': '80a414067919a0e0db80f4c5e82563c3c182adc3',
+    'output': OUTPUT, 'required_python_minor': '3.11', 'cloud_runtime_path': sys.executable,
+    'runtime_selection': 'PATH=/workspace/haiku55-runtime/venv/bin:$PATH',
+    'command_after_separate_approval': f"python3 scripts/formation_study_a_evaluation.py --model {MODEL} --budget 0 --output '{OUTPUT}' --approved-cost --confirm-groq-free-account",
+    'native_settings': 'Unchanged application User-Agent; max_completion_tokens 2048; system message/full history unchanged; sampling/effort/thinking and JSON response-format overrides omitted; exact pinned returned identity required.',
+    'policy': 'Frozen cells/scoring/settings and original validated adapters only. Preserve all old evidence, provider ledgers and quota state; no credential reads/copies, concurrency, paid tier, substitution, history trimming, cap expansion, or automatic issued-failure retry. Same checkout/output for explicitly authorized pre-request quota resumes. Stop for review on any issued failure, timeout, uncertainty, identity/usage failure or guard stop. No other model or stage authorized.'}
+for key in ('freeze_file', 'evaluation_plan', 'price_file', 'gate3_approval_receipt'):
+    plan[{'freeze_file': 'freeze_sha256'}.get(key, key + '_sha256')] = sha(plan[key])
+assert plan['adapter_sha256'] == read('studies/formation-study-a-gemini31flashlite-evaluation-cost-plan-v0220.json')['adapter_sha256']
+write(PLAN_PATH, plan)
+write('studies/formation-study-a-qwen38-offline-preparation-approval-2026-10-11.json', {
+    'date': '2026-10-11', 'recorded_at_utc': datetime.now(timezone.utc).isoformat(),
+    'approval_verbatim': 'Approve offline preparation of Qwen 3.8 27B’s frozen Study A evaluation; no model c',
+    'interpreted_scope': 'Offline preparation, tests, planning, documentation and commit/push on main only; no model calls/provider probes.',
+    'funding_authorized': False, 'generation_authorized': False, 'cost_plan': PLAN_PATH, 'cost_plan_sha256': sha(PLAN_PATH)})
+policy = json.loads(Path('/etc/codex/network-policy.json').read_text())
+assert policy['version'] == 1 and {'host': 'api.groq.com'} in policy['http_network_policy']['egress_rules']
+assert bool(os.environ.get('GROQ_API_KEY'))
+write(str(PREP.relative_to(ROOT) / 'readiness.json'), {'model_calls': 0, 'provider_network_requests': 0,
+    'actual_api_cost_dollars': 0, 'frozen_files_verified': 59, 'adapter_sha256': plan['adapter_sha256'],
+    'all_prior_ledger_sha256': ledgers, 'historical_repaired_identity_check_passed': True,
+    'GROQ_API_KEY_available': True, 'Cloud_credential_ready_current': True,
+    'configured_POST_permission': 'api.groq.com host permitted with no method restriction; no probe sent.',
+    'current_provider_availability_and_account_plan_probed': False, 'prior_Free_confirmation_preserved': True,
+    'active_run_lock': False, 'existing_evaluation_output': False, 'runtime_executable': sys.executable,
+    'cost_plan_sha256': sha(PLAN_PATH), 'approval_required': phrase})
+with tempfile.TemporaryDirectory() as temporary:
+    folder = Path(temporary)
+    (folder / 'scenarios').symlink_to(ROOT / 'scenarios', target_is_directory=True)
+    with (PREP / 'historical-scripted.log').open('x') as log:
+        subprocess.run([sys.executable, str(ROOT / 'run.py'), '--scenario', 'all'], cwd=folder,
+                       stdout=log, stderr=subprocess.STDOUT, check=True)
+    summaries = list((folder / 'results').rglob('summary.md'))
+    assert len(summaries) == 1
+    (PREP / 'historical-scripted-summary.md').write_bytes(summaries[0].read_bytes())
+assert all(sha(p) == h for p, h in ledgers.items())
+print('Offline zero-cost plan saved; successful repaired access evidence verified; all ledgers/quota unchanged.')
+print(json.dumps(forecasts, indent=2))

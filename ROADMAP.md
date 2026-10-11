@@ -589,3 +589,54 @@ No other model/stage advanced. Next proposed approval is offline only:
 “Approve offline preparation of Qwen 3.8 27B’s frozen Study A evaluation;
 no model calls.” Inspect preserved Groq access failure and frozen free-tier
 quotas offline; any live access check or evaluation needs separate approval.
+
+
+## 2026-10-11 — Qwen 3.8 27B frozen evaluation prepared offline
+
+Owner approved offline preparation only; no model calls, provider probes or
+metadata requests were made ($0 cost). Main started at 80a414067919a0e0db80f4c5e82563c3c182adc3,
+equal to fetched origin/main. All 59 frozen files and three original adapter
+hashes match. Exact model qwen/qwen3.8-27b; 240 ordered cells, ten repeats,
+120 per arm, 40 per arm/kind; frozen threshold 32/40. Fresh conversations,
+full history, plain permissions without counsel, 12 turns, 32,000 request bytes,
+2,048 output tokens and provider defaults unchanged. Fixed User-Agent retained.
+
+284 unit tests passed (55.140 seconds). All 240 native-response declared fixtures
+passed using 980 mocked requests, with a real adapter pre-request quota pause
+and same-output resume, completed skip, approval blocking and immutable $0 cap.
+Simulated clock only; no real quota mutation. Five declared issued failures
+(429, timeout, identity, usage, >8,000 token settlement) stopped with evidence
+without retries; three quota boundaries paused before issuance. Historical
+scripted suite completed. First fixture summary-save path typo corrected in
+external helper only and rerun; both logs/methods retained. No production change.
+
+Corrected historical access interpretation: earlier 403/metadata evidence remains,
+but repaired 2026-10-08 neutral check subsequently passed, exact Qwen identity,
+39 prompt plus six output tokens, one request, $0 on owner-confirmed Groq Free.
+Recent handoff omitted this later success; no new neutral probe is required by
+saved evidence. Cloud key readiness and configured POST host permission checked
+without values/probes. Current service/account availability is not freshly probed.
+All ledgers and quota state unchanged; Groq cumulative $0, no active lock/live
+output/manifest. Prior Free confirmation preserved; no billing/tier change.
+
+Proposed evaluation cap $0, Groq Free only. Shared $8 stop unchanged; no ledger
+or quota concurrency. Adapter reserves 8,000 tokens, spaces at least 61 seconds,
+settles uncached input plus output, and retains rolling 1,000 requests/200,000
+tokens per day. Other-model 240-cell usage spans 928–986 requests and 2.18–4.00
+million tokens (11–20 daily allowances), implying multiple days rather than
+just 16–17 spacing hours. Qwen usage differs; individual >8,000-token usage or
+issued rejection stops for review without trimming, substitution or retry.
+Proposed later approval includes same-output resumes only after pre-request
+quota pauses; no scheduler, automatic resume or live execution started now.
+
+Plan/receipt: studies/formation-study-a-qwen38-evaluation-cost-plan-v0220.json
+and studies/formation-study-a-qwen38-offline-preparation-approval-2026-10-11.json.
+Report: docs/process/PAPER3_QWEN38_FROZEN_PREPARATION_2026-10-11.md.
+Tests/methods/readiness/index: results/2026-10-11 v0.22.0 qwen38-none r10 offline preparation/.
+Same checkout/output and Python 3.11.17 for later evaluation. Previous evidence
+and both old Study A timeouts retained; full P6 remains inconclusive. No other
+model/stage advanced. Commit/push preparation directly on main; no Mac step needed.
+
+Separate next approval: “Approve Qwen 3.8 27B’s frozen Study A evaluation on
+Groq Free at $0, including resumes after pre-request quota pauses; stop without
+retrying any issued failure.” Record that approval before any live generation.

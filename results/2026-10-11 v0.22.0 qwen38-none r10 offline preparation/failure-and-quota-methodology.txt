@@ -1,0 +1,85 @@
+"""Declared Qwen failures and quota boundaries; no provider requests."""
+import json
+import sys
+import tempfile
+import urllib.error
+from pathlib import Path
+from unittest.mock import patch
+
+ROOT = Path('/workspace/taa-lab')
+sys.path.insert(0, str(ROOT))
+from formation.evaluation_runner_v0218 import execute_cell
+from formation.evaluation_transport_v0218 import GroqSlots, QuotaRecorder, make_client
+from formation.limits import RatePaused
+from formation.study_a import load_cases
+from tests.test_formation_evaluation_v0218 import Response
+
+MODEL = 'qwen/qwen3.8-27b'
+PREP = ROOT / 'results/2026-10-11 v0.22.0 qwen38-none r10 offline preparation'
+plan = json.loads((ROOT / 'studies/formation-study-a-evaluation-plan-v0217.json').read_text())
+price = json.loads((ROOT / plan['price_file']).read_text())['models']
+cell = next(c for c in plan['cells'] if c['model'] == MODEL and c['arm'] == 'pressure')
+case = load_cases([ROOT / cell['path']])[0]
+
+class Altered(Response):
+    def __init__(self, kind):
+        super().__init__(MODEL, 'groq', '{"tool":null,"args":{}}')
+        self.kind = kind
+    def read(self):
+        native = json.loads(super().read())
+        if self.kind == 'identity':
+            native['model'] = 'different-model'
+        elif self.kind == 'usage':
+            del native['usage']
+        elif self.kind == 'over_8000':
+            native['usage']['prompt_tokens'] = 8001
+        return json.dumps(native).encode()
+
+checks = []
+with tempfile.TemporaryDirectory() as temporary:
+    folder = Path(temporary)
+    for kind in ('HTTP429', 'timeout', 'identity', 'usage', 'over_8000'):
+        quota = GroqSlots(folder / (kind + '-quota.json'), now=lambda: 1000000)
+        log = folder / (kind + '-calls.jsonl')
+        rec = QuotaRecorder(log, price, MODEL, max_logical=12, max_attempts=12,
+                            max_dollars=0, prior_spend=0, quota=quota)
+        state = folder / (kind + '-state.json')
+        client = make_client(MODEL, 'groq', rec, quota)
+        failure = (urllib.error.HTTPError('https://example.invalid', 429, 'declared fixture', {}, None)
+                   if kind == 'HTTP429' else TimeoutError('declared fixture') if kind == 'timeout' else None)
+        with patch.dict('os.environ', {'GROQ_API_KEY': 'declared-fixture-only'}), \
+             patch('urllib.request.urlopen', side_effect=failure, return_value=Altered(kind)) as send:
+            result, status = execute_cell(cell, case, client, rec, state)
+            assert status == 'stopped' and result['fatal_transport'] and send.call_count == 1
+            execute_cell(cell, case, client, rec, state)
+            assert send.call_count == 1
+        events = [json.loads(line) for line in log.read_text().splitlines()]
+        assert sum(e['event'] == 'attempt_start' for e in events) == 1
+        assert sum(e['event'] == 'attempt_end' for e in events) == 1
+        if kind in ('identity', 'usage', 'over_8000'):
+            assert sum(e['event'] == 'native_response' for e in events) == 1
+        checks.append({'declared_failure': kind, 'mocked_requests': 1,
+                       'stopped': True, 'resume_did_not_repeat_request': True,
+                       'checkpoint_preserved': True, 'native_evidence_preserved_if_received': True})
+    for name, events in [('daily_requests', [[999900, 1]] * 1000),
+                         ('daily_tokens', [[999900, 195000]]),
+                         ('minute', [[999999, 150]])]:
+        path = folder / (name + '-boundary.json')
+        path.write_text(json.dumps({'events': events}))
+        before = path.read_bytes()
+        try:
+            GroqSlots(path, now=lambda: 1000000).before(1)
+        except RatePaused:
+            pass
+        else:
+            raise AssertionError(name + ' guard accepted an over-quota request')
+        assert path.read_bytes() == before
+        checks.append({'declared_boundary': name, 'pre_request_pause_passed': True,
+                       'no_quota_write_or_model_request': True})
+result = {'phase': 'DECLARED failure/quota fixtures; not experimental model observations',
+          'model_calls': 0, 'actual_provider_requests': 0, 'actual_api_cost_dollars': 0,
+          'checks': checks}
+with (PREP / 'failure-and-quota-fixtures.json').open('x') as out:
+    json.dump(result, out, indent=2)
+    out.write('\n')
+print('Five declared issued failures stop without retry; three pre-request quota boundaries pause. No real requests.')
