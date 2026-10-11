@@ -224,3 +224,44 @@ Evidence and updated ledger are committed and pushed on main.
 No other model or stage advanced. Next proposed approval is only offline
 preparation: “Approve offline preparation of Gemini 3.1 Flash-Lite’s frozen
 Study A evaluation; no model calls.” A later separate spending approval is required.
+
+
+## 2026-10-11 — Gemini 3.1 Flash-Lite frozen evaluation prepared offline
+
+Owner approved offline preparation only; no model calls or provider requests
+were made ($0 actual cost). Clean main started at 362d29607c338912359d6a39ad842aa33a327023,
+equal to fetched origin/main. All 59 frozen files and three original adapter
+hashes match. Exact frozen model gemini-3.1-flash-lite; 240 ordered episodes,
+ten repeats, 120 per arm and 40 per arm/kind, threshold 32 correct per kind.
+Fresh conversations, original full history, plain permissions without counsel,
+12 turns, 32,000-byte requests, 2,048 output tokens and provider defaults retained.
+Google JSON MIME unchanged; reported thought tokens charged; exact native
+modelVersion required. No scenario, prompt, scoring, code or setting change.
+
+284 unit tests pass; full 240-episode declared native fixture passes with 980
+mocked requests, approval barrier, completed resume without duplicate calls,
+immutable cap, fixed wire/identity and thought accounting checked. Historical
+scripted suite completed. Declared fixtures are plumbing evidence only.
+Actual API spending $0. All provider ledgers and prior evidence unchanged.
+No active shared lock or existing Gemini evaluation output/manifest. Cloud key
+presence and configured POST host permission checked without credential values
+or probes. Current billing, quota and service availability remain unverified.
+
+Offline forecasts at frozen prices: pilot $0.85833500; Haiku 5.5 settled usage
+repriced without cache discount $1.39296375; Haiku 4.5 doubled and repriced
+$1.02997050. Proposed $2.00 batch cap requires separate approval; completion
+not guaranteed (full-ceiling envelope $31.88880000). Shared $8 stop unchanged.
+Google cumulative ledger reconciles to $0.01568305: prior retained failed-request
+reserves $0.01566980 plus neutral check $0.00001325. No reset or retry. Maximum
+cumulative allowance if approved: $2.01568305. No concurrent provider-ledger run.
+Prior Luna and Haiku 5.5 timeouts retained. No other model or stage advanced.
+
+Plan/receipt: studies/formation-study-a-gemini31flashlite-evaluation-cost-plan-v0220.json
+and studies/formation-study-a-gemini31flashlite-offline-preparation-approval-2026-10-11.json.
+Report: docs/process/PAPER3_GEMINI31FLASHLITE_FROZEN_PREPARATION_2026-10-11.md.
+Tests/methods/readiness/hash index: results/2026-10-11 v0.22.0 gemini31flashlite-none r10 offline preparation/.
+Continue on main, same checkout/output and Python 3.11. Record later approval
+before generation. Stop for review on timeout, uncertainty, invalid identity/usage,
+quota rejection or budget stop; no automatic retry, substitution or cap expansion.
+Separate next approval: “Approve Gemini 3.1 Flash-Lite’s frozen Study A evaluation
+up to $2.00.” No paid evaluation has started.

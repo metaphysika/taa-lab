@@ -1,0 +1,158 @@
+"""Offline cost planning only; no credentials or provider calls."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path('/workspace/taa-lab')
+sys.path.insert(0, str(ROOT))
+from formation.evaluation_runner_v0218 import ADAPTERS
+from scripts.formation_study_a_gate3 import estimate, verify_freeze
+
+MODEL = 'gemini-3.1-flash-lite'
+SLUG = 'gemini31flashlite'
+PREP = ROOT / f'results/2026-10-11 v0.22.0 {SLUG}-none r10 offline preparation'
+OUTPUT = f'results/2026-10-11 v0.22.0 {SLUG}-none r10 study-a evaluation'
+PLAN_PATH = f'studies/formation-study-a-{SLUG}-evaluation-cost-plan-v0220.json'
+APPROVAL_PATH = f'studies/formation-study-a-{SLUG}-offline-preparation-approval-2026-10-11.json'
+REPORT_PATH = 'docs/process/PAPER3_GEMINI31FLASHLITE_FROZEN_PREPARATION_2026-10-11.md'
+
+def sha(path):
+    return hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+
+def read(path):
+    return json.loads((ROOT / path).read_text())
+
+def write(path, data):
+    with (ROOT / path).open('x') as out:
+        json.dump(data, out, indent=2)
+        out.write('\n')
+
+assert sys.version_info[:2] == (3, 11)
+assert verify_freeze() == 59
+assert not (ROOT / OUTPUT).exists()
+assert not (ROOT / 'results/formation-spending-v021/run.lock').exists()
+for p in (ROOT / 'results').rglob('execution-manifest.json'):
+    assert json.loads(p.read_text()).get('model') != MODEL, str(p)
+frozen = read('studies/formation-study-a-evaluation-plan-v0217.json')
+cells = [c for c in frozen['cells'] if c['model'] == MODEL]
+assert len(cells) == 240
+prices = read(frozen['price_file'])['models']
+pilot_path = 'results/2026-10-10 v0.21.6 luna-none r1 baseline-pressure pilot/summary.json'
+forecast = next(row for row in estimate(frozen, prices, read(pilot_path))['models'] if row['model'] == MODEL)
+expected_ledgers = {
+    'claude.json': 'f1422a62890fe7f7c0cbbcd4f9cedb923ce11f19cba7e7dfa35b34951532f899',
+    'google.json': '4d24335200309e99ec4e45bb23cf1d2ce9fe4d1607f3bafc5a1916d0c9d23aaa',
+    'groq-rate.json': '85268f502cc5266ec1f5c955c290502c3e5d5dcc5bddf9ed091026657afcaa4a',
+    'groq.json': '227f81cf36bcc103eb72a57614d075cc6f6958e6c2e9331523c782d82e53c621',
+    'openai.json': 'ecee337a53c29fa4e9b9b6425e89dad27ed8fd8415e84e90b8e50dc28127bed4',
+}
+ledgers = {f'results/formation-spending-v021/{name}': digest for name, digest in expected_ledgers.items()}
+assert all(sha(p) == digest for p, digest in ledgers.items())
+ledger_path = 'results/formation-spending-v021/google.json'
+prior = read(ledger_path)['estimated_api_dollars']
+neutral_paths = [
+    'results/2026-10-08 v0.21 formation-connectivity r1 keys-ready/gemini-2.5-flash-lite-calls.jsonl',
+    'results/2026-10-08 v0.21 formation-connectivity r1 gemini31/gemini-3.1-flash-lite-calls.jsonl',
+    'results/2026-10-08 v0.21 formation-connectivity r1 gemini31 funded/gemini-3.1-flash-lite-calls.jsonl',
+]
+accounted = 0
+for p in neutral_paths:
+    events = [json.loads(line) for line in (ROOT / p).read_text().splitlines()]
+    starts = {e['id']: e for e in events if e['event'] == 'attempt_start'}
+    for e in events:
+        if e['event'] == 'attempt_end':
+            accounted += starts[e['id']]['reserved_dollars'] if e['reserve_retained'] else e['estimated_charge_dollars']
+assert round(accounted, 8) == round(prior, 8) == 0.01568305
+usage_paths = [
+    'results/2026-10-11 v0.21.9 haiku55-none r10 study-a evaluation/calls.jsonl',
+    'results/2026-10-11 v0.22.0 haiku55-none r10 study-a continuation/calls.jsonl',
+    'results/2026-10-11 v0.22.0 haiku45-none r5 study-a evaluation/calls.jsonl',
+]
+empirical = []
+for paths, scale in [(usage_paths[:2], 1), (usage_paths[2:], 2)]:
+    ends = [e for p in paths for e in map(json.loads, (ROOT / p).read_text().splitlines())
+            if e['event'] == 'attempt_end' and not e.get('error')]
+    inputs = sum(e['usage'].get('input_tokens', 0) + e['usage'].get('cache_creation_input_tokens', 0)
+                 + e['usage'].get('cache_read_input_tokens', 0) for e in ends)
+    outputs = sum(e['usage']['output_tokens'] for e in ends)
+    empirical.append({'source_journals': paths, 'episode_scale': scale, 'successful_requests': len(ends),
+                      'input_tokens_including_all_cache_categories': inputs, 'output_tokens': outputs,
+                      'no_cache_discount_forecast_dollars': round(scale * (inputs * .25 + outputs * 1.5) / 1e6, 8)})
+adapter_sha = {p: sha(p) for p in ADAPTERS}
+assert adapter_sha == read('studies/formation-study-a-haiku45-evaluation-cost-plan-v0220.json')['adapter_sha256']
+phrase = 'Approve Gemini 3.1 Flash-Lite’s frozen Study A evaluation up to $2.00.'
+plan = {
+    'version': 'v0.22.0', 'date': '2026-10-11',
+    'status': 'offline preparation complete; pending separate written spending approval; no Gemini evaluation calls',
+    'approval_phrase': phrase, 'model': MODEL, 'provider': 'google', 'repeats': 10,
+    'planned_episodes': 240, 'baseline_episodes': 120, 'pressure_episodes': 120,
+    'episodes_per_arm_per_kind': 40, 'minimum_correct_per_kind_for_composite': 32,
+    'max_requests': 2880, 'max_turns_per_episode': 12, 'max_wire_bytes': 32000, 'max_output_tokens': 2048,
+    'proposed_batch_cap_dollars': 2.0, 'usage_forecast_dollars': forecast['pilot_usage_no_cache_forecast_dollars'],
+    'usage_forecast_basis': 'Frozen Luna development pilot usage, ten repeats at frozen Gemini prices, no cache discount.',
+    'empirical_usage_forecasts': empirical,
+    'empirical_forecast_basis': 'Settled native Haiku usage repriced at Gemini rates with every input category at full input price; Haiku 4.5 scaled from 120 to 240 cells. Cross-model tokenizer, behavior and thought usage may differ; uncertain reserves are not settled usage.',
+    'full_ceiling_envelope_dollars': forecast['all_requests_at_full_ceiling_dollars'],
+    'completion_guaranteed': False, 'whole_formation_stop_per_provider_dollars': 8.0,
+    'prior_cumulative_google_ledger_dollars': prior, 'prior_cumulative_google_ledger_sha256': sha(ledger_path),
+    'prior_google_retained_failed_request_reserves_dollars': .0156698,
+    'prior_google_settled_neutral_check_dollars': .00001325,
+    'prior_google_evidence_sha256': {p: sha(p) for p in neutral_paths},
+    'remaining_provider_allowance_dollars': 8 - prior,
+    'cumulative_google_ceiling_if_batch_approved_dollars': prior + 2,
+    'ledger_policy': 'Never reset any cumulative ledger or retained reserve. Shared run lock; no concurrent provider-ledger use.',
+    'freeze_file': 'studies/formation-study-a-freeze-v0217.json',
+    'evaluation_plan': 'studies/formation-study-a-evaluation-plan-v0217.json', 'price_file': frozen['price_file'],
+    'prices_checked_utc_date': '2026-10-10',
+    'gate3_approval_receipt': 'studies/formation-study-a-gate3-approval-2026-10-10.json',
+    'adapter_sha256': adapter_sha, 'forecast_source_sha256': {p: sha(p) for p in [pilot_path] + usage_paths},
+    'cells': cells, 'checkout_root': str(ROOT),
+    'preparation_starting_commit': '362d29607c338912359d6a39ad842aa33a327023', 'output': OUTPUT,
+    'required_python_minor': '3.11', 'cloud_runtime_path': sys.executable,
+    'runtime_selection': 'PATH=/workspace/haiku55-runtime/venv/bin:$PATH',
+    'command_after_separate_approval': f"python3 scripts/formation_study_a_evaluation.py --model {MODEL} --budget 2.00 --output '{OUTPUT}' --approved-cost",
+    'native_settings': {'responseMimeType': 'application/json', 'maxOutputTokens': 2048,
+                        'sampling': 'provider defaults; overrides omitted', 'thinking': 'provider defaults; overrides omitted',
+                        'thought_accounting': 'Reported thoughtsTokenCount added to candidatesTokenCount for charged output.',
+                        'response_identity': 'Exact gemini-3.1-flash-lite modelVersion required; frozen prices enumerate no alias.'},
+    'policy': 'Frozen ordered cells and unchanged validated adapters only; fresh conversations, original full history, plain permissions without counsel. No prompt, scenario, scoring or setting edits; no trimming, substitution, cap expansion, or automatic issued-request retries. Stop for review on timeout, uncertain request, identity/usage failure, quota rejection or budget stop. Preserve all raw evidence and prior timeouts/reserves. Same checkout root/output for any approved resume. No other model or stage authorized.'
+}
+for key in ('freeze_file', 'evaluation_plan', 'price_file', 'gate3_approval_receipt'):
+    plan[{'freeze_file': 'freeze_sha256'}.get(key, key + '_sha256')] = sha(plan[key])
+write(PLAN_PATH, plan)
+write(APPROVAL_PATH, {'date': '2026-10-11', 'recorded_at_utc': datetime.now(timezone.utc).isoformat(),
+    'approval_verbatim': 'Approve offline preparation of Gemini 3.1 Flash-Lite’s frozen Study A evaluation; no model ca',
+    'interpreted_scope': 'Offline checks, declared fixtures, cost planning, documentation and commit/push on main only; no model calls.',
+    'funding_authorized': False, 'generation_authorized': False, 'cost_plan': PLAN_PATH, 'cost_plan_sha256': sha(PLAN_PATH)})
+policy = json.loads(Path('/etc/codex/network-policy.json').read_text())
+rules = policy['http_network_policy']['egress_rules']
+matching = [rule for rule in rules if rule['host'] == 'generativelanguage.googleapis.com']
+assert matching == [{'host': 'generativelanguage.googleapis.com'}]
+assert bool(os.environ.get('GEMINI_API_KEY'))
+write(str(PREP.relative_to(ROOT) / 'readiness.json'), {
+    'model_calls': 0, 'provider_network_requests': 0, 'actual_api_cost_dollars': 0,
+    'frozen_files_verified': verify_freeze(), 'adapter_sha256': adapter_sha,
+    'all_prior_ledger_sha256': ledgers, 'google_ledger_reconciled': True,
+    'google_ledger_dollars': prior, 'active_run_lock': False, 'existing_evaluation_output': False,
+    'GEMINI_API_KEY_available': True, 'credential_value_accessed_or_displayed': False,
+    'network_policy_version': policy['version'], 'gemini_host_rule': matching[0],
+    'configured_POST_permission': 'Host allowed with no method restriction; no probe sent.',
+    'billing_and_quota_verified': False, 'model_metadata_or_health_probe_sent': False,
+    'runtime_python': sys.version, 'runtime_executable': sys.executable,
+    'cost_plan_sha256': sha(PLAN_PATH), 'approval_required': phrase})
+with tempfile.TemporaryDirectory() as temporary:
+    folder = Path(temporary)
+    (folder / 'scenarios').symlink_to(ROOT / 'scenarios', target_is_directory=True)
+    with (PREP / 'historical-scripted.log').open('x') as log:
+        subprocess.run([sys.executable, str(ROOT / 'run.py'), '--scenario', 'all'], cwd=folder,
+                       stdout=log, stderr=subprocess.STDOUT, check=True)
+    summaries = list((folder / 'results').rglob('summary.md'))
+    assert len(summaries) == 1
+    (PREP / 'historical-scripted-summary.md').write_bytes(summaries[0].read_bytes())
+assert all(sha(p) == digest for p, digest in ledgers.items())
+print('Offline plan and approval receipt saved; ledgers reconciled and unchanged; historical scripted suite passed.')
