@@ -363,3 +363,10 @@ Dated predictions, run folders, and exceptions are in `LAB_NOTEBOOK.md`.
 3. Record every run. Summarize findings in the notebook.
 4. When a result bears on the paper, note the section it affects.
 5. Never change a scenario after seeing its results; copy it to a new file instead.
+
+## Paper 3 current gate (2026-10-10)
+
+Gate 3 research design and frozen files are approved. Free Stage 4 execution
+adapters are ready and verified; 59 frozen hashes match. Await separate Luna
+evaluation approval up to $1.00. No evaluation model calls authorized yet.
+See `docs/process/PAPER3_STAGE4_ADAPTER_REPORT_v0218.md`.

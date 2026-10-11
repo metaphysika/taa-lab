@@ -82,3 +82,15 @@ No later stage or paid pilot may begin before its required approvals. Chris
 asks the assistant to run free checks automatically and each approved model
 batch, then give a concise report of outcomes, cost, next steps, and the exact
 next approval or action required.
+
+## Gate 3 approved; Stage 4 free preparation (2026-10-10)
+
+The owner approved the v0.21.7 research design and frozen files, including the
+disclosed calibration ceiling exception. The separate dated approval receipt
+binds the unchanged 59-file manifest; candidate status text remains an archival
+record. New v0.21.8 execution adapters passed 276 unit tests, 120 declared native
+fixtures and the historical scripted suite. No model calls occurred. The first
+frozen Luna evaluation (240 episodes, estimate $0.330507, proposed cap $1) is
+prepared but NOT approved. Other providers are also unapproved. See
+`docs/process/PAPER3_STAGE4_ADAPTER_REPORT_v0218.md` and
+`studies/formation-study-a-luna-evaluation-cost-plan-v0218.json`.

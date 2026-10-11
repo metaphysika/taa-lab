@@ -1,4 +1,4 @@
-# TAA Lab (v0.21.7 formation development)
+# TAA Lab (v0.21.8 formation evaluation preparation)
 
 Gate 1 is approved: all five current model slots passed neutral connectivity. Gate 2 was approved on October 10, 2026: the 12 Study A cases and deterministic scorer under plain permissions are approved for Luna-only development planning. The approved first Luna-only pilot completed 12/12 correct using 47 requests, with a $0.00716131 usage-based cost estimate; see `docs/process/PAPER3_STAGE3_PILOT_PLAN.md`. Only Luna has seen Study A; held-out models remain untouched. See `docs/process/PAPER3_LUNA_PILOT_REPORT_2026-10-10.md`. See `docs/process/PAPER3_STUDY_A_GATE2.md` for every case and the proposed scoring rules. The approved build brief is `docs/process/PAPER3_BUILD_BRIEF.md`.
 

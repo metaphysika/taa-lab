@@ -5325,3 +5325,51 @@ No five-provider runner is yet built; Gate 3 review approves scientific
 content only, then free Stage 4 adapter preparation precedes separate cost
 approval. No model calls made during this work. Owner review of
 docs/process/PAPER3_GATE3_REVIEW_v0217.md remains pending.
+
+
+## 2026-10-10 — Gate 3 approved; free Stage 4 adapters v0.21.8
+
+Chris approved: “Approve Gate 3’s research design and frozen files — no model
+calls yet.” Separate dated approval receipt binds the existing freeze file's
+SHA-256; the frozen candidate file and all 59 references remain byte-identical.
+No keys.env read by the assistant and no model request authorized or made.
+
+New evaluation_transport_v0218.py and evaluation_runner_v0218.py adapt the
+frozen protocol without editing clients, scorer, cases, defaults, rules, plan
+or freeze. Native accounting handles all five pinned model slots. Input
+reserves use maximum applicable category prices; usage categories settle
+separately. Exact request and output limits, $8 shared provider stop, per-batch
+cap, approved frozen hashes, and execution adapter hashes are enforced.
+
+Durable per-cell checkpoints and request journals preserve progress. Local
+quota pauses before an issued request resume the same pending turn, keeping
+all history/effects and one follow-up. Completed cells are skipped; in-flight
+uncertainty cannot be automatically repeated. Issued 429, identity failure,
+usage failure or transport failure is retained and stops the batch; it is not
+replaced. Guard stops require review. Pending/partial rows are separate from
+completed analysis_records, so pauses cannot turn into a final P6 verdict.
+
+Groq no longer interprets JSON bytes as its token count. The new slot adapter
+reserves a full 8,000-token minute, allows one request per 61 seconds, tracks
+rolling request/day and token/day reservations, reconciles reported uncached
+input plus output, and honors server reset headers. It is quota-aware, not
+an exact tokenizer. An oversized single request may still receive 429; such
+a rejection remains evidence and is not retried. No trimming, change to the
+free account, or billing enablement occurs. No real Groq request tested yet.
+
+Tests cover all native envelopes, exact wire equality with the frozen Luna
+protocol, mid-episode quota resume without repeats, once-only pressure delivery,
+whole-model declared replay and replay-skip, uncertain checkpoints/journals,
+cache/category pricing through existing tests, full-slot/daily/header pacing,
+and retained issued rejection/identity failure. Free declared native fixtures
+are simulation evidence only, never experimental model judgments.
+
+Final verification: 276 unit tests passed (29.326 s); historical scripted all-
+scenario run passed. 120/120 declared native-response fixture episodes passed
+with 490 mocked requests, zero network requests, zero model calls and $0 cost.
+Final fixture rerun follows the checkpoint-recovery fix. All 59 frozen hashes
+still match. Original/free initial verification artifacts are retained separately.
+Luna cost plan prepared, not approved: 240 episodes, 2,880 maximum requests,
+$0.330507 usage forecast, proposed $1.00 cap, $14.46984 full-ceiling envelope.
+Completion within the cap is not guaranteed; stop and seek review if insufficient.
+No other provider generation is approved. See Stage 4 report and dated cost plan.
