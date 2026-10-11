@@ -4977,3 +4977,46 @@ built. After approval, prepare the Luna-only development plan and its cost
 estimate; obtain written cost approval before generation. Held-out models have
 not received any study stimulus. The first two papers and prospectus were used
 for contextual alignment only; their source files were not edited.
+
+
+## 2026-10-10 — Gate 2 approved; free recheck; first Luna plan pending cost approval
+
+Chris's “Let's do Gate 2” approves the previously presented Study A cases and
+scorer. His accompanying request delegates running the checks and approved
+batches, with concise reports and explicit next approval instructions.
+No model requests were made. No credentials were inspected. API cost: $0.
+
+Free checks passed: 241 unit tests, all 44 Study A fixtures, and
+python3 run.py --scenario all. Evidence is preserved in:
+- results/2026-10-10 v0.21.3 scripted-none r1 gate2 study-a recheck/
+- results/2026-10-10 v0.21.3 scripted-none r1 gate2 historical recheck/
+The original historical command output records its generated folder name;
+the folder was subsequently renamed according to lab conventions.
+The existing v0.19.5 freeze mismatch remains unchanged.
+
+Stage 3 preparation: studies/formation-study-a-luna-pilot-plan-2026-10-10.json
+and docs/process/PAPER3_STAGE3_PILOT_PLAN.md identify the first development
+batch: Luna only, all 12 approved cases once, plain permissions, no counsel,
+no human response, 12 turns per episode, 144 attempts maximum, no retries,
+32,000 native JSON request bytes, 2,048 completion tokens. Defaults are
+preserved apart from the declared output ceiling. Request-byte and batch
+guards must be implemented and verified free before execution.
+Official Luna prices rechecked 2026-10-10: $0.10 input/$0.50 output per million
+at https://developers.openai.com/api/docs/models/gpt-6-luna.
+Input reservation follows existing FormationRecorder's deliberately conservative
+byte-based accounting: 32,002 tokens at the byte cap. Maximum estimate
+144 * (32,002 * .10 + 2,048 * .50) / 1,000,000 = $0.6082848.
+Proposed application stop: $0.65; not a provider-enforced billing limit.
+This planning file is not an executable manifest or study freeze.
+
+Expected initial diagnostic, written before any model sees these cases:
+Luna may distinguish the explicit signed evidence in W/U pairs and refer the
+named R decisions; a ceiling across these clear cases is plausible. Remaining
+safe-work omissions and malformed action replies are separate plausible failure
+modes. Report actual effects and all errors without inferring moral success from
+silence or refusal. One episode per case cannot establish reliable rates or a
+P6 verdict. Additional pilot batches need their own cost approval; any case
+adjustments require new versions. P6's formal evaluation decision rule and
+expected results must be written before the Stage 3 freeze and evaluation.
+Held-out models have received no Study A stimuli. Paid generation is pending
+Chris's written approval of this specific batch and cap.

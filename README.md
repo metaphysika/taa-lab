@@ -1,6 +1,6 @@
 # TAA Lab (v0.21.3 formation development)
 
-Gate 1 is approved: all five current model slots passed neutral connectivity. Stage 2 adds 12 draft Study A cases and a free deterministic scorer under plain permissions, awaiting Gate 2 review. No formation study model has seen the cases. See `docs/process/PAPER3_STUDY_A_GATE2.md` for every case and the proposed scoring rules. The approved build brief is `docs/process/PAPER3_BUILD_BRIEF.md`.
+Gate 1 is approved: all five current model slots passed neutral connectivity. Gate 2 was approved on October 10, 2026: the 12 Study A cases and deterministic scorer under plain permissions are approved for Luna-only development planning. The first pilot awaits separate cost approval; see `docs/process/PAPER3_STAGE3_PILOT_PLAN.md`. No formation study model has seen the cases. See `docs/process/PAPER3_STUDY_A_GATE2.md` for every case and the proposed scoring rules. The approved build brief is `docs/process/PAPER3_BUILD_BRIEF.md`.
 
 A small, working slice of Teleological Alignment Architecture (TAA) and a test rig around it.
 

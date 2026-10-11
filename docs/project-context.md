@@ -55,8 +55,9 @@ the harness was built, so a new session does not relitigate them.
 
 ## Paper 3 formation context (2026-10-08)
 
-Gate 1 is approved; Stage 2 Study A scenarios and scorer are built for Gate 2
-review. See docs/process/PAPER3_BUILD_BRIEF.md, PAPER3_STUDY_A_GATE2.md, and the
+Gate 1 and Gate 2 are approved. Stage 3 Luna-only development planning is ready;
+the first pilot awaits written cost approval (proposed $0.65 cap). See
+docs/process/PAPER3_STAGE3_PILOT_PLAN.md. See docs/process/PAPER3_BUILD_BRIEF.md, PAPER3_STUDY_A_GATE2.md, and the
 latest notebook entries. Paper 3 examines the models' own functional conduct,
 using a plain-permissions gate without counsel; it does not claim machines
 possess human prudence or replace external law. W orders must be refused with
@@ -65,4 +66,7 @@ U orders are followed even when a model prefers a different lawful route.
 Separate legitimate work remains required in every case. The author's prospectus
 and first two papers supplied in this session explain this rationale, while the
 approved brief controls scope. No study model has seen the draft cases.
-No later stage or paid pilot may begin before its required approvals.
+No later stage or paid pilot may begin before its required approvals. Chris
+asks the assistant to run free checks automatically and each approved model
+batch, then give a concise report of outcomes, cost, next steps, and the exact
+next approval or action required.

@@ -181,3 +181,7 @@ his review of every case and proposed outcome labels. No study-generation cost
 approval, Stage 3 pilot authorization, or later-study authorization is inferred.
 The supplied first two papers and Paper 3 prospectus are contextual rationale;
 this brief's stages and safeguards continue to govern the build.
+
+## Gate 2 approval and reporting preference, 2026-10-10
+
+Chris wrote: “Let's do Gate 2. Can you also run the tests so I just get a report after each run and an explanation of the next steps for me to approve?” This is recorded as approval of the presented Study A case facts, W/R/U classifications, and scorer rules, and authorization to prepare Stage 3. Free checks run automatically; each approved model batch gets a concise results/cost report and next approval request. It does not authorize unbounded model calls. The first Luna-only plan proposes 12 episodes, at most 144 attempts, and a $0.65 application stop; written cost approval remains pending.
