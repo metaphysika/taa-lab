@@ -5909,3 +5909,27 @@ Plan is not execution-ready. Next approval: offline continuation adapter and
 fixture preparation, no model calls; separate execution approval afterward.
 Plan: studies/formation-study-a-qwen38-continuation-plan-v0220.json.
 Report: docs/process/PAPER3_QWEN38_CONTINUATION_OFFLINE_REVIEW_2026-10-11.md.
+
+
+## 2026-10-11 — v0.22.1 Qwen suffix adapter prepared offline
+
+User approved offline adapter preparation/testing only. New separate Qwen wrapper
+and controller bind the exact 236 untouched cells, original root/output, source
+hashes, original/new adapters and quota/ledger boundaries. Retain A_R02 repeat 1
+HTTP 429 and all four attempted cells without retry or replacement. Original
+manifest/status/progress remain; new continuation evidence appends to journal
+with unique IDs and separate metadata. Written hash-bound execution approval
+is required before credentials, transport or evidence creation. No execution
+receipt recorded, controller not started, supervision remains disabled.
+All 59 frozen files, original adapters and ledgers/quota unchanged; $0 spending.
+Sixteen targeted tests pass, including 236 native fixture cells (966 mocked
+responses), exact 240 combined records, quota-only resumes, no duplicate calls
+and issued failure/identity/usage/guard/inflight/unclosed/lock/tamper stops.
+Full 300-test suite and historical scripted checks pass; fixture logs retained.
+New behavior version v0.22.1; no model requests or provider probes.
+Next decision: approve remaining 236 episodes on Groq Free at $0, retaining
+A_R02 repeat 1 without retry; resume only pre-request quota pauses. Unknown 429
+cause/completion risk persists; saved default pause must expire normally.
+Plan: studies/formation-study-a-qwen38-continuation-execution-plan-v0221.json.
+Report: docs/process/PAPER3_QWEN38_CONTINUATION_READINESS_2026-10-11.md.
+No other model or stage advances; commit/push directly on main.

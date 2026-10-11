@@ -1,0 +1,17 @@
+import json,hashlib,sys
+from pathlib import Path
+r=Path('/workspace/taa-lab');sys.path.insert(0,str(r))
+from formation.evaluation_qwen_continuation_v0221 import ADAPTERS,APPROVAL_TEXT
+from scripts.formation_study_a_gate3 import verify_freeze
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+read=lambda p:json.loads(p.read_text())
+cost=read(r/'studies/formation-study-a-qwen38-evaluation-cost-plan-v0220.json')
+source=r/cost['output'];review_path=r/'results/2026-10-11 v0.22.0 qwen38-none r10 offline continuation review/source-review.json';review=read(review_path)
+assert verify_freeze()==59
+assert review['source_sha256']=={p.name:sha(p) for p in source.iterdir() if p.is_file()}
+bound={**cost['adapter_sha256'],**{p:sha(r/p) for p in ADAPTERS}}
+for p in [cost['freeze_file'],cost['evaluation_plan'],cost['price_file'],'studies/formation-study-a-qwen38-evaluation-cost-plan-v0220.json','studies/formation-study-a-qwen38-evaluation-approval-2026-10-11.json','studies/formation-study-a-qwen38-continuation-plan-v0220.json']:
+ bound[p]=sha(r/p)
+plan={'version':'0.22.1','status':'offline_prepared_requires_separate_execution_approval','checkout_root':str(r),'output':cost['output'],'model':cost['model'],'provider':'groq','cap_dollars':0,'maximum_additional_dollars':0,'free_tier_required':True,'pending_cells':review['pending_cells'],'retained_attempted_cells':cost['cells'][:4],'retained_failure':{'case_id':'A_R02','repeat':1,'attempt_id':'A000020','retry':False},'source_review':str(review_path.relative_to(r)),'source_review_sha256':sha(review_path),'original_journal_bytes':(source/'calls.jsonl').stat().st_size,'original_journal_sha256':sha(source/'calls.jsonl'),'freeze_file':cost['freeze_file'],'price_file':cost['price_file'],'bound_file_sha256':bound,'new_adapter_sha256':{p:sha(r/p) for p in ADAPTERS},'controller_archive':str((source/'quota-resume-controller-methodology.txt').relative_to(r)),'controller_sha256':read(source/'runtime-receipt.json')['controller_sha256'],'other_ledger_sha256':{p:h for p,h in review['ledger_and_quota_sha256'].items() if not p.endswith('/groq.json') and not p.endswith('/groq-rate.json')},'initial_groq_sha256':{p:h for p,h in review['ledger_and_quota_sha256'].items() if p.endswith('/groq.json') or p.endswith('/groq-rate.json')},'approval_phrase':APPROVAL_TEXT,'execution_approval_recorded':False,'python':'/workspace/haiku55-runtime/venv/bin/python3','command_after_separate_approval':['/workspace/haiku55-runtime/venv/bin/python3','scripts/formation_study_a_qwen38_continuation_controller.py','--plan','studies/formation-study-a-qwen38-continuation-execution-plan-v0221.json','--approved-continuation','--reviewed-issued-failure','--confirm-groq-free'],'policy':'Original root/output; unchanged frozen native settings/history/scoring/model. Never retry/replace any issued failure. Preserve prefix and append unique journal IDs. Resumes only after verified pre-request quota pauses; no concurrent provider ledger use. Retain failed 8000-token quota reservation and default pause until ordinary expiry; no upgrade or cap expansion. Stop on new timeout/issued failure/identity/usage/over-8000/guard/inflight/unclosed evidence. Completion not guaranteed at Free limits; no other stage advanced.'}
+(r/'studies/formation-study-a-qwen38-continuation-execution-plan-v0221.json').write_text(json.dumps(plan,indent=2)+'\n')
+print('Prepared execution plan with adapter hashes; no execution approval.')

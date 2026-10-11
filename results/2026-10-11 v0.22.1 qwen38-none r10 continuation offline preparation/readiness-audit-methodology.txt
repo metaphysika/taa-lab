@@ -1,0 +1,21 @@
+import json,hashlib,sys
+from pathlib import Path
+from datetime import datetime,timezone
+r=Path('/workspace/taa-lab');sys.path.insert(0,str(r))
+from formation.evaluation_qwen_continuation_v0221 import review_source,APPROVAL,APPROVAL_TEXT
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+p=r/'studies/formation-study-a-qwen38-continuation-execution-plan-v0221.json';plan=review_source(p)
+d=r/'results/2026-10-11 v0.22.1 qwen38-none r10 continuation offline preparation'
+for src,target in [('/tmp/qwen-continuation-fixtures.log','fixture-tests-initial.log'),('/tmp/qwen-continuation-fixtures-second.log','fixture-tests-second.log'),('/tmp/qwen-continuation-fixtures-third.log','fixture-tests-third.log'),('/tmp/qwen-continuation-fixtures-final.log','fixture-tests-final.log')]:
+ (d/target).write_bytes(Path(src).read_bytes())
+fixtures=[]
+for name in ['studies/formation-study-a-fixtures-v0213.json','studies/formation-study-a-pressure-fixtures-v0215.json']:
+ fixtures+=json.loads((r/name).read_text())['fixtures']
+count=sum(len(next(f['packets'] for f in fixtures if f['name']=='required_conduct' and f['case_id']==c['case_id'])) for c in plan['pending_cells'])
+receipt={'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'approval':'Approve offline preparation and testing of Qwen’s continuation adapter for the 236 untouched episodes; retain A_R02 repeat 1 without retrying; no model calls.','starting_commit':'20380f7bc5716e16dd31f425907a6930794f921e','scope':'New suffix-only adapter/controller, offline native fixtures, full unit/historical scripted verification, readiness report, credential-free commit/push on main. No model calls or execution approval.','model_calls_authorized':False,'plan':str(p.relative_to(r)),'plan_sha256':sha(p)}
+(r/'studies/formation-study-a-qwen38-continuation-preparation-approval-2026-10-11.json').write_text(json.dumps(receipt,indent=2)+'\n')
+metadata={'phase':'offline continuation preparation only','model_calls':0,'provider_probes':0,'original_checkout_root':str(r),'output':plan['output'],'retained_attempted_cells':4,'retained_failed_cell':'A_R02 repeat 1 / A000020','untouched_cells':236,'first_untouched':'A_R03 repeat 1','frozen_files_verified':59,'source_files_modified':False,'original_adapters_modified':False,'ledgers_or_quota_modified':False,'groq_batch_and_cumulative_dollars':0,'failed_quota_reserve_tokens':8000,'fixture_episodes':236,'fixture_native_response_count':count,'fixture_tests_passed':16,'fixture_only_note':'Declared required-conduct stand-ins, mocked urlopen and local test credentials. No inference about real Qwen outcomes.','initial_fixture_error':'Test-only fake clock expected paused_until after ordinary quota settlement; fixed fixture clock to allow absence of this field. Initial failed log retained.','new_adapter_sha256':plan['new_adapter_sha256'],'execution_plan_sha256':sha(p),'execution_approval_receipt_present':(r/APPROVAL).exists(),'continuation_controller_started':False,'supervision_enabled':False,'approval_phrase':APPROVAL_TEXT,'completion_guaranteed':False}
+(d/'readiness.json').write_text(json.dumps(metadata,indent=2)+'\n')
+(d/'execution-plan-preparation-methodology.txt').write_bytes(Path('/workspace/haiku55-runtime/prepare_qwen38_execution_plan.py').read_bytes())
+(d/'readiness-audit-methodology.txt').write_bytes(Path(__file__).read_bytes())
+print('Offline readiness saved:',count,'mocked native responses; no model calls.')

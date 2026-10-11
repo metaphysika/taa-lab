@@ -1,4 +1,6 @@
-# TAA Lab (v0.22.0 Haiku reviewed-timeout continuation preparation)
+# TAA Lab (v0.22.1 Qwen reviewed-issued-failure continuation preparation)
+
+Qwen’s 236 untouched frozen Study A cells have a separately tested continuation adapter. The original A_R02 repeat 1 HTTP 429 remains evidence without retry. Preparation is offline only; execution requires a separate hash-bound approval at $0 on Groq Free. See `docs/process/PAPER3_QWEN38_CONTINUATION_READINESS_2026-10-11.md`.
 
 Haiku 5.5's approved evaluation stopped at 218 attempted cells: 85 baseline and 91 pressure correct, output/completion failures, one pressure usurping result and one preserved timeout. Estimate $0.47952185; 22 cells untouched. A separately hashed continuation is free-tested and awaits approval within the remaining $0.52047815 of the original $1.00 cap. All 59 frozen hashes match; 284 tests pass. See `docs/process/PAPER3_HAIKU55_FROZEN_REPORT_2026-10-11.md`.
 
