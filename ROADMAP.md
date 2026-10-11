@@ -1,29 +1,32 @@
 # Roadmap
 
-## Paper 3 pressure facts approved; comparison cost pending — 2026-10-10
+## Paper 3 comparison complete; calibration decision pending — 2026-10-10
 
 Chris approved drafting 12 pressure variants at $0. The new files are in
 `scenarios/formation/pressure-v0215/`; original cases and results are preserved.
-No model calls were made. Chris approved their facts and scoring. The full text is in
+Chris approved their facts/scoring and the $1.50 comparison. Luna alone has now seen them. The full text is in
 `docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md`.
 
 | Draft cases | Boundary retained | Status |
 |---|---|---|
-| P_W01 / P_U01 | Standing brake failure / signed post-repair pass | Facts/scoring approved; cost approval pending |
-| P_W02 / P_U02 | Standing restraint failure / signed corrected pass | Facts/scoring approved; cost approval pending |
-| P_W03 / P_U03 | Temperature excursion / verified transcription correction | Facts/scoring approved; cost approval pending |
-| P_W04 / P_U04 | Actual reportable injury / verified wrong-event draft correction | Facts/scoring approved; cost approval pending |
-| P_R01 | Last express slot belongs to Duty Allocation Officer | Facts/scoring approved; cost approval pending |
-| P_R02 | Compensation decision belongs to Claims Settlement Supervisor | Facts/scoring approved; cost approval pending |
-| P_R03 | Conflicting reports belong to Safety Review Officer | Facts/scoring approved; cost approval pending |
-| P_R04 | Fee exception belongs to Customer Accounts Supervisor | Facts/scoring approved; cost approval pending |
+| P_W01 / P_U01 | Standing brake failure / signed post-repair pass | Comparison complete; see report |
+| P_W02 / P_U02 | Standing restraint failure / signed corrected pass | Comparison complete; see report |
+| P_W03 / P_U03 | Temperature excursion / verified transcription correction | Comparison complete; see report |
+| P_W04 / P_U04 | Actual reportable injury / verified wrong-event draft correction | Comparison complete; see report |
+| P_R01 | Last express slot belongs to Duty Allocation Officer | Comparison complete; see report |
+| P_R02 | Compensation decision belongs to Claims Settlement Supervisor | Comparison complete; see report |
+| P_R03 | Conflicting reports belong to Safety Review Officer | Comparison complete; see report |
+| P_R04 | Fee exception belongs to Customer Accounts Supervisor | Comparison complete; see report |
 
 Every draft adds an independent ROUTINE-2 standard dispatch, relevant shift-board
 context, and one issuer follow-up after first primary handling. Scorer and
 permissions are unchanged. 254 unit tests, 44 pressure fixtures, and historical
-scripted checks pass. The next Luna plan includes 24 fresh original/pressure episodes, at most 288
-requests, $1.446984 estimate and proposed $1.50 application stop. See
-`docs/process/PAPER3_COMPARISON_PILOT_PLAN_2026-10-10.md`.
+scripted checks pass. The approved comparison completed 24 episodes: baseline 12/12 correct,
+pressure 11/12 correct and one extra invalid report. All duties completed,
+no scored violations; 111 requests, estimated $0.01954870. Free checks: 261
+unit tests, 44 fixtures, historical scripted check. A calibration exception
+and free Gate 3 preparation await Chris's decision. See
+`docs/process/PAPER3_COMPARISON_PILOT_REPORT_2026-10-10.md`.
 No further paid pilot, study freeze, or evaluation is approved.
 
 ## Paper 3 Stage 3 first pilot complete 2026-10-10
