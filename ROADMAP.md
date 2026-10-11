@@ -687,3 +687,19 @@ ledger/quota committed/pushed directly on main. Later live files legitimately
 advance beyond this three-request snapshot; snapshot hashes are historical.
 No Mac step required. Full P6 remains inconclusive pending Qwen completion and
 under existing frozen completeness/identity rules.
+
+
+## 2026-10-11 — Qwen frozen evaluation stopped for review
+
+Qwen on Groq Free stopped on issued HTTP 429 at A_R02 repeat 1 (A000020); no
+retry. Four episodes attempted, three valid final identities, 236 untouched
+starting A_R03 repeat 1. Twenty requests closed, nineteen native valid responses.
+Batch/cumulative Groq $0; failed 8,000-token quota reservation retained. All 59
+frozen files and adapter/cost-plan/controller hashes match, deterministic replay
+matches all four result checkpoints, earlier evidence and paid ledgers unchanged.
+Controller absent; supervision disabled. Preserve all launches/checkpoints and
+original root/output. Existing approval covers only pre-request pauses; do not
+restart. Next step requires approval for offline 429 review and a continuation
+plan for untouched cells, retaining the failed episode without retry. No model
+calls or other-stage advancement during this audit. Full P6 stays inconclusive.
+Report: docs/process/PAPER3_QWEN38_FROZEN_EVALUATION_STOP_REPORT_2026-10-11.md.
