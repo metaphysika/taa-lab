@@ -1,0 +1,163 @@
+"""Derived analysis of the approved run; no generation or credential loading."""
+import hashlib
+import json
+import os
+import sys
+from collections import Counter
+from pathlib import Path
+
+ROOT = Path('/workspace/taa-lab')
+sys.path.insert(0, str(ROOT))
+from formation.study_a_analysis import analyze, cell_key
+from formation.study_a import load_cases, replay_episode
+from scripts.formation_study_a_gate3 import verify_freeze
+from scripts.formation_connectivity import journal_spend
+
+MODEL = 'claude-haiku-4-5-20251001'
+COST_PATH = ROOT / 'studies/formation-study-a-haiku45-evaluation-cost-plan-v0220.json'
+def read(path):
+    return json.loads(path.read_text())
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+cost = read(COST_PATH)
+OUTPUT = ROOT / cost['output']
+def write(name, data):
+    with (OUTPUT / name).open('x') as out:
+        json.dump(data, out, indent=2, ensure_ascii=False)
+        out.write('\n')
+
+assert verify_freeze() == 59
+for field, digest in [('freeze_file', 'freeze_sha256'), ('evaluation_plan', 'evaluation_plan_sha256'),
+                      ('price_file', 'price_file_sha256'), ('gate3_approval_receipt', 'gate3_approval_receipt_sha256')]:
+    assert sha(ROOT / cost[field]) == cost[digest]
+for path, digest in cost['adapter_sha256'].items():
+    assert sha(ROOT / path) == digest
+for path, digest in cost['forecast_source_sha256'].items():
+    assert sha(ROOT / path) == digest
+assert not os.path.lexists(ROOT / 'results/formation-spending-v021/run.lock')
+approval = read(ROOT / 'studies/formation-study-a-haiku45-evaluation-approval-2026-10-11.json')
+assert approval['cost_plan_sha256'] == sha(COST_PATH)
+manifest = read(OUTPUT / 'execution-manifest.json')
+assert manifest['model'] == MODEL and manifest['provider'] == 'claude' and manifest['budget'] == 3.0
+assert manifest['cells'] == cost['cells']
+assert manifest['adapter_sha256'] == cost['adapter_sha256']
+assert manifest['freeze_sha256'] == cost['freeze_sha256'] and manifest['no_retry'] is True
+summary = read(OUTPUT / 'progress-summary.json')
+records = summary['records']
+assert len(records) == len({cell_key(r) for r in records}) == 120
+assert [{k: r[k] for k in c} for c, r in zip(cost['cells'], records)] == cost['cells']
+results = []
+stopped_checkpoints = []
+for row in records:
+    name = '%s-r%02d' % (row['case_id'], row['repeat'])
+    path = OUTPUT / (name + '.json')
+    checkpoint = OUTPUT / (name + '-checkpoint.json')
+    if row['status'] == 'complete':
+        result = read(path)
+        state = read(checkpoint)
+        assert state['phase'] == 'complete' and state['result'] == result
+        assert result['score']['outcome'] == row['outcome'] and result['identity_valid'] == row['identity_valid']
+        assert result['agent'] == MODEL
+        case = load_cases([ROOT / row['path']])[0]
+        replayed = replay_episode(case, state['packets'])
+        for field in ('score', 'attempts', 'effects', 'final_world'):
+            assert replayed[field] == result[field]
+        results.append(result)
+    elif row['status'] == 'not_attempted':
+        assert not row['attempted'] and not path.exists() and not checkpoint.exists()
+    else:
+        assert checkpoint.exists()
+        state = read(checkpoint)
+        stopped_checkpoints.append({'case_id': row['case_id'], 'repeat': row['repeat'],
+                                    'arm': row['arm'], 'phase': state['phase'],
+                                    'packet_count': len(state['packets']), 'reason': state.get('reason')})
+
+events = [json.loads(line) for line in (OUTPUT / 'calls.jsonl').read_text().splitlines()]
+logical = {e['id']: e for e in events if e['event'] == 'logical_start'}
+starts = {e['id']: e for e in events if e['event'] == 'attempt_start'}
+ends = {e['id']: e for e in events if e['event'] == 'attempt_end'}
+requests = [e for e in events if e['event'] == 'native_request']
+responses = [e for e in events if e['event'] == 'native_response']
+assert len(starts) == sum(e['event'] == 'attempt_start' for e in events)
+assert len(ends) == sum(e['event'] == 'attempt_end' for e in events)
+assert len(starts) <= cost['max_requests']
+per_cell = Counter('%s-r%02d' % (logical[e['logical_id']]['context']['case_id'],
+                               logical[e['logical_id']]['context']['repeat']) for e in starts.values())
+assert all(n <= 12 for n in per_cell.values())
+plan = read(ROOT / cost['evaluation_plan'])
+assert all(set(e['body']) == {'model', 'system', 'messages', 'max_tokens'}
+           and e['body']['model'] == MODEL and e['body']['max_tokens'] == 2048
+           and e['body']['system'] == plan['system'] for e in requests)
+max_wire = max((len(json.dumps(e['body']).encode()) for e in requests), default=0)
+assert max_wire <= 32000
+spent = journal_spend(OUTPUT / 'calls.jsonl')
+assert spent == summary['batch_estimated_dollars'] and spent <= 3.0
+ledger = read(ROOT / 'results/formation-spending-v021/claude.json')['estimated_api_dollars']
+assert round(ledger - cost['prior_cumulative_claude_ledger_dollars'], 8) == round(spent, 8)
+assert ledger <= cost['cumulative_claude_ceiling_if_batch_approved_dollars']
+settled = sum(e.get('estimated_charge_dollars') or 0 for e in ends.values())
+retained = sum(e['reserved_dollars'] for aid, e in starts.items()
+               if aid not in ends or ends[aid].get('estimated_charge_dollars') is None)
+errors = [{'id': aid, 'error': e['error'], 'reserve_retained': e.get('reserve_retained')}
+          for aid, e in ends.items() if e.get('error')]
+identity_failures = sum(bool(e.get('model_mismatch') or e.get('usage_missing')
+                            or (not e.get('error') and e.get('model_returned') != MODEL)) for e in ends.values())
+if summary['completed_cells'] == 120 and summary['status'] == 'complete':
+    assert set(starts) == set(ends) and not errors and not identity_failures
+    assert len(responses) == len(starts) and all(r['identity_valid'] for r in records)
+
+luna = read(ROOT / 'results/2026-10-10 v0.21.9 luna-none r10 study-a continuation/combined-luna-summary.json')['analysis_records']
+haiku55 = read(ROOT / 'results/2026-10-11 v0.22.0 haiku55-none r10 study-a continuation/combined-haiku55-summary.json')['analysis_records']
+old_index = read(ROOT / 'results/2026-10-11 v0.22.0 haiku55-none r10 study-a continuation/evidence-integrity.json')
+for path, digest in old_index['sha256'].items():
+    if path != 'results/formation-spending-v021/claude.json':
+        assert sha(ROOT / path) == digest
+old_source = ROOT / 'results/2026-10-11 v0.21.9 haiku55-none r10 study-a evaluation'
+for name, digest in old_index['original_source_sha256'].items():
+    assert sha(old_source / name) == digest
+analysis = analyze(plan, luna + haiku55 + records)
+profile = next(p for p in analysis['profiles'] if p['model'] == MODEL)
+audit = {'phase': 'real model evaluation audit; calls.jsonl is authoritative',
+         'issued_requests': len(starts), 'native_responses': len(responses),
+         'unclosed_attempts': sorted(set(starts) - set(ends)), 'request_errors': errors,
+         'identity_or_usage_failures': identity_failures,
+         'settled_estimate_dollars': settled, 'retained_uncertain_reserve_dollars': retained,
+         'batch_estimated_dollars': spent, 'max_wire_bytes': max_wire,
+         'native_finish_reasons': dict(Counter(e['response'].get('stop_reason') for e in responses)),
+         'per_cell_issued_requests': dict(per_cell),
+         'legacy_placeholder_note': 'Episode model_calls:0 is inherited from replay; use calls.jsonl for actual API requests.'}
+report = {'model': MODEL, 'status': summary['status'], 'planned_episodes': 120,
+          'completed_episodes': summary['completed_cells'],
+          'attempted_episodes': sum(r['attempted'] for r in records),
+          'unattempted_episodes': sum(not r['attempted'] for r in records),
+          'valid_identity_episodes': sum(r['attempted'] and r['identity_valid'] for r in records),
+          'outcomes_by_arm': {arm: dict(Counter(r['outcome'] for r in records if r['arm'] == arm and r['attempted']))
+                              for arm in ('baseline', 'pressure')},
+          'outcomes_by_repeat': {str(rep): dict(Counter(r['outcome'] for r in records if r['repeat'] == rep and r['attempted']))
+                                for rep in range(1, 6)},
+          'settled_estimate_dollars': settled, 'retained_uncertain_reserve_dollars': retained,
+          'batch_estimated_dollars': spent, 'approved_cap_dollars': 3.0,
+          'unused_batch_allowance_dollars': 3.0 - spent,
+          'prior_cumulative_claude_ledger_dollars': cost['prior_cumulative_claude_ledger_dollars'],
+          'cumulative_claude_ledger_dollars': ledger,
+          'issued_requests': len(starts), 'native_responses': len(responses),
+          'action_errors': sum(r['score']['action_errors'] for r in results),
+          'requirements_completed_episodes': sum(r['score']['requirements_completed'] for r in results),
+          'issuer_followup_deliveries': sum(len(r['issuer_message_deliveries']) for r in results),
+          'attempted_violations': {kind: sum(r['score']['attempted_violations'][kind] for r in results)
+                                   for kind in ('servile', 'usurping', 'unauthorized')},
+          'executed_violations': {kind: sum(r['score']['executed_violations'][kind] for r in results)
+                                  for kind in ('servile', 'usurping', 'unauthorized')},
+          'stopped_checkpoints': stopped_checkpoints, 'frozen_files_verified': 59,
+          'adapter_sha256': cost['adapter_sha256'], 'profile': profile,
+          'p6_verdict': analysis['verdict'], 'analysis_records': records}
+write('request-audit.json', audit)
+write('haiku45-evaluation-summary.json', report)
+write('frozen-analysis-combined.json', analysis)
+write('non-correct-episodes.json', {
+    'policy': 'Existing frozen scorer outputs only; no new model or reviewer judgments.',
+    'episodes': [{'case_id': r['case_id'], 'arm': r['arm'], 'repeat': r['repeat'], 'score': r['score']}
+                 for r in results if r['score']['outcome'] != 'correct'],
+    'stopped_checkpoints': stopped_checkpoints})
+print(json.dumps({k: v for k, v in report.items() if k not in ('analysis_records', 'profile', 'outcomes_by_repeat')}, indent=2))
+print('Kind profile:', json.dumps(profile, indent=2))

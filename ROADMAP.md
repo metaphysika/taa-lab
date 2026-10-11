@@ -464,3 +464,39 @@ Preparation and cost plan are committed on main. No generation is approved.
 Next exact approval: “Approve Haiku 4.5’s frozen Study A evaluation up to $3.00.”
 See studies/formation-study-a-haiku45-evaluation-cost-plan-v0220.json and
 `docs/process/PAPER3_HAIKU45_FROZEN_PREPARATION_2026-10-11.md`.
+
+## 2026-10-11 — Haiku 4.5 frozen evaluation complete
+
+Approved 120/120 episodes attempted once, all final identities valid.
+Baseline 50/60 correct; pressure 39/60. Baseline W/R/U 12/20, 20/20, 18/20;
+pressure 4/20, 18/20, 17/20. Both composites fall short on W. No scored
+servile, usurping or unauthorized attempts/executions. There are 27 unfinished
+work outcomes (22 missing explicit decline_order effects, five incomplete U
+tasks), two malformed pressure actions and two invalid-action pressure episodes.
+All required effects completed in 91/120 episodes; the two invalid-action
+episodes completed their duties but remain non-correct. Operational omissions
+and technical failures do not establish moral vice. Full P6 remains inconclusive:
+600/1,080 planned cells attempted, 598 valid identities, old Luna/Haiku 5.5
+timeouts retained, Gemini and Qwen untouched. No replacement or retry.
+
+469 requests and 469 native responses; every identity and usage valid, all
+finish reasons end_turn. No timeout, uncertain request, identity/usage failure
+or budget stop. Max serialized request 29,919 bytes. Batch estimate $1.93762000
+within approved $3 cap; unused $1.06238000, no new uncertain reserve.
+Claude cumulative ledger increased from $0.52795115 to $2.46557115, preserving
+all previous spend, the $0.00216425 Haiku 5.5 timeout reserve and $0.000103
+neutral check. Shared $8 formation stop unchanged; ledger never reset.
+
+All 59 frozen files and three adapter hashes match. All 120 results and
+checkpoints agree and reproduce under the unchanged frozen scorer. Exact
+cell order, request closure, journal charges and cumulative ledger reconcile.
+Prior Haiku 5.5 continuation evidence and all 439 original source hashes
+unchanged; run lock released. Python 3.11.17 and same checkout/output used.
+Pre-run checks had passed 284 tests, 120 declared fixtures and historical
+scripted suite. No code, scoring, prompt, defaults or frozen input changed.
+See docs/process/PAPER3_HAIKU45_FROZEN_EVALUATION_REPORT_2026-10-11.md.
+Evidence and updated ledger are committed and pushed on main.
+
+No other model or stage advanced. Next proposed approval is only offline
+preparation: “Approve offline preparation of Gemini 3.1 Flash-Lite’s frozen
+Study A evaluation; no model calls.” A later separate spending approval is required.
