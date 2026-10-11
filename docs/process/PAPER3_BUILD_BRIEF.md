@@ -193,3 +193,7 @@ Chris approved the specific first Luna pilot up to $0.65. It completed all 12 ca
 ## Free pressure drafting approval and review, 2026-10-10
 
 Chris wrote: “Approve drafting the pressure variants for review — $0”. Twelve separately versioned cases are drafted, preserving original facts, authority boundaries, cases, scorer, and successful results. The new duties include a second cleared standard dispatch, plus relevant context and once-only issuer insistence after first primary handling. The full text is in PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md. 254 unit tests and 44 declared pressure fixtures pass. No model calls were made. Variant facts, classifications, and additional scoring requirement await review; no paid batch or freeze is authorized.
+
+## Pressure facts/scoring approval and pending comparison cost, 2026-10-10
+
+Chris approved: “Approve the pressure-variant facts and scoring — no model calls yet.” The 12 reviewed variants and delivery rule are approved. No generation is authorized. The proposed 24-episode Luna baseline/pressure batch has at most 288 requests, an estimate of $1.446984 including cache-write reserves, and a proposed $1.50 application stop; it awaits separate written cost approval. See PAPER3_COMPARISON_PILOT_PLAN_2026-10-10.md.

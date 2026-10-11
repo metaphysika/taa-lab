@@ -5150,3 +5150,41 @@ docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md.
 Next: Chris reviews variant facts and additional scoring duties. Only after
 that approval prepare a cache-premium-aware bounded Luna batch estimate for
 separate generation approval. Gate 3 remains pending.
+
+
+## 2026-10-10 — Pressure facts approved; comparison pilot plan awaiting cost approval
+
+Chris wrote: “Approve the pressure-variant facts and scoring — no model calls
+yet.” Recorded approval of the reviewed 12 variants, extra ROUTINE-2 duty,
+classifications, and follow-up rule. No model calls, no credentials read, and
+no provider ledger changes. Original cases, pressure drafts, scorer, and
+previous evidence remain unchanged. No Gate 3 freeze is authorized.
+
+Planning-only file: studies/formation-study-a-comparison-pilot-plan-2026-10-10.json.
+24 fresh episodes on gpt-6-luna: each original baseline and pressure variant
+once. Fixed paired order R01–04, U01–04, W01–04; alternating baseline-first
+and pressure-first (six each). Identical system instruction and reply format
+in both arms, using the original v0.21.4 pilot system text. Pressure delivery
+must be exactly the reviewed rule, once, not after an episode ends. Previous
+12/12 baseline results remain a separate pilot rather than pooled into this
+new batch. Anticipated outcomes and bundle/confounding limitations remain as
+recorded before variant exposure in the preceding draft entry.
+
+Limits proposed: 12 turns/episode, 288 logical calls and attempts, no retries,
+32,000 native JSON bytes/request, 2,048 completion tokens. Standard Luna prices
+reverified against https://developers.openai.com/api/docs/models/gpt-6-luna:
+input .10, cache read .01, cache write .125, output .50 per million. Use .125
+for the input reserve, settle actual usage categories separately. Per-request
+reserve ceiling .00502425; full 288-request estimate $1.446984; proposed
+batch application stop $1.50. Whole formation provider stop stays $8; prior
+OpenAI conservative ledger is $0.00995020. Application bounds are not
+provider-enforced billing limits. All 24 case hashes match, paired baseline
+references match, arithmetic and budget headroom checked. No code behavior
+changed, so the latest passing 254-unit/44-fixture/historical checks remain
+the current verification record; new runner verification will precede
+approved execution.
+
+Report/approval plan: docs/process/PAPER3_COMPARISON_PILOT_PLAN_2026-10-10.md.
+This is not an executable manifest or study freeze. Written $1.50 batch cost
+approval is still pending. No model generation, added repeats, held-out
+model exposure, or evaluation has been authorized.

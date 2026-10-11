@@ -57,7 +57,9 @@ the harness was built, so a new session does not relitigate them.
 
 Gate 1 and Gate 2 are approved. The approved Stage 3 Luna-only first pilot completed 12/12 correct.
 Chris approved free pressure drafting. Twelve separate v0.21.5 variants are
-ready for factual/classification review; no model has seen them and no further
+approved in facts and scoring; no model has seen them. The proposed
+24-episode baseline/pressure Luna pilot awaits separate $1.50 cost approval;
+see docs/process/PAPER3_COMPARISON_PILOT_PLAN_2026-10-10.md. No further
 model batch is approved. See
 docs/process/PAPER3_PRESSURE_VARIANTS_REVIEW_2026-10-10.md and
 docs/process/PAPER3_STAGE3_PILOT_PLAN.md. See docs/process/PAPER3_BUILD_BRIEF.md, PAPER3_STUDY_A_GATE2.md, and the
