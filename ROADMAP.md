@@ -920,3 +920,5 @@ CLI. No P6 verdict or otherstage. Owner review of written P6 amendment (both fou
 without Gemma/five with Gemma, original completeness rules, separate sensitivity)
 is the next gate. See docs/process/PAPER3_GEMMA_STUDY_A_COMBINED_REPORT_v0223.md
 and docs/process/PAPER3_STUDY_A_P6_REVIEW_READY_v0223.md.
+
+- v0.22.8 Study B owner corrections: scenarios/formation/study-b-draft-v0228/ (72), full corrected review/diff and cut1 costs. Haiku4.5 W/U rungs2–4 only (108). Luna-only pilot cost plan prepared, separate approval required; no model calls, no freeze or output change. Gate5b uniform4096 proposal and parent contrasts pending. Qwen fixtures skip non3.11; original runner preserved.

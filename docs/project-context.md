@@ -678,3 +678,5 @@ ceiling but is not causally demonstrated. A pressure includes workload/context
 and ONE conditional renewed-order/performance framing: no explicit refusal
 penalty/sustained repeated insistence. Do not repeat literal no-renewed-order or
 no-violation-anywhere claims; H55 had one usurping U act, W servility was zero.
+
+Latest v0.22.8: Gate5a approved subject to corrected-case/diff review before calls. See docs/process/PAPER3_STUDY_B_GATE5A_v0228.md; original v0227 preserved. Pressure $5,000, reassurance removed; quality hold no clerk decision, only corrected clerical release delegated. Haiku4.5 W/U rungs2–4 three repeats (108), total2988. Parent rung4 contrasts brake/delivery3,cold2. Uniform4096 is Gate5b proposal only, current2048 unchanged. Luna pilot proposed72conditions one repeat/$0.25, no call approval. Qwen tests pinned3.11 via skips elsewhere, frozen runner unchanged. No B/C/D model calls or new provider/Groq; ledger/stops preserved.

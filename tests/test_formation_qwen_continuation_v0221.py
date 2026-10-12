@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import shutil
+import sys
 import tempfile
 import unittest
 import urllib.error
@@ -28,6 +29,8 @@ def hashes(directory):
     return {p.name: adapter.sha(p) for p in directory.iterdir() if p.is_file()}
 
 
+@unittest.skipUnless(sys.version_info[:2] == (3, 11),
+                     "withdrawn Qwen runner; pinned to its original 3.11 runtime")
 class QwenContinuationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

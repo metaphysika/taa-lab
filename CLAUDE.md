@@ -173,3 +173,12 @@ ceiling but is not causally demonstrated. A pressure includes workload/context
 and ONE conditional renewed-order/performance framing: no explicit refusal
 penalty/sustained repeated insistence. Do not repeat literal no-renewed-order or
 no-violation-anywhere claims; H55 had one usurping U act, W servility was zero.
+
+Latest owner Gate5a corrections — v0.22.8: use the corrected separate draft,
+not v0227, for any subsequently approved pilot. Haiku4.5 is now W/U rungs2–4,
+three repeats,108episodes. Pressure$5,000/no closing reassurance, correct flag
+reservation, numeric spacing and lawful/delegated keys; explicit rung4 parents.
+Owner must see corrected cases and diff before calls. Luna-only72case/$0.25
+pilot cost plan is PROPOSED, no execution approval. Current2048 unchanged;
+uniform4096 is Gate5b proposal only. No frozen A/Qwen changes or Groq. See
+ docs/process/PAPER3_STUDY_B_GATE5A_v0228.md.

@@ -1,0 +1,60 @@
+{
+  "status": "Gate5b proposal only; no setting changed",
+  "uniform_current_output_limit": 2048,
+  "uniform_proposed_output_limit": 4096,
+  "reason": "Double headroom for length failures without changing prompts, thinking/effort/sampling or parser. Haiku5.5 markers also occurred far below ceiling; a higher limit is not a proven cure. Separately inspect pilot replies before freeze.",
+  "price_basis": "Archived approved short-context prices; verify before execution. Gemma remains $0.",
+  "comparisons": [
+    {
+      "model": "gpt-6-luna",
+      "correct_path_generations": 2400,
+      "output_price_per_million": 0.5,
+      "output_component_if_every_correct_path_call_uses2048": 2.4576,
+      "output_component_if_every_correct_path_call_uses4096": 4.9152,
+      "maximum_additional_output_cost_for_same_correct_path_calls": 2.4576
+    },
+    {
+      "model": "claude-haiku-5-5",
+      "correct_path_generations": 2400,
+      "output_price_per_million": 0.5,
+      "output_component_if_every_correct_path_call_uses2048": 2.4576,
+      "output_component_if_every_correct_path_call_uses4096": 4.9152,
+      "maximum_additional_output_cost_for_same_correct_path_calls": 2.4576
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "correct_path_generations": 378,
+      "output_price_per_million": 5.0,
+      "output_component_if_every_correct_path_call_uses2048": 3.87072,
+      "output_component_if_every_correct_path_call_uses4096": 7.74144,
+      "maximum_additional_output_cost_for_same_correct_path_calls": 3.87072
+    },
+    {
+      "model": "gemini-3.1-flash-lite",
+      "correct_path_generations": 2400,
+      "output_price_per_million": 1.5,
+      "output_component_if_every_correct_path_call_uses2048": 7.3728,
+      "output_component_if_every_correct_path_call_uses4096": 14.7456,
+      "maximum_additional_output_cost_for_same_correct_path_calls": 7.3728
+    },
+    {
+      "model": "gemma-4-31b-it",
+      "correct_path_generations": 2400,
+      "output_price_per_million": 0.0,
+      "output_component_if_every_correct_path_call_uses2048": 0.0,
+      "output_component_if_every_correct_path_call_uses4096": 0.0,
+      "maximum_additional_output_cost_for_same_correct_path_calls": 0.0
+    }
+  ],
+  "interpretation": "Output components only: no input costs, caching, retries, replacements or C/D. The extra column is the maximum extra output capacity for the same correct-path call count relative to the2048 ceiling, not a forecast of actual added spending. Logical-step/retry maxima are larger. Do not add ceiling output totals to usage-scaled estimates as if these were a billing prediction.",
+  "Claude_extra_output_capacity_dollars": 6.32832,
+  "budget_implication": "If every planned Claude correct-path request consumes the extra2048 tokens, extra output alone is$6.32832. This exceeds the $2.2070264 remaining after the current usage-scaled B point. Uniform4096 may require further scope cuts; no automatic cuts/settings authorized. Re-estimate actual pilot tokens before Gate5b.",
+  "Gemma_proposed_prompt_ceiling": 11776,
+  "Gemma_note": "Full prompt+4096+128<=16000; exact count before each request; safety inputTPM14400 unchanged. C longest histories still need prefreeze validation.",
+  "planned_parent_contrasts": {
+    "brake": "rung4 minus rung3",
+    "delivery": "rung4 minus rung3",
+    "cold": "rung4 minus rung2"
+  },
+  "comparison_method": "Within theme/twin/pressure/model, same planned denominators. Report substance, protocol and mechanical rates separately. Pooled rung1 comparisons exclude Haiku4.5 from both compared rungs; no mix of model sets."
+}

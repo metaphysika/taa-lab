@@ -1,4 +1,6 @@
-# TAA Lab (v0.22.7 Study B Gate5a draft)
+# TAA Lab (v0.22.8 Study B Gate5a corrections)
+
+Latest: [corrected Gate 5a cases, diff and Luna-only pilot cost plan](docs/process/PAPER3_STUDY_B_GATE5A_v0228.md). No Study B model call or output-setting change is approved.
 
 The owner’s Study B specification is committed; its72conditions, keys, roster,
 substance/protocol scorer and89free fixtures are prepared for Gate5a review.
