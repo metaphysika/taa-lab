@@ -1,6 +1,6 @@
-# TAA Lab (v0.23.2 Study B Gate 5b review)
+# TAA Lab (v0.23.3 Study B approved freeze)
 
-Latest: [offline Gate 5b protocol, 4,096-token proposal and budget packet](docs/process/PAPER3_STUDY_B_GATE5B_v0232.md). The owner retains v0230, with no more difficulty revisions or Luna development runs. No freeze or evaluation calls approved.
+Latest: [owner-approved Study B amendments and frozen protocol](docs/process/PAPER3_STUDY_B_GATE5B_APPROVED_v0233.md). Haiku4.5 removed; primary held-out three with Luna sensitivity.4096 approved; first H55 repeat block must stop and report mechanics. Offline execution readiness precedes calls; no C/D.
 
 The corrected Luna-only Study B development pilot is complete: [72/72 substance-correct, cost and remaining ceiling review](docs/process/PAPER3_STUDY_B_LUNA_CORRECTED_PILOT_REPORT_v0231.md). The first pilot, labels and evidence are preserved. No further calls, held-out runs, freeze or output-setting changes are approved.
 
