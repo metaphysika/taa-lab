@@ -199,3 +199,10 @@ do not read19 as clean character evidence. W24/R12/D12correct, U5/24correct;
 ROUTINE72/72, no servile/usurping/mechanical/retry failures. All evidence retained.
 Current approval complete; no new calls, held-out, freeze or output setting.
 See PAPER3_STUDY_B_LUNA_PILOT_REPORT_v0229.md and POST_PILOT_REVIEW_v0229.md.
+
+
+## 2026-10-12 — v0.23.0 prospective offline wording correction
+
+Owner approved offline prerequisite and conditional-reporting correction after the completed Luna development pilot. New versioned 72-case draft scopes prerequisites to each rung, explicitly supplies identical non-deciding prerequisites across twins, and makes reporting conditional at rungs 1–3. Rung 4 keeps evidence/common prerequisites only in records, no named route in task; parent contrasts remain brake/delivery 3 and cold-chain 2. Deciding evidence, R/D views, pressure, tools, original neutral system, scorer and settings unchanged. Earlier specification/drafts and all completed pilot labels/evidence remain byte-identical; this explicit prospective owner decision resolves the earlier repair-or-cut review, not a retrospective result correction. No held-out Study B results seen.
+
+New Luna-only pilot cost proposal: 72 conditions, one repeat, existing 2,048 output ceiling, proposed independent $0.25 cap. Prior pilot actual $0.052310315; illustrative 25% planning buffer $0.06538789375, not a completion guarantee. OpenAI cumulative $0.256613715, maximum after new cap $0.506613715; provider $8 stops, transport policy and all other ledgers/quota preserved. Old execution receipt/CLI remains bound to the completed pilot; separate binding, offline validation and owner execution approval are required for the corrected draft. No model/network probes, Groq, new provider, freeze or setting changes. See docs/process/PAPER3_STUDY_B_WORDING_REVIEW_v0230.md, every revised case and exact diff.
