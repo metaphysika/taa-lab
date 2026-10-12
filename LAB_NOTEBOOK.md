@@ -5955,3 +5955,23 @@ retry, credential exposure or other-stage advancement. Approval persists for
 verified pre-request quota resumes. Unknown 429 cause/completion risk retained.
 Report: docs/process/PAPER3_QWEN38_CONTINUATION_STARTUP_2026-10-12.md.
 Execution receipt: studies/formation-study-a-qwen38-continuation-execution-approval-2026-10-11.json.
+
+
+## 2026-10-12 — Free-model alternatives; Qwen held pending decision
+
+User clarified no requirement for Qwen specifically; priority is a suitable free
+model comparison without lengthy waits. Public-provider research found Groq's
+other free GPT-OSS models share the same 200k/day constraint; OpenRouter's
+unfunded free tier is 50 requests/day. NVIDIA currently lists Gemma 4 31B free
+endpoint Available; recommended for screening, not yet ready/account-verified.
+Original Cloud has 8 GiB/2 CPU equivalents/no GPU, so local 27–31B impractical.
+A new model needs a prospective amendment and fresh 240 cells, not Qwen's 236
+suffix. Original freeze and all Qwen failures/results remain separately intact.
+Owned alternatives-review maintenance hold keeps continuation controller waiting;
+supervision paused. No new requests, credential reads, quota/ledger reset or
+upgrade. Four original cells/20 attempts/19 responses and all ledgers unchanged;
+$0 spending. Hold remains pending decision and must not be cleared by another
+supervisor. No other model/stage run. Candidate requires secure Cloud NVIDIA
+configuration, actual free quotas, protocol/identity/usage/fixtures and separate
+connectivity/evaluation approval before model calls.
+Report: docs/process/PAPER3_FREE_MODEL_ALTERNATIVES_2026-10-12.md.
