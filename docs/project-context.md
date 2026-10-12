@@ -745,3 +745,6 @@ Public documentation review confirms Haiku5.5 native tools and strict structured
 
 
 Latest owner Study B: v0.23.5 Haiku-only neutral native JSON selected, exact schema shown before freeze; one shared amended parser for all models. FreshH55first72 approved with$0.25subcap and10%mechanical checkpoint; original failed72/labels/cost immutable. General one-native-format-rerun policy recorded prospectively for all models including Gemini/Gemma, at most once, same neutrality/checkpoint/cumulative caps. No C/D/Groq. Implementation/offline checks in progress; do not launch until schema/freeze/adapter/readiness verified. See PAPER3_STUDY_B_NATIVE_JSON_v0235.md.
+
+
+Latest Study B: fresh native JSON Haiku first72 COMPLETE/passed0mechanical/72,$0.160700500,271closednative/no retries/reserves, Claude$2.711097350. Owner checkpoint reported; existing approval covers remaining648 under unchanged Anthropic B$2.025(totalincludingoldfailed$0.0848257), remaining$1.7794738. Preserve oldfailed72 and newfirst72/prefixes. Samev0235root/output, after-reported-checkpoint CLI required. Nextmodels Gemini/Gemma/Luna only afterH55complete; prospective one-native-format-rerun rule, no H45/Groq/C/D. See PAPER3_STUDY_B_HAIKU55_NATIVE_CHECKPOINT_v0235.md.
