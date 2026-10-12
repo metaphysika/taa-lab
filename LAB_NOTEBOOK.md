@@ -6084,3 +6084,44 @@ neutral contents/defaults; requires separate approval because one-call permissio
 is exhausted. Gemma remains unadmitted until success; conditional study authority
 persists but is not exercised. First check retained, no other model/stage advanced.
 Report: docs/process/PAPER3_GEMMA_NEUTRAL_AND_PACING_REVIEW_2026-10-11.md.
+
+
+## 2026-10-11 America/Phoenix — Gemma additional neutral passed; prospective admission before Study A
+
+User approved exactly one additional neutral at normal 2048 completion ceiling,
+retaining first failed check without automatic retry. New request HTTP 200, exact
+native gemma-4-31b-it identity, STOP, matching ok/cedar-17 JSON; native prompt 56,
+completion including reasoning 156. Charge $0, Google cumulative $0.631178075.
+Separate output preserves first check unchanged. Existing Google key/account only.
+Conditional owner authorization now admits Gemma 31B as added held-out A model
+on all 240 unchanged frozen cells, after other models' A results were seen.
+Prospective 429 safety/replacement rules previously recorded apply; original
+analysis retains failed primaries and replacements are separately labeled.
+Gemma will be included in B/C/D before each freeze; no B/C/D run is started.
+Study C token-fit check remains pending construction and mandatory before freeze.
+New separate v0.22.2 adapter must pass offline pacing/resume/failure fixtures,
+full unit suite and historical scripted checks before first study episode.
+
+
+Gemma adapter offline verification initially passed 11 targeted fixtures including
+full A240 + one end replacement, exact original scoring, and duplicate-free
+completed-cell resume. Expanded full 313-test suite passed all new Gemma tests
+but exposed 11 historical Qwen fixture errors: tests copied today's updated
+Google ledger and checked the old pinned hash. Corrected TESTS ONLY to use
+credential-free historical provider-ledger snapshots in temporary roots, still
+checking their original pinned hashes. A remaining controller fixture incorrectly
+required its own changing status file to stay byte-identical; that one fixture
+now allows only its own status mutation while retaining every evidence assertion.
+All 16 Qwen fixture tests now pass with mocked transport, zero actual Groq calls.
+No original Qwen adapter, plan, source evidence, live ledger or quota was changed.
+Full suite is rerun before study launch. Historical scripted checks passed.
+
+
+Final v0.22.2 verification: all 313 unit tests pass, including 13 Gemma tests,
+full A240 plus end replacement, failed replacement not replaced, duplicate-free
+resume, exact frozen wire history/deterministic replay and offline audit. Historical
+scripted suite passed. Initial failing logs and corrected historical fixtures are
+retained in the separate declared-fixture validation output. All 59 freeze hashes,
+Gemma plan/approval/adapters, Qwen source and Groq ledger/quota verified unchanged.
+No study API call has occurred yet. Ready to exercise existing conditional Gemma
+A240 authorization at $0, with no paid fallback, altered science or other-stage run.

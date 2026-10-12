@@ -1,4 +1,6 @@
-# TAA Lab (v0.22.1 Qwen reviewed-issued-failure continuation preparation)
+# TAA Lab (v0.22.2 Gemma token-paced additional held-out evaluation)
+
+Gemma 4 31B passed its separately approved additional neutral check at $0. Its new Study A adapter preserves the original frozen science and implements owner-approved token pacing, response-reset backoff, retained rate failures, and separately labeled end-of-run replacements. Qwen is withdrawn; no Groq calls are permitted. The original study evidence and model-set/P6 freeze remain unchanged. See `docs/process/PAPER3_GEMMA_NEUTRAL_AND_PACING_REVIEW_2026-10-11.md` and the latest notebook entry.
 
 Qwen’s 236 untouched frozen Study A cells have a separately tested continuation adapter. The original A_R02 repeat 1 HTTP 429 remains evidence without retry. Preparation is offline only; execution requires a separate hash-bound approval at $0 on Groq Free. See `docs/process/PAPER3_QWEN38_CONTINUATION_READINESS_2026-10-11.md`.
 

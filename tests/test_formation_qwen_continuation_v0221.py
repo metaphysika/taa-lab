@@ -42,6 +42,13 @@ class QwenContinuationTests(unittest.TestCase):
             target = self.root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / relative).read_bytes())
+        # Historical continuation fixtures bind historical accounting bytes.
+        # Later approved calls legitimately update live provider ledgers; never
+        # rewind them or weaken the production review guard to run these tests.
+        for relative, digest in plan['other_ledger_sha256'].items():
+            snapshot = ROOT / 'tests/fixtures/qwen-v0221-ledgers' / Path(relative).name
+            self.assertEqual(adapter.sha(snapshot), digest)
+            (self.root / relative).write_bytes(snapshot.read_bytes())
         self.source = self.root / adapter.OUTPUT
         shutil.copytree(ROOT / adapter.OUTPUT, self.source)
         self.plan_path = self.root / PLAN_PATH.relative_to(ROOT)
@@ -60,9 +67,9 @@ class QwenContinuationTests(unittest.TestCase):
     def run_suffix(self):
         return adapter.run_continuation(self.plan_path, True, True, True, self.root)
 
-    def assert_originals(self):
+    def assert_originals(self, mutable=()):
         for name, digest in self.original.items():
-            if name != 'calls.jsonl':
+            if name != 'calls.jsonl' and name not in mutable:
                 self.assertEqual(adapter.sha(self.source / name), digest, name)
         raw = (self.source / 'calls.jsonl').read_bytes()[:self.plan['original_journal_bytes']]
         self.assertEqual(hashlib.sha256(raw).hexdigest(), self.original['calls.jsonl'])
@@ -249,7 +256,9 @@ class QwenContinuationTests(unittest.TestCase):
             launch.assert_not_called()
         self.assertTrue(hold.exists())
         self.assertEqual(adapter.read(self.source/controller.STATUS_NAME)['state'],'waiting_pre_request_quota')
-        self.assert_originals()
+        # The controller's own status is expected to change in this fixture.
+        # Preserve all original request/checkpoint/ledger evidence assertions.
+        self.assert_originals(mutable=(controller.STATUS_NAME,))
 
     def test_quota_wait_does_not_reset_persisted_state(self):
         state={'paused_until':400,'events':[[100,8000]]}

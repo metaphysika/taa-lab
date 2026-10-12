@@ -847,3 +847,20 @@ Quotas/token pacing and unverified Study C prefreeze check are described in
 `docs/process/PAPER3_GEMMA_NEUTRAL_AND_PACING_REVIEW_2026-10-11.md` and
 `studies/formation-gemma-rate-replacement-policy-2026-10-11.json`.
 No Groq calls; Qwen remains withdrawn. Preserve all freezes/ledgers/reserves.
+
+
+## Gemma admitted; v0.22.2 Study A adapter (2026-10-11 America/Phoenix)
+
+The separately approved additional neutral passed exact gemma-4-31b-it identity,
+JSON marker and native usage at $0. First failed check retained unchanged.
+Conditional owner authorization now covers fresh additional held-out A240 on the
+original frozen stimuli, post-other-result selection disclosed. New separate
+Gemma adapter/plan bind full-history token preflight, conservative token/RPM/RPD
+pacing, actual reset backoff, persisted safety counters and one labeled end-of-run
+replacement per rate-lost primary, never replacing failed replacements/non-rate
+failures. Original failures remain in primary denominators. Shared run lock,
+Google cumulative $8 stop and $0.631178075 prior amount preserved. No Groq calls.
+Full checks must pass before launch. No B/C/D or P6 verdict; C histories need
+actual count verification before freeze. See
+`docs/process/PAPER3_GEMMA_STUDY_A_ADAPTER_v0222.md` and
+`studies/formation-study-a-gemma31-approval-2026-10-11.json`.
