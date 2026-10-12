@@ -881,3 +881,23 @@ No automatic resume or model calls. $0, Google $0.631178075, freezes/adapters/
 Qwen evidence/other ledgers/quota unchanged. Next proposed approval is offline
 preparation/testing of an exact untouched-cell continuation, not execution.
 See docs/process/PAPER3_GEMMA_STUDY_A_STOP_REVIEW_2026-10-11.md.
+
+
+## Prospective retries / Gemma offline continuation (2026-10-11 America/Phoenix)
+
+Owner changed failure rules before further calls. Shared transport retry policy
+v0.22.3 applies to Gemma A continuation and ALL models in B/C/D before freezes.
+Five TOTAL attempts for HTTP429/500/502/503/504 or reset/timeout with no received
+model output; increasing 10/30/60/120 waits, honor longer reset. Never resend after
+any full/partial/model reply, regardless of quality. Persist all attempt/reserve/
+quota/retry counters. Transport stop on 5 exhausted or 11th retry-needed request.
+Keep hard identity/usage/freeze/size and paid-provider $8 guards. One fresh labeled
+end replacement per transport-lost primary, including old P_R02 r1; never replace
+failed replacements/non-transport model failures. Historical results unchanged.
+No proof of server non-generation/zero usage on timeout; disclose uncertainty.
+Gemma remains STOPPED; preparation ONLY, 237 untouched + original-failure replacement
+plan, NO execution approval/model calls or active supervisor. Source output/root
+must stay; old CLI must not restart. Read
+studies/formation-transport-retry-policy-v0223.json and
+docs/process/PAPER3_GEMMA_CONTINUATION_READINESS_v0223.md.
+No Groq/new account/provider or other-stage advancement/P6 verdict.

@@ -6161,3 +6161,53 @@ now disabled; no automatic restart, model calls or other stage. Proposed next
 approval: offline preparation/testing only for exact 237 untouched continuation,
 retaining failed P_R02 r1 without retry or replacement; separate execution review
 later. Report: docs/process/PAPER3_GEMMA_STUDY_A_STOP_REVIEW_2026-10-11.md.
+
+
+## 2026-10-11 America/Phoenix — Prospective transport retry amendment BEFORE further calls
+
+Owner approved OFFLINE preparation/testing only of Gemma's exact 237 untouched
+continuation, plus prospective new failure policy for Gemma continuation and all
+models in Studies B/C/D before their freezes. No further model calls now.
+The strict no-retry policy stopped on provider outages with no received model
+output. The intent is transport-only retries, never choosing among model replies.
+HTTP429/500/502/503/504, resets and timeouts with no received model reply may retry
+up to FIVE TOTAL ATTEMPTS including first, identical request/full history; waits
+10/30/60/120 seconds before attempts2–5, longer explicit server reset honored.
+Log every attempt and cost/reserve; counters persist across quota/resume pauses.
+Never resend after ANY model output, including partial/malformed/refusing output;
+first received response is scored under agreed labels. Stop transport execution
+if one request exhausts all5 attempts, or the 11th distinct request in a run
+requires a retry (stop before its second attempt). Supersedes previous Gemma
+four-rate-error/two-consecutive stops and missing-reset transport stop; ordinary
+quota pacing, identity/usage/freeze/size protections and paid-provider $8 stop stay.
+One labeled fresh full replacement at END per transport-lost primary, including
+original P_R02 r1, never replacing a failed replacement. No model-reply failure
+replacement, no altered completed primary/result/journal/reserve. Failed primaries
+stay in original planned denominator; separate replacement sensitivity disclosed.
+
+Qualification: no received output does not prove no server-side generation or
+zero usage. Resets/timeouts preserve outcome uncertainty and paid reserves; we
+cannot prove the owner's proposed "cannot bias results" claim statistically.
+No response-quality selection is allowed. Partial output is never resent.
+Historical no-retry decisions/results remain unchanged; rule is prospective.
+Policy: studies/formation-transport-retry-policy-v0223.json. No Groq/new account.
+
+
+## 2026-10-11 America/Phoenix — v0.22.3 Gemma continuation READY, execution unapproved
+
+16 new targeted tests and all329 full-suite unit tests pass; historical scripted
+checks pass. Fixtures simulate503/429 recovery, longer server reset, all eligible
+error types, five-attempt exhaustion, persisted11th-retry-needed stop, no resend
+of partial/malformed/refusing output, unchanged retry body/full history, retained
+paid timeout reserves/$8 cap, source tamper/approval barrier, full237 untouched
+suffix followed by1 labeled P_R02 replacement, exact240 primary cells and source
+preservation, duplicate-free completed resume and terminal offline audit.
+No actual provider requests/probes, execution receipt or new continuation output.
+Original9 attempts/8 native responses/3 primary episodes and allsource files are
+byte-identical; all59 hashes/new+original adapters/ledgers/Groq quota/Qwen source
+match. Google remains $0.631178075; Gemma projected $0. Original runner stopped
+and supervision disabled. No new paid provider/account, other model/stage or P6.
+Next required approval is separate execution of the237 untouched cells +1fresh
+labeled P_R02 r1 replacement under reviewed5-total-attempt transport policy.
+Report: docs/process/PAPER3_GEMMA_CONTINUATION_READINESS_v0223.md.
+Validation: results/2026-10-11 v0.22.3 scripted-none gemma continuation verify.

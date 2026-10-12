@@ -1,4 +1,6 @@
-# TAA Lab (v0.22.2 Gemma token-paced additional held-out evaluation)
+# TAA Lab (v0.22.3 Gemma reviewed continuation preparation)
+
+Gemma’s original HTTP 503 remains unchanged. Offline continuation preparation covers 237 untouched primary episodes and one separately labeled end replacement for P_R02 repeat 1. The prospective transport policy permits up to five total attempts without received model output, preserves every attempt/reserve, and forbids re-sending after any reply. It applies to all models in B/C/D before their freezes. Execution still requires separate approval; no further model calls during preparation.
 
 Gemma 4 31B passed its separately approved additional neutral check at $0. Its new Study A adapter preserves the original frozen science and implements owner-approved token pacing, response-reset backoff, retained rate failures, and separately labeled end-of-run replacements. Qwen is withdrawn; no Groq calls are permitted. The original study evidence and model-set/P6 freeze remain unchanged. See `docs/process/PAPER3_GEMMA_NEUTRAL_AND_PACING_REVIEW_2026-10-11.md` and the latest notebook entry.
 
