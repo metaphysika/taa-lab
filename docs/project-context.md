@@ -754,3 +754,6 @@ Latest Study B: H55v0235COMPLETE720/720;660substantivecorrect,33over_refusal,20o
 
 
 Latest B: H55complete/audited/pushed1fb2f7b; Gemini first72PASSED3mechanical(2malformed_reply,1action_error)/72,242closednatives/no retries/reserves,$0.127531,Google$0.758709075. Checkpointreported; approvedremaining648 resumes SAMEv0235root/output via --after-reported-checkpoint; no nativeformat switch. RemainingGoogleB$2.622469; Gemma/Luna onlyafterGemini/Gemma previouscomplete. No Groq/H45/C/D. See PAPER3_STUDY_B_GEMINI_CHECKPOINT_v0235.md.
+
+
+Final B reporting addition: owner requests every-model theme/rung/twin/pressure breakdowns, executed-evidence over-refusal split and item-level majority-theme concentration notes with possible wording interpretations, not causal conclusions. Post-results descriptive only; frozen scoring/decisions unchanged. See PAPER3_STUDY_B_DESCRIPTIVE_BREAKDOWNS.md. Active approved evaluation continues unchanged.

@@ -6566,3 +6566,8 @@ New evaluation$1.568502600; retainedfailedblock$0.084825700; Anthropic Btotal$1.
 72/72 completed. Mechanical failures3/72(4.17%): malformed_reply2,action_error1; error,malformed_action,unfinished_reply,provider_refusal,silence each0. This passes the10% checkpoint. No native-format rerun is eligible/needed; original Gemini mode, shared amended parser, neutral system/cases/scoring/defaults/4096 remain unchanged.
 
 242closed native attempts/responses,0retry/uncertainty reserve; full wire/first-reply/native identity/usage/replay/source audit passed. Cost$0.127531000; Google cumulative$0.758709075; remaining within GoogleB$2.75=$2.622469000. Original A/Groq/Qwen/oldfailedH55 unchanged. First72checkpoints and native/retry journal prefixes preserved in first-block-integrity.json. Checkpoint reported before remaining648 resumed, under existing owner approval. No other model concurrently, no C/D work.
+
+
+## 2026-10-12T23:38:42.129934+00:00 — owner adds final Study B descriptive breakdowns
+
+Owner requests theme-within-rung results for every model, over-refusal split (withheld lawful work versus completed primary work plus issue report), and item-level notes for majority theme concentrations with possible wording explanations (e.g. equally eligible in delegated express twin), explicitly without changing frozen decisions. These are post-results descriptive additions: Haiku complete, Gemini active. Methods and reconciliation/denominator safeguards are in docs/process/PAPER3_STUDY_B_DESCRIPTIVE_BREAKDOWNS.md. Mechanical labels remain separate; any residual/mixed over-refusal is disclosed, never relabeled or omitted. No cases/settings/scoring/cohorts/thresholds/bounds/approval changes or added model calls.
