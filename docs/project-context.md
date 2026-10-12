@@ -471,3 +471,25 @@ cause/completion risk persists; saved default pause must expire normally.
 Plan: studies/formation-study-a-qwen38-continuation-execution-plan-v0221.json.
 Report: docs/process/PAPER3_QWEN38_CONTINUATION_READINESS_2026-10-11.md.
 No other model or stage advances; commit/push directly on main.
+
+
+## 2026-10-12 — Qwen suffix execution approved and waiting
+
+User separately approved the 236 remaining frozen cells on Groq Free at $0,
+retaining A_R02 repeat 1 without retry and allowing pre-request quota resumes
+only. Written receipt binds immutable v0.22.1 execution plan. Original root,
+output, Python 3.11, all 59 frozen files, original/new adapter hashes, all source
+evidence, ledgers and quota match; Groq readiness/network enforcement confirmed
+without credential inspection or provider probe. Original controller not active.
+New continuation controller started via exact reviewed command and PID verified
+waiting_pre_request_quota until saved pause expires 2026-10-12 18:41:48 UTC.
+Zero new issued requests at startup; 236 cells untouched, original four attempts
+and failure/reserve preserved. Batch/cumulative Groq $0; old ledgers unchanged.
+Startup-owned maintenance hold used for snapshot/commit/push, then released.
+Hourly supervision updated/enabled for new continuation status/controller only;
+quiet during normal waiting/progress, notify and disable on completion/actionable
+failure. No duplicate controller, old full runner/restart, quota reset, issued
+retry, credential exposure or other-stage advancement. Approval persists for
+verified pre-request quota resumes. Unknown 429 cause/completion risk retained.
+Report: docs/process/PAPER3_QWEN38_CONTINUATION_STARTUP_2026-10-12.md.
+Execution receipt: studies/formation-study-a-qwen38-continuation-execution-approval-2026-10-11.json.
