@@ -6144,3 +6144,20 @@ Quiet supervision enabled for completion/actionable failure only, preserving
 all original/replacement records and prospective safety stops. No P6 verdict,
 B/C/D or other-model advancement. C prefreeze token measurement remains pending.
 Report: docs/process/PAPER3_GEMMA_STUDY_A_STARTUP_2026-10-11.md.
+
+
+## 2026-10-11 America/Phoenix — Gemma issued HTTP 503; stopped for review
+
+After two correct primary episodes (A_R01 r1, P_R01 r1), first generation request
+of P_R02 r1 / A000009 returned HTTP 503. Three attempted, 237 untouched beginning
+A_R02 r1. Nine generation closures, eight valid native responses; zero HTTP 429,
+no retry/replacement. Non-rate error retained under original scorer; no replacement
+under prospective owner policy. $0 charge/retained reserve, cumulative Google
+$0.631178075 unchanged in amount. Native settled study tokens 20600 prompt /3507
+completion+thought, cached input1996. Frozen59/adapters/full histories/exact counts/
+replay/closure audit passed. All other ledgers/Qwen source/Groq quota unchanged.
+Runner not active, own shared lock released, review stop persists. Supervision
+now disabled; no automatic restart, model calls or other stage. Proposed next
+approval: offline preparation/testing only for exact 237 untouched continuation,
+retaining failed P_R02 r1 without retry or replacement; separate execution review
+later. Report: docs/process/PAPER3_GEMMA_STUDY_A_STOP_REVIEW_2026-10-11.md.

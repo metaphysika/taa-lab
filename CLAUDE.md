@@ -91,3 +91,12 @@ Full checks must pass before launch. No B/C/D or P6 verdict; C histories need
 actual count verification before freeze. See
 `docs/process/PAPER3_GEMMA_STUDY_A_ADAPTER_v0222.md` and
 `studies/formation-study-a-gemma31-approval-2026-10-11.json`.
+
+
+Latest Gemma state (2026-10-11 America/Phoenix): STOPPED_FOR_REVIEW after issued
+HTTP 503 / A000009 / P_R02 r1; two correct episodes, one retained failure, 237
+untouched from A_R02 r1. No retry/replacement or active runner; supervision disabled.
+No automatic resume or model calls. $0, Google $0.631178075, freezes/adapters/
+Qwen evidence/other ledgers/quota unchanged. Next proposed approval is offline
+preparation/testing of an exact untouched-cell continuation, not execution.
+See docs/process/PAPER3_GEMMA_STUDY_A_STOP_REVIEW_2026-10-11.md.
