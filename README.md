@@ -1,4 +1,6 @@
-# TAA Lab (v0.23.4 Study B parser amendment)
+# TAA Lab (v0.23.5 Study B native JSON amendment)
+
+Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 
 Current gate: [offline Haiku native-output options and costs](docs/process/PAPER3_HAIKU55_NATIVE_OUTPUT_REVIEW_2026-10-12.md). No fresh block or parser freeze until owner chooses an interface. Ledger fixture fixes change tests only; all original scientific evidence and balances are preserved.
 
