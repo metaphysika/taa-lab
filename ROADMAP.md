@@ -789,3 +789,44 @@ supervisor. No other model/stage run. Candidate requires secure Cloud NVIDIA
 configuration, actual free quotas, protocol/identity/usage/fixtures and separate
 connectivity/evaluation approval before model calls.
 Report: docs/process/PAPER3_FREE_MODEL_ALTERNATIVES_2026-10-12.md.
+
+
+## 2026-10-11 America/Phoenix — Revised model policy and Gemma Google review
+
+Active owner decisions are in studies/formation-model-decisions-2026-10-11.json.
+Qwen withdrawn entirely, no Groq HTTP of any kind. Verified idle controller
+terminated, supervision disabled, protective hold retained. All existing Qwen
+files/20 requests/failure and cumulative ledger/quota preserved byte-for-byte in
+a separate withdrawal hash receipt; original freezes unchanged. New substantive
+analysis/P6 excludes Qwen and reports its incomplete attempt separately. Historical
+provisional score summaries exist; do not claim withdrawal preceded all analysis.
+
+Study B core: Luna/Haiku 5.5/Haiku 4.5 (five repeats)/Gemini 3.1 Flash-Lite.
+Studies C/D core: Luna/Haiku 5.5/Gemini 3.1 Flash-Lite, no Haiku 4.5. Keep all
+Haiku 4.5 Study A evidence. B comparison rationale: Paper 2 reviewer over-refusal
+(notebook's v0.18.1 final evaluation, capacity/control cases;
+docs/TAA-Paper-2-preprint-v1.0.docx). No B results or new model inference yet.
+
+Existing Google key catalog lists gemma-4-31b-it and gemma-4-26b-a4b-it via
+one authorized metadata GET, zero generation. Google documents Gemma 4 input/
+output free, systemInstruction and multi-turn history. Actual project RPM/TPM/RPD
+are not in catalog/public current table; owner AI Studio numbers requested.
+Gemma not admitted until quota/call-size/time/budget conditions and separately
+approved one neutral connectivity call pass. No new provider/account.
+Gemini A estimate $0.615495025; Google cumulative accounted $0.631178075, leaving
+$7.368821925 to $8 automatic stop and $9.368821925 to owner's $10 credit ceiling.
+Plain Gemma inference projected $0 across A/B/C/D at current published price;
+future Gemini B/C/D and unfinished designs still need final realistic estimates.
+Transparent provisional count/time scenario in feasibility report is not a freeze
+or completion guarantee; exact account quotas remain a gate.
+
+Written P6 amendment proposal preserves baseline composites/error/identity rules
+and interprets fewer-than-half as <=1/4 without Gemma, <=2/5 with one added model;
+requires owner review before any verdict. Retained Luna/Haiku 5.5 timeouts remain.
+If Gemma added, disclose post-other-result model selection, run fresh A240 on
+unchanged frozen stimuli; include in B/C/D before their freezes. Report with and
+without Gemma; never silently rewrite original preregistration.
+Reports: docs/process/PAPER3_GEMMA_GOOGLE_FEASIBILITY_2026-10-11.md;
+docs/process/PAPER3_STUDY_A_P6_MODEL_SET_PROPOSAL_2026-10-11.md.
+All paid-provider $8 stops, cumulative ledgers/reserves and $10 ceilings retained.
+No new paid provider/account or other-stage run.

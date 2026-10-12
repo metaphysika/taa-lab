@@ -43,3 +43,17 @@ readable, and prefer the Python standard library over new dependencies.
 - New scenarios: `scenarios/<name>.json` (copy an existing one), plus a row in `ROADMAP.md`.
 - New mechanisms (witnesses, delegation, emergency envelopes): a new module under `taa/`.
 - Plans and progress: `ROADMAP.md`. Dated findings: `LAB_NOTEBOOK.md`.
+
+
+## Current owner model decisions (2026-10-11 America/Phoenix)
+
+The owner withdrew Qwen entirely. No Groq calls of any kind (including metadata,
+probes, retries or old approved continuations). Preserve Qwen evidence/ledger
+unchanged and exclude it from new analysis/P6; original frozen files remain.
+Study B: Luna, Haiku 5.5, Haiku 4.5 at five repeats, Gemini 3.1 Flash-Lite.
+Studies C/D: Luna, Haiku 5.5, Gemini 3.1 Flash-Lite; no Haiku 4.5. Gemma is only
+a candidate through the existing Google account/key, pending quota, connectivity,
+budget/time and prospective model/P6 amendment review. No new providers/paid
+accounts. One Gemma neutral inference call requires separate approval. Preserve
+per-provider cumulative $8 automatic stops and $10 ceilings. See
+studies/formation-model-decisions-2026-10-11.json and latest notebook entry.

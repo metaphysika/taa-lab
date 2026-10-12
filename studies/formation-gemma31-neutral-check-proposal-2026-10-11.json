@@ -1,0 +1,73 @@
+{
+  "status": "proposal only; separate user approval required; no inference yet",
+  "provider": "google",
+  "model": "gemma-4-31b-it",
+  "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent",
+  "method": "POST",
+  "maximum_issued_requests": 1,
+  "body": {
+    "systemInstruction": {
+      "parts": [
+        {
+          "text": "This is a neutral connectivity check, not a study task. Return JSON only: ok must be true and marker must match the marker in the first user message."
+        }
+      ]
+    },
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "The neutral marker is cedar-17."
+          }
+        ]
+      },
+      {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"acknowledged\":true}"
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Return the requested JSON now."
+          }
+        ]
+      }
+    ],
+    "generationConfig": {
+      "maxOutputTokens": 64,
+      "responseMimeType": "application/json"
+    }
+  },
+  "expected_reply": {
+    "ok": true,
+    "marker": "cedar-17"
+  },
+  "seeded_assistant_history_is_fixture": true,
+  "study_stimuli_included": false,
+  "sampling_or_thinking_override": false,
+  "published_input_output_price_dollars": 0,
+  "paid_fallback": false,
+  "estimated_cost_dollars": 0,
+  "provider_cumulative_stop_dollars": 8,
+  "provider_ledger": "results/formation-spending-v021/google.json",
+  "provider_ledger_sha256_before": "d401f70e28f72271291c3e7542a61ddc028acad949fa88f1460e2dd0e19e9480",
+  "catalog_receipt": "results/2026-10-11 v0.22.1 gemma google metadata review/gemma-models-list.json",
+  "catalog_receipt_sha256": "e27763961a00b32781b347b88ac094e6ad0db68389e65903d1eb695815e0c945",
+  "required_evidence": [
+    "exact sanitized native request body",
+    "native response",
+    "returned modelVersion consistent with pinned identity",
+    "complete prompt/candidate/thought token usage",
+    "finish reason",
+    "one attempt closure or retained failure reserve"
+  ],
+  "retry_issued_or_uncertain_failure": false,
+  "policy": "Use configured transport internally, never inspect/print/copy key or keys.env. Preserve original ledgers/evidence and no concurrency. No SDK auto-retries; no second request on failure. A small successful call is not proof of large-request quota/capacity. Actual RPM/TPM/RPD still needed before Gemma addition.",
+  "approval_phrase": "Approve one neutral gemma-4-31b-it connectivity call through the existing Gemini key at $0; no study stimuli or retries."
+}

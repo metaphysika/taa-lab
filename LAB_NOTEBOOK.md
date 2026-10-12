@@ -5975,3 +5975,54 @@ supervisor. No other model/stage run. Candidate requires secure Cloud NVIDIA
 configuration, actual free quotas, protocol/identity/usage/fixtures and separate
 connectivity/evaluation approval before model calls.
 Report: docs/process/PAPER3_FREE_MODEL_ALTERNATIVES_2026-10-12.md.
+
+
+## 2026-10-11 America/Phoenix — Owner model decisions before Study B
+
+Qwen 3.8 27B is withdrawn entirely for operational availability/cost reasons: Groq
+Free rate-limit rejection and the owner's report that Developer tier is unavailable
+to new accounts. No more Groq calls of any kind, paid accounts or new providers.
+Preserve all 20 issued requests, failed A_R02 repeat 1, four attempted episodes,
+all prior logs/checkpoints/reports and cumulative ledger/quota unchanged. Stop the
+verified idle continuation controller; supervision disabled and protective hold
+retained. Exclude Qwen from all new substantive/P6 analyses; report the attempt as
+incomplete separately. Historical analysis artifacts remain immutable evidence.
+
+Chronology correction: the requested wording "before any Qwen results were
+analyzed" cannot be recorded as a historical fact. Earlier stop audits already
+replayed/scored the four attempted episodes and generated provisional profiles
+and combined summaries. The withdrawal is recorded now, based on the owner's
+availability/cost decision, before any Study B results or new amended analysis,
+without claiming earlier analysis did not occur or removing its evidence.
+
+Keep Haiku 4.5 Study A results. Include Haiku 4.5 in Study B at five repeats to
+compare its agent behavior with its over-refusal as a reviewer in Paper 2; this
+is a cross-study/role comparison, not a claim of identical tasks or causal effect.
+Drop it from Studies C and D for cost. Study B core: Luna, Haiku 5.5, Haiku 4.5,
+Gemini 3.1 Flash-Lite. Studies C/D core: Luna, Haiku 5.5, Gemini 3.1 Flash-Lite.
+
+Gemma is only a candidate via existing Google Gemini credentials/provider. Before
+addition, report key-visible IDs, exact dated pricing/free status, project RPM/TPM/
+RPD versus request sizes, system/multi-turn compatibility and A/B/C/D cost/time.
+One neutral connectivity call requires separate approval; none authorized yet.
+Gemma all-study total must be <=$5 and reasonable days; Google total must stay
+within owner's $10 credit alongside Gemini, with existing cumulative $8 stop.
+No NVIDIA/other provider or new paid account. No model inference now.
+
+If added, run fresh held-out Gemma Study A on unchanged frozen stimuli, disclose
+selection after other models' Study A results were seen. Include it in B/C/D
+before each freeze. Preserve original freeze/model-set/P6 rule; write a proposed
+amended P6 policy before any Study A verdict and show amended set with/without
+added model. Qwen remains excluded in both amended variants; original frozen P6
+status may only be disclosed as historically incomplete, not reinterpreted.
+
+All decisions recorded before any Study B results exist. Existing per-paid-provider
+$8 automatic stop and $10 ceilings remain, with cumulative ledgers/reserves intact.
+
+Gemma public review completed without inference: configured Google key's catalog
+lists gemma-4-31b-it and gemma-4-26b-a4b-it. Published pricing is free; system/
+history support documented. Exact account quotas pending AI Studio values and
+neutral connectivity awaiting separate approval. Gemini A $0.615495025; Google
+cumulative accounted $0.631178075. Feasibility/cost/time scenario and P6 amendment
+proposal saved separately; no verdict and no Gemma addition/run yet. Original
+59 hashes and all Qwen source/ledger/quota hashes reverified unchanged.
