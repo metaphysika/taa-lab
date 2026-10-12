@@ -1,6 +1,6 @@
-# TAA Lab (v0.23.0 prospective Study B wording review)
+# TAA Lab (v0.23.1 corrected Luna Study B pilot)
 
-Latest: [prospective corrected cases, exact diff and new Luna pilot cost plan](docs/process/PAPER3_STUDY_B_WORDING_REVIEW_v0230.md). The completed pilot and labels are preserved. No new model calls, held-out runs, freeze or output-setting changes are approved.
+Latest: [prospective corrected cases, exact diff and new Luna pilot cost plan](docs/process/PAPER3_STUDY_B_WORDING_REVIEW_v0230.md). The completed pilot and labels are preserved. The corrected Luna-only pilot is now approved at 72 conditions, one repeat, $0.25 and 2,048 output tokens after offline checks. No held-out run, freeze or output-setting change is approved.
 
 The owner’s Study B specification is committed. The first Luna development pilot
 is complete; a separate 72-condition wording revision and 89 free scripted
