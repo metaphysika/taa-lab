@@ -120,3 +120,12 @@ must stay; old CLI must not restart. Read
 studies/formation-transport-retry-policy-v0223.json and
 docs/process/PAPER3_GEMMA_CONTINUATION_READINESS_v0223.md.
 No Groq/new account/provider or other-stage advancement/P6 verdict.
+
+
+Latest Gemma (2026-10-11 America/Phoenix): v0.22.3 continuation execution approved,
+active PID17428, originalroot/output, 237 untouched +1 P_R02 end replacement,
+sourcefailure unchanged. Read continuation-controller-status/progress, never old
+source stopped status for restart. NEW5-total-attempt/10retry-needed-request
+policy, first-reply/partial-byte no-resend, exacttokenquota/paid$8 guards; quiet
+supervision enabled. No duplicate runner/Groq/otherstage/P6. See
+ docs/process/PAPER3_GEMMA_CONTINUATION_STARTUP_2026-10-11.md.
