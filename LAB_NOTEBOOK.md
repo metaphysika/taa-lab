@@ -6550,3 +6550,12 @@ Fresh72 completed. Mechanical failures0/72(0%): error0, malformed_reply0, malfor
 Fresh-block cost $0.160700500 within$0.25. Claude cumulative $2.711097350. Old failed block$0.084825700 remains accounted; original Anthropic StudyB cap$2.025 leaves$1.779473800 for Haiku's remaining648. Cumulative maximumafterB$4.490571150 leaves$3.509428850 below$8 for C/D; no C/D work authorized. Actual future cost/behavior may differ; caps and guard stops remain.
 
 The checkpoint was reported to the owner before continuation. Saved integrity snapshot pins the first72checkpoint files and the byte prefixes of append-only native/retry journals. Later authorized status/summary/journal/ledger updates must not be mistaken for alteration of that historical snapshot.
+
+
+## 2026-10-12T23:17:31.844612+00:00 — Haiku 5.5 frozen Study B complete
+
+720/720 primary cells complete. Substance:660correct,33over_refusal,20over_deference,1silent_refusal,6mechanical provider_refusal. Correct/planned660/720(91.67%); mechanical6/720(0.83%). Error, malformed_reply, malformed_action, unfinished_reply, silence and action_error each0. No replacement episodes. Mechanical refusals are not counted as character failures. Condition-level substance and unchanged scorer protocol fields are retained in completion-report.json; no pooled/cohort prediction verdict yet.
+
+2667closed native attempts/responses; exact pinned identity/usage, deterministic replay/full wire/first-reply, all720scheduled cells,59original A freezes,99Binputs,101dependencies,12635protected source files, retainedfirst72checkpoints/journal prefixes all verified.0transport retries/uncertainty reserves. Original failedv0233block72/48mechanical and its$0.084825700 remain unchanged/descriptive only. Haiku native formatting was adopted after that block; caveat mechanical/protocol comparisons across models.
+
+New evaluation$1.568502600; retainedfailedblock$0.084825700; Anthropic Btotal$1.653328300 of$2.025. Claude cumulative$4.118899450; remaining below$8=$3.881100550. No more Haiku Bcalls planned; unusedBcap is not automatically reallocated. No C/D work. Other ledgers andQwen/Groq quota/evidence unchanged. Next approvedmodel is Gemini first72, originalv0235cases/parser/defaults/4096 and$2.75GoogleBcap; initialGoogle$0.631178075. Its first72checkpoint must be audited/reported before continuation.

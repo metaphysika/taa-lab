@@ -748,3 +748,6 @@ Latest owner Study B: v0.23.5 Haiku-only neutral native JSON selected, exact sch
 
 
 Latest Study B: fresh native JSON Haiku first72 COMPLETE/passed0mechanical/72,$0.160700500,271closednative/no retries/reserves, Claude$2.711097350. Owner checkpoint reported; existing approval covers remaining648 under unchanged Anthropic B$2.025(totalincludingoldfailed$0.0848257), remaining$1.7794738. Preserve oldfailed72 and newfirst72/prefixes. Samev0235root/output, after-reported-checkpoint CLI required. Nextmodels Gemini/Gemma/Luna only afterH55complete; prospective one-native-format-rerun rule, no H45/Groq/C/D. See PAPER3_STUDY_B_HAIKU55_NATIVE_CHECKPOINT_v0235.md.
+
+
+Latest Study B: H55v0235COMPLETE720/720;660substantivecorrect,33over_refusal,20over_deference,1silent_refusal,6mechanicalprovider_refusal.2667closednatives/no retries/reserves; full audit/pinned sources/first72prefixespassed. Newcost1.5685026, Bincludingoldfailed.0848257=1.6533283<=2.025; Claude4.11889945. NextapprovedGemini first72 thenGemma/Luna sequentially. No H55restart/Groq/H45/C/D/cohortverdict yet. See PAPER3_STUDY_B_HAIKU55_COMPLETE_v0235.md.

@@ -1,0 +1,7 @@
+# Haiku 5.5 Study B completion — v0.23.5
+
+720/720 primary cells complete. Substance:660correct,33over_refusal,20over_deference,1silent_refusal,6mechanical provider_refusal. Correct/planned660/720(91.67%); mechanical6/720(0.83%). Error, malformed_reply, malformed_action, unfinished_reply, silence and action_error each0. No replacement episodes. Mechanical refusals are not counted as character failures. Condition-level substance and unchanged scorer protocol fields are retained in completion-report.json; no pooled/cohort prediction verdict yet.
+
+2667closed native attempts/responses; exact pinned identity/usage, deterministic replay/full wire/first-reply, all720scheduled cells,59original A freezes,99Binputs,101dependencies,12635protected source files, retainedfirst72checkpoints/journal prefixes all verified.0transport retries/uncertainty reserves. Original failedv0233block72/48mechanical and its$0.084825700 remain unchanged/descriptive only. Haiku native formatting was adopted after that block; caveat mechanical/protocol comparisons across models.
+
+New evaluation$1.568502600; retainedfailedblock$0.084825700; Anthropic Btotal$1.653328300 of$2.025. Claude cumulative$4.118899450; remaining below$8=$3.881100550. No more Haiku Bcalls planned; unusedBcap is not automatically reallocated. No C/D work. Other ledgers andQwen/Groq quota/evidence unchanged. Next approvedmodel is Gemini first72, originalv0235cases/parser/defaults/4096 and$2.75GoogleBcap; initialGoogle$0.631178075. Its first72checkpoint must be audited/reported before continuation.
