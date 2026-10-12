@@ -1,4 +1,10 @@
-# TAA Lab (v0.23.3 Study B approved freeze)
+# TAA Lab (v0.23.4 Study B parser amendment)
+
+Current gate: [offline Haiku native-output options and costs](docs/process/PAPER3_HAIKU55_NATIVE_OUTPUT_REVIEW_2026-10-12.md). No fresh block or parser freeze until owner chooses an interface. Ledger fixture fixes change tests only; all original scientific evidence and balances are preserved.
+
+
+Latest: [owner-amended one-object parser and fresh H55checkpoint plan](docs/process/PAPER3_STUDY_B_PARSER_AMENDMENT_v0234.md). Oldfailedblock unchanged; uniform parser allBmodels; no calls until offline equivalence/readiness passed. Original caps/settings retained.
+
 
 Latest checkpoint: [Haiku5.5 stopped for review:48/72 mechanical failures](docs/process/PAPER3_STUDY_B_HAIKU55_CHECKPOINT_v0233.md). All72 first-repeat episodes retained;648 untouched; no other B/C/D calls.
 

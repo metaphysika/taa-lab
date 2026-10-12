@@ -962,3 +962,7 @@ Write-up: two executed development drafts; first19Uover_refusal labels (10withhe
 - v0.23.3: Gate5b approved with H45 removed, held-out primary three/Luna sensitivity, H55 first72 mechanical checkpoint; freeze v0230 then offline readiness; no C/D.
 
 - B v0233 H55 checkpoint stopped:48/72mechanical,648untouched,$0.0848257; owner review before any further B call. No C/D.
+
+- v0.23.4 owner B parser amendment after failed H55block; same one-object parser all models; original failed72neverrescored. FreshH55first72/same10%gate, cost shown, unchangedcumulativecap; no C/D.
+
+- Owner pause: preparedparser notfrozen/freshH55notrun; nativeJSON/toolsreview and broadtest-only historicalledger snapshots. Awaitoutputmodechoice before protocolfreeze or calls.
