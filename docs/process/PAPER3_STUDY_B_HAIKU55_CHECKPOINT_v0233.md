@@ -1,0 +1,11 @@
+# Haiku 5.5 Study B first-repeat checkpoint — stopped for review
+
+Frozen v0230 cases; owner-amended v0233 protocol;4096 output. First repeat72/72 attempted; repeats2–10 (648) untouched. No other B evaluation model or C/D work started.
+
+Mechanical episodes48/72 (66.6667%): malformed_reply42/72 (58.3333%),unfinished_reply4/72 (5.5556%),provider_refusal2/72 (2.7778%). error0,malformed_action0,silence0,action_error0. The mechanical count is episode-based with the original72 denominator; valid substantive unfinished_work is excluded. The owner review threshold is more than10%, so continuation is BLOCKED. No prediction/character verdict from this incomplete batch.
+
+181 native generation requests; all closed with pinned identity and valid usage. Deterministic replay, exact full native histories and first-output barriers passed. Every native attempt has one received reply, no retries, replacements or new uncertainty reserves. All89 B frozen files,59 A freezes,92 bound adapter/support source files and12,414 historical evidence hashes verified. Other ledgers/Groq quota remain unchanged. Historical timeout reserves remain in the preserved cumulative baseline.
+
+Block accounted $0.084825700. Anthropic cumulative $2.550396850. Remaining approved B allowance $1.940174300 is not permission to bypass checkpoint review. If the full original B cap were later spent, Anthropic cumulative would be $4.490571150 and room below8 for C/D would remain $3.509428850. Current total room below8 is $5.449603150, including that unused B allocation. C/D unprepared; no reallocation. Other B forecasts and caps remain: Luna point0.4477189/cap0.75;Gemini point1.846485075/cap2.75;Gemma0.
+
+No active runner or shared lock. Stop is mechanical threshold, not transport exhaustion or identity/usage failure. Original72 episode evidence and labels must remain; received replies cannot be resent. Next owner review must decide whether to retain this partial H55 cohort and authorize an exact untouched-suffix continuation under unchanged settings, change the model set prospectively, or authorize a separately reviewed prospective change. No automatic restart or format repair. Any continuation needs a new hash-bound review plan because the current CLI intentionally blocks stopped_for_review.

@@ -1,6 +1,8 @@
 # TAA Lab (v0.23.3 Study B approved freeze)
 
-Latest: [owner-approved Study B amendments and frozen protocol](docs/process/PAPER3_STUDY_B_GATE5B_APPROVED_v0233.md). Haiku4.5 removed; primary held-out three with Luna sensitivity.4096 approved; first H55 repeat block must stop and report mechanics. Offline execution readiness precedes calls; no C/D.
+Latest checkpoint: [Haiku5.5 stopped for review:48/72 mechanical failures](docs/process/PAPER3_STUDY_B_HAIKU55_CHECKPOINT_v0233.md). All72 first-repeat episodes retained;648 untouched; no other B/C/D calls.
+
+[Owner-approved Study B amendments and frozen protocol](docs/process/PAPER3_STUDY_B_GATE5B_APPROVED_v0233.md). Haiku4.5 removed; primary held-out three with Luna sensitivity.4096 approved; first H55 repeat block must stop and report mechanics. Offline execution readiness precedes calls; no C/D.
 
 The corrected Luna-only Study B development pilot is complete: [72/72 substance-correct, cost and remaining ceiling review](docs/process/PAPER3_STUDY_B_LUNA_CORRECTED_PILOT_REPORT_v0231.md). The first pilot, labels and evidence are preserved. No further calls, held-out runs, freeze or output-setting changes are approved.
 
