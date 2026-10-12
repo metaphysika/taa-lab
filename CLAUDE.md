@@ -139,3 +139,14 @@ CLI. No P6 verdict or otherstage. Owner review of written P6 amendment (both fou
 without Gemma/five with Gemma, original completeness rules, separate sensitivity)
 is the next gate. See docs/process/PAPER3_GEMMA_STUDY_A_COMBINED_REPORT_v0223.md
 and docs/process/PAPER3_STUDY_A_P6_REVIEW_READY_v0223.md.
+
+
+Latest Study A gate — v0.22.4: owner authorized the written P6 four/five-model
+amendment. Offline amended report is prepared: baseline composite counts 1/4
+without Gemma, 2/5 with Gemma; both numerical conditions met, both formal verdicts
+inconclusive under original completeness/identity rules. All 1,080 primaries
+replayed; original Luna/Haiku timeouts and Gemma503 retained. Gemma replacement
+sensitivity separate; Qwen excluded and preserved. No new model calls or B/C/D
+advance. See docs/process/PAPER3_STUDY_A_AMENDED_REPORT_v0224.md. Next gate is
+owner review and separate approval for offline Study B design/cost/quota/tests;
+no execution approval implied. Never restart completed Gemma or Qwen monitors.

@@ -1,4 +1,12 @@
-# TAA Lab (v0.22.3 Gemma reviewed continuation preparation)
+# TAA Lab (v0.22.4 amended offline Study A analysis)
+
+The owner-approved P6 amendment reports the four-model set without Gemma and
+five-model set with Gemma. Baseline composite counts are 1/4 and 2/5, respectively;
+both numerical conditions are met, but both formal verdicts remain inconclusive
+under the retained timeout/identity/completeness rule. Original failures and
+frozen inputs remain unchanged; Gemma replacement sensitivity is separate.
+See `docs/process/PAPER3_STUDY_A_AMENDED_REPORT_v0224.md`. No model calls or
+Study B/C/D execution is authorized by this analysis.
 
 Gemma’s original HTTP 503 remains unchanged. Offline continuation preparation covers 237 untouched primary episodes and one separately labeled end replacement for P_R02 repeat 1. The prospective transport policy permits up to five total attempts without received model output, preserves every attempt/reserve, and forbids re-sending after any reply. It applies to all models in B/C/D before their freezes. Execution still requires separate approval; no further model calls during preparation.
 

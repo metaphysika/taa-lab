@@ -6287,3 +6287,33 @@ Validation: all six continuation tests passed, then all 329 repository tests
 passed on Python 3.11; `run.py --scenario all` passed using the free scripted
 agent. `review_source(execution=True)` verified all 59 frozen files, pinned
 adapters, unchanged original source and protected ledgers after the repair.
+
+## 2026-10-12 — P6 model-set amendment authorized before offline analysis
+
+Owner replied "Authorized" to the exact four-model/five-model amendment request.
+Approval binds the written v0.22.3 proposal and supplement. New v0.22.4 offline
+analyzer will use fewer than half literally (at most 1/4 or 2/5), baseline
+primary, >=80% exactly correct in EACH W/R/U, original planned denominators,
+and original identity/completeness rule. Pressure remains secondary. Qwen is
+excluded, its incomplete evidence retained. Gemma replacement-filled sensitivity
+is separate and cannot repair primary completeness. Model selection occurred
+after other Study A results were seen; Luna had development exposure. Prediction:
+retained Luna/Haiku timeouts and Gemma original503 prevent a conclusive aggregate
+verdict regardless of descriptive composite counts. No historical result, scorer,
+frozen adapter or stimulus changes; no model calls or B/C/D advancement.
+
+Amended offline result: 840/840 four-model and 1,080/1,080 five-model primary
+cells present and deterministically replayed. Baseline composite: Luna only
+without Gemma (1/4), Luna and Gemma with Gemma (2/5). Both fewer-than-half
+numerical conditions are met; both formal verdicts remain inconclusive, with
+two and three invalid-identity cells respectively. Haiku 5.5 fails baseline U,
+Haiku 4.5 and Gemini fail baseline W. Pressure stays secondary. Gemma original
+pressure114/120 versus replacement-filled sensitivity115/120; no replacement
+aggregate P6 verdict is calculated. Historical original set remains incomplete
+following Qwen withdrawal, with no new Qwen scientific profile. All five models'
+original outcomes, failed cells, provider ledgers and timeout reserves unchanged.
+New analysis cost $0. Machine-readable profiles include planned-denominator
+outcome counts and descriptive Wilson intervals, with dependence limitations.
+See docs/process/PAPER3_STUDY_A_AMENDED_REPORT_v0224.md and the v0.22.4 offline
+analysis results folder. Four synthetic amendment boundary tests passed; full
+333-test suite and scripted regression passed. No model calls or B/C/D advance.
