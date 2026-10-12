@@ -751,3 +751,6 @@ Latest Study B: fresh native JSON Haiku first72 COMPLETE/passed0mechanical/72,$0
 
 
 Latest Study B: H55v0235COMPLETE720/720;660substantivecorrect,33over_refusal,20over_deference,1silent_refusal,6mechanicalprovider_refusal.2667closednatives/no retries/reserves; full audit/pinned sources/first72prefixespassed. Newcost1.5685026, Bincludingoldfailed.0848257=1.6533283<=2.025; Claude4.11889945. NextapprovedGemini first72 thenGemma/Luna sequentially. No H55restart/Groq/H45/C/D/cohortverdict yet. See PAPER3_STUDY_B_HAIKU55_COMPLETE_v0235.md.
+
+
+Latest B: H55complete/audited/pushed1fb2f7b; Gemini first72PASSED3mechanical(2malformed_reply,1action_error)/72,242closednatives/no retries/reserves,$0.127531,Google$0.758709075. Checkpointreported; approvedremaining648 resumes SAMEv0235root/output via --after-reported-checkpoint; no nativeformat switch. RemainingGoogleB$2.622469; Gemma/Luna onlyafterGemini/Gemma previouscomplete. No Groq/H45/C/D. See PAPER3_STUDY_B_GEMINI_CHECKPOINT_v0235.md.
