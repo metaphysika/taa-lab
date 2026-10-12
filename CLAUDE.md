@@ -182,3 +182,11 @@ Owner must see corrected cases and diff before calls. Luna-only72case/$0.25
 pilot cost plan is PROPOSED, no execution approval. Current2048 unchanged;
 uniform4096 is Gate5b proposal only. No frozen A/Qwen changes or Groq. See
  docs/process/PAPER3_STUDY_B_GATE5A_v0228.md.
+
+Latest owner approval — v0.22.9 dedicated B adapter: Luna-only72conditions/one
+repeat/$0.25 at existing2048 approved. Run only dedicated scripts/formation_study_b_luna_pilot.py
+with --approved-luna-pilot AFTER full offline tests pass. Exact v0228 cost plan,
+originalroot/output and new hash-bound execution receipt; cumulative OpenAI
+ledger preserved, all retries/reserves share cap. No automatic interrupted-run
+resume; stop safety/identity/usage/size/budget/unknown-output guards for review.
+No held-out/freeze/new setting/Groq/other stage. See PAPER3_STUDY_B_LUNA_PILOT_v0229.md.

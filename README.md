@@ -1,6 +1,6 @@
-# TAA Lab (v0.22.8 Study B Gate5a corrections)
+# TAA Lab (v0.22.9 Luna Study B pilot adapter)
 
-Latest: [corrected Gate 5a cases, diff and Luna-only pilot cost plan](docs/process/PAPER3_STUDY_B_GATE5A_v0228.md). No Study B model call or output-setting change is approved.
+Latest: [corrected Gate 5a cases, diff and Luna-only pilot cost plan](docs/process/PAPER3_STUDY_B_GATE5A_v0228.md). The Luna-only 72-condition pilot is approved up to $0.25 at 2,048 output tokens; held-out runs, freeze and output-setting changes remain unapproved.
 
 The owner’s Study B specification is committed; its72conditions, keys, roster,
 substance/protocol scorer and89free fixtures are prepared for Gate5a review.
