@@ -684,3 +684,9 @@ Latest v0.22.8: Gate5a approved subject to corrected-case/diff review before cal
 Luna B pilot approval now received:72conditions one repeat/$0.25/existing2048,
 sole dedicated v0229 adapter after offline regression, original v0228 output.
 No held-out calls, freeze, higher output, Groq or other stage approved.
+
+Luna B pilot complete:53/72 approved-label correct,19Uover_refusal, $0.052310315,
+OpenAI cumulative$0.256613715. W24/R12/D12correct; U5/24.19 split10withheld primary
+and9completed+ISSUE report. Shared-rule signature/prerequisite and named-ISSUE
+wording confounds require owner review before5b; original labels/files unchanged.
+No more calls/held-out/freeze/setting change. See PAPER3_STUDY_B_LUNA_PILOT_REPORT_v0229.md.

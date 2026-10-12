@@ -924,3 +924,5 @@ and docs/process/PAPER3_STUDY_A_P6_REVIEW_READY_v0223.md.
 - v0.22.8 Study B owner corrections: scenarios/formation/study-b-draft-v0228/ (72), full corrected review/diff and cut1 costs. Haiku4.5 W/U rungs2–4 only (108). Luna-only pilot cost plan prepared, separate approval required; no model calls, no freeze or output change. Gate5b uniform4096 proposal and parent contrasts pending. Qwen fixtures skip non3.11; original runner preserved.
 
 - v0.22.9 Luna-only B development pilot execution approved72conditions/r1/$0.25/2048. Dedicated runner/native/first-reply/retry/checkpoint/ledger adapter with prelaunch offline fixtures; no held-out freeze or other stage. See docs/process/PAPER3_STUDY_B_LUNA_PILOT_v0229.md.
+
+- Luna B pilot complete72cells/301closed natives/$0.052310315; original labels53correct/19Uover_refusal. Gate5b blocked on owner review of prerequisite/reporting draft confounds. Concrete prospective repair-or-cut decision in PAPER3_STUDY_B_POST_PILOT_REVIEW_v0229.md; no new calls/held-out/freeze/output setting. All original evidence preserved.

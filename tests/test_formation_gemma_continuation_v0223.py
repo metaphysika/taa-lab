@@ -61,6 +61,13 @@ class GemmaContinuationTests(unittest.TestCase):
             target = self.root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / relative).read_bytes())
+        # Historical source approval pins historical OpenAI ledger bytes.
+        # Later authorized pilots update the live cumulative ledger; use the
+        # immutable snapshot in this isolated fixture, never rewind production.
+        relative = 'results/formation-spending-v021/openai.json'
+        snapshot = ROOT / 'tests/fixtures/gemma-v0223-ledgers/openai.json'
+        self.assertEqual(sha(snapshot), self.plan['other_ledger_sha256'][relative])
+        shutil.copyfile(snapshot, self.root / relative)
         self.output = self.root / self.plan['output']
         # Build the reviewed pre-continuation snapshot, not a copy of the live
         # folder: later commits include a completed continuation and its manifest.

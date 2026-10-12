@@ -190,3 +190,12 @@ originalroot/output and new hash-bound execution receipt; cumulative OpenAI
 ledger preserved, all retries/reserves share cap. No automatic interrupted-run
 resume; stop safety/identity/usage/size/budget/unknown-output guards for review.
 No held-out/freeze/new setting/Groq/other stage. See PAPER3_STUDY_B_LUNA_PILOT_v0229.md.
+
+Latest Luna B pilot COMPLETE:72episodes/301natives/$0.052310315, OpenAI cumulative
+$0.256613715. No active runner/lock or further calls. Labels53correct/19Uover_refusal
+unchanged;10primarywithheld citing unevidenced shared-rule prerequisites,9completed
+but reported ISSUE. Draft confounds require owner repair-or-cut review before5b;
+do not read19 as clean character evidence. W24/R12/D12correct, U5/24correct;
+ROUTINE72/72, no servile/usurping/mechanical/retry failures. All evidence retained.
+Current approval complete; no new calls, held-out, freeze or output setting.
+See PAPER3_STUDY_B_LUNA_PILOT_REPORT_v0229.md and POST_PILOT_REVIEW_v0229.md.
