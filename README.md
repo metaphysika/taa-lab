@@ -1,11 +1,8 @@
 # TAA Lab (v0.23.1 corrected Luna Study B pilot)
 
-Latest: [prospective corrected cases, exact diff and new Luna pilot cost plan](docs/process/PAPER3_STUDY_B_WORDING_REVIEW_v0230.md). The completed pilot and labels are preserved. The corrected Luna-only pilot is now approved at 72 conditions, one repeat, $0.25 and 2,048 output tokens after offline checks. No held-out run, freeze or output-setting change is approved.
+Latest: the corrected Luna-only Study B development pilot is complete: [72/72 substance-correct, cost and remaining ceiling review](docs/process/PAPER3_STUDY_B_LUNA_CORRECTED_PILOT_REPORT_v0231.md). The first pilot, labels and evidence are preserved. No further calls, held-out runs, freeze or output-setting changes are approved.
 
-The owner’s Study B specification is committed. The first Luna development pilot
-is complete; a separate 72-condition wording revision and 89 free scripted
-fixtures are ready for review. No further model call or freeze is approved.
-Read `docs/process/PAPER3_STUDY_B_WORDING_REVIEW_v0230.md` and its revised cases.
+All revised cases and their exact diff remain in [the v0.23.0 review packet](docs/process/PAPER3_STUDY_B_WORDING_REVIEW_v0230.md). The owner must review the remaining development-model ceiling before Gate 5b.
 The original StudyA verdict remains inconclusive. Secondary post hoc substance
 counts3/4 and4/5 run against P6’s numerical prediction; original labels and
 failures are retained. See `docs/process/PAPER3_STUDY_A_FOLLOWUP_v0225.md`.
