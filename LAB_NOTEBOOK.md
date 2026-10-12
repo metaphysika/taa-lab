@@ -6125,3 +6125,22 @@ retained in the separate declared-fixture validation output. All 59 freeze hashe
 Gemma plan/approval/adapters, Qwen source and Groq ledger/quota verified unchanged.
 No study API call has occurred yet. Ready to exercise existing conditional Gemma
 A240 authorization at $0, with no paid fallback, altered science or other-stage run.
+
+
+## 2026-10-11 America/Phoenix — Approved additional Gemma A evaluation started
+
+All 313 tests/historical scripted checks passed before launch from original root
+and Python 3.11 on main. Existing conditional authorization exercised, fresh
+held-out A240, post-other-result addition disclosed. Only Gemma study CLI launched,
+PID 14789 verified active, no duplicate runner. Initial owned maintenance-hold
+snapshot at safe pre-request quota pause: 1 primary complete, next partially
+checkpointed; 7 issued generations, 7 native closures, exact pinned identity/
+usage/full-history/token preflight and deterministic replay audit pass; zero
+rate errors/replacements. $0, cumulative Google $0.631178075 unchanged in amount.
+All 59 hashes, protected adapters, other ledgers/reserves, Qwen evidence and
+Groq quota unchanged; no Groq calls. Shared run lock retained across waits.
+Startup evidence committed/pushed before releasing only owned initial hold.
+Quiet supervision enabled for completion/actionable failure only, preserving
+all original/replacement records and prospective safety stops. No P6 verdict,
+B/C/D or other-model advancement. C prefreeze token measurement remains pending.
+Report: docs/process/PAPER3_GEMMA_STUDY_A_STARTUP_2026-10-11.md.

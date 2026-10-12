@@ -588,3 +588,11 @@ Full checks must pass before launch. No B/C/D or P6 verdict; C histories need
 actual count verification before freeze. See
 `docs/process/PAPER3_GEMMA_STUDY_A_ADAPTER_v0222.md` and
 `studies/formation-study-a-gemma31-approval-2026-10-11.json`.
+
+
+Gemma A is now active in original Cloud/root/output under existing conditional
+approval and tested v0.22.2 CLI. Read controller-status/progress and verify PID
+before action; no duplicate runner or issued retries. Quiet supervision enabled;
+initial 7 native generations closed/identity/usage/full-history/token-audited,
+$0, Google $0.631178075, 59 freezes/Qwen evidence/other ledgers unchanged. No B/C/D
+or P6 verdict. See docs/process/PAPER3_GEMMA_STUDY_A_STARTUP_2026-10-11.md.
