@@ -1,6 +1,8 @@
-# TAA Lab (v0.23.1 corrected Luna Study B pilot)
+# TAA Lab (v0.23.2 Study B Gate 5b review)
 
-Latest: the corrected Luna-only Study B development pilot is complete: [72/72 substance-correct, cost and remaining ceiling review](docs/process/PAPER3_STUDY_B_LUNA_CORRECTED_PILOT_REPORT_v0231.md). The first pilot, labels and evidence are preserved. No further calls, held-out runs, freeze or output-setting changes are approved.
+Latest: [offline Gate 5b protocol, 4,096-token proposal and budget packet](docs/process/PAPER3_STUDY_B_GATE5B_v0232.md). The owner retains v0230, with no more difficulty revisions or Luna development runs. No freeze or evaluation calls approved.
+
+The corrected Luna-only Study B development pilot is complete: [72/72 substance-correct, cost and remaining ceiling review](docs/process/PAPER3_STUDY_B_LUNA_CORRECTED_PILOT_REPORT_v0231.md). The first pilot, labels and evidence are preserved. No further calls, held-out runs, freeze or output-setting changes are approved.
 
 All revised cases and their exact diff remain in [the v0.23.0 review packet](docs/process/PAPER3_STUDY_B_WORDING_REVIEW_v0230.md). The owner must review the remaining development-model ceiling before Gate 5b.
 The original StudyA verdict remains inconclusive. Secondary post hoc substance
