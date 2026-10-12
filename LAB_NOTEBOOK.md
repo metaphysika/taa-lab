@@ -6026,3 +6026,61 @@ neutral connectivity awaiting separate approval. Gemini A $0.615495025; Google
 cumulative accounted $0.631178075. Feasibility/cost/time scenario and P6 amendment
 proposal saved separately; no verdict and no Gemma addition/run yet. Original
 59 hashes and all Qwen source/ledger/quota hashes reverified unchanged.
+
+
+## 2026-10-11 America/Phoenix — Gemma quota, neutral approval and rate-error policy BEFORE study evaluation
+
+Owner reports AI Studio Gemma 4 31B/26B quotas: 30 RPM, 16,000 TPM, 14,400 RPD.
+Approves exactly one neutral gemma-4-31b-it connectivity request at $0, no study
+stimuli/retry; conditional on success and $0 estimate, authorizes adding Gemma
+31B and running fresh frozen Study A, plus inclusion in B/C/D before freezes.
+Model selected after other Study A results were seen; original stimuli/scorer
+unchanged. No Groq calls/new providers/accounts. Google $8 stop retained.
+
+Gemma pacing must use actual tokens/minute with safety margin and <30 RPM.
+Validate request-token fit before issuance, including longest Study C seeded
+histories before its freeze. C prompts are not built yet; do not certify them
+without measurement. Backoff uses response reset/RetryInfo, not 24-hour default.
+
+Owner's explicit Gemma-study amendment (before first Gemma STUDY episode):
+After an issued HTTP 429, preserve original failure and wait for reported reset,
+then continue only untouched episodes. Stop/report on >3 rate-limit errors in
+one run or 2 consecutive rate-limit errors; counters persist across resumes.
+Each primary episode lost specifically to rate-limit rejection gets one fresh
+full-episode replacement in the same scenario/repeat slot at END of the run,
+labeled separately. Preserve original result/checkpoint/journal unchanged. No
+replacement of a failed replacement, or of malformed replies, refusals, other
+errors. These are scored using original labels. Neutral connectivity is not a
+study episode and still has exactly one request/no replacement.
+
+Original frozen analysis keeps original failures in planned denominators; proposed
+Gemma replacement-filled matrix will be separately labeled and reported alongside
+original-episode matrix, never erase/overwrite failed attempts. P6 presentation/
+amended verdict rule remains subject to the already requested owner review.
+Protocol exception applies to Gemma only, is prospectively documented; it cannot
+retroactively retry/replace Luna, Haiku, Gemini or withdrawn Qwen.
+
+
+## 2026-10-11 America/Phoenix — One Gemma neutral check failed; Study A not started
+
+Exactly one approved request: HTTP 200, exact gemma-4-31b-it identity, but 64-token
+output ceiling exhausted by reasoning before any final JSON. Native usage 56
+prompt/61 thought/117 total; absent candidatesTokenCount rejected by unchanged
+recorder (BudgetStopped). Supplemental review infers zero final tokens but does
+not rewrite native usage/journal/summary. No retry, study call or rate-limit error.
+$0 charge; cumulative Google $0.631178075 unchanged in amount, timestamp/model
+updated by recorder. Ledger retains all prior Gemini accounting/reserves.
+
+Owner quotas and prospective rate/replacement policy saved before any Gemma study
+episode. Proposed pacing 24 HTTP RPM, 14,400 reserved input TPM, 12,960 HTTP RPD;
+verify full prompt plus 2048 output allowance plus 128 buffer <=16000 per request.
+Updated illustrative A–D input throughput floor ~8–14 hours plus latency/pauses;
+full illustrative ceilings may require ~4 days of token spacing. C histories are
+not built/count-verified; mandatory count check before C freeze remains pending.
+All Gemma A–D projected $0 at current free pricing, future Gemini costs unapproved.
+
+Next: one additional neutral proposal with normal 2048-token ceiling, unchanged
+neutral contents/defaults; requires separate approval because one-call permission
+is exhausted. Gemma remains unadmitted until success; conditional study authority
+persists but is not exercised. First check retained, no other model/stage advanced.
+Report: docs/process/PAPER3_GEMMA_NEUTRAL_AND_PACING_REVIEW_2026-10-11.md.

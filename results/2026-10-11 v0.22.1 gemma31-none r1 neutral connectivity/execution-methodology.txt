@@ -1,0 +1,53 @@
+"""Exactly one approved neutral request; no credential inspection or retry."""
+import json,os,sys,hashlib
+from pathlib import Path
+from datetime import datetime,timezone
+ROOT=Path('/workspace/taa-lab');sys.path.insert(0,str(ROOT))
+from formation.clients import GeminiChat
+from formation.telemetry import FormationRecorder
+PLAN=ROOT/'studies/formation-gemma31-neutral-check-proposal-2026-10-11.json'
+OUTPUT=ROOT/'results/2026-10-11 v0.22.1 gemma31-none r1 neutral connectivity'
+MODEL='gemma-4-31b-it'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def params(plan):
+ system=plan['body']['systemInstruction']['parts'][0]['text']
+ history=[{'role':'assistant' if m['role']=='model' else 'user','content':m['parts'][0]['text']} for m in plan['body']['contents']]
+ return system,history
+
+def main():
+ plan=json.loads(PLAN.read_text());ledger=ROOT/plan['provider_ledger']
+ assert not OUTPUT.exists(),'neutral output already exists; do not repeat'
+ assert sha(ledger)==plan['provider_ledger_sha256_before'],'prior ledger changed; review'
+ prior=json.loads(ledger.read_text())['estimated_api_dollars'];assert prior<8
+ OUTPUT.mkdir()
+ lock=ROOT/'results/formation-spending-v021/run.lock'
+ fd=os.open(str(lock),os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+ try:
+  os.write(fd,str(os.getpid()).encode())
+  (OUTPUT/'prior-google-ledger.json').write_bytes(ledger.read_bytes())
+  prices={MODEL:{'input_per_million':0,'output_per_million':0,'provider':'google'}}
+  (OUTPUT/'price-extension.json').write_text(json.dumps(prices,indent=2)+'\n')
+  recorder=FormationRecorder(OUTPUT/'calls.jsonl',prices,MODEL,max_logical=1,max_attempts=1,max_dollars=8,prior_spend=prior,ledger_path=ledger)
+  client=GeminiChat(MODEL,recorder,max_output_tokens=64)
+  system,history=params(plan);assert client.body(system,history)==plan['body']
+  approval={'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'approval':'Approve one neutral gemma-4-31b-it connectivity call through the existing Gemini key at $0; no study stimuli or retries.','plan_sha256':sha(PLAN),'model':MODEL,'maximum_attempts':1,'expected_cost_dollars':0,'user_reported_quota':{'RPM':30,'TPM':16000,'RPD':14400,'applies_also_to':'gemma-4-26b-a4b-it'},'study_A_authorization':'If connectivity succeeds and estimate stays $0, add Gemma on unchanged frozen A stimuli; include B/C/D before freezes.'}
+  (OUTPUT/'approval.json').write_text(json.dumps(approval,indent=2)+'\n')
+  (OUTPUT/'execution-methodology.txt').write_bytes(Path(__file__).read_bytes())
+  result={'model':MODEL,'success':False,'attempts':0,'estimated_cost_dollars':0,'prior_cumulative_google_dollars':prior,'retry':False}
+  try:
+   parsed=client.chat(system,history)
+   assert parsed==plan['expected_reply'],'neutral response mismatch'
+   events=[json.loads(s) for s in (OUTPUT/'calls.jsonl').read_text().splitlines()]
+   ends=[e for e in events if e['event']=='attempt_end'];assert len(ends)==1
+   end=ends[0];assert end['model_returned']==MODEL and not end['model_mismatch'] and not end['usage_missing'] and end['estimated_charge_dollars']==0
+   assert 'prompt_tokens' in end['usage'] and 'completion_tokens' in end['usage']
+   result.update(success=True,parsed_reply=parsed,native_usage=end['usage'],returned_model=end['model_returned'],finish_reason=end['finish_reason'])
+  except Exception as error:result.update(error_type=type(error).__name__)
+  result.update(attempts=recorder.attempt_count,cumulative_google_dollars=json.loads(ledger.read_text())['estimated_api_dollars'])
+  assert result['attempts']<=1
+  (OUTPUT/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
+  print(json.dumps(result,indent=2))
+ finally:
+  inode=os.fstat(fd);os.close(fd)
+  if lock.exists() and lock.stat().st_ino==inode.st_ino:lock.unlink()
+if __name__=='__main__':main()

@@ -57,3 +57,20 @@ budget/time and prospective model/P6 amendment review. No new providers/paid
 accounts. One Gemma neutral inference call requires separate approval. Preserve
 per-provider cumulative $8 automatic stops and $10 ceilings. See
 studies/formation-model-decisions-2026-10-11.json and latest notebook entry.
+
+
+## Latest Gemma gate (2026-10-11 America/Phoenix)
+
+Owner supplied AI Studio 30 RPM/16000 TPM/14400 RPD and conditionally authorized
+Gemma Study A after one successful $0 neutral check. That single approved request
+returned HTTP 200/exact identity but no final JSON at 64-token cap; recorder stopped
+on absent candidatesTokenCount. No retry or study call. Additional neutral check
+at normal 2048 ceiling requires separate approval. Google remains $0.631178075.
+Prospective owner 429 policy: retain failure, continue untouched after actual reset,
+one separately labeled end-of-run replacement per rate-lost primary, no replacement
+of a replacement/non-rate failure; stop fourth 429 or two consecutive across resumes.
+Rules already notebook-recorded before Gemma study episodes; adapter not yet built.
+Quotas/token pacing and unverified Study C prefreeze check are described in
+`docs/process/PAPER3_GEMMA_NEUTRAL_AND_PACING_REVIEW_2026-10-11.md` and
+`studies/formation-gemma-rate-replacement-policy-2026-10-11.json`.
+No Groq calls; Qwen remains withdrawn. Preserve all freezes/ledgers/reserves.
