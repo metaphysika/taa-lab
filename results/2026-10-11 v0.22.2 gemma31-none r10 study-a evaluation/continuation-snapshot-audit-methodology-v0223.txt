@@ -1,0 +1,67 @@
+"""Offline held-boundary audit only; no credential access or model transport."""
+import json,sys
+from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
+root=Path('/workspace/taa-lab');sys.path.insert(0,str(root))
+from scripts.formation_study_a_gate3 import verify_freeze
+from formation.evaluation_gemma_v0222 import read,sha,body_hash,name,GemmaChat,MODEL
+from formation.evaluation_gemma_continuation_v0223 import PLAN,APPROVAL_TEXT
+from formation.evaluation_runner_v0218 import history_for_next
+from formation.study_a import load_cases,replay_episode
+from formation.study_a_pilot import SYSTEM
+plan=read(PLAN);out=root/plan['output'];s=read(out/'continuation-controller-status.json')
+assert s['state']=='waiting_pre_request_quota'
+proc=Path('/proc')/str(s['pid']);assert proc.exists() and proc.joinpath('stat').read_text().split(') ')[1].split()[0]!='Z'
+assert proc.joinpath('cmdline').read_bytes().rstrip(b'\0').split(b'\0')==[b'/workspace/haiku55-runtime/venv/bin/python3',b'scripts/formation_study_a_gemma31_continuation.py',b'--approved-continuation']
+assert (root/'results/formation-spending-v021/run.lock').read_text()==str(s['pid'])
+assert verify_freeze()==59
+for p,h in plan['adapter_sha256'].items():assert sha(root/p)==h,p
+for p,h in plan['source_sha256'].items():assert sha(out/p)==h,p
+for p,h in plan['other_ledger_sha256'].items():assert sha(root/p)==h,p
+approval=read(root/plan['execution_approval_path']);assert approval['plan_sha256']==sha(PLAN) and approval['approval']==APPROVAL_TEXT
+assert read(root/'results/formation-spending-v021/google.json')['estimated_api_dollars']==plan['Google_cumulative_dollars']
+events=[json.loads(l) for l in (out/'continuation-calls.jsonl').read_text().splitlines()]
+starts={e['id']:e for e in events if e['event']=='attempt_start'};ends={e['id']:e for e in events if e['event']=='attempt_end'}
+assert len(starts)==sum(e['event']=='attempt_start' for e in events)==len(ends) and set(starts)==set(ends)
+logical={e['id']:e for e in events if e['event']=='logical_start'}
+bodies={e['id']:e['body'] for e in events if e['event']=='native_request'}
+preflight={e['id']:e for e in events if e['event']=='token_preflight'}
+natives={e['id']:e['response'] for e in events if e['event']=='native_response'}
+cells={(c['case_id'],c['repeat']):c for c in plan['pending_cells']+plan['initial_replacements']}
+cases={c['id']:c for c in load_cases([root/p for p in {c['path'] for c in cells.values()}])}
+count_events=[json.loads(l) for l in (out/'continuation-token-counts.jsonl').read_text().splitlines()]
+counts={e['body_sha256']:e['totalTokens'] for e in count_events if e['event']=='count_complete'}
+for aid,start in starts.items():
+ ctx=logical[start['logical_id']]['context'];cell=dict(cells[(ctx['case_id'],ctx['repeat'])],replacement=ctx.get('replacement',False))
+ checkpoint=read(out/('continuation-'+name(cell)+'-checkpoint.json'))
+ history,_=history_for_next(cases[cell['case_id']],cell['arm'],checkpoint['packets'][:ctx['turn']-1])
+ expected=GemmaChat.body(type('Settings',(),{'max_output_tokens':2048})(),SYSTEM,history)
+ assert bodies[aid]==expected
+ p=preflight[aid];assert p['body_sha256']==body_hash(expected) and counts[p['body_sha256']]==p['counted_prompt_tokens']
+ assert p['counted_prompt_tokens']+2048+128<=16000 and len(json.dumps(expected).encode())<=32000
+ end=ends[aid];assert not end.get('error') and end['model_returned']==MODEL and not end['usage_missing'] and not end['model_mismatch'] and end['estimated_charge_dollars']==0
+ assert natives[aid]['usageMetadata']['promptTokenCount']<=p['counted_prompt_tokens']+128 and end['usage']['completion_tokens']<=2048
+complete=0
+for p in out.glob('continuation-*-checkpoint.json'):
+ state=read(p);assert state['phase'] in ('paused','complete')
+ if state['phase']=='complete':
+  r=state['result'];assert replay_episode(cases[r['case_id']],state['packets'])['score']==r['score'];complete+=1
+q=read(out/'continuation-quota.json');r=read(out/'continuation-retry-state.json')
+assert not q['metadata_inflight'] and not q['stopped_for_review'] and r['stop'] is None
+assert all(j['phase'] in ('ready','complete') for j in r['jobs'].values())
+source_q=read(out/'gemma-quota.json');assert q['events'][:len(source_q['events'])]==source_q['events']
+for i,e in enumerate(q['events']):
+ minute=[x for x in q['events'][:i+1] if e['at']-x['at']<61]
+ assert len(minute)<=24 and sum(x['tokens'] for x in minute)<=14400
+ day=[x for x in q['events'][:i+1] if e['at']-x['at']<86400];assert len(day)<=12960
+barriers=set()
+for e in (json.loads(l) for l in (out/'continuation-transport-attempts.jsonl').read_text().splitlines()):
+ if e['event']=='received_reply_barrier':barriers.add(e['job'])
+ if e['event']=='transport_attempt_start':assert e['job'] not in barriers and e['attempt']<=5
+stamp=datetime.now(ZoneInfo('America/Phoenix')).isoformat();idx=1
+while (out/('continuation-supervision-snapshot-%03d.json'%idx)).exists():idx+=1
+report={'recorded_at_local':stamp,'state':s['state'],'PID_verified':s['pid'],'completed_untouched_cells':complete,'generation_requests_closed':len(starts),'native_responses':len(natives),'requests_needing_retry':r['requests_needing_retry'],'source_and_all59_frozen_and_pinned_adapter_hashes_match':True,'all_native_identity_usage_full_history_token_and_replay_checks_pass':True,'first_output_no_resend_barriers_verified':True,'all_sliding_quota_bounds_verified':True,'source_quota_history_preserved':True,'Gemma_dollars':0,'Google_cumulative_dollars':plan['Google_cumulative_dollars'],'protected_other_ledgers_quota_unchanged':True,'sha256':{str(p.relative_to(root)):sha(p) for p in out.iterdir() if p.is_file() and p.name.startswith('continuation-')}}
+(out/('continuation-supervision-snapshot-%03d.json'%idx)).write_text(json.dumps(report,indent=2)+'\n')
+(out/'continuation-snapshot-audit-methodology-v0223.txt').write_bytes(Path(__file__).read_bytes())
+print('Held audit passed:',complete,'suffix cells,',len(starts),'closed natives,',r['requests_needing_retry'],'retry-needed; $0')
