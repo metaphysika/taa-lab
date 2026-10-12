@@ -62,7 +62,17 @@ class GemmaContinuationTests(unittest.TestCase):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / relative).read_bytes())
         self.output = self.root / self.plan['output']
-        shutil.copytree(OUTPUT, self.output)
+        # Build the reviewed pre-continuation snapshot, not a copy of the live
+        # folder: later commits include a completed continuation and its manifest.
+        self.output.mkdir(parents=True)
+        for relative, digest in self.plan['source_sha256'].items():
+            target = self.output / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(OUTPUT / relative, target)
+            self.assertEqual(sha(target), digest, relative)
+        ledger = self.root / 'results/formation-spending-v021/google.json'
+        shutil.copyfile(ROOT / 'tests/fixtures/gemma-v0223-ledgers/google.json', ledger)
+        self.assertEqual(sha(ledger), self.plan['Google_ledger_start_sha256'])
         self.plan_path = self.root / PLAN.relative_to(ROOT)
         self.plan_path.write_text(json.dumps(self.plan, indent=2))
         self.clock, self.waits = [2000000000.], []

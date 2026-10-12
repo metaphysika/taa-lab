@@ -6264,3 +6264,26 @@ completeness/identity failures and separating replacement sensitivity; offline
 analyzer/report only after approval. No B/C/D advances. Reports:
  docs/process/PAPER3_GEMMA_STUDY_A_COMBINED_REPORT_v0223.md;
  docs/process/PAPER3_STUDY_A_P6_REVIEW_READY_v0223.md.
+
+## 2026-10-12 — Offline CI fixture isolation repair
+
+The owner supplied the GitHub Harness checks log for main 80542cb: 329 tests,
+one error, `continuation manifest differs` in the full Gemma continuation fixture.
+The same error reproduced locally. The test copied the entire live evidence
+folder, including the subsequently completed continuation's manifest and state,
+into a temporary checkout with a different root and approval-plan hash. This is
+a test setup defect; the production manifest guard correctly rejected it.
+
+The fixture now copies only the plan's hash-bound original source files, checks
+each copied hash, and uses a credential-free historical Google ledger snapshot
+from preparation commit 35e7b60, checking the original starting ledger hash.
+The current provider ledger and every real run file remain unchanged. Prediction:
+the offline simulated 237-cell suffix, 429/503 retries, labeled replacement and
+completed-resume checks pass even after live continuation evidence is committed.
+No production behavior, frozen adapter, scoring, approval or study input changes;
+the runtime version stays v0.22.3. No model calls or stage/P6 advancement.
+
+Validation: all six continuation tests passed, then all 329 repository tests
+passed on Python 3.11; `run.py --scenario all` passed using the free scripted
+agent. `review_source(execution=True)` verified all 59 frozen files, pinned
+adapters, unchanged original source and protected ledgers after the repair.
