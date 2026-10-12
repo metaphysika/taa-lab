@@ -910,3 +910,13 @@ source stopped status for restart. NEW5-total-attempt/10retry-needed-request
 policy, first-reply/partial-byte no-resend, exacttokenquota/paid$8 guards; quiet
 supervision enabled. No duplicate runner/Groq/otherstage/P6. See
  docs/process/PAPER3_GEMMA_CONTINUATION_STARTUP_2026-10-11.md.
+
+
+Latest Gemma: COMPLETE v0.22.3,237 suffix +1 correct labeled replacement. Original
+primary baseline119/120,pressure114/120; sensitivitypressure115/120; original503
+unchanged. $0,Google$0.631178075,all59 freezes/source/adapters/otherledgers/Groq/
+Qwen unchanged. No runner; Gemma supervision disabled, never restart completed
+CLI. No P6 verdict or otherstage. Owner review of written P6 amendment (both four
+without Gemma/five with Gemma, original completeness rules, separate sensitivity)
+is the next gate. See docs/process/PAPER3_GEMMA_STUDY_A_COMBINED_REPORT_v0223.md
+and docs/process/PAPER3_STUDY_A_P6_REVIEW_READY_v0223.md.

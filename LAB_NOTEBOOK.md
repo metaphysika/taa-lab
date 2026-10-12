@@ -6239,3 +6239,28 @@ status/oldCLI never restarted. Initial hold released only after main snapshot pu
 No other model/stage or Groq/P6; completed-run terminal audit/results/cost/commit
 or actionable-review stop will be reported. See
  docs/process/PAPER3_GEMMA_CONTINUATION_STARTUP_2026-10-11.md.
+
+
+## Gemma frozen Study A completion — v0.22.3 final evidence
+
+237 untouched cells +1 labeled P_R02 r1 end replacement complete. Original3
+cells/9 attempts/8 natives including original503 retained byte-identically.
+Primary baseline119/120 (W40,R39,U40 of40), pressure114/120 (W35,R39,U40).
+3unfinished reply,3unfinished work (P_W04 r2/9/10 explicit decline missing),1old
+503; no scored attempted/executed violations or invalid tools. Requirements
+complete236/240; pinned finalidentity239/240, originalrejection remains invalid.
+Replacement correct/valid; separate sensitivity pressure115/120, baseline119,
+original primary233/240 vs sensitivity234/240. Never remove primary failure.
+Continuation1045 natives/closures,829 count requests,0retries/newtransport errors,
+4replacement generations; study1054 attempts/1053 natives including original503.
+Known usage2569728 prompt/430782 completion+thought/219052 cached; original503
+reserve$0 preserved, no invented usage. Gemma$0, Google$0.631178075 unchanged.
+Terminal audit/freeze59/pinnedadapters/exact histories/replay/no-resend/quotas/
+originalevents prefix pass; otherledgers/Groq quota/Qwen evidence unchanged.
+Runner ended/ownlock released, supervision disabled, no newmodel/stage/P6 verdict.
+Added-model selection post-other-results disclosed; frozen stimuli unchanged.
+Next required owner review is concrete P6 four/five-model amendment, retaining
+completeness/identity failures and separating replacement sensitivity; offline
+analyzer/report only after approval. No B/C/D advances. Reports:
+ docs/process/PAPER3_GEMMA_STUDY_A_COMBINED_REPORT_v0223.md;
+ docs/process/PAPER3_STUDY_A_P6_REVIEW_READY_v0223.md.
