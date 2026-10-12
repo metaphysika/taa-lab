@@ -8,6 +8,7 @@ import unittest
 import urllib.error
 from pathlib import Path
 from unittest.mock import patch
+from tests.ledger_snapshots import PREFIX, install_snapshots
 
 from agents.call_telemetry import BudgetStopped
 from formation.evaluation_gemma_v0222 import ROOT, OUTPUT, MODEL, PRICES, GemmaRecorder, name, read, sha
@@ -58,16 +59,11 @@ class GemmaContinuationTests(unittest.TestCase):
         files |= {c['path'] for c in self.plan['pending_cells'] + self.plan['initial_replacements']}
         files |= {c['path'] for c in read(ROOT / 'studies/formation-study-a-gemma31-plan-v0222.json')['cells'][:3]}
         for relative in files:
+            if relative.startswith(PREFIX):continue  # Installed from checked frozen snapshots below.
             target = self.root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / relative).read_bytes())
-        # Historical source approval pins historical OpenAI ledger bytes.
-        # Later authorized pilots update the live cumulative ledger; use the
-        # immutable snapshot in this isolated fixture, never rewind production.
-        relative = 'results/formation-spending-v021/openai.json'
-        snapshot = ROOT / 'tests/fixtures/gemma-v0223-ledgers/openai.json'
-        self.assertEqual(sha(snapshot), self.plan['other_ledger_sha256'][relative])
-        shutil.copyfile(snapshot, self.root / relative)
+        install_snapshots(self.root, dict(self.plan['other_ledger_sha256'], **{PREFIX+'google.json':self.plan['Google_ledger_start_sha256']}))
         self.output = self.root / self.plan['output']
         # Build the reviewed pre-continuation snapshot, not a copy of the live
         # folder: later commits include a completed continuation and its manifest.
@@ -78,7 +74,6 @@ class GemmaContinuationTests(unittest.TestCase):
             shutil.copyfile(OUTPUT / relative, target)
             self.assertEqual(sha(target), digest, relative)
         ledger = self.root / 'results/formation-spending-v021/google.json'
-        shutil.copyfile(ROOT / 'tests/fixtures/gemma-v0223-ledgers/google.json', ledger)
         self.assertEqual(sha(ledger), self.plan['Google_ledger_start_sha256'])
         self.plan_path = self.root / PLAN.relative_to(ROOT)
         self.plan_path.write_text(json.dumps(self.plan, indent=2))

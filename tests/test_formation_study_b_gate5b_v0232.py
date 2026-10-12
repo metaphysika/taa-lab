@@ -1,5 +1,6 @@
 """Meaningful offline threshold/budget/retention checks; no provider import."""
 import hashlib
+from tests.ledger_snapshots import PREFIX, snapshot_path
 import json
 import unittest
 from decimal import Decimal as D
@@ -50,9 +51,10 @@ class Gate5bTests(unittest.TestCase):
         v=json.loads((ROOT/'results/2026-10-12 v0.23.2 study-b gate5b offline/review-integrity.json').read_text())
         self.assertEqual(v['model_calls'],0)
         for name,digest in dict(v['case_sha256'],**v['protected_evidence_sha256']).items():
-            # Ledgers in review indexes are historical snapshots; later authorized
-            # spending must not fail CI by requiring their old byte hashes.
-            if name.startswith('results/formation-spending-v021/'):continue
+            # Verify historical ledger evidence against immutable checked copies.
+            if name.startswith(PREFIX):
+                self.assertEqual(hashlib.sha256(snapshot_path(name,digest).read_bytes()).hexdigest(),digest,name)
+                continue
             self.assertNotIn('keys.env',name)
             self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest,name)
         p=json.loads((ROOT/'studies/formation-study-b-gate5b-protocol-v0232.json').read_text())

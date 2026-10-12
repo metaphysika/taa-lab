@@ -9,6 +9,7 @@ import unittest
 import urllib.error
 from pathlib import Path
 from unittest.mock import patch
+from tests.ledger_snapshots import PREFIX, install_snapshots
 
 from formation.study_a import ROOT
 from formation.evaluation_transport_v0218 import GroqSlots
@@ -42,16 +43,11 @@ class QwenContinuationTests(unittest.TestCase):
         relatives = set(plan['bound_file_sha256']) | set(frozen['sha256']) | set(frozen.get('adapter_reference_sha256', {}))
         relatives |= set(plan['other_ledger_sha256']) | set(plan['initial_groq_sha256']) | {plan['source_review']}
         for relative in relatives:
+            if relative.startswith(PREFIX):continue  # Historical accounting never comes from live files.
             target = self.root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / relative).read_bytes())
-        # Historical continuation fixtures bind historical accounting bytes.
-        # Later approved calls legitimately update live provider ledgers; never
-        # rewind them or weaken the production review guard to run these tests.
-        for relative, digest in plan['other_ledger_sha256'].items():
-            snapshot = ROOT / 'tests/fixtures/qwen-v0221-ledgers' / Path(relative).name
-            self.assertEqual(adapter.sha(snapshot), digest)
-            (self.root / relative).write_bytes(snapshot.read_bytes())
+        install_snapshots(self.root, dict(plan['other_ledger_sha256'], **plan['initial_groq_sha256']))
         self.source = self.root / adapter.OUTPUT
         shutil.copytree(ROOT / adapter.OUTPUT, self.source)
         self.plan_path = self.root / PLAN_PATH.relative_to(ROOT)

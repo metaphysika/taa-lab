@@ -1,5 +1,6 @@
 """Prospective wording only: preserve completed pilot and paired evidence."""
 import hashlib
+from tests.ledger_snapshots import PREFIX, snapshot_path
 import json
 import unittest
 from pathlib import Path
@@ -68,6 +69,7 @@ class ProspectiveWordingTests(unittest.TestCase):
         index=json.loads((ROOT/'results/2026-10-12 v0.22.8 luna-none r1 study-b pilot/integrity-snapshot.json').read_text())
         for path,digest in index['sha256'].items():
             self.assertNotIn('keys.env',path)
-            self.assertEqual(hashlib.sha256((ROOT/path).read_bytes()).hexdigest(),digest,path)
+            source=snapshot_path(path,digest) if path.startswith(PREFIX) else ROOT/path
+            self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(),digest,path)
 
 if __name__=='__main__': unittest.main()
