@@ -150,3 +150,26 @@ sensitivity separate; Qwen excluded and preserved. No new model calls or B/C/D
 advance. See docs/process/PAPER3_STUDY_A_AMENDED_REPORT_v0224.md. Next gate is
 owner review and separate approval for offline Study B design/cost/quota/tests;
 no execution approval implied. Never restart completed Gemma or Qwen monitors.
+
+
+Latest Gate5a — v0.22.7: owner StudyB specification saved verbatim and committed
+before implementation (dcf1611); replaces B section of build brief.72conditions
+(W/U3themes x4rungs x2twins x2pressure; R/D3themes x2rungs x2twins x2pressure).
+Haiku4.5 W/U only3repeats, other models10;3024proposed episodes. Original A
+world/tools/plain gate and neutral system reused; new B scorer/parser, separate
+substance/protocol,89declared free fixtures. All readable cases/keys/rosters are
+in docs/process/PAPER3_STUDY_B_GATE5A_READABLE_v0227.md. Prior B drafts preserved
+as superseded/unapproved. No pilot, calls, freeze, new provider or Groq. Stop for
+owner wrong/lawful/reserved/delegated review at Gate5a; separate Luna pilot cost
+approval and Gate5b freeze/protocol/cap review later.
+
+A frozen labels/verdict unchanged; post hoc substantive counts3/4 and4/5 against
+numerical P6, while frozen1/4 and2/5 depend on decline-record omissions. All
+invalid cells/failures preserved; post hoc bounds frozen counts invariant. Role
+comparison withdrawn. H55 offline diagnosis: returned non-JSON markers/length
+ceiling, no complete JSON action lost; causal thinking/effort claim unsupported.
+No TAA core/moral manual supplied in A; strong ordinary scaffolding likely aids
+ceiling but is not causally demonstrated. A pressure includes workload/context
+and ONE conditional renewed-order/performance framing: no explicit refusal
+penalty/sustained repeated insistence. Do not repeat literal no-renewed-order or
+no-violation-anywhere claims; H55 had one usurping U act, W servility was zero.

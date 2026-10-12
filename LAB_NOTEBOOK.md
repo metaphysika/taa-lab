@@ -6317,3 +6317,96 @@ outcome counts and descriptive Wilson intervals, with dependence limitations.
 See docs/process/PAPER3_STUDY_A_AMENDED_REPORT_v0224.md and the v0.22.4 offline
 analysis results folder. Four synthetic amendment boundary tests passed; full
 333-test suite and scripted regression passed. No model calls or B/C/D advance.
+
+## 2026-10-12 — Owner-requested post hoc follow-up and prospective B direction
+
+Owner requested outcome details, invalid-cell bounds, then secondary substantive
+scoring after results were seen. Frozen labels/verdict remain unchanged. Secondary
+substance waives ONLY decline_order record, not required human reports/referrals
+or legitimate work; preserve protected records/questions and no wrongful acts.
+Observed baseline composite: frozen1/4 and2/5; substantive3/4 and4/5. Most models
+qualify substantively, against numerical P6. Frozen numerical alignment depends
+on decline-record omissions excluding Haiku4.5 and Gemini; formal verdict remains
+inconclusive, with original identity/transport failures retained. All4/8 invalid
+cell assignments leave frozen counts unchanged. Pressure omission counts are
+descriptive; zero servile W acts in both arms. Requested role comparison withdrawn.
+
+Offline H55 diagnosis:986 natives/987 saved bodies,22 malformed end_turn replies,
+15 max_tokens at2048,1 silent. Failed envelopes contain no JSON-object start; no
+complete saved action was lost by the parser. Requests have no explicit thinking/
+effort/temperature override. Native reasoning defaults cannot be causally blamed
+from saved text. New B strict-parser prototype prevents nested/truncated/duplicate
+JSON salvage; it does not repair historical replies. Protocol failures must not
+be interpreted as character. All old frozen adapters/evidence/ledgers unchanged.
+
+Initial B v0.22.5 review draft (16 cases,720 primary proposals) is preserved as an
+unapproved draft. Owner subsequently requested a separately versioned scaffolding
+ladder with paired W/U text identical except deciding evidence, and a genuine
+pressure factor. This does not reopen A or change analyses/diagnosis in progress.
+New B predictions are written before any B results: accuracy falls down the ladder,
+two-sided failures concentrate in lower rungs, genuine pressure lowers W accuracy
+more than workload/distraction; flat results count against them. No B call, pilot,
+freeze, setting change, other stage or Groq call authorized. Gate5a must show all
+new cases to owner. No causal claim from StudyA ceiling; TAA core not supplied,
+ordinary task scaffolding was. Archived pressure cases do contain ONE conditional
+renewed instruction/performance framing; do not assert literally no insistence.
+
+## 2026-10-12 — Final owner Study B specification committed before build
+
+Owner supplied PAPER3_STUDY_B_SPEC.md, committed verbatim in dcf1611 before
+implementation. It supersedes prior unapproved B drafts without changing A.
+72conditions: W/U3themes x4rungs x2twins x2pressure=48; R/D3themes x2rungs
+x2twins x2pressure=24. Four core models720episodes each; Haiku4.5 W/U only
+at3repeats=144, superseding earlier5-repeat B proposal. Proposed total3024.
+Reuse A world/tools/plain gate, neutral system; no TAA/counsel/core. Substance
+primary, decline/report-format protocol secondary; mechanical outcomes never
+classified as correct or character extremes. Retain observed earlier-effect and
+attempted/executed flags even if terminal mechanical failure occurs.
+
+Prospective default predictions, before B calls/results, for Gate5b confirmation:
+B1 no-pressure W/U accuracy rung4 at least15points below rung1, no upward rung
+step over5points. B2 servile+over-refusal rate rungs3/4 at least double1/2. B3
+genuine pressure adds at least10points W servility at rungs2–4. B4 R/D usurpation
+plus over-deference at least15points higher at4 than1. P5 model-level association
+of lower one-extreme rate with higher other-extreme rate is descriptive. Flat
+results count against predictions. If low-rung/early-rung rates both zero, the
+B2 criterion is NOT claimed met by0>=2*0; a positive concentration is required.
+Numerical rules, pooling with unequal Haiku repeats, unknown-outcome bounds and
+scenario dependence need prospective Gate5b review, not retrospective adjustment.
+
+Specification intro qualifications preserved separately: no executed servile W
+acts in A, but one H55 usurping U act. A workload/context arm included one
+conditional renewed-order/performance message; no explicit refusal penalty or
+sustained repeated insistence. Literal “no wrongful act of any kind” or “no
+renewed instruction” would overstate the source. Scaffolding likely contributed
+to ceiling, not causally demonstrated. No B calls/pilot/freeze authorized; stop
+at Gate5a with all cases and deterministic fixtures. Paid$8 stops/Google$10
+constraint/owner transport policy unchanged; no Groq or new provider/account.
+
+Gate5a implementation result: all72cases generated,36twin pairs verified to differ
+only in deciding evidence in the model-visible interface; rung4 evidence only
+in observed records, six-person roster, no task tool disclaimer. Original A
+world/tools/plain gate and neutral system reused.89declared free fixtures cover
+all requested outcome/flag paths,72correct cases without decline records, wrong
+recipient with canonical payload, and prior harm retained after mechanical stop.
+No partial fixture is scored closed/correct. No mechanical absence is treated
+as deliberate silent refusal or over-deference. Protocol format and substantive
+recipient correctness are independently scored. No new model calls/spend.
+
+Preliminary A-scaled forecast3024episodes,10104generations on declared correct
+paths. H45144WU-only at3repeats; other models720at10. Claude current2.46557115,
+point after B6.37425960; illustrative25%buffer7.35143171. No cost cut applied
+yet; exact longer-body/retry/pilot costs and stops are binding, no completion
+guarantee or execution approval. Required cut order and eligibility changes
+recorded in cost packet. Google current0.631178075, projected point2.47766315
+before pilot/replacements/C/D; actual billing-credit balance not verified.
+Gemma$0, time provisional8–24hours from prior input usage and declared paths,
+potentially longer; exact token/quota guards unchanged.
+
+All348tests and historical scripted checks pass. All59frozen A files, original
+Gemma source/pinned adapters, protected ledgers/quota and v0.22.4 source hashes
+verified unchanged. Logs/evidence preserved. Stop at Gate5a with all readable
+cases and keys in PAPER3_STUDY_B_GATE5A_READABLE_v0227.md; no pilot/call/freeze.
+Spec intro preserved verbatim with evidence qualifications: zero servile W acts,
+one H55 usurping U act, conditional renewed-order message in A, four substantive
+qualifiers rather than every model literally at a completion ceiling.

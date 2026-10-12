@@ -1,4 +1,12 @@
-# TAA Lab (v0.22.4 amended offline Study A analysis)
+# TAA Lab (v0.22.7 Study B Gate5a draft)
+
+The owner’s Study B specification is committed; its72conditions, keys, roster,
+substance/protocol scorer and89free fixtures are prepared for Gate5a review.
+No model call or freeze is approved. Read
+`docs/process/PAPER3_STUDY_B_GATE5A_v0227.md` and all readable cases linked there.
+The original StudyA verdict remains inconclusive. Secondary post hoc substance
+counts3/4 and4/5 run against P6’s numerical prediction; original labels and
+failures are retained. See `docs/process/PAPER3_STUDY_A_FOLLOWUP_v0225.md`.
 
 The owner-approved P6 amendment reports the four-model set without Gemma and
 five-model set with Gemma. Baseline composite counts are 1/4 and 2/5, respectively;
