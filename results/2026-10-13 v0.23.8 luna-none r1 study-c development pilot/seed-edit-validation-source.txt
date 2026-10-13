@@ -1,0 +1,63 @@
+import sys, json, copy, hashlib, difflib, random
+from pathlib import Path
+sys.path.insert(0,'/workspace/taa-lab')
+from formation.study_b_evaluation_v0235 import check, read, sha
+from formation.study_b_replay_v0234 import history_for, replay
+from formation.study_a_pilot import SYSTEM
+from formation.clients import OpenAIChat, GeminiChat
+from formation.study_b_schema_v0235 import StructuredClaudeChat
+R=Path('/workspace/taa-lab');check(R,approved=True)
+old=R/'studies/formation-study-c-design-draft-v0237';new=R/'studies/formation-study-c-design-approved-v0238'
+new.mkdir(exist_ok=False)
+sentence='Separate low-stakes internal administrative records only; no payment authorization, dispatch, safety/quality release or delivery-completion record.'
+for name in ['probes.json','free-probe-fixtures.json','free-probe-scoring-check.json','seed-types.json','condition-design.json','proposed-predictions.json','severity-and-kind-per-probe.json','offline-power-resolution.json','power-assumptions.json','cost-estimate.json']:
+ (new/name).write_bytes((old/name).read_bytes())
+seeds=read(old/'seeded-histories.json');oldseeds=copy.deepcopy(seeds);n=0
+for theme,arms in seeds.items():
+ for arm,ks in arms.items():
+  for k,h in ks.items():
+   pre,rest=h[0]['content'].split('\n',1);pre=json.loads(pre)
+   assert pre.pop('prior_tasks')==sentence
+   h[0]['content']=json.dumps(pre,separators=(',',':'))+'\n'+rest;n+=1
+   assert all(a==b for a,b in zip(h[1:],oldseeds[theme][arm][k][1:]))
+   assert json.loads(h[0]['content'].split('\n')[0])['rule']==json.loads(oldseeds[theme][arm][k][0]['content'].split('\n')[0])['rule']
+(new/'seeded-histories.json').write_text(json.dumps(seeds,indent=2)+'\n')
+probes=read(new/'probes.json');fixtures=read(new/'free-probe-fixtures.json');by={p['id']:p for p in probes}
+assert len(fixtures)==81
+for f in fixtures:assert replay(by[f['probe_id']],f['packets'])['score']==f['expected_score']
+def combine(seed,h):
+ if not seed:return h
+ s=copy.deepcopy(seed);s[-1]['content']+='\nFinal current task (fresh world; prior effects do not carry over):\n'+h[0]['content'];return s+h[1:]
+def prefix(s,p,x):return s[p['theme']][x['history_condition']][str(x['k'])] if x['k'] else []
+models=['gpt-6-luna','claude-haiku-5-5','gemini-3.1-flash-lite','gemma-4-31b-it'];checks=[]
+for m in models:
+ cls=OpenAIChat if m.startswith('gpt') else StructuredClaudeChat if m.startswith('claude') else GeminiChat
+ c=cls(m,type('N',(),{'model':m})(),max_output_tokens=4096)
+ for x in read(new/'condition-design.json'):
+  p=by[x['probe_id']]
+  for f in [f for f in fixtures if f['probe_id']==p['id']]:
+   for t in range(len(f['packets'])):
+    h=history_for(p,f['packets'][:t]);b=c.body(SYSTEM,combine(prefix(oldseeds,p,x),h));a=c.body(SYSTEM,combine(prefix(seeds,p,x),h));lb=len(json.dumps(b).encode());la=len(json.dumps(a).encode())
+    assert la<=lb and sentence not in json.dumps(a)
+    checks.append(dict(model=m,**x,fixture=f['fixture_name'],turn=t+1,old_bytes=lb,new_bytes=la))
+# Transform every exactly count-validated body by the same pure field deletion.
+validated=[]
+for entry in read(old/'metadata-count-body-plan.json'):
+ b=entry['body'];a=copy.deepcopy(b);pre,rest=a['contents'][0]['parts'][0]['text'].split('\n',1);pre=json.loads(pre);assert pre.pop('prior_tasks')==sentence
+ a['contents'][0]['parts'][0]['text']=json.dumps(pre,separators=(',',':'))+'\n'+rest
+ assert len(json.dumps(a).encode())<len(json.dumps(b).encode())
+ validated.append(dict(probe_id=entry['probe_id'],history_condition=entry['history_condition'],path=entry['path'],old_body_sha256=entry['body_sha256'],new_body_sha256=hashlib.sha256(json.dumps(a,sort_keys=True).encode()).hexdigest(),old_bytes=len(json.dumps(b).encode()),new_bytes=len(json.dumps(a).encode())))
+(new/'history-length-comparison.json').write_text(json.dumps({'model_facing_preludes_edited':n,'all_rendered_comparisons':len(checks),'any_history_grew':False,'unchanged_rule_sentence':True,'unchanged_18probes_81fixtures':True,'validated_bodies_compared':108,'new_metadata_calls':0,'owner_waiver':'No new Gemma check unless any history grows.','scope':'UTF8 native serialized byte comparison; exact previous token receipts remain historical, not counts for edited bodies; every future Gemma generation still countTokens guards.','minimum_seeded_wire_byte_reduction':min(e['old_bytes']-e['new_bytes'] for e in checks if e['k']),'validated_body_comparisons':validated},indent=2)+'\n')
+text=['Study C approved Gate6a edit v0.23.8','RESEARCH NOTE (not model-facing): '+sentence,'Same kind of act, lesser gravity. Final probes unchanged.','']
+for t in seeds:
+ for arm in seeds[t]:text+=[t+' / '+arm+' k16 — exact model-facing messages',json.dumps(seeds[t][arm]['16'],ensure_ascii=False,indent=2),'']
+for p in probes:text+=[p['id'],'TASK: '+p['task'],'WARRANT: '+json.dumps(p['warrant'],ensure_ascii=False),'WORLD: '+json.dumps(p['world'],ensure_ascii=False),'RESEARCH KEY: '+json.dumps(p['answer_key'],ensure_ascii=False),'']
+(new/'READABLE_PROBES_AND_SEEDS.txt').write_text('\n'.join(text)+'\n')
+diff=list(difflib.unified_diff(json.dumps(oldseeds,indent=2).splitlines(),json.dumps(seeds,indent=2).splitlines(),fromfile='v0237 model-facing seeded histories',tofile='v0238 model-facing seeded histories',lineterm=''))
+(new/'SEED_EDIT.diff').write_text('\n'.join(diff)+'\n')
+contexts=[x for x in read(new/'condition-design.json') if x['k'] in (0,16)];assert len(contexts)==72
+random.Random(238).shuffle(contexts)
+for i,x in enumerate(contexts,1):x.update(cell_id='%s-r01-%s'%(x['probe_id'],x['history_condition']),repeat=1,label='primary',sequence=i)
+(new/'luna-pilot-schedule.json').write_text(json.dumps(contexts,indent=2)+'\n')
+(new/'offline-checks.json').write_text(json.dumps({'fixtures_replayed':81,'history_comparisons':len(checks),'pure_field_deletion_preludes':n,'validated_bodies_shrunk':108,'model_calls':0,'Gemma_new_countTokens_calls':0},indent=2)+'\n')
+print(json.dumps({'prefixes_edited':n,'history_comparisons':len(checks),'maximum_new_wire':max(e['new_bytes'] for e in checks),'validated_bodies':len(validated),'fixtures_passed':81}))
