@@ -1,4 +1,6 @@
-# TAA Lab (v0.23.5 Study B native JSON amendment)
+# TAA Lab (v0.23.8 Study C development pilot)
+
+Current Study C: [Gate 6a approved with seed-only edit and Luna-only development pilot](docs/process/PAPER3_STUDY_C_GATE6A_APPROVED_v0238.md). No scientific freeze or held-out C calls until Gate 6b.
 
 Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 
