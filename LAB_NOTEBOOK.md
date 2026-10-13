@@ -6596,3 +6596,10 @@ All 720 primary episodes completed at $0: 655 substance-correct, 51 silent refus
 Terminal source/native/replay/first-output/identity/usage/exact-token/quota/ledger audit passed: 2,743 closed generation attempts, 2,740 native replies, no retained uncertainty reserves. Transport retries and metadata history remain in the journals; every retry job is closed, with no exhaustion or retry-limit stop. Google cumulative spending remains $1.910192575 within floating-point tolerance. First72 checkpoint bytes and journal prefixes and original quota history were verified unchanged.
 
 Haiku and Gemini remain complete. The existing execution approval covers Luna's fresh first72 checkpoint next, using the original defaults and shared parser, 4,096 output tokens and OpenAI B cap $0.75. No Study C/D work or final pooled prediction verdict yet. Final substance/protocol/bounds analysis and all owner-requested post-results descriptive breakdowns follow all four completed models.
+
+
+## 2026-10-13T12:53:02.873379+00:00 — Luna first72 passed
+
+All 72 episodes completed with zero mechanical failures (every mechanical label zero), 285 closed native requests, no transport retries or uncertainty reserves. Cost $0.045584315; cumulative OpenAI $0.34696992. Terminal source/native/replay/identity/usage/ledger and previous models’ first72 checkpoint/prefix audits passed.
+
+Checkpoint reported to the owner. Existing approval covers remaining648 in the same output, original defaults/shared parser/4096 output and unchanged $0.75 B cap. Luna remains development-exposed and belongs to the predefined including-Luna sensitivity, not the primary held-out cohort. Haiku, Gemini and Gemma complete. The full report must include all requested descriptive breakdowns and frozen bounds/decision rules; notify owner proactively at Luna completion and provide report/next decisions. No C/D work.
