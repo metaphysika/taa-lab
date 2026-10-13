@@ -760,3 +760,10 @@ Final B reporting addition: owner requests every-model theme/rung/twin/pressure 
 
 
 LatestB: Gemini COMPLETE720/720,629correct/19over_refusal/11servile/14usurping/47mechanical(21action_error26malformed_reply),2425closednatives/no retries/reserves,all audits/source/prefix checks passed. Cost1.2790145,Google1.910192575. First72passed3 so no native-mode rerun. NextapprovedGemma first72at0, thenLuna; noC/D/Groq/H45. Finaldescriptivebreakdowns required, frozen rules unchanged. See PAPER3_STUDY_B_GEMINI_COMPLETE_v0235.md.
+
+
+## 2026-10-13T02:45:35.444490+00:00 — Gemma Study B first72 passed
+
+Gemma completed all 72 first-repeat episodes with zero mechanical failures (all seven mechanical labels zero), at $0. The native/source/replay/identity/usage/exact-token/quota audit passed: 272 closed native requests, no transport retries or uncertainty reserves. Google cumulative spending remains $1.910192575 (floating-point ledger representation within audit tolerance).
+
+The original quota history and previous models’ first-repeat checkpoint bytes and journal prefixes remain intact. No runner or shared lock remained at this closed boundary. The owner was notified and the checkpoint receipt binds the saved first-repeat report. Existing approval covers the remaining 648 episodes in the same output with unchanged defaults, parser, scoring, 4,096-token ceiling and transport policy. No native-format rerun is triggered. Haiku and Gemini remain complete; Luna follows only after Gemma completes. No Study C/D work.

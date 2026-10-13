@@ -6580,3 +6580,10 @@ Owner requests theme-within-rung results for every model, over-refusal split (wi
 2425closed native requests/responses,0transport retries/uncertainty reserve; native identity/usage/full-wire/first-reply/deterministic replay/exact720schedule/59A99B101dependency12635source checks and first72checkpoint/journal prefix checks passed. Cost$1.279014500 within GoogleB$2.75; cumulativeGoogle$1.910192575; room below8=$6.089807425. Haiku/other ledgers/Groq/Qwen/original sources unchanged. Final descriptive theme/rung, over-refusal splits and possible wording concentration notes remain required; no cohort B1–B4/P5 decision until remaining models complete.
 
 Next approved model: Gemma first72 at$0, samev0235root/output/cases/parser/defaults/4096, exactfull-body token preflight and originalquota carry-forward. Google numerical cumulative must stay$1.910192575 during$0Gemma; legitimate timestamps may update. No C/D work.
+
+
+## 2026-10-13T02:45:35.444490+00:00 — Gemma Study B first72 passed
+
+Gemma completed all 72 first-repeat episodes with zero mechanical failures (all seven mechanical labels zero), at $0. The native/source/replay/identity/usage/exact-token/quota audit passed: 272 closed native requests, no transport retries or uncertainty reserves. Google cumulative spending remains $1.910192575 (floating-point ledger representation within audit tolerance).
+
+The original quota history and previous models’ first-repeat checkpoint bytes and journal prefixes remain intact. No runner or shared lock remained at this closed boundary. The owner was notified and the checkpoint receipt binds the saved first-repeat report. Existing approval covers the remaining 648 episodes in the same output with unchanged defaults, parser, scoring, 4,096-token ceiling and transport policy. No native-format rerun is triggered. Haiku and Gemini remain complete; Luna follows only after Gemma completes. No Study C/D work.
