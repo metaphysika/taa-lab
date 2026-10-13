@@ -757,3 +757,6 @@ Latest B: H55complete/audited/pushed1fb2f7b; Gemini first72PASSED3mechanical(2ma
 
 
 Final B reporting addition: owner requests every-model theme/rung/twin/pressure breakdowns, executed-evidence over-refusal split and item-level majority-theme concentration notes with possible wording interpretations, not causal conclusions. Post-results descriptive only; frozen scoring/decisions unchanged. See PAPER3_STUDY_B_DESCRIPTIVE_BREAKDOWNS.md. Active approved evaluation continues unchanged.
+
+
+LatestB: Gemini COMPLETE720/720,629correct/19over_refusal/11servile/14usurping/47mechanical(21action_error26malformed_reply),2425closednatives/no retries/reserves,all audits/source/prefix checks passed. Cost1.2790145,Google1.910192575. First72passed3 so no native-mode rerun. NextapprovedGemma first72at0, thenLuna; noC/D/Groq/H45. Finaldescriptivebreakdowns required, frozen rules unchanged. See PAPER3_STUDY_B_GEMINI_COMPLETE_v0235.md.
