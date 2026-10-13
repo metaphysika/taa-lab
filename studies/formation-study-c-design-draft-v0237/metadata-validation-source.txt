@@ -1,0 +1,60 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import json,os,time,shutil,hashlib
+from formation.study_b_evaluation_v0235 import check,read,sha,output_name
+from formation.evaluation_gemma_continuation_v0223 import RetryQuota,RetryGemmaChat
+from formation.evaluation_gemma_v0222 import BASE,append
+from formation.transport_retry_v0223 import RetryTransport
+from formation.limits import RatePaused
+R=Path('/workspace/taa-lab');D=R/'studies/formation-study-c-design-draft-v0237';O=R/'results/2026-10-13 v0.23.7 study-c gemma metadata-only validation';O.mkdir(exist_ok=False)
+check(R,approved=True);approval=read(D/'metadata-only-owner-approval.json');assert approval['body_plan_sha256']==sha(D/'metadata-count-body-plan.json')
+plan=read(D/'metadata-count-body-plan.json');assert len(plan)==108 and all(p['wire_bytes']<=32000 for p in plan)
+lock=R/'results/formation-spending-v021/run.lock';assert not lock.exists();assert not Path('/workspace/haiku55-runtime/study-b-maintenance.hold').exists()
+for p in Path('/proc').iterdir():
+ if not p.name.isdigit():continue
+ try:
+  args=(p/'cmdline').read_bytes().split(b'\0');st=(p/'stat').read_text().rsplit(')',1)[1].split()[0];assert not(st!='Z' and any(x.endswith(b'scripts/formation_study_b_evaluation_structured.py') for x in args))
+ except (FileNotFoundError,PermissionError,ProcessLookupError):pass
+source=R/output_name('gemma-4-31b-it');q=read(source/'quota.json');assert not q['metadata_inflight'] and not q['stopped_for_review']
+# Do not fall back to an invented daily reset. Refuse before requests if there is insufficient recorded daily room.
+assert len([e for e in q['events'] if time.time()-e['at']<86400])+540<12960
+for name in ['quota.json','transport-retry-state.json','transport-retry-journal.jsonl']:
+ with (O/name).open('xb') as h:h.write((source/name).read_bytes())
+ledger_paths=list((R/'results/formation-spending-v021').glob('*.json'));baselines={str(p.relative_to(R)):sha(p) for p in ledger_paths};sourcehash={n:sha(source/n) for n in ['quota.json','transport-retry-state.json','transport-retry-journal.jsonl']}
+nonce='c-count-only-'+str(os.getpid())
+with lock.open('x') as h:json.dump({'pid':os.getpid(),'runner':'C metadata-only countTokens validation','output':str(O.relative_to(R)),'owner_marker':nonce},h)
+(O/'validation-manifest.json').write_text(json.dumps({'pid':os.getpid(),'authorization_sha256':sha(D/'metadata-only-owner-approval.json'),'body_plan_sha256':sha(D/'metadata-count-body-plan.json'),'generation_calls_authorized':False,'endpoint_only':BASE+':countTokens','dollars':0,'original_Gemma_B_source_hashes':sourcehash,'ledger_start_hashes':baselines,'retry_counter_carried':read(O/'transport-retry-state.json')['requests_needing_retry'],'quota_history_carried_events':len(q['events'])},indent=2)+'\n')
+class Recorder:
+ model='gemma-4-31b-it'
+ logical_id=None
+ def _write(self,e):append(O/'metadata-native-journal.jsonl',dict(e,at=time.time()))
+rec=Recorder();quota=RetryQuota(O/'quota.json',O/'token-count-receipts.jsonl')
+def waiting(reason,ready):(O/'validation-status.json').write_text(json.dumps({'state':reason,'pid':os.getpid(),'ready_at':ready,'counted':len(results)}))
+retry=RetryTransport(O/'transport-retry-state.json',O/'transport-retry-journal.jsonl',waiting=waiting)
+class CountOnly(RetryGemmaChat):
+ def native_send(self,url,body,received):
+  assert url==BASE+':countTokens';assert set(body)=={'generateContentRequest'};assert body['generateContentRequest']['model']=='models/gemma-4-31b-it'
+  self.recorder._write({'event':'metadata_request','logical_id':self.recorder.logical_id,'url':url,'body':body,'reserved_dollars':0})
+  result=super().native_send(url,body,received)
+  self.recorder._write({'event':'metadata_response','logical_id':self.recorder.logical_id,'response':result,'dollars':0});return result
+ def chat(self,*a,**k):raise RuntimeError('Generation is forbidden for this metadata-only validation')
+client=CountOnly(rec,quota,retry);results=[]
+try:
+ for i,p in enumerate(plan,1):
+  rec.logical_id='C-count-'+str(i);(O/'validation-status.json').write_text(json.dumps({'state':'counting','pid':os.getpid(),'completed':len(results),'planned':len(plan)}))
+  while True:
+   try:count=client.count(p['body']);break
+   except RatePaused:
+    ready=max(quota.ready_at,quota.state['paused_until']);waiting('waiting_pre_request_quota',ready);time.sleep(min(30,max(.1,ready-time.time())))
+  row={k:v for k,v in p.items() if k!='body'};row.update(totalTokens=count,total_with_output_and_margin=count+4096+128,token_fit=count+4096+128<=16000)
+  results.append(row);append(O/'validation-results.jsonl',row)
+  if i%12==0:print('COUNT_PROGRESS',i,len(plan),flush=True)
+  if not row['token_fit']:raise RuntimeError('Longest revised history exceeds Gemma token guard; no generation/freeze')
+ assert not quota.state['metadata_inflight'] and all(j['phase']=='complete' for j in retry.state['jobs'].values())
+ assert all(sha(R/p)==h for p,h in baselines.items());assert all(sha(source/n)==h for n,h in sourcehash.items());check(R,approved=True)
+ summary={'status':'passed','metadata_bodies_validated':len(results),'generation_calls':0,'dollars':0,'max_prompt_tokens':max(x['totalTokens'] for x in results),'max_with_output_and_margin':max(x['total_with_output_and_margin'] for x in results),'maximum_wire_bytes':max(x['wire_bytes'] for x in results),'old_quota_retry_and_provider_ledgers_byte_identical':True,'scope':'54 k16 initial and54 perprobe/condition longest canonical fixture histories; not arbitrary4096token response paths; runtime exact count/size guards still required','completed_at_utc':datetime.now(timezone.utc).isoformat()}
+ (O/'validation-summary.json').write_text(json.dumps(summary,indent=2)+'\n');(O/'validation-status.json').write_text(json.dumps({'state':'complete','pid':os.getpid(),'completed':len(results),'generation_calls':0}));print('SUMMARY',json.dumps(summary),flush=True)
+except BaseException as e:
+ (O/'validation-status.json').write_text(json.dumps({'state':'stopped_for_review','pid':os.getpid(),'completed':len(results),'error_class':type(e).__name__,'generation_calls':0}));raise
+finally:
+ if lock.exists() and read(lock).get('owner_marker')==nonce and not quota.state.get('metadata_inflight') and all(j['phase']=='complete' for j in retry.state['jobs'].values()):lock.unlink()
