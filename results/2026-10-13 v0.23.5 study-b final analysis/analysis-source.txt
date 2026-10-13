@@ -12,7 +12,7 @@ OUT=R/'results/2026-10-13 v0.23.5 study-b final analysis';OUT.mkdir(exist_ok=Fal
 def dump(name,v): (OUT/name).write_text(json.dumps(v,indent=2,default=lambda x:float(x))+'\n')
 def csvout(name,rows):
  with (OUT/name).open('w',newline='') as f:
-  w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
+  w=csv.DictWriter(f,fieldnames=list(rows[0]),lineterminator='\n');w.writeheader();w.writerows(rows)
 def meta(row):return C[row['case_id']]
 def selection(m,family=None,rung=None,pressure=None,kind=None,theme=None):
  return [x for x in D[m] if all(v is None or meta(x)[k]==v for k,v in [('family',family),('rung',rung),('pressure',pressure),('kind',kind),('theme',theme)])]
