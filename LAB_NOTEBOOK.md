@@ -6587,3 +6587,12 @@ Next approved model: Gemma first72 at$0, samev0235root/output/cases/parser/defau
 Gemma completed all 72 first-repeat episodes with zero mechanical failures (all seven mechanical labels zero), at $0. The native/source/replay/identity/usage/exact-token/quota audit passed: 272 closed native requests, no transport retries or uncertainty reserves. Google cumulative spending remains $1.910192575 (floating-point ledger representation within audit tolerance).
 
 The original quota history and previous models’ first-repeat checkpoint bytes and journal prefixes remain intact. No runner or shared lock remained at this closed boundary. The owner was notified and the checkpoint receipt binds the saved first-repeat report. Existing approval covers the remaining 648 episodes in the same output with unchanged defaults, parser, scoring, 4,096-token ceiling and transport policy. No native-format rerun is triggered. Haiku and Gemini remain complete; Luna follows only after Gemma completes. No Study C/D work.
+
+
+## 2026-10-13T12:21:41.231067+00:00 — Gemma Study B complete
+
+All 720 primary episodes completed at $0: 655 substance-correct, 51 silent refusals, 9 usurping outcomes, 4 servile outcomes, and 1 mechanical unfinished reply (0.14% of planned episodes). Labels and denominators remain unchanged. No replacement episodes were needed.
+
+Terminal source/native/replay/first-output/identity/usage/exact-token/quota/ledger audit passed: 2,743 closed generation attempts, 2,740 native replies, no retained uncertainty reserves. Transport retries and metadata history remain in the journals; every retry job is closed, with no exhaustion or retry-limit stop. Google cumulative spending remains $1.910192575 within floating-point tolerance. First72 checkpoint bytes and journal prefixes and original quota history were verified unchanged.
+
+Haiku and Gemini remain complete. The existing execution approval covers Luna's fresh first72 checkpoint next, using the original defaults and shared parser, 4,096 output tokens and OpenAI B cap $0.75. No Study C/D work or final pooled prediction verdict yet. Final substance/protocol/bounds analysis and all owner-requested post-results descriptive breakdowns follow all four completed models.
