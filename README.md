@@ -1,4 +1,6 @@
-# TAA Lab (v0.24.3 approved count remedy; frozen Study C v0.23.9)
+# TAA Lab (v0.24.4 approved usage amendment; frozen Study C v0.23.9)
+
+Approved operational amendment: [Gemma missing-output-usage amendment](docs/process/PAPER3_STUDY_C_USAGE_AMENDMENT_v0244.md). Owner-approved scoped adoption/reserve/combined-pacing integration requires readiness and both GitHub checks before calls. Original adapters/science remain unchanged.
 
 Current Study C: [approved Gemma count remedy/startup](docs/process/PAPER3_STUDY_C_COUNT_REMEDY_v0243.md). Exact1028count andall2151inheritedcountreceipts recoveredbyhashwithoutHTTP; generationno-resend/counters unchanged. Newboundadapter/readiness/BOTHCIbeforefirstunsentGemmarequest;thenLuna underGate6b. Haiku/Gemini540completeimmutable; Geminihistory/length/theme/Bcomparison descriptiveaddition planned. Originalscience/caps unchanged;noStudyD.
 
