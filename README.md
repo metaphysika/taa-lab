@@ -1,6 +1,6 @@
 # TAA Lab (v0.24.1 operational amendment; frozen Study C v0.23.9)
 
-Current Study C: [Gemini stopped for owner review](docs/process/PAPER3_STUDY_C_GEMINI_STOP_REVIEW_v0241.md):9/72 malformed replies(12.5%), cost$0.1971865. Supervision disabled; no further requests. [Haiku complete](docs/process/PAPER3_STUDY_C_HAIKU55_COMPLETE_v0241.md):540/540,496correct,2mechanical, cost$1.6867438. Gemma/Luna remain unstarted. Offline native-schema proposal awaits exact-model compatibility verification and owner review; frozen science/caps unchanged; no StudyD.
+Current Study C: [owner-approved one-time Gemini native-format preparation](docs/process/PAPER3_STUDY_C_GEMINI_NATIVE_RERUN_v0242.md). Failed Gemini72 remain immutable/unpooled; exact shown schema, one neutral compatibility call under$0.01 after BOTH readiness checks, combined first-block$0.60/GoogleC$3.25. No new calls yet. Haiku540complete; Gemma/Lunaunstarted; original scientific freeze unchanged; noStudyD.
 
 Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 
