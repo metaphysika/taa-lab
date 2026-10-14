@@ -64,6 +64,8 @@ class UsageExecutionTests(unittest.TestCase):
 
     def send(self,client,body,received):
         ctx=copy.deepcopy(client.recorder.context);self.sent.append((client.model,client.url,ctx))
+        if client.url.endswith(':countTokens') and getattr(self,'guard_adopted',False) and ctx.get('cell_id')==u.CELL and ctx.get('turn')==4:
+            received();return {'totalTokens':11777}
         if client.model=='gemma-4-31b-it' and not client.url.endswith(':countTokens') and ctx.get('cell_id')==u.CELL and ctx.get('turn')==4:
             received()
             response={'responseId':'fixture','modelVersion':client.model,'candidates':[{'content':{'parts':[{'text':'{"tool":null,"args":{}}'}]},'finishReason':'STOP'}],'usageMetadata':{'promptTokenCount':100,'candidatesTokenCount':20,'totalTokenCount':120}}
@@ -121,6 +123,19 @@ class UsageExecutionTests(unittest.TestCase):
         ci=c.read(self.root/u.CI);ci['checks'][0]['conclusion']=None;c.atomic(self.root/u.CI,ci)
         with self.assertRaises(BudgetStopped):self.launch()
         self.assertFalse((self.out/u.MARKER).exists());self.assertFalse((self.out/u.ARCHIVE).exists());self.assertEqual(self.sent,[])
+
+    def test_adopted_episode_token_guard_is_missing_not_a_judgment(self):
+        self.guard_adopted=True
+        result=self.launch()
+        self.assertEqual(result['primary_closed'],540);self.assertEqual(result['primary_completed'],539)
+        self.assertEqual(len(result['guard_stops']),1)
+        guard=result['guard_stops'][0]
+        self.assertEqual(guard['cell']['cell_id'],u.CELL);self.assertIsNone(guard['judgment_label'])
+        self.assertEqual(guard['blocked_turn'],4);self.assertEqual(len(guard['packets']),3)
+        self.assertEqual(result['audit']['usage_accounting']['missing_output_usage_count'],1)
+        self.assertFalse(any(not url.endswith(':countTokens') and ctx.get('cell_id')==u.CELL for model,url,ctx in self.sent))
+        with self.patched():summary=report.model_report(self.root,'gemma-4-31b-it');c.snapshot_boundary(self.root,'gemma-4-31b-it',True)
+        self.assertEqual(summary['completed'],539);self.assertEqual(summary['guard_stopped'],1)
 
 if __name__=='__main__':unittest.main()
 

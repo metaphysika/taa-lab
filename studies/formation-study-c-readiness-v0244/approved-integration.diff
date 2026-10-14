@@ -183,7 +183,7 @@
                  full_seeded_wire_first_native_identity_usage_replay='passed',
                  model_accounted_dollars=journal_spend(output/'calls.jsonl'), provider_cumulative_dollars=expected,
                  inherited_requests_needing_retry=manifest['retry_needed_start'],
-@@ -919,9 +972,80 @@
+@@ -919,9 +972,85 @@
      return found
  
  
@@ -222,8 +222,13 @@
 +    original=read(output/(usage_runtime.CELL+'-checkpoint.json'))
 +    current=read(output/usage_runtime.SIDECAR)
 +    raw=CLASSES['google'].extract(None,natives[usage_runtime.ATTEMPT])[0]
-+    if current['packets'][:3]!=original['packets'][:2]+[dict(kind='reply',raw=raw)] or current['result'].get('resume_disclosure')!='received_reply_adopted_after_usage_guard':
++    if current['packets'][:3]!=original['packets'][:2]+[dict(kind='reply',raw=raw)]:
 +        raise BudgetStopped('received-prefix adoption changed')
++    if current['phase']=='complete':
++        if current['result'].get('resume_disclosure')!='received_reply_adopted_after_usage_guard':
++            raise BudgetStopped('completed adoption disclosure differs')
++    elif current['phase']!='guard_stopped':
++        raise BudgetStopped('received continuation not closed')
 +    pacing=read(output/usage_runtime.PACING);entries=pacing['events'];old=pacing['first_new_event']
 +    all_ids=[e['attempt_id'] for e in entries]
 +    if len(all_ids)!=len(set(all_ids)) or set(all_ids)!=set(starts):raise BudgetStopped('combined reservation/attempt coverage differs')
@@ -266,7 +271,7 @@
      if model not in MODELS: raise ValueError('unapproved model')
      if model in MODELS[:2]:raise BudgetStopped('completed Haiku/Gemini must never restart')
      if resume_guard:raise BudgetStopped('Haiku scoped resume already used; no relaunch in v0242')
-@@ -943,7 +1067,16 @@
+@@ -943,7 +1072,16 @@
      rows = []; guards=[]; initial_packets=None
      if resume_guard and (model!=MODELS[0] or not after_checkpoint):raise BudgetStopped('scoped Haiku suffix only')
      first_unsent=(model=='gemma-4-31b-it' and not after_checkpoint and output.exists() and not (output/START_MARKER).exists())
@@ -284,7 +289,7 @@
          am=verify_count_remedy(root)
          if verify_unstarted_boundary(output,read(output/'stop-integrity-v0242.json'))!=cells[0]:raise BudgetStopped('not original first unsent cell')
          manifest=read(output/'execution-manifest.json')
-@@ -974,14 +1107,14 @@
+@@ -974,14 +1112,14 @@
          if after_checkpoint or resume_guard: raise BudgetStopped('no first block to continue')
          manifest = dict(fixed,provider_start=read(root/('results/formation-spending-v021/'+PROVIDERS[model]+'.json'))['estimated_api_dollars'],
                          retry_needed_start=read(root/f['retry_sources'][model]/'transport-retry-state.json')['requests_needing_retry'])
@@ -301,7 +306,7 @@
          if not output.exists():
              output.mkdir(exist_ok=False);atomic(output/'execution-manifest.json',manifest)
              source = root/f['retry_sources'][model]
-@@ -1010,13 +1143,17 @@
+@@ -1010,13 +1148,17 @@
          if model == 'gemma-4-31b-it':
              quota = CQuota(output/'quota.json',output/'token-count-receipts.jsonl',now=now);quota.guard()
          client = CChat(recorder,retry,quota,count_sources=count_sources(root) if model=='gemma-4-31b-it' else ())
@@ -321,7 +326,7 @@
              if row.get('phase')=='guard_stopped':guards.append(row)
              else:rows.append(row)
              atomic(output/'guard-stops-by-condition.json',guard_counts(guards))
-@@ -1040,7 +1177,7 @@
+@@ -1040,7 +1182,7 @@
      except BaseException as e:
          if output.exists():
              status('stopped_for_review',completed=len(rows),reason=str(e) if isinstance(e,(BudgetStopped,ValueError,RetryExhausted,RetryRunLimit)) else type(e).__name__)

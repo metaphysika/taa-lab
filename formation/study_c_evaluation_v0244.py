@@ -1006,8 +1006,13 @@ def audit_usage_accounting(root,output,manifest):
     original=read(output/(usage_runtime.CELL+'-checkpoint.json'))
     current=read(output/usage_runtime.SIDECAR)
     raw=CLASSES['google'].extract(None,natives[usage_runtime.ATTEMPT])[0]
-    if current['packets'][:3]!=original['packets'][:2]+[dict(kind='reply',raw=raw)] or current['result'].get('resume_disclosure')!='received_reply_adopted_after_usage_guard':
+    if current['packets'][:3]!=original['packets'][:2]+[dict(kind='reply',raw=raw)]:
         raise BudgetStopped('received-prefix adoption changed')
+    if current['phase']=='complete':
+        if current['result'].get('resume_disclosure')!='received_reply_adopted_after_usage_guard':
+            raise BudgetStopped('completed adoption disclosure differs')
+    elif current['phase']!='guard_stopped':
+        raise BudgetStopped('received continuation not closed')
     pacing=read(output/usage_runtime.PACING);entries=pacing['events'];old=pacing['first_new_event']
     all_ids=[e['attempt_id'] for e in entries]
     if len(all_ids)!=len(set(all_ids)) or set(all_ids)!=set(starts):raise BudgetStopped('combined reservation/attempt coverage differs')
