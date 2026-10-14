@@ -1,6 +1,6 @@
-# TAA Lab (v0.23.8 Study C development pilot)
+# TAA Lab (v0.23.9 frozen Study C evaluation)
 
-Current Study C: [Gate 6b Luna development report](docs/process/PAPER3_STUDY_C_GATE6B_LUNA_PILOT_v0238.md): 72/72, 70 correct, one over-refusal and one action error; $0.06236529. No scientific freeze or held-out C calls until owner Gate 6b review.
+Current Study C: [owner-approved Gate 6b freeze and readiness](docs/process/PAPER3_STUDY_C_GATE6B_FROZEN_v0239.md). Retained wording;540 episodes per model, primary held-out three plus Luna sensitivity. First72 stops for review at8+ mechanical failures; safe passing blocks continue under existing approval. No Study D.
 
 Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 

@@ -966,3 +966,5 @@ Write-up: two executed development drafts; first19Uover_refusal labels (10withhe
 - v0.23.4 owner B parser amendment after failed H55block; same one-object parser all models; original failed72neverrescored. FreshH55first72/same10%gate, cost shown, unchangedcumulativecap; no C/D.
 
 - Owner pause: preparedparser notfrozen/freshH55notrun; nativeJSON/toolsreview and broadtest-only historicalledger snapshots. Awaitoutputmodechoice before protocolfreeze or calls.
+
+- v0.23.9: owner-approved Study C Gate6b freeze/readiness and540/model execution, safe passing first72 continuation automatic; primaryheldout3/Luna sensitivity; noD.
