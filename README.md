@@ -1,6 +1,6 @@
 # TAA Lab (v0.23.9 frozen Study C evaluation)
 
-Current Study C: [owner-approved Gate 6b freeze and readiness](docs/process/PAPER3_STUDY_C_GATE6B_FROZEN_v0239.md). Retained wording;540 episodes per model, primary held-out three plus Luna sensitivity. First72 stops for review at8+ mechanical failures; safe passing blocks continue under existing approval. No Study D.
+Current Study C: [Haiku wire-size stop requiring owner review](docs/process/PAPER3_STUDY_C_HAIKU55_STOP_REVIEW_v0239.md).184 completed episodes plus one partial guard; turn5 exceeded the frozen32,000-byte cap before HTTP. Supervision disabled; other C models unstarted. No restart, trimming or Study D.
 
 Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 

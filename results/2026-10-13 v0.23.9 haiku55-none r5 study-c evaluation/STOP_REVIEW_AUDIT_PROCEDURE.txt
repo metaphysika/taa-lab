@@ -1,0 +1,76 @@
+"""Offline available-evidence audit. Does not certify completion or remove guard."""
+import sys,json,hashlib,shutil,time
+from pathlib import Path
+from collections import Counter
+sys.path.insert(0,'/workspace/taa-lab')
+from formation import study_c_evaluation_v0239 as c
+root=c.ROOT;f,a,cases,cells,seeds=c.check(approved=True);model=c.MODELS[0];output=root/f['outputs'][model]
+assert not c.provider_processes() and not c.HOLD.exists() and not (root/'results/formation-spending-v021/run.lock').exists()
+status=c.read(output/'controller-status.json');assert status['state']=='stopped_for_review'
+manifest=c.read(output/'execution-manifest.json');summary=c.read(output/'progress-summary.json')
+states={}
+for p in output.glob('C-*-checkpoint.json'):
+ s=c.read(p);states[s['cell']['cell_id']]=s
+complete={cid:s for cid,s in states.items() if s['phase']=='complete'}
+guards={cid:s for cid,s in states.items() if s['phase']=='guard'}
+assert len(complete)==184 and len(guards)==1 and len(states)==185
+assert set(complete)=={x['cell_id'] for x in cells[:184]}
+blocked=next(iter(guards.values()));assert blocked['cell']==cells[184] and len(blocked['packets'])==4
+assert {r['cell_id']:r for r in summary['records']}=={cid:s['result'] for cid,s in complete.items()}
+for cid,s in complete.items():
+ rebuilt=c.replay(cases[s['cell']['probe_id']],s['packets'])
+ for field in ('score','attempts','effects','final_world','terminal_status'):
+  assert s['result'][field]==rebuilt[field],(cid,field)
+ assert s['result']['metrics']==c.metrics(cases[s['cell']['probe_id']],rebuilt)
+ assert s['result']['conversation']==c.seeded_history(cases[s['cell']['probe_id']],s['cell'],s['packets'][:-1],seeds)
+events=c.journal(output/'calls.jsonl')
+def index(event,key='id'):
+ rows=[e for e in events if e['event']==event];d={e[key]:e for e in rows};assert len(d)==len(rows);return d
+starts=index('attempt_start');ends=index('attempt_end');wires=index('native_request');natives=index('native_response');logical=index('logical_start');replies=index('reply','logical_id')
+assert len(starts)==699 and set(starts)==set(ends)==set(wires)==set(natives)
+assert len(logical)==len(replies)==699
+native=c.CLASSES['claude'](model,type('OfflineRecorder',(),{'model':model})(),max_output_tokens=4096)
+price=c.price_map(root)[model]
+for aid,start in starts.items():
+ lid=start['logical_id'];l=logical[lid];ctx=l['context'];s=states[ctx['cell_id']];turn=ctx['turn'];cell=s['cell']
+ assert all(ctx[k]==v for k,v in cell.items()) and ctx['stage']=='C frozen evaluation'
+ assert 1<=turn<=len(s['packets'])
+ expected=dict(system=c.SYSTEM,messages=c.seeded_history(cases[cell['probe_id']],cell,s['packets'][:turn-1],seeds))
+ assert json.loads(l['prompt'])==expected
+ assert wires[aid]['body']==native.body(c.SYSTEM,expected['messages'])
+ assert len(json.dumps(wires[aid]['body']).encode())<=32000
+ for e in (start,ends[aid],wires[aid],natives[aid]):
+  if 'context' in e:assert e['context']==ctx
+  if 'logical_id' in e:assert e['logical_id']==lid
+ response=natives[aid]['response'];end=ends[aid];usage=response['usage']
+ assert response['model'] in [model]+price.get('accepted_response_models',[])
+ assert end['model_returned']==model and not end['model_mismatch'] and not end['usage_missing'] and not end['error'] and not end['reserve_retained']
+ assert end['logical_id']==lid and end['provider_request_id']==response['id'] and end['usage']==usage
+ inp=usage['input_tokens'];out=usage['output_tokens'];cache=usage.get('cache_read_input_tokens',0);write=usage.get('cache_creation_input_tokens',0)
+ assert all(type(v)is int and v>=0 for v in (inp,out,cache,write)) and out<=4096 and inp+cache+write<=start['input_token_upper_estimate']
+ charge=(inp*price['input_per_million']+out*price['output_per_million']+cache*price.get('cached_input_per_million',price['input_per_million'])+write*price.get('cache_write_per_million',price['input_per_million']))/1e6
+ assert abs(charge-end['estimated_charge_dollars'])<=1e-12
+ text,stop=native.extract(response);assert text==replies[lid]['raw_text']
+ label=('unfinished_reply' if stop in ('length','max_tokens','MAX_TOKENS') else 'provider_refusal' if stop in ('refusal','SAFETY','BLOCKLIST','PROHIBITED_CONTENT') or native.refused(response) else 'silence' if not text.strip() else None)
+ packet=s['packets'][turn-1];assert packet['kind']==(label or 'reply')
+ if packet['kind']=='reply':assert packet['raw']==text
+assert Counter(l['context']['cell_id'] for l in logical.values())==Counter({cid:len(s['packets']) for cid,s in states.items()})
+retry=c.read(output/'transport-retry-state.json');assert not retry['stop'] and retry['requests_needing_retry']==0 and all(j['phase']=='complete' for j in retry['jobs'].values())
+c.verify_first_block(output)
+cell=blocked['cell'];case=cases[cell['probe_id']]
+body=native.body(c.SYSTEM,c.seeded_history(case,cell,blocked['packets'],seeds));size=len(json.dumps(body).encode());assert size==33821
+assert not any(l['context']['cell_id']==cell['cell_id'] and l['context']['turn']==5 for l in logical.values())
+assert not c.read(output/'stop-evidence.json')['request_outcome_uncertain']
+spent=c.journal_spend(output/'calls.jsonl');assert abs(manifest['provider_start']+spent-c.read(root/'results/formation-spending-v021/claude.json')['estimated_api_dollars'])<1e-12
+try:c.audit(root,output,manifest,cases,cells,seeds)
+except Exception as e:
+ terminal_failure=str(e);assert terminal_failure=='nonterminal/unknown checkpoint'
+else:raise AssertionError('Guard must block full terminal completion audit')
+reconstruction=dict(cell=cell,turn=5,no_HTTP_issued_for_this_turn=True,full_wire_bytes=size,wire_limit=32000,body_sha256=hashlib.sha256(json.dumps(body).encode()).hexdigest(),body=body,prior_turn_wire_bytes=[len(json.dumps(native.body(c.SYSTEM,c.seeded_history(case,cell,blocked['packets'][:n],seeds))).encode()) for n in range(5)])
+c.atomic(output/'blocked-request-reconstruction.json',reconstruction)
+report=dict(status='STOPPED_FOR_OWNER_REVIEW_NOT_COMPLETE',completed_primaries=184,partial_guard_primaries=1,unstarted_Haiku_primaries=355,planned_Haiku=540,all_models_planned=2160,other_models_unstarted=True,blocked_cell=cell,blocked_turn=5,blocked_wire_bytes=size,wire_limit=32000,over_limit_bytes=size-32000,blocked_turn_HTTP_issued=False,prior_partial_episode_received_replies=4,attempts_closed=699,native_responses=699,retry_needed_requests=0,retry_jobs_closed=len(retry['jobs']),retained_uncertainty_reserves=0,partial_episode_accounted_dollars=spent-summary['model_dollars'],model_accounted_dollars=spent,completed184_accounted_dollars=summary['model_dollars'],provider_cumulative_dollars=manifest['provider_start']+spent,completed_primary_outcomes=dict(Counter(r['score']['substance_outcome'] for r in summary['records'])),frozen_source_first72_prefix_native_identity_usage_full_wire_and_completed_row_replay='passed_for_available_evidence',full_terminal_audit='BLOCKED: '+terminal_failure,guard_checkpoint_left_unchanged=True,partial_episode_not_reclassified_or_pooled=True,no_model_or_metadata_calls_during_review=True,automation_disabled=True,completion_or_restart_authorized=False,review_required='Owner review of the frozen full-history wire-size stop. No trimming, setting/cap change, rerun/resume or next-model calls are authorized.')
+c.atomic(output/'stop-review-audit.json',report)
+for name in ['study-c-v0239-haiku55-launch-002.log','study-c-v0239-haiku55-launch-002-receipt.json']:
+ target=output/name;assert not target.exists();shutil.copyfile(Path('/workspace/haiku55-runtime')/name,target)
+shutil.copyfile(__file__,output/'STOP_REVIEW_AUDIT_PROCEDURE.txt')
+print(json.dumps(report,indent=2))
