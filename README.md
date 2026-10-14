@@ -1,6 +1,6 @@
 # TAA Lab (v0.24.1 operational amendment; frozen Study C v0.23.9)
 
-Current Study C: [owner-approved one-time Gemini native-format preparation](docs/process/PAPER3_STUDY_C_GEMINI_NATIVE_RERUN_v0242.md). Failed Gemini72 remain immutable/unpooled; exact shown schema, one neutral compatibility call under$0.01 after BOTH readiness checks, combined first-block$0.60/GoogleC$3.25. No new calls yet. Haiku540complete; Gemma/Lunaunstarted; original scientific freeze unchanged; noStudyD.
+Current Study C: [Gemini native-format first72 checkpoint passed](docs/process/PAPER3_STUDY_C_GEMINI_CHECKPOINT_v0242.md):1mechanicalaction_error/72(1.39%),0missing,67correct;256closednatives,0retry/uncertainty,$0.226652650. Failed72 and successful one-call neutral compatibility remain separate/unpooled; combinedfirstblock$0.423879400<0.60,GoogleCcap3.25. Approved same-output suffix468 awaits evidencepush/BOTHCI. Haiku540complete; Gemma/Lunaunstarted; originalscientificfreezeunchanged; noStudyD.
 
 Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 
