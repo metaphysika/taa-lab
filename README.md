@@ -1,6 +1,6 @@
 # TAA Lab (v0.24.1 operational amendment; frozen Study C v0.23.9)
 
-Current Study C: owner-approved [full-history operational remedy](docs/process/PAPER3_STUDY_C_OPERATIONAL_REMEDY_v0241.md). Haiku resumes only its unsent turn5 with four earlier replies preserved, after offline readiness and both CI checks. Byte safeguards:128,000 for Haiku/Gemini/Luna;64,000 secondary for Gemma with exact countTokens primary. Gemma token guards are missing episodes, with review at28/540. Scientific freeze and spending caps unchanged. No Study D.
+Current Study C: [Haiku complete](docs/process/PAPER3_STUDY_C_HAIKU55_COMPLETE_v0241.md),540/540,496 correct,2 mechanical, cost$1.6867438. Original guard185 and four earlier replies preserved with approved unsent-turn continuation. Gemini first72 follows after boundary evidence push and both CI; Gemma and Luna remain unstarted. Scientific freeze/spending caps unchanged; no Study D.
 
 Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 
