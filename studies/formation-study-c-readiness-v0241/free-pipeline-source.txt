@@ -1,0 +1,32 @@
+import sys,json,importlib.util
+from unittest.mock import patch
+sys.path[:0]=['/workspace/taa-lab','/workspace/taa-lab/tests']
+from test_formation_study_c_v0241 import AmendmentTests
+from formation import study_c_evaluation_v0241 as c
+from formation import study_c_report_v0241 as report
+x=AmendmentTests();x.setUp()
+try:
+ for model in c.MODELS:
+  if model=='gemma-4-31b-it':x.token_guard_count=2
+  first=x.run_fixture(model)
+  assert first['primary_closed']==72
+  with patch.object(c,'provider_processes',return_value=[]),patch.object(report,'provider_processes',return_value=[]):
+   report.model_report(x.root,model);c.snapshot_boundary(x.root,model)
+  last=x.run_fixture(model,after=True)
+  assert last['primary_closed']==540 and last['status']=='complete'
+  with patch.object(c,'provider_processes',return_value=[]),patch.object(report,'provider_processes',return_value=[]):
+   report.model_report(x.root,model);c.snapshot_boundary(x.root,model)
+  print(model,last['primary_completed'],last['primary_closed'],len(last['guard_stops']),flush=True)
+ with patch.object(c,'provider_processes',return_value=[]),patch.object(report,'provider_processes',return_value=[]):
+  result=report.final_report(x.root)
+ directory=x.root/report.FINAL_OUTPUT
+ items=c.read(directory/'item-breakdowns.json')
+ assert len(items)==2160 and sum(v['completed'] for v in items)==2150
+ guards=[v for v in items if v.get('guard_stopped')]
+ assert 'GUARD-STOPPED MISSING' in (directory/'READABLE_ITEM_AND_CONCENTRATION_NOTES.txt').read_text()
+ assert len(guards)==10 and all(v['substance'] is None and v['mechanical'] is None and not v['valid'] for v in guards)
+ result={'planned':2160,'completed':2150,'guard_stopped_missing':10,'all_boundaries_audited':True,'models':list(c.MODELS),'no_model_or_metadata_calls':True,'frozen_verdict_pipeline':'passed; original missing planned-denominator arithmetic'}
+ print(json.dumps(result),flush=True)
+ from pathlib import Path
+ Path('/workspace/haiku55-runtime/study-c-v0241-free-pipeline-receipt.json').write_text(json.dumps(result,indent=2)+'\n')
+finally:x.doCleanups()

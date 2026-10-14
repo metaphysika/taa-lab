@@ -1,0 +1,69 @@
+import sys,json,copy,hashlib
+from pathlib import Path
+from collections import Counter,defaultdict
+sys.path.insert(0,'/workspace/taa-lab')
+from formation import study_c_evaluation_v0239 as c
+from formation.study_b_evaluation_v0235 import output_name
+root=c.ROOT
+f,a,cases,cells,seeds=c.check(approved=True)
+assert not c.provider_processes() and not c.HOLD.exists() and not (root/'results/formation-spending-v021/run.lock').exists()
+o=root/f['outputs'][c.MODELS[0]]
+assert c.read(o/'controller-status.json')['state']=='stopped_for_review'
+for model in c.MODELS[1:]:assert not (root/f['outputs'][model]/'controller-status.json').exists()
+for name,digest in c.read(o/'stop-review-integrity.json')['files_sha256'].items():assert c.sha(o/name)==digest
+cp=[c.read(p) for p in o.glob('C-*-checkpoint.json')]
+completed={s['cell']['cell_id']:s for s in cp if s['phase']=='complete'}
+wiremax=defaultdict(int)
+for e in c.journal(o/'calls.jsonl'):
+ if e['event']=='native_request':
+  # native context is resolved through the attempt/logical events below
+  pass
+ev=c.journal(o/'calls.jsonl');logical={e['id']:e for e in ev if e['event']=='logical_start'};starts={e['id']:e for e in ev if e['event']=='attempt_start'}
+for e in ev:
+ if e['event']=='native_request':
+  cid=logical[starts[e['id']]['logical_id']]['context']['cell_id'];wiremax[cid]=max(wiremax[cid],len(json.dumps(e['body']).encode()))
+exposure=[dict(s['cell'],maximum_sent_wire_bytes=wiremax[cid]) for cid,s in completed.items() if wiremax[cid]>28000]
+summary=dict(completed_denominator=len(completed),threshold_strictly_greater_than=28000,exposed_count=len(exposure),by_condition=dict(Counter(x['history_condition'] for x in exposure)),by_k=dict(Counter(x['k'] for x in exposure)),by_probe=dict(Counter(x['probe_id'] for x in exposure)),completed_max_sent_wire_bytes=max(wiremax[cid] for cid in completed),items=exposure)
+projections=[];details=[]
+class OfflineRecorder:pass
+for model in c.MODELS:
+ rec=OfflineRecorder();rec.model=model
+ native=c.CLASSES[c.PROVIDERS[model]](model,rec,max_output_tokens=4096)
+ b=c.read(root/output_name(model)/'progress-summary.json')['records']
+ traces=defaultdict(list);allpackets=[]
+ for r in b:
+  allpackets.extend(r['packets'])
+  for pid,case in cases.items():
+   if r['case_id']==case['source_study_b_case']:traces[pid].append(r['packets'])
+ extra=cp if model==c.MODELS[0] else []
+ if model=='gpt-6-luna':
+  po=root/f['retry_sources'][model]
+  extra=[c.read(p) for p in po.glob('C-*-checkpoint.json')]
+ for s in extra:
+  allpackets.extend(s['packets']);pid=s.get('cell',{}).get('probe_id')
+  if pid in cases:traces[pid].append(s['packets'])
+ longest=max((p['raw'] for p in allpackets if p['kind']=='reply'),key=lambda x:len(json.dumps(x).encode()))
+ remain=[cell for cell in cells if model!=c.MODELS[0] or cell['cell_id'] not in completed]
+ ms=[]
+ for cell in remain:
+  case=cases[cell['probe_id']];base=c.seeded_history(case,cell,[],seeds)
+  projected=[];feedback=[]
+  for packets in traces[cell['probe_id']]:
+   # Every possible next request actually implied by saved packets, up to turn12.
+   for n in range(min(len(packets),11)+1):
+    hist=c.seeded_history(case,cell,packets[:n],seeds)
+    projected.append(len(json.dumps(native.body(c.SYSTEM,hist)).encode()))
+    if len(hist)>len(base) and hist[-1]['role']=='user':feedback.append(hist[-1])
+  assert feedback
+  biggest=max(feedback,key=lambda x:len(json.dumps(x).encode()))
+  hist=copy.deepcopy(base)
+  for _ in range(11):hist.extend([{'role':'assistant','content':longest},copy.deepcopy(biggest)])
+  tail=len(json.dumps(native.body(c.SYSTEM,hist)).encode())
+  ms.append(dict(model=model,**cell,observed_trace_transfer_max_bytes=max(projected),twelve_turn_longest_reply_stress_bytes=tail,initial_bytes=len(json.dumps(native.body(c.SYSTEM,base)).encode())))
+ details.extend(ms)
+ projections.append(dict(model=model,remaining_including_partial=len(ms),longest_observed_reply_utf8_bytes=len(longest.encode()),longest_observed_reply_json_string_bytes=len(json.dumps(longest).encode()),reply_sha256=hashlib.sha256(longest.encode()).hexdigest(),source='all original completed Study B replies plus available Study C replies (Luna pilot included only for size planning, never pooled/scored)',trace_transfer_over32000=sum(x['observed_trace_transfer_max_bytes']>32000 for x in ms),trace_transfer_over64000=sum(x['observed_trace_transfer_max_bytes']>64000 for x in ms),trace_transfer_max=max(x['observed_trace_transfer_max_bytes'] for x in ms),twelve_turn_stress_over32000=sum(x['twelve_turn_longest_reply_stress_bytes']>32000 for x in ms),twelve_turn_stress_over64000=sum(x['twelve_turn_longest_reply_stress_bytes']>64000 for x in ms),twelve_turn_stress_max=max(x['twelve_turn_longest_reply_stress_bytes'] for x in ms)))
+out=root/'studies/formation-study-c-wire-remedy-proposal-v0240';out.mkdir(exist_ok=False)
+result=dict(status='OFFLINE PROPOSAL ONLY; NOT EXECUTION APPROVAL',original_freeze_sha256=c.sha(root/c.FREEZE),original_binding_sha256=c.sha(root/c.BINDING),original_stop_commit='b1313ac9cb72be46174f2585fa745256f0c0e579',model_calls=0,metadata_calls=0,observed_completed_exposure=summary,projections=projections,projection_method={'trace_transfer':'Re-render all saved matching-probe B and available C packet prefixes under each remaining frozen C seed condition, through turn12, with exact provider native renderer. Maximum over saved traces for each cell. Descriptive scenario projection, not a probability estimate.','longest_reply_stress':'For every remaining frozen seeded initial history, append 11 repetitions of this model longest observed reply (from all B plus available C) and longest observed matching-probe feedback/world message. Render request12 with exact native renderer. Artificial byte stress only; not a legal simulated trace or generation, prediction, token bound, or future maximum.','uncertainty':'Unstarted held-out C behavior is unknown. Future replies may be longer or use more turns; all remaining episodes could in principle exceed either cap. No guaranteed counts or tokenizer inference from bytes. Gemma feasibility requires exact runtime countTokens; no new metadata authorized here.'},items=details)
+(out/'wire-exposure-and-projections.json').write_text(json.dumps(result,indent=2)+'\n')
+(out/'offline-analysis-source.txt').write_text(Path(__file__).read_text())
+print(json.dumps({'exposure':{k:v for k,v in summary.items() if k!='items'},'projections':projections},indent=2))
