@@ -1,0 +1,313 @@
+--- a/formation/study_c_evaluation_v0242.py
++++ b/formation/study_c_evaluation_v0243.py
+@@ -16,6 +16,7 @@
+ from collections import Counter
+ 
+ from agents.call_telemetry import BudgetStopped
++from formation.study_c_count_remedy_v0243 import verified_counts, count_body, verify_unstarted_boundary
+ from formation.clients import ReplyError
+ from formation.study_b_evaluation_v0235 import FormationRecorder, RatePaused, ReplyReceivedFailure
+ from formation import study_c_evaluation_v0239 as original
+@@ -50,6 +51,11 @@
+ NATIVE_BINDING = 'studies/formation-study-c-gemini-native-binding-v0242.json'
+ NATIVE_SCHEMA = 'studies/formation-study-c-gemini-native-review-v0241/exact-proposed-neutral-schema.json'
+ READY_CI = 'studies/formation-study-c-native-ready-ci-receipt-v0242.json'
++COUNT_APPROVAL = 'studies/formation-study-c-count-remedy-approval-v0243.json'
++COUNT_BINDING = 'studies/formation-study-c-count-remedy-binding-v0243.json'
++COUNT_CI = 'studies/formation-study-c-count-ready-ci-receipt-v0243.json'
++START_MARKER = 'first-unsent-start-v0243.json'
++ARCHIVE = 'prestart-stop-v0242'
+ COMPATIBILITY_SYSTEM = 'Return one JSON action object matching the supplied response schema.'
+ COMPATIBILITY_PROMPT = 'Neutral API-format check only. There is no task or external work to perform. Return a finished response with tool null and empty args. This is not an evaluation case.'
+ 
+@@ -100,11 +106,80 @@
+     return f
+ 
+ 
++
++def verify_count_remedy(root, adapter=True):
++    root=Path(root);am=read(root/COUNT_APPROVAL)
++    if not am['execution_authorized'] or am['root']!=str(root.resolve()) or am['science_sha256']!=sha(root/FREEZE) or am['native_binding_sha256']!=sha(root/NATIVE_BINDING):
++        raise BudgetStopped('count remedy owner/science/native binding differs')
++    if am['generation_no_resend_unchanged'] is not True or am['maximum_metadata_only_new_jobs_per_body']!=1 or am['Study_D_authorized']:
++        raise BudgetStopped('metadata-only scope differs')
++    output=root/read(root/FREEZE)['outputs']['gemma-4-31b-it']
++    if sha(output/'stop-integrity-v0242.json')!=am['original_stop_index_sha256']:
++        raise BudgetStopped('original Gemma stop index changed')
++    index=read(output/'stop-integrity-v0242.json')
++    base=output/ARCHIVE if (output/START_MARKER).exists() else output
++    for name,digest in index['files_sha256'].items():
++        if sha(base/name)!=digest:raise BudgetStopped('original zero-request Gemma stop evidence changed')
++    if (output/START_MARKER).exists():
++        marker=read(output/START_MARKER)
++        if marker['approval_sha256']!=sha(root/COUNT_APPROVAL) or marker['binding_sha256']!=sha(root/COUNT_BINDING) or marker['cell_id']!=am['first_cell_id'] or marker['episode_result_reused'] or marker['count_HTTP_reissued_before_start']:
++            raise BudgetStopped('first unsent start marker differs')
++        prior=read(base/'transport-retry-state.json');current=read(output/'transport-retry-state.json')
++        if any(current['jobs'].get(k)!=v for k,v in prior['jobs'].items()) or current['requests_needing_retry']<prior['requests_needing_retry']:
++            raise BudgetStopped('original jobs or retry counter changed/reset')
++    verified_counts(count_sources(root,am))
++    if adapter:
++        b=read(root/COUNT_BINDING)
++        if b['approval_sha256']!=sha(root/COUNT_APPROVAL):raise BudgetStopped('count approval binding differs')
++        for name,digest in b['files_sha256'].items():
++            if sha(root/name)!=digest:raise BudgetStopped('count remedy dependency changed: '+name)
++    return am
++
++
++def count_sources(root, approval=None):
++    root=Path(root);am=approval if approval is not None else read(root/COUNT_APPROVAL)
++    return [(root/x['receipts'],root/x['state'],x['receipt_sha256'],x['state_sha256']) for x in am['count_sources']]
++
++
++def prepare_first_unsent_start(root, output, cell):
++    am=verify_count_remedy(root);output=Path(output)
++    if (output/START_MARKER).exists() or (output/ARCHIVE).exists():raise BudgetStopped('unsent start already prepared; review required')
++    original=verify_unstarted_boundary(output,read(output/'stop-integrity-v0242.json'))
++    if original!=cell or cell['cell_id']!=am['first_cell_id']:raise BudgetStopped('wrong first unsent cell')
++    archive=output/ARCHIVE;archive.mkdir()
++    for name in read(output/'stop-integrity-v0242.json')['files_sha256']:
++        target=archive/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(output/name,target)
++    atomic(output/START_MARKER,dict(approval_sha256=sha(Path(root)/COUNT_APPROVAL),binding_sha256=sha(Path(root)/COUNT_BINDING),cell_id=cell['cell_id'],episode_result_reused=False,count_HTTP_reissued_before_start=False,at=time.time()))
++    verify_count_remedy(root)
++
++
++def audit_count_recovery(root, output):
++    approved=verified_counts(count_sources(root));receipts=journal(output/'token-count-receipts.jsonl')
++    for e in receipts:
++        if e.get('receipt_kind')=='recovered_exact_body_v0243':
++            record=approved.get(e['body_sha256'])
++            if not record or any(e.get(k)!=v for k,v in record.items()) or e.get('no_HTTP_request') is not True:
++                raise BudgetStopped('recovered exact count provenance differs')
++    jobs=read(output/'transport-retry-state.json')['jobs'];seen=set()
++    for e in journal(output/'transport-retry-journal.jsonl'):
++        if e.get('event')!='metadata_only_new_job':continue
++        digest=e['body_sha256'];old='countTokens:'+digest;new='countTokens:v0243:'+digest+':metadata-only-1'
++        if e['original_job']!=old or e['new_job']!=new or new in seen or jobs.get(old)!=e['original_job_snapshot']:
++            raise BudgetStopped('metadata exemption changed original job or repeated')
++        if jobs[old]['phase'] not in ('complete','failed') or jobs[old]['received'] is not True or jobs[old]['body_sha256']!=digest or new not in jobs:
++            raise BudgetStopped('invalid metadata-only exemption provenance')
++        seen.add(new)
++    return dict(recovered_count_receipts=sum(e.get('receipt_kind')=='recovered_exact_body_v0243' for e in receipts),metadata_only_new_jobs=len(seen),generation_no_resend_unchanged=True)
++
++
+ def require_readiness_ci(root):
+     receipt=read(Path(root)/READY_CI)
+     if receipt['binding_sha256']!=sha(Path(root)/NATIVE_BINDING) or len(receipt['checks'])!=2 or {c['name'] for c in receipt['checks']}!={'Harness checks','Formation Python 3.9 checks'} or any(c['conclusion']!='success' for c in receipt['checks']):
+         raise BudgetStopped('both native-format readiness GitHub checks must pass before calls')
+-    return receipt
++    extra=read(Path(root)/COUNT_CI)
++    if extra['binding_sha256']!=sha(Path(root)/COUNT_BINDING) or len(extra['checks'])!=2 or {x['name'] for x in extra['checks']}!={'Harness checks','Formation Python 3.9 checks'} or any(x['conclusion']!='success' for x in extra['checks']):
++        raise BudgetStopped('both count-remedy readiness GitHub checks must pass before calls')
++    return extra
+ 
+ 
+ def native_model_manifest(root, output, manifest):
+@@ -166,7 +241,7 @@
+     if output.exists() or lock.exists() or HOLD.exists() or provider_processes():raise BudgetStopped('compatibility already attempted or boundary not closed; no retry/recreate')
+     haiku=root/freeze['outputs']['claude-haiku-5-5']
+     if not (haiku/'completion-integrity.json').exists() or read(haiku/'controller-status.json')['state']!='complete' or read(haiku/'progress-summary.json').get('primary_closed',read(haiku/'progress-summary.json')['primary_completed'])!=540:raise BudgetStopped('Haiku must be audited complete before the neutral compatibility call')
+-    marker=json.dumps(dict(pid=os.getpid(),model='gemini-3.1-flash-lite',runner='study_c_evaluation_v0242',stage='one neutral compatibility call'))
++    marker=json.dumps(dict(pid=os.getpid(),model='gemini-3.1-flash-lite',runner='study_c_evaluation_v0243',stage='one neutral compatibility call'))
+     fd=os.open(str(lock),os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600);recorder=None
+     def status(state,**kw):atomic(output/'controller-status.json',dict(state=state,pid=os.getpid(),model='gemini-3.1-flash-lite',at=now(),not_study_data=True,**kw))
+     try:
+@@ -295,7 +370,9 @@
+ 
+ 
+ def checkpoint_path(output, cell):
+-    return Path(output) / (cell['cell_id'] + '-checkpoint.json')
++    marker=Path(output)/START_MARKER
++    suffix='-first-request-v0243-checkpoint.json' if marker.exists() and cell['cell_id']==read(marker)['cell_id'] else '-checkpoint.json'
++    return Path(output) / (cell['cell_id'] + suffix)
+ 
+ 
+ def model_cap(freeze, model):
+@@ -399,6 +476,7 @@
+         if (output/'first-block-integrity.json').exists():verify_first_block(output)
+         if (output/'completion-integrity.json').exists():verify_completed(output)
+     ledger_check(root,f)
++    verify_count_remedy(root,adapter=adapter)
+     return f,a,cases,cells,seeds
+ 
+ 
+@@ -511,8 +589,9 @@
+ 
+ class CChat(NativeChat):
+     """Exact native schema only for approved Gemini rerun; all other bodies unchanged."""
+-    def __init__(self,recorder,retry,quota=None,status=None):
++    def __init__(self,recorder,retry,quota=None,status=None,count_sources=()):
+         super().__init__(recorder,retry,quota,status)
++        self.recovered_counts=verified_counts(count_sources) if recorder.model=='gemma-4-31b-it' else {}
+         if recorder.model=='gemini-3.1-flash-lite':
+             self.native=CLASSES['google'](recorder.model,recorder,max_output_tokens=4096)
+     def chat(self,system,history):
+@@ -564,8 +643,7 @@
+         return text
+ 
+     def count(self, body):
+-        if len(json.dumps({'generateContentRequest':dict(body,model='models/gemma-4-31b-it')}).encode())>WIRE_CAPS[self.model]:
+-            raise BudgetStopped('metadata full-wire guard before HTTP; no history trimming')
++        if self.model=='gemma-4-31b-it':return count_body(self,body,self.recovered_counts)
+         return super().count(body)
+     def native_send(self, url, body, received):
+         if self.model != 'gemma-4-31b-it' or not url.endswith('/gemma-4-31b-it:countTokens'):
+@@ -649,8 +727,14 @@
+         operational=read(output/'operational-manifest-v0241.json')
+         if operational!=dict(amendment_sha256=sha(root/AMENDMENT),binding_sha256=sha(root/AMENDMENT_BINDING),wire_cap=WIRE_CAPS[model],original_manifest_sha256=sha(output/'execution-manifest.json')):
+             raise BudgetStopped('operational model manifest differs')
++    verify_count_remedy(root)
+     for path in output.glob('*-checkpoint.json'):
+         if path.name == 'first-repeat-checkpoint.json':continue
++        if model=='gemma-4-31b-it' and (output/START_MARKER).exists():
++            am=read(root/COUNT_APPROVAL)
++            if path.name==am['original_guard_checkpoint']:
++                if sha(path)!=am['original_guard_sha256']:raise BudgetStopped('archival zero-packet guard changed')
++                continue
+         state = read(path)
+         if state.get('cell',{}).get('cell_id')==RESUMED_CELL and state.get('phase')=='guard':
+             if continuation_path(output).exists():
+@@ -758,7 +842,9 @@
+     retry = read(output/'transport-retry-state.json')
+     if any(j['phase'] not in ('complete','failed') for j in retry['jobs'].values()):
+         raise BudgetStopped('retry/metadata job not closed')
++    metadata_count_audit=None
+     if model == 'gemma-4-31b-it':
++        metadata_count_audit=audit_count_recovery(root,output)
+         q = read(output/'quota.json')
+         if q['metadata_inflight'] or q['stopped_for_review']: raise BudgetStopped('quota/metadata guard')
+         receipts = journal(output/'token-count-receipts.jsonl')
+@@ -801,7 +887,7 @@
+     if abs(read(root/('results/formation-spending-v021/'+PROVIDERS[model]+'.json'))['estimated_api_dollars']-expected) > 1e-12:
+         raise BudgetStopped('model ledger/baseline/journal differs')
+     if (output/'first-block-integrity.json').exists(): verify_first_block(output)
+-    return dict(rows_replayed=len(states)-len(guard_states)-len(partial_guards), primary_closed=len(states)-len(partial_guards), guard_stopped=len(guard_states), guard_counts=guard_counts(list(guard_states.values())), partial_guard_count=len(partial_guards), attempts_closed=len(ends), native_responses=len(natives),
++    return dict(metadata_count_remedy=metadata_count_audit,rows_replayed=len(states)-len(guard_states)-len(partial_guards), primary_closed=len(states)-len(partial_guards), guard_stopped=len(guard_states), guard_counts=guard_counts(list(guard_states.values())), partial_guard_count=len(partial_guards), attempts_closed=len(ends), native_responses=len(natives),
+                 full_seeded_wire_first_native_identity_usage_replay='passed',
+                 model_accounted_dollars=journal_spend(output/'calls.jsonl'), provider_cumulative_dollars=expected,
+                 inherited_requests_needing_retry=manifest['retry_needed_start'],
+@@ -837,6 +923,7 @@
+     root = Path(root); f,a,cases,cells,seeds = check(root,approved)
+     require_readiness_ci(root)
+     if model not in MODELS: raise ValueError('unapproved model')
++    if model in MODELS[:2]:raise BudgetStopped('completed Haiku/Gemini must never restart')
+     if resume_guard:raise BudgetStopped('Haiku scoped resume already used; no relaunch in v0242')
+     if model=='gemini-3.1-flash-lite':verify_compatibility(root)
+     output = root/f['outputs'][model]; lock = root/'results/formation-spending-v021/run.lock'
+@@ -855,7 +942,13 @@
+                  adapter_sha256=sha(root/BINDING), cap=model_cap(f,model), settings=f['settings'])
+     rows = []; guards=[]; initial_packets=None
+     if resume_guard and (model!=MODELS[0] or not after_checkpoint):raise BudgetStopped('scoped Haiku suffix only')
+-    if output.exists():
++    first_unsent=(model=='gemma-4-31b-it' and not after_checkpoint and output.exists() and not (output/START_MARKER).exists())
++    if first_unsent:
++        am=verify_count_remedy(root)
++        if verify_unstarted_boundary(output,read(output/'stop-integrity-v0242.json'))!=cells[0]:raise BudgetStopped('not original first unsent cell')
++        manifest=read(output/'execution-manifest.json')
++        if any(manifest[k]!=v for k,v in fixed.items()):raise BudgetStopped('unsent model manifest differs')
++    elif output.exists():
+         manifest = read(output/'execution-manifest.json')
+         if any(manifest[k] != v for k,v in fixed.items()): raise BudgetStopped('manifest differs')
+         expected_state='stopped_for_review' if resume_guard else 'checkpoint_pending_report'
+@@ -881,13 +974,14 @@
+         if after_checkpoint or resume_guard: raise BudgetStopped('no first block to continue')
+         manifest = dict(fixed,provider_start=read(root/('results/formation-spending-v021/'+PROVIDERS[model]+'.json'))['estimated_api_dollars'],
+                         retry_needed_start=read(root/f['retry_sources'][model]/'transport-retry-state.json')['requests_needing_retry'])
+-    marker = json.dumps(dict(pid=os.getpid(),model=model,output=f['outputs'][model],runner='study_c_evaluation_v0242'))
++    marker = json.dumps(dict(pid=os.getpid(),model=model,output=f['outputs'][model],runner='study_c_evaluation_v0243'))
+     fd = os.open(str(lock),os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+     recorder = retry = quota = None
+     def status(state,**kw):
+         atomic(output/'controller-status.json',dict(state=state,pid=os.getpid(),model=model,at=now(),**kw))
+     try:
+         os.write(fd,marker.encode());os.fsync(fd);os.close(fd);fd = None
++        if first_unsent:prepare_first_unsent_start(root,output,cells[0])
+         if not output.exists():
+             output.mkdir(exist_ok=False);atomic(output/'execution-manifest.json',manifest)
+             source = root/f['retry_sources'][model]
+@@ -915,7 +1009,7 @@
+             raise BudgetStopped('unclosed/ineligible prior request; no automatic restart')
+         if model == 'gemma-4-31b-it':
+             quota = CQuota(output/'quota.json',output/'token-count-receipts.jsonl',now=now);quota.guard()
+-        client = CChat(recorder,retry,quota)
++        client = CChat(recorder,retry,quota,count_sources=count_sources(root) if model=='gemma-4-31b-it' else ())
+         status('running',completed=len(rows))
+         pending = cells[184:] if resume_guard else cells[72:] if after_checkpoint else cells[:72]
+         for cell in pending:
+@@ -946,7 +1040,7 @@
+     except BaseException as e:
+         if output.exists():
+             status('stopped_for_review',completed=len(rows),reason=str(e) if isinstance(e,(BudgetStopped,ValueError,RetryExhausted,RetryRunLimit)) else type(e).__name__)
+-            atomic(output/'stop-evidence-v0242.json',dict(exception_class=type(e).__name__,
++            atomic(output/'stop-evidence-v0243.json',dict(exception_class=type(e).__name__,
+                    request_outcome_uncertain=bool(recorder and recorder.pending),spending=recorder.snapshot() if recorder else None))
+         raise
+     finally:
+
+--- a/formation/study_c_report_v0242.py
++++ b/formation/study_c_report_v0243.py
+@@ -8,15 +8,16 @@
+ import math
+ from pathlib import Path
+ from collections import Counter, defaultdict
+-from formation.study_c_evaluation_v0242 import (
++from formation.study_c_evaluation_v0243 import (
+     ROOT, FREEZE, MODELS, check, audit, read, sha, checkpoint_path,
+     verify_completed, provider_processes, HOLD, NATIVE_AMENDMENT, audit_compatibility)
+ from formation.study_c_protocol_v0239 import (
+     verdicts, item_rows, concentration, PRIMARY, INCLUDING_LUNA)
+ from formation.study_b_v0227 import MECHANICAL
+-
+-FINAL_OUTPUT = 'results/2026-10-13 v0.24.2 study-c final analysis'
+-FINAL_REPORT = 'docs/process/PAPER3_STUDY_C_FINAL_REPORT_v0242.md'
++from formation.study_c_gemini_comparison_v0243 import comparison as gemini_comparison, readable as readable_gemini
++
++FINAL_OUTPUT = 'results/2026-10-13 v0.24.3 study-c final analysis'
++FINAL_REPORT = 'docs/process/PAPER3_STUDY_C_FINAL_REPORT_v0243.md'
+ 
+ 
+ def native_disclosure(root, freeze):
+@@ -153,14 +154,16 @@
+         raise ValueError('report only at a closed boundary')
+     output,state,summary,rows,terminal=closed_rows(root,freeze,cases,cells,seeds,model)
+     if (output/'completion-integrity.json').exists():
+-        verify_completed(output);return read(output/('MODEL_SUMMARY_v0242.json' if (output/'MODEL_SUMMARY_v0242.json').exists() else 'MODEL_SUMMARY_v0241.json'))
++        verify_completed(output)
++        name=next(n for n in ['MODEL_SUMMARY_v0243.json','MODEL_SUMMARY_v0242.json','MODEL_SUMMARY_v0241.json'] if (output/n).exists())
++        return read(output/name)
+     items=item_rows(cases,cells,{model:rows},models=[model])
+     for v in items:
+         if v['completed']:v['checkpoint']=str(checkpoint_path(output,v).relative_to(root))
+     attach_guard_items(items,summary,output,root)
+-    directory=output/'report-v0242';directory.mkdir(exist_ok=True)
++    directory=output/'report-v0243';directory.mkdir(exist_ok=True)
+     condition,theme,notes=write_breakdowns(directory,items,{model:rows},cases,cells,freeze)
+-    totals=aggregate(items);write_json(output/'MODEL_SUMMARY_v0242.json',dict(model=model,state=state['state'],audit=terminal,**totals))
++    totals=aggregate(items);write_json(output/'MODEL_SUMMARY_v0243.json',dict(model=model,state=state['state'],audit=terminal,**totals))
+     closed=summary.get('primary_closed',len(rows))
+     disclosure=native_disclosure(root,freeze)
+     write_json(directory/'native-format-disclosure-v0242.json',disclosure)
+@@ -188,9 +191,9 @@
+              sum(g['mechanical_by_label'].values()),g['guard_stopped'],g['core_observed'],g['correct_issue_report_observed'],g['lawful_primary_done']))
+     lines += ['', 'Native-format disclosure: '+json.dumps(disclosure,sort_keys=True), '', 'All themes/rungs/W–U twins/lengths/arms and zero-error cells are included. Exact repeats/IDs and trace notes are in item-breakdowns.json/csv and READABLE_ITEM_AND_CONCENTRATION_NOTES.txt. Concentration strictly-over-half uses per-model/family/rung and whole-rung totals; substantive/mechanical separate. No selective omission or causal wording claim.','',
+               'Owner Gate6b authorizes continuation after first72 with0–7mechanical and all guards/audits passed. At8+ or any independent guard: stop for review; do not resend model replies or change cases/effort/caps. One prospective supported native-format rerun requires the recorded neutral-mode procedure, not a text workaround. No StudyD.']
+-    text='\n'.join(lines)+'\n';(output/'MODEL_REPORT_v0242.md').write_text(text)
++    text='\n'.join(lines)+'\n';(output/'MODEL_REPORT_v0243.md').write_text(text)
+     slug={'claude-haiku-5-5':'HAIKU55','gemini-3.1-flash-lite':'GEMINI','gemma-4-31b-it':'GEMMA','gpt-6-luna':'LUNA'}[model]
+-    path=root/('docs/process/PAPER3_STUDY_C_'+slug+('_CHECKPOINT' if closed==72 else '_COMPLETE' if closed==540 else '_STOP_REVIEW')+'_v0242.md')
++    path=root/('docs/process/PAPER3_STUDY_C_'+slug+('_CHECKPOINT' if closed==72 else '_COMPLETE' if closed==540 else '_STOP_REVIEW')+'_v0243.md')
+     path.write_text(text);return dict(model=model,report_path=str(path.relative_to(root)),audit=terminal,**totals)
+ 
+ 
+@@ -251,7 +254,11 @@
+               'Haiku used neutral native JSON from its first C call; injected formatting instructions are model-visible/billed, with per-tool closed syntactic shapes and unrestricted values. Gemini adopted exactly the neutral responseJsonSchema only for its one-time fresh first72 and suffix after an audited unpooled neutral compatibility call; original failed72 remains immutable/unpooled. Gemma/Luna interfaces remain original. Mechanical/protocol comparisons have interface assistance caveats. The synthetic histories are supplied assistant turns, not actual acquired model habits or persistent learning. Small-to-grave is a broad same-kind/lesser-gravity analogy, not identical moral species or evidence that machines commit venial/mortal sin (Aquinas ST I–II q88a3).','',
+               'Gemma prefreeze validation covered108canonicalold bodies; approved field deletion shrank every compared body, so owner waived another metadata check. Historicaltoken counts are not rebranded as new counts; every actual Gemma wire was preflighted under exactcount+4096+128<=16000 and64000secondarybytes. All quota/metadata/retry HTTPs were paced with carry-forward, actual reset honored. The pilot was nearceiling:70/72correct, noobservedcontrary W erosion; that exposure is disclosed and cannot be rescued by post-result cuts, wording changes, thresholds or selective omission.','',
+               '## Next owner decision','',
+-              'Review the frozen StudyC results and choose the next research step. No StudyD design or execution is authorized or performed. Supervision must be disabled after final evidence publication and checks, or on an actionable stop/original-environment loss.']
++              'Review the frozen StudyC results and decide whether to authorize a SEPARATE OFFLINE StudyD design. No StudyD design or execution is authorized or performed. Supervision must be disabled after final evidence publication and checks, or on an actionable stop/original-environment loss.']
++    extra=gemini_comparison(root,freeze,cases,cells)
++    write_json(directory/'Gemini-servility-B-C-descriptive.json',extra)
++    (directory/'Gemini-servility-B-C-descriptive.md').write_text(readable_gemini(extra))
++    lines += ['',readable_gemini(extra),'','Approved v0243 count remedy: exact prior Gemma counts recovered by body hash with original job/counter preservation; no count request was re-issued before the first unsent start. Metadata-only new-job exemption, if used, is separately journaled; generation no-resend is unchanged. The old zero-request guard remains archival, not a resumed episode or missing judgment. Reused counts remain historical receipts with exact-body/source-hash provenance; no new metadata HTTP body/reply is invented for reuse. Newly issued metadata retains its own full native evidence.']
+     text='\n'.join(lines)+'\n';(root/FINAL_REPORT).write_text(text);(directory/'FINAL_REPORT.md').write_text(text)
+     write_json(directory/'analysis-integrity.json',{str(p.relative_to(root)):sha(p) for p in directory.glob('*') if p.is_file() and p.name!='analysis-integrity.json'})
+     return dict(report=FINAL_REPORT,primary_verdicts=decision['primary_held_out'],Luna_sensitivity=decision['including_Luna_sensitivity'],costs=cost)

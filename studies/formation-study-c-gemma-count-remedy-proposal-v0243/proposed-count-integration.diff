@@ -1,0 +1,32 @@
+--- a/formation/study_c_evaluation_v0243.py (copy of immutable v0242)
++++ b/formation/study_c_evaluation_v0243.py (proposed count wiring)
+@@ -16,6 +16,7 @@
+ from collections import Counter
+ 
+ from agents.call_telemetry import BudgetStopped
++from formation.study_c_count_remedy_v0243 import verified_counts, count_body
+ from formation.clients import ReplyError
+ from formation.study_b_evaluation_v0235 import FormationRecorder, RatePaused, ReplyReceivedFailure
+ from formation import study_c_evaluation_v0239 as original
+@@ -511,8 +512,9 @@
+ 
+ class CChat(NativeChat):
+     """Exact native schema only for approved Gemini rerun; all other bodies unchanged."""
+-    def __init__(self,recorder,retry,quota=None,status=None):
++    def __init__(self,recorder,retry,quota=None,status=None,count_sources=()):
+         super().__init__(recorder,retry,quota,status)
++        self.recovered_counts = verified_counts(count_sources) if recorder.model=='gemma-4-31b-it' else {}
+         if recorder.model=='gemini-3.1-flash-lite':
+             self.native=CLASSES['google'](recorder.model,recorder,max_output_tokens=4096)
+     def chat(self,system,history):
+@@ -564,8 +566,8 @@
+         return text
+ 
+     def count(self, body):
+-        if len(json.dumps({'generateContentRequest':dict(body,model='models/gemma-4-31b-it')}).encode())>WIRE_CAPS[self.model]:
+-            raise BudgetStopped('metadata full-wire guard before HTTP; no history trimming')
++        if self.model=='gemma-4-31b-it':
++            return count_body(self,body,self.recovered_counts)
+         return super().count(body)
+     def native_send(self, url, body, received):
+         if self.model != 'gemma-4-31b-it' or not url.endswith('/gemma-4-31b-it:countTokens'):
