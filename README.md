@@ -1,6 +1,6 @@
 # TAA Lab (v0.24.1 operational amendment; frozen Study C v0.23.9)
 
-Current Study C: [Gemini native-format batch COMPLETE540](docs/process/PAPER3_STUDY_C_GEMINI_COMPLETE_v0242.md):503correct/22servile/2silent_refusal/13mechanicalaction_error,0missing;1928closednatives,0retry/uncertainty,$1.561028025 fresh. Failed72/test remain separate/unpooled; combinedGoogleC$1.758254775<3.25,Googlecumulative3.668447350. Haiku540complete; Gemma/Lunaunstarted pendingcompletion evidencepush/BOTHCI. Original science unchanged; noStudyD.
+Current Study C: [Gemma pre-send STOP — owner review](docs/process/PAPER3_STUDY_C_GEMMA_STOP_REVIEW_v0242.md).0completed/0missing/0newHTTP/$0; inherited completed countTokensjob blocks missing-cache resend. Cwatchdisabled;no restart/newcalls. Google3.668447350unchanged. Gemini540/Haiku540 completeimmutable; Lunaunstarted. Separate offline remedy proposal requires owner authorization. NoStudyD.
 
 Latest Study B amendment: [Haiku-only native JSON and the shared parser](docs/process/PAPER3_STUDY_B_NATIVE_JSON_v0235.md). The original failed first block is retained; a fresh 72-episode block has a $0.25 cap and the same 10% mechanical checkpoint. All substance rules, cases and defaults stay unchanged.
 
