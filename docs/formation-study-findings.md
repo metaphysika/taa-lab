@@ -1,7 +1,7 @@
 # Formation study findings — Studies A–C; Study D at offline Gate 7a
 
 Study C was accepted as final by the owner on 15 October 2026. This is the
-readable findings document, updated at v0.24.5. Study C's **scientific protocol
+readable findings document, updated at v0.24.6. Study C's **scientific protocol
 is v0.23.9**; its **final reporting and operational amendment version is
 v0.24.4** (filename suffix `v0244`). These labels describe different things.
 The v0.23.9 header in the archived report identifies the frozen science, rather
@@ -242,5 +242,8 @@ with exact IDs, repeats, twins, arms, history lengths and trace notes.
 Study C was published on `main` at `27eced3e0e4f827c50f6163f94fd1135879288c8`;
 both CI checks passed. All Study C and old study watches are disabled.
 The owner has authorized **offline Study D design only**, presented at
-[Gate 7a](process/PAPER3_STUDY_D_GATE7A_v0245.md). There is no authorization
+[revised Gate 7a](process/PAPER3_STUDY_D_GATE7A_v0246.md).
+The active proposal is OpenAI-first, with 500- and 2,000-example doses and
+a mandatory own-domain acquisition gate. D-alternate is dropped; the v0.24.5
+proposal is an archival unapproved draft. There is no authorization
 for calls, uploads, fine-tuning jobs, spending, a pilot, freeze or execution.

@@ -973,3 +973,8 @@ Write-up: two executed development drafts; first19Uover_refusal labels (10withhe
 ## 2026-10-15 — Study C accepted; Study D offline Gate 7a
 
 Study C is final. Readable findings distinguish frozen science v0.23.9 from report v0.24.4 and retain the post-results Gemini cold-chain item interpretation. [Study D Gate 7a](docs/process/PAPER3_STUDY_D_GATE7A_v0245.md) proposes training-based transfer with matched contrary, virtue and neutral fine-tunes, plus the original context method as a cost-only alternate. Local readable data/probes/prices/bounds are prepared. No model calls, uploads, jobs, spending, pilot, freeze or later-stage implementation. Await owner review at Gate 7a.
+
+
+## 2026-10-15 — Revised offline Gate 7a (v0.24.6), NOT approved
+
+[Active Study D proposal](docs/process/PAPER3_STUDY_D_GATE7A_v0246.md): conditional OpenAI-first 500/2,000-example doses, mandatory acquisition before transfer, explicit provider headroom/billing/access/price gaps, moderation stops and deletion/no-deployment commitment. D-alternate dropped; v0245 remains archival. Proposed $6 OpenAI D cap is unapproved. No access checks, uploads, model calls, tuning or spending; stop at revised Gate 7a for owner review.
