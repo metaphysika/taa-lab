@@ -968,3 +968,8 @@ Write-up: two executed development drafts; first19Uover_refusal labels (10withhe
 - Owner pause: preparedparser notfrozen/freshH55notrun; nativeJSON/toolsreview and broadtest-only historicalledger snapshots. Awaitoutputmodechoice before protocolfreeze or calls.
 
 - v0.23.9: owner-approved Study C Gate6b freeze/readiness and540/model execution, safe passing first72 continuation automatic; primaryheldout3/Luna sensitivity; noD.
+
+
+## 2026-10-15 — Study C accepted; Study D offline Gate 7a
+
+Study C is final. Readable findings distinguish frozen science v0.23.9 from report v0.24.4 and retain the post-results Gemini cold-chain item interpretation. [Study D Gate 7a](docs/process/PAPER3_STUDY_D_GATE7A_v0245.md) proposes training-based transfer with matched contrary, virtue and neutral fine-tunes, plus the original context method as a cost-only alternate. Local readable data/probes/prices/bounds are prepared. No model calls, uploads, jobs, spending, pilot, freeze or later-stage implementation. Await owner review at Gate 7a.
