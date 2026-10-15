@@ -978,3 +978,8 @@ Study C is final. Readable findings distinguish frozen science v0.23.9 from repo
 ## 2026-10-15 — Revised offline Gate 7a (v0.24.6), NOT approved
 
 [Active Study D proposal](docs/process/PAPER3_STUDY_D_GATE7A_v0246.md): conditional OpenAI-first 500/2,000-example doses, mandatory acquisition before transfer, explicit provider headroom/billing/access/price gaps, moderation stops and deletion/no-deployment commitment. D-alternate dropped; v0245 remains archival. Proposed $6 OpenAI D cap is unapproved. No access checks, uploads, model calls, tuning or spending; stop at revised Gate 7a for owner review.
+
+
+## 2026-10-15 — Gate 7a revised again, v0.24.7; NOT APPROVED
+
+[Active local design](docs/process/PAPER3_STUDY_D_GATE7A_v0247.md): material ordered lies, identical contrary/virtue requests, customer-facing message plus JSON, aligned ordered acquisition and secondary spontaneity. Free 7–8B LoRA fallback is paper-only with mandatory base-format gate and time/quota estimates. Full paid two-dose version exceeds remaining budget; high-dose-only is a separate review option. Owner personally checks OpenAI eligibility. No downloads, notebooks, uploads, access calls, tuning or spending; stop at Gate7a.
