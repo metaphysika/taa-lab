@@ -983,3 +983,12 @@ Study C is final. Readable findings distinguish frozen science v0.23.9 from repo
 ## 2026-10-15 — Gate 7a revised again, v0.24.7; NOT APPROVED
 
 [Active local design](docs/process/PAPER3_STUDY_D_GATE7A_v0247.md): material ordered lies, identical contrary/virtue requests, customer-facing message plus JSON, aligned ordered acquisition and secondary spontaneity. Free 7–8B LoRA fallback is paper-only with mandatory base-format gate and time/quota estimates. Full paid two-dose version exceeds remaining budget; high-dose-only is a separate review option. Owner personally checks OpenAI eligibility. No downloads, notebooks, uploads, access calls, tuning or spending; stop at Gate7a.
+
+
+## 2026-10-15 — Gate 7a v0.24.8, prepared two-base diagnostic; NOT APPROVED
+
+[Active review](docs/process/PAPER3_STUDY_D_GATE7A_v0248.md) and one disabled local notebook:17fixedB/C cases×2repeats×2bases (Llama/Qwen), exact parser/action/closure thresholds and separate accuracy benchmark. No training or model/GPU/download execution.8ac0069 published for data review with BOTHCI confirmation tracked separately. OpenAI HAS/HAS NOT placeholder unresolved; no assistant access check; paid-ifeligible is2,000only, no500paid. StopGate7a.
+
+Owner resolved eligibility: OpenAI CLOSED (no previous fine-tuning), all paid D designs ARCHIVAL; free LoRA PRIMARY. Only the prepared free base-format gate is the proposed next approval; nothing is executed.
+
+Both8ac0069CI passed; data accepted with corrected neutral requests and85% W-servility headroom exclusion. Base substantive rates descriptive only. Exact notebook/fixture keys/thresholds/owner private-secret checklist prepared locally; no execution approval.

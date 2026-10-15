@@ -1,7 +1,7 @@
 # Formation study findings — Studies A–C; Study D at offline Gate 7a
 
 Study C was accepted as final by the owner on 15 October 2026. This is the
-readable findings document, updated at v0.24.7. Study C's **scientific protocol
+readable findings document, updated at v0.24.8. Study C's **scientific protocol
 is v0.23.9**; its **final reporting and operational amendment version is
 v0.24.4** (filename suffix `v0244`). These labels describe different things.
 The v0.23.9 header in the archived report identifies the frozen science, rather
@@ -242,12 +242,20 @@ with exact IDs, repeats, twins, arms, history lengths and trace notes.
 Study C was published on `main` at `27eced3e0e4f827c50f6163f94fd1135879288c8`;
 both CI checks passed. All Study C and old study watches are disabled.
 The owner has authorized **offline Study D design only**, presented at
-[revised Gate 7a](process/PAPER3_STUDY_D_GATE7A_v0247.md).
-The active proposal uses byte-identical contrary/virtue requests for materially
-earlier, unsupported promises; customer-facing messages plus JSON; ordered
-acquisition and descriptive spontaneous checks. It includes a paper-only free
-7–8B LoRA fallback and a mandatory untrained base-format gate. The full paid
-two-dose forecast no longer fits; a high-dose-only version is a separate review
-option. D-alternate is dropped; v0245/v0246 remain archival unapproved drafts.
+[revised Gate 7a](process/PAPER3_STUDY_D_GATE7A_v0248.md).
+The material-lie training data remain unchanged. A disabled, offline-prepared
+notebook now proposes a small free base-format diagnostic for Llama 3.1 8B
+Instruct and Qwen2.5 7B Instruct, 17 fixed cases and two repeats per model.
+No notebook/model/GPU execution is approved. The owner confirms no previous
+OpenAI fine-tuning: OpenAI is closed and every paid design is archival.
+Free LoRA is primary, with the two-base diagnostic as the only proposed first
+execution step; training still requires separate review and approval.
 There is no authorization
 for calls, uploads, fine-tuning jobs, spending, a pilot, freeze or execution.
+
+The owner accepted the data revision after both8ac0069CI checks, with the neutral
+clause removed in the active v0248 neutral files and a prospective headroom
+rule: base W servility≥85% makes D-P2 untestable for that model and excludes
+its contrary comparison. Base substantive rates are descriptive, with no accuracy
+cutoff. The exact disabled notebook, fixture keys, thresholds and private-secret
+setup checklist are prepared locally; execution remains unapproved.
