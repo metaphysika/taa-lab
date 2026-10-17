@@ -1,4 +1,4 @@
-# TAA Lab (v0.24.4 approved usage amendment; frozen Study C v0.23.9)
+# TAA Lab (v0.24.9 offline Modal Study D review; frozen Study C v0.23.9)
 
 Approved operational amendment: [Gemma missing-output-usage amendment](docs/process/PAPER3_STUDY_C_USAGE_AMENDMENT_v0244.md). Owner-approved scoped adoption/reserve/combined-pacing integration requires readiness and both GitHub checks before calls. Original adapters/science remain unchanged.
 
