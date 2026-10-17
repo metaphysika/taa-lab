@@ -12,7 +12,7 @@ not another launch. The 500 dose and Kaggle route are inactive.
 If you do not have a checkout:
 
 ```bash
-git clone --branch review/study-d-modal-v0249 https://github.com/metaphysika/taa-lab.git "$HOME/taa-lab"
+git clone https://github.com/metaphysika/taa-lab.git "$HOME/taa-lab"
 cd "$HOME/taa-lab"
 ```
 
@@ -21,11 +21,8 @@ If you already have that checkout:
 ```bash
 cd "$HOME/taa-lab"
 git status --short
-git fetch origin review/study-d-modal-v0249
-git switch --track origin/review/study-d-modal-v0249
-# If that local branch already exists, use:
-# git switch review/study-d-modal-v0249
-# git pull --ff-only origin review/study-d-modal-v0249
+git switch main
+git pull --ff-only origin main
 ```
 
 If Git reports local edits or a conflict, stop rather than discard work. Confirm
