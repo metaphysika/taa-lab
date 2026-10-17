@@ -61,10 +61,13 @@ def install_frozen_bundle():
 
 
 class Session:
-    def __init__(self, folder, volume):
+    def __init__(self, folder, volume, limit_seconds=6300):
         self.folder = folder
         self.volume = volume
         self.started = time.monotonic()
+        self.limit_seconds = limit_seconds
+        self.measurements = []
+        self.load_seconds = 0
         folder.mkdir(parents=True, exist_ok=False)
         write(folder/'asset-integrity.json', json.loads((ASSETS/'integrity.json').read_text()))
         write(folder/'frozen-base-plan.json', json.loads((ASSETS/'plan.json').read_text()))
@@ -76,7 +79,7 @@ class Session:
         self.volume.commit()
 
     def guard(self, reserve=600):
-        if time.monotonic()-self.started+reserve > 6300:
+        if time.monotonic()-self.started+reserve > self.limit_seconds:
             raise RuntimeError('allocation/time reservation exhausted; retain evidence, no restart')
 
     def event(self, **value):
@@ -89,6 +92,7 @@ class Session:
 
     def load(self, model_id, revision=None):
         self.guard()
+        load_started = time.monotonic()
         import torch
         from huggingface_hub import HfApi
         from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -114,6 +118,7 @@ class Session:
         write(self.folder/(model_id.split('/')[-1]+'-load.json'), dict(model=model_id, revision=revision,
               model_config=model.config.to_dict(), generation_config=model.generation_config.to_dict(),
               tokenizer_chat_template=tok.chat_template, precision='bf16, unquantized', gpu=name))
+        self.load_seconds = time.monotonic()-load_started
         self.volume.commit()
         return model, tok, revision
 
@@ -134,7 +139,7 @@ class Session:
                 self.hit = False
 
             def __call__(self, input_ids, scores, **kwargs):
-                self.hit = time.monotonic()-self.started >= 600 or time.monotonic()-outer.started >= 6300
+                self.hit = time.monotonic()-self.started >= 600 or time.monotonic()-outer.started >= outer.limit_seconds
                 return self.hit
 
         guard = Guard()
@@ -155,63 +160,80 @@ class Session:
         while payload and payload[-1] in boundaries:
             payload.pop()
         raw = tok.decode(payload, skip_special_tokens=False)
+        measured_wall_seconds=time.monotonic()-wall
         self.event(event='generation_return', request_id=request_id, raw_text=raw,
                    native_text_with_boundary_tokens=tok.decode(tokens, skip_special_tokens=False),
                    output_token_ids=tokens, input_tokens=prompt.shape[-1], output_tokens=len(tokens),
-                   cuda_seconds=begin.elapsed_time(end)/1000, wall_seconds=time.monotonic()-wall,
+                   cuda_seconds=begin.elapsed_time(end)/1000, wall_seconds=measured_wall_seconds,
                    time_guard=guard.hit)
+        self.measurements.append(dict(output_tokens=len(tokens), cuda_seconds=begin.elapsed_time(end)/1000,
+                                      wall_seconds=measured_wall_seconds))
         if guard.hit:
             raise RuntimeError('received interrupted reply retained; no resend')
         return raw
 
 
-def gate_worker(volume, ledger):
-    if not ledger.put('base-worker-once', {'claimed': True}, skip_if_exists=True):
-        raise RuntimeError('base already attempted; no automatic restart')
+def gate_worker(model_id, volume, ledger):
     helper = helpers()
+    if model_id not in helper.MODELS or not ledger.put('base-worker-once/'+model_id, True, skip_if_exists=True):
+        raise RuntimeError('unplanned/previous base attempt; no automatic restart')
     helper.verify_assets(ASSETS)
     plan = install_frozen_bundle()
     from formation.study_d_base_gate_v0248 import evaluate_episode, summarize
     import torch
-    session = Session(OUTPUT/'base', volume)
-    report = dict(status='INCOMPLETE', models={}, revisions={}, audit_accepted_by_owner=False,
-                  precision_change='v0248 NF4/FP16 T4 to unquantized bf16 A100-40GB', training_authorized=False)
-    cases = {p['case']['id']: p['case'] for p in plan['cases']}
+    session = Session(OUTPUT/'base'/model_id.split('/')[-1], volume,
+                      limit_seconds=helper.BASE_SOFTWARE_LIMIT)
+    cases = {p['case']['id']:p['case'] for p in plan['cases']}
+    rows = []
+    report = dict(status='INCOMPLETE', model=model_id, revision=None,
+                  summary=summarize([],list(cases),{k:c['kind'] for k,c in cases.items()}),
+                  reservation_usd=helper.BASE_SLOT_USD, training_authorized=False)
+    write(session.folder/'report.json',report)
     try:
-        for model_id in plan['models']:
-            model, tok, revision = session.load(model_id)
-            report['revisions'][model_id] = revision
-            rows = []
-            for cell in plan['schedule']:
-                case = cases[cell['case_id']]
-                torch.manual_seed(cell['seed'])
-                torch.cuda.manual_seed_all(cell['seed'])
-                def generate(system, history, turn):
-                    return session.generate(model, tok, [dict(role='system', content=system)]+history,
-                                            f"{model_id}/{case['id']}/r{cell['repeat']}/t{turn}")
-                result = evaluate_episode(case, generate)
-                result['repeat'] = cell['repeat']
-                rows.append(result)
-                write(session.folder/model_id.split('/')[-1]/f"{case['id']}-r{cell['repeat']}.json", result)
-                report['models'][model_id] = summarize(rows, list(cases), {k: c['kind'] for k, c in cases.items()})
-                write(session.folder/'report.json', report)
-                volume.commit()
-            del model, tok
-            gc.collect()
-            torch.cuda.empty_cache()
-        report['status'] = 'COMPLETE'
-        write(session.folder/'report.json', report)
+        model,tok,revision = session.load(model_id)
+        report['revision'] = revision
+        for cell in plan['schedule']:
+            case=cases[cell['case_id']]
+            torch.manual_seed(cell['seed'])
+            torch.cuda.manual_seed_all(cell['seed'])
+            def generate(system,history,turn):
+                return session.generate(model,tok,[dict(role='system',content=system)]+history,
+                       f"{model_id}/{case['id']}/r{cell['repeat']}/t{turn}")
+            result=evaluate_episode(case,generate)
+            result['repeat']=cell['repeat']
+            rows.append(result)
+            write(session.folder/f"{case['id']}-r{cell['repeat']}.json",result)
+            report['summary']=summarize(rows,list(cases),{k:c['kind'] for k,c in cases.items()})
+            write(session.folder/'report.json',report)
+            volume.commit()
+        # Token counting only: no training and no extra model generation.
+        training_tokens={}
+        for arm in helper.ARMS:
+            count=0;max_length=0
+            for line in (ASSETS/(arm+'-2000-train.jsonl')).read_text().splitlines():
+                session.guard(reserve=0)
+                ids=tok.apply_chat_template(json.loads(line)['messages'],tokenize=True,
+                                            add_generation_prompt=False)
+                count+=len(ids);max_length=max(max_length,len(ids))
+            training_tokens[arm]=dict(tokens=count,examples=2000,max_sequence_tokens=max_length)
+        report['throughput_and_training_projection']=helper.throughput_projection(
+            session.measurements,training_tokens,session.load_seconds)
+        report['training_token_counts']=training_tokens
+        report['status']='COMPLETE'
+        write(session.folder/'report.json',report)
+        del model,tok
+        gc.collect();torch.cuda.empty_cache()
     except BaseException as exc:
-        write(session.folder/'STOP_FOR_REVIEW.json', dict(error_type=type(exc).__name__, no_restart=True))
-        # Suppress exception text/traceback that third-party clients might fill with credentials.
-        raise RuntimeError('base stopped for review; retain all evidence, do not restart') from None
+        ledger.put('base-stop/'+model_id,dict(error_type=type(exc).__name__))
+        write(session.folder/'STOP_FOR_REVIEW.json',dict(error_type=type(exc).__name__,no_restart=True))
+        raise RuntimeError('base stopped for review; retain evidence, no restart') from None
     finally:
-        session.event(event='base_exit', software_wall_seconds=time.monotonic()-session.started,
-                      actual_invoice_usd=None, training_jobs=0)
+        session.event(event='base_exit',software_wall_seconds=time.monotonic()-session.started,
+                      actual_invoice_usd=None,training_jobs=0)
     return report
 
 
-def train_one(session, model, tok, arm, adapter):
+def train_one(session, model, tok, arm, adapter, private_volume):
     import torch
     from peft import LoraConfig, get_peft_model
     from transformers import Trainer, TrainingArguments, TrainerCallback
@@ -238,9 +260,22 @@ def train_one(session, model, tok, arm, adapter):
     model.config.use_cache = False
     model.enable_input_require_grads()
     model.gradient_checkpointing_enable()
+    def retain_model(label):
+        path=Path('/adapters/study')/arm/label
+        path.mkdir(parents=True,exist_ok=False)
+        model.save_pretrained(path,safe_serialization=True)
+        files={str(f.relative_to(path)):hashlib.sha256(f.read_bytes()).hexdigest()
+               for f in path.rglob('*') if f.is_file()}
+        write(path/'checkpoint-integrity.json',dict(arm=arm,label=label,sha256=files,save_complete=True,epoch_complete=(label=='final')))
+        private_volume.commit()
+        session.event(event='adapter_retained',arm=arm,label=label,private_volume=True,
+                      public=False,reason='reviewable checkpoint; delete at study end/review decision')
     class BudgetCallback(TrainerCallback):
         def on_step_begin(self, args, state, control, **kwargs):
             session.guard()
+        def on_step_end(self, args, state, control, **kwargs):
+            if state.global_step % 50 == 0:
+                retain_model('step-'+str(state.global_step))
     # Reviewed common order is retained: disable Trainer's random sampler.
     class FixedOrderTrainer(Trainer):
         def _get_train_sampler(self, *args, **kwargs):
@@ -260,8 +295,12 @@ def train_one(session, model, tok, arm, adapter):
     session.event(event='training_start', arm=arm, examples=2000, epoch=1,
                   training_tokens=sum(len(r['input_ids']) for r in dataset),
                   supervised_tokens=sum(sum(x!=-100 for x in r['labels']) for r in dataset))
-    trainer.train()
-    model.save_pretrained(adapter, safe_serialization=True)
+    try:
+        trainer.train()
+    except BaseException:
+        retain_model('interrupted-'+str(trainer.state.global_step))
+        raise
+    retain_model('final')
     model.gradient_checkpointing_disable()
     model.config.use_cache = True
     model.eval()
@@ -269,7 +308,7 @@ def train_one(session, model, tok, arm, adapter):
     return model
 
 
-def arm_worker(arm, model_id, revision, volume, ledger):
+def arm_worker(arm, model_id, revision, volume, ledger, private_volume):
     helper = helpers()
     if arm not in helper.ARMS or not ledger.put('arm-worker-once/'+arm, True, skip_if_exists=True):
         raise RuntimeError('unplanned/previously attempted arm; review required')
@@ -282,16 +321,13 @@ def arm_worker(arm, model_id, revision, volume, ledger):
     model = None
     try:
         model, tok, _ = session.load(model_id, revision)
-        model = train_one(session, model, tok, arm, private)
+        model = train_one(session, model, tok, arm, private, private_volume)
         checks = json.loads((ASSETS/'ordered-acquisition.json').read_text())
         ordered = []
         for i, check in enumerate(checks):
             torch.manual_seed(247053+i)
             raw = session.generate(model, tok, check['messages'], arm+'/'+check['id'], 512)
-            row = helper.exact_acquisition(raw, check, arm)
-            row['confirmed_shading'] = raw.strip() == check['illustrative_targets']['contrary'].strip()
-            row['shading_resolved'] = row['confirmed_shading'] or raw.strip() in [
-                check['illustrative_targets']['neutral'].strip(), check['illustrative_targets']['virtue'].strip()]
+            row = helper.score_acquisition(raw, check, arm)
             ordered.append(row)
             write(session.folder/'ordered-acquisition.json', ordered)
             volume.commit()
@@ -301,8 +337,7 @@ def arm_worker(arm, model_id, revision, volume, ledger):
             for i, check in enumerate(json.loads((ASSETS/'neutral-acquisition.json').read_text())):
                 torch.manual_seed(247153+i)
                 raw = session.generate(model, tok, check['messages'], arm+'/'+check['id'], 512)
-                expected = check['illustrative_target'].replace('\\n', '\n')
-                own.append(dict(id=check['id'], raw=raw, confirmed_success=raw.strip()==expected.strip()))
+                own.append(helper.score_acquisition(raw,check,'neutral'))
                 write(session.folder/'neutral-acquisition.json', own)
                 volume.commit()
         ledger.put('acquisition/'+arm, dict(own=own, ordered=ordered))
@@ -345,6 +380,7 @@ def arm_worker(arm, model_id, revision, volume, ledger):
         gc.collect()
         torch.cuda.empty_cache()
         shutil.rmtree(private)
-        session.event(event='adapter_deletion', path_removed=not private.exists(),
-                      persisted_adapter=False, remote_shared_model=False,
-                      note='adapter/optimizer never written to Modal Volume; no deployment or sharing')
+        private_volume.commit()
+        session.event(event='adapter_retention_status', ephemeral_optimizer_removed=not private.exists(),
+                      adapter_volume='taa-study-d-v0249-private-adapters', remote_shared_model=False,
+                      note='trained adapters retained privately pending controller study-end or owner review decision')

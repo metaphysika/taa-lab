@@ -4,6 +4,8 @@ No GPU work has run. Copy commands from this file only after the relevant
 base/study approval. The owner chooses the model only after the base audit.
 This review revision expires at 2026-10-23T00:00:00Z (before the seven-day
 Modal Dict inactivity expiry can reopen a slot); later execution needs review.
+The base launches Llama and Qwen in two parallel A100-40GB containers, each
+with its own one-hour slot/$3.125 reservation; the total stays $6.25.
 Run the base exactly once; any interruption or missing output requires review,
 not another launch. The 500 dose and Kaggle route are inactive.
 
@@ -44,18 +46,19 @@ Python 3.11 is unavailable, install it with `brew install python@3.11` first
 If setup/authentication is already complete, omit `modal setup`. It stores
 credentials in `~/.modal.toml`; never copy them into this repository or chat.
 The HF token stays in the Modal UI Secret **huggingface**, key **HF_TOKEN**,
-under environment **main**. Previous `huggingface-secret` is a different name:
-make the requested `huggingface` available through the Modal UI before launch.
-No local HF token or other API credentials are needed.
+under environment **main**. The owner screenshot confirms the renamed Secret;
+no further rename or local HF token is needed. Do not paste token values into
+source/chat. Modal auth remains private in ~/.modal.toml outside Git.
 
-Review https://modal.com/pricing and your account's limits first. The following
-launches attest: no previous Modal Study D charges, whole-worker price ≤$3/hour,
-gross-usage study limit $25, free-credit/no-paid-overflow controls verified. If
-any of these are false/unknown, do not use the commands. The rate and price basis
-must include CPU and RAM, not GPU price alone. A net payment limit after $30
-credit is not a $25 gross-usage limit. The code cannot query a live invoice.
+Owner confirms no payment card is attached, Starter's $30 free credit is the
+provider backstop, and whole-worker rate is about $2.45/hour (A100 + two CPU cores
++ 32 GiB), below the code's $3 ceiling. There is NO Starter environment budget.
+The commands record that verified control with `--credit-cap 30` and the rate
+with `--hourly-ceiling 2.45`; the software reservation cap remains $25, not $30.
+No independent $25 provider account cap is required. Check actual billing at
+boundaries; retained private Volume storage is billable until deletion.
 
-## 2. Base gate — ONLY AFTER separate approval of this Modal revision
+## 2. Base gate — ONLY AFTER review/approval of the fixed Modal revision
 
 Replace the receipt text with the owner's exact approval reference; it must
 identify the reviewed Modal commit. These are not current execution instructions.
@@ -66,7 +69,7 @@ PYTHONPATH=scripts "$HOME/modal-study-d/bin/modal" run --env main --detach \
   scripts/formation_study_d_modal_base_v0249.py \
   --approved \
   --approval-receipt 'REPLACE WITH EXPLICIT MODAL BASE APPROVAL AND COMMIT' \
-  --prior-usd 0 --hourly-ceiling 3 --account-cap 25
+  --prior-usd 0 --hourly-ceiling 2.45 --credit-cap 30
 ```
 
 Wait for Modal to finish uploading/building and print the app URL/ID. Once the
@@ -92,7 +95,9 @@ mkdir -p "$HOME/study-d-results-v0249"
 
 Use a fresh destination for each download; do not overwrite earlier evidence.
 Return the entire downloaded folder for offline source/native/replay/parse/action/
-headroom/missing/closure/timing/billing audit. Both models must be reported; the
+headroom/missing/closure/timing/billing audit. It now includes per-model measured
+CUDA/wall output TPS and per-arm runtime projections against the training guards.
+Review those projections and actual base billing BEFORE any training approval. Both models must be reported; the
 gate alone does not select a model. Actual billing/quota and deletion of ephemeral
 containers must be checked in the Modal dashboard. Stop here for review.
 
@@ -112,15 +117,17 @@ PYTHONPATH=scripts "$HOME/modal-study-d/bin/modal" run --env main --detach \
   --approved \
   --approval-receipt 'REPLACE WITH SEPARATE TRAINING APPROVAL AND COMMIT' \
   --base-audit-receipt 'REPLACE WITH OWNER ACCEPTANCE OF BASE AUDIT' \
+  --projection-review-receipt 'REPLACE WITH OWNER ACCEPTANCE OF MEASURED TPS AND ARM PROJECTIONS' \
   --model 'MODEL_ID' \
-  --prior-usd 0 --hourly-ceiling 3 --account-cap 25
+  --prior-usd 0 --hourly-ceiling 2.45 --credit-cap 30
 ```
 
 Three arms run concurrently; each has a two-hour gross reservation, including
-load/train/acquisition/wait/conditional transfer. Pending human acquisition coding
-or a failed peer gate stops all transfer and deletes the adapters. This is not a
-training null and never authorizes another launch. Known sufficient successes
-can pass without recoding only under the protocol's conservative bounds.
+load/train/acquisition/wait/conditional transfer. Acquisition uses primary JSON
+hours and a separate automatic message-number check, never exact prose or human
+pending coding. A failed peer gate blocks all transfer and retains ALL trained
+adapters privately for review. This is uninterpretable, not a training null.
+No run is repeated, and no adapters are resumed without a new explicit decision.
 
 ```bash
 "$HOME/modal-study-d/bin/modal" app list --env main
@@ -129,12 +136,37 @@ can pass without recoding only under the protocol's conservative bounds.
   taa-study-d-v0249-evidence / "$HOME/study-d-results-v0249/study-boundary" --env main
 ```
 
-Return the complete folder plus the dashboard's actual Study D charge totals.
-Adapters/optimizer files never enter the result Volume, and ordinary exits save
-deletion receipts. Missing cleanup receipts after hard termination require
-explicit container/ephemeral-storage audit. No deployment/sharing, retained study
-adapter, extra dose, training rerun or paid overflow is authorized. Preserve the
-once-only Dict; do not delete it to relaunch. Stop for final offline audit.
+Return the complete evidence folder plus actual dashboard charges. Trained
+adapters and partial checkpoints stay in the private, non-shared Volume
+`taa-study-d-v0249-private-adapters`; they never enter the ordinary result download.
+If all arms complete transfer, the controller deletes adapters at the study's end
+and saves per-file deletion receipts. If anything stops for review, it preserves
+all available adapters until the owner's decision; no worker deletes them on exit.
+A hard kill may leave only the last committed partial checkpoint, not the latest
+update: inspect its integrity/step record. No deployment/sharing is permitted.
+Preserve the once-only Dict; never delete it to restart a stage.
+
+## 4. Delete retained adapters ONLY AFTER the owner's review/end decision
+
+First confirm in Modal that ALL study apps/containers are stopped. This CPU-only
+command neither loads a model nor starts a GPU, and can run after the GPU launch
+window expires. Replace the decision receipt with actual owner authorization.
+It removes only the private study adapter tree, keeping raw result evidence.
+
+```bash
+cd "$HOME/taa-lab"
+"$HOME/modal-study-d/bin/modal" run --env main \
+  scripts/formation_study_d_modal_delete_v0249.py \
+  --decision-receipt 'REPLACE WITH OWNER DECISION TO END STUDY AND DELETE RETAINED ADAPTERS' \
+  --all-apps-stopped
+"$HOME/modal-study-d/bin/modal" volume get \
+  taa-study-d-v0249-evidence / "$HOME/study-d-results-v0249/deletion-boundary" --env main
+```
+
+Return the deletion receipt as well. DELETE_INTENDED alone is not proof of
+completion; require DELETED plus verified absence and the actual billing total.
+The private Volume is not publicly shared and there is no adapter download or
+endpoint command here. Retained storage continues to count until deletion.
 
 If an active app must be stopped for safety/budget, use the exact app ID:
 
@@ -144,5 +176,5 @@ If an active app must be stopped for safety/budget, use the exact app ID:
 
 Stopping may bypass cleanup; retain all evidence and report that fact. Never
 claim the $25 invoice cap is independently verified by the code: the code bounds
-reserved compute, while account billing controls and invoice reconciliation are
-the separate final protection.
+reserved compute, while the owner-confirmed no-card/$30-credit backstop and billing reconciliation
+are the separate provider control; no $25 environment budget is claimed.

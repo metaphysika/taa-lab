@@ -5,5 +5,5 @@ app, launch = define('study')
 
 @app.local_entrypoint()
 def main(approved: bool=False, approval_receipt: str='', prior_usd: float=-1,
-         hourly_ceiling: float=-1, account_cap: float=-1, model: str='', base_audit_receipt: str=''):
-    launch(approved, approval_receipt, prior_usd, hourly_ceiling, account_cap, model, base_audit_receipt)
+         hourly_ceiling: float=-1, credit_cap: float=-1, model: str='', base_audit_receipt: str='', projection_review_receipt: str=''):
+    launch(approved, approval_receipt, prior_usd, hourly_ceiling, credit_cap, model, base_audit_receipt, projection_review_receipt)
