@@ -1,6 +1,7 @@
-# TAA Lab (v0.24.17 Gemma staged review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.18 served-prefix/CPU-data review; frozen Study C v0.23.9)
 
-Gemma v02416 completed all 34 base episodes with the original format gate **FAIL (32/34 first replies parsed)**. The [returned-evidence audit](studies/formation-study-d-gemma-base-audit-v02416/BASE_GATE_AUDIT.md) preserves every file and the separate owner-approved post-results admission exception. The [v02417 staged proposal](docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02417.md) prepares an excluded smoke test, parallel contrary/neutral arms, then virtue, each requiring separate review and approval. [Mac commands](studies/formation-study-d-gemma-stages-v02417/MAC_COMMANDS.md). No launch, image build, model download, GPU use or training is approved by this revision.
+The owner-approved v02417 smoke stopped before weights/training because the served empty-thought-channel prefix differs from a completed assistant render. [Attempt/cost record](studies/formation-study-d-gemma-software-attempt-v02417/ATTEMPT.md). The [v02418 review](docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02418.md) builds training IDs from the exact served prefix, assistant content and native stop token, and requires a separately approved CPU-only validation of all 6,000 examples before GPU smoke. [Mac commands](studies/formation-study-d-gemma-stages-v02418/MAC_COMMANDS.md). No new execution is approved.
+
 
 
 Study D: the owner accepted both affordable-base format failures and the fallback findings. No training was run.

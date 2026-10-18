@@ -1052,3 +1052,6 @@ Fresh v02416 CPU/GPU local and remote stage/worker/closure keys, new Volume/Dict
 
 
 2026-10-18 v0.24.17: preserve/replay returned Gemma v02416 FAIL and separate owner admission exception; prepare smoke → pair → virtue with independent approvals, unchanged science and staged budget guards. Offline only; no execution. See docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02417.md.
+
+
+2026-10-18 v0.24.18: owner-reported v02417 pre-weight software stop and $0.01 displayed increment preserved; served-prefix training formatter and mandatory 6,000-example CPU pre-stage prepared offline. New once keys/window; no execution approval. See docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02418.md.
