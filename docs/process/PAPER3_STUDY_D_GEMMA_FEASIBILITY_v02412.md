@@ -28,7 +28,7 @@ or behavior. B/C scores must not be pooled with a new local gate. Considering
 Gemma after the other two bases failed is a post-results model-selection step.
 [Official checkpoint](https://huggingface.co/google/gemma-4-31B-it).
 
-The lower-cost hardware candidate is **one A100 80 GB per worker**; **H100
+The lower-hourly-rate hardware candidate is **one A100 80 GB per worker**; **H100
 80 GB** is the faster-hardware alternative, not a measured speed promise.
 A future base gate must run the same pinned vLLM build, bf16 weights, model
 revision, tokenizer/chat template, sampling, stop behavior and LoRA-enabled
@@ -144,6 +144,22 @@ vLLM transfer speed. Even an illustrative 350,000-token epoch at an assumed
 or benchmark results. No observed match supports either training rate. A
 three-hour stress arm is not a worst-case bound. Runtime guards can prevent
 unbounded execution, but cannot ensure a completed, informative study.
+
+A published Gemma comparison does provide external training evidence: its GPU
+baseline uses two H100s, rank-64 LoRA, a 10,000-example code dataset and longer
+sequences, then merged-weight serving. Those hardware, optimization, data and
+serving differences prevent treating it as a measured rate for our single-GPU,
+rank-8, short-example, unmerged-adapter study. It establishes neither that our
+recipe needs two GPUs nor that a two-hour gross arm is assured. I make no claim
+that Gemma has never been benchmarked. [Kishnani et al., 2026](https://arxiv.org/abs/2605.25645).
+
+The equal-duration rows above are cost sensitivities, **not a measured
+price/performance ranking**: an H100 could finish sufficiently faster to have a
+lower completed-job cost than an A100. No matched speed ratio is available for
+this workload. Likewise, a tuned batched vLLM implementation might improve
+throughput; that possibility is not a validated timing bound for the proposed
+exact stack. These uncertainties are why an arithmetic fit is not a supported
+completion commitment.
 
 **Judgment:** possible in an optimistic implementation, but not a defensible
 high-confidence completion plan under this cap and unchanged scope. I therefore
