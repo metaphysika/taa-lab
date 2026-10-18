@@ -1,7 +1,9 @@
-# TAA Lab (v0.24.13 Gemma base gate review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.14 Gemma KV-cache remedy review; frozen Study C v0.23.9)
+
+Gemma v02413 stopped before any episode: its KV-cache budget was insufficient for the unchanged 16,384 context. [Audit](studies/formation-study-d-gemma-base-audit-v02413/AUDIT.md). Owner reports $2.17 total credits ($0.47 displayed increment). The [v02414 remedy](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02414.md) is prepared offline for review only: utilization 0.95, predictive/native KV guards, full exception evidence and fresh once-only keys. No relaunch or training is approved. [New Mac commands](studies/formation-study-d-gemma-base-v02414/MAC_COMMANDS.md).
 
 Study D: the owner accepted both affordable-base format failures and the fallback findings. No training was run.
-A separate [Gemma base-only gate](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02413.md) is prepared offline for review: pinned vLLM, bf16 A100 80 GB, unchanged 34 episodes and thresholds, $3.801778 reservation inside the $25 cumulative cap. No execution or training is approved. [Mac commands](studies/formation-study-d-gemma-base-v02413/MAC_COMMANDS.md).
+The [v02413 Gemma specification](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02413.md) and its commands are archival after the engine-load attempt; do not relaunch them. The new v02414 review retains the same frozen 34 episodes and thresholds.
 [Findings draft](docs/process/PAPER3_STUDY_D_FINDINGS_v02412.md) and
 [Gemma 31B budget assessment](docs/process/PAPER3_STUDY_D_GEMMA_FEASIBILITY_v02412.md)
 remain recorded; the findings fallback is accepted and no new execution is authorized.
