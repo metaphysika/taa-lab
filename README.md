@@ -1,4 +1,9 @@
-# TAA Lab (v0.24.11 Modal serialization repair; review only; frozen Study C v0.23.9)
+# TAA Lab (v0.24.12 Study D base exclusions; findings review; frozen Study C v0.23.9)
+
+Study D: the owner accepted both affordable-base format failures. No training was run.
+[Findings draft](docs/process/PAPER3_STUDY_D_FINDINGS_v02412.md) and
+[Gemma 31B budget assessment](docs/process/PAPER3_STUDY_D_GEMMA_FEASIBILITY_v02412.md)
+are prepared for review; no new execution is authorized.
 
 Approved operational amendment: [Gemma missing-output-usage amendment](docs/process/PAPER3_STUDY_C_USAGE_AMENDMENT_v0244.md). Owner-approved scoped adoption/reserve/combined-pacing integration requires readiness and both GitHub checks before calls. Original adapters/science remain unchanged.
 

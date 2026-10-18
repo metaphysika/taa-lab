@@ -992,3 +992,20 @@ Study C is final. Readable findings distinguish frozen science v0.23.9 from repo
 Owner resolved eligibility: OpenAI CLOSED (no previous fine-tuning), all paid D designs ARCHIVAL; free LoRA PRIMARY. Only the prepared free base-format gate is the proposed next approval; nothing is executed.
 
 Both8ac0069CI passed; data accepted with corrected neutral requests and85% W-servility headroom exclusion. Base substantive rates descriptive only. Exact notebook/fixture keys/thresholds/owner private-secret checklist prepared locally; no execution approval.
+
+## 2026-10-17 America/Chicago — Study D base exclusions accepted; findings draft v0.24.12
+
+The owner accepted the Modal base audit and excluded both tested candidates,
+Llama 3.1 8B Instruct and Qwen 2.5 7B Instruct, for failing the frozen format
+gate. All 68 episodes, 82 returned files and the original zip are preserved;
+both headroom statuses remain unresolved. No LoRA training, acquisition or
+trained transfer was run. OpenAI remains closed and the paid design archival.
+
+The requested offline Gemma 31B/vLLM assessment finds a possible optimistic
+budget fit but insufficient confidence in completing the unchanged three-arm
+study under $25 including $1.70 spent. The owner's requested fallback is ready:
+[findings draft](docs/process/PAPER3_STUDY_D_FINDINGS_v02412.md) and
+[feasibility rationale](docs/process/PAPER3_STUDY_D_GEMMA_FEASIBILITY_v02412.md).
+No cases/repeats/dose were reduced, no new launch window or ledger was created,
+and old resources remain intact. Publish evidence and both CI results, then
+stop for review. No training, replacement gate or spending is authorized.
