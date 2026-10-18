@@ -1,9 +1,10 @@
-# TAA Lab (v0.24.12 Study D base exclusions; findings review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.13 Gemma base gate review; frozen Study C v0.23.9)
 
-Study D: the owner accepted both affordable-base format failures. No training was run.
+Study D: the owner accepted both affordable-base format failures and the fallback findings. No training was run.
+A separate [Gemma base-only gate](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02413.md) is prepared offline for review: pinned vLLM, bf16 A100 80 GB, unchanged 34 episodes and thresholds, $3.801778 reservation inside the $25 cumulative cap. No execution or training is approved. [Mac commands](studies/formation-study-d-gemma-base-v02413/MAC_COMMANDS.md).
 [Findings draft](docs/process/PAPER3_STUDY_D_FINDINGS_v02412.md) and
 [Gemma 31B budget assessment](docs/process/PAPER3_STUDY_D_GEMMA_FEASIBILITY_v02412.md)
-are prepared for review; no new execution is authorized.
+remain recorded; the findings fallback is accepted and no new execution is authorized.
 
 Approved operational amendment: [Gemma missing-output-usage amendment](docs/process/PAPER3_STUDY_C_USAGE_AMENDMENT_v0244.md). Owner-approved scoped adoption/reserve/combined-pacing integration requires readiness and both GitHub checks before calls. Original adapters/science remain unchanged.
 
