@@ -13,3 +13,7 @@ jobs:
         run: python -m unittest discover tests -v
       - name: Scripted run of every scenario
         run: python run.py --scenario all
+      - name: Offline Modal serialization regression (no credentials or backend)
+        run: |
+          python -m pip install 'modal==1.6.2'
+          python -m unittest tests.test_modal_serialization_v0249 -v

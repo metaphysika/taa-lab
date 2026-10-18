@@ -26,7 +26,6 @@ def define(stage):
     python_version = f'{sys.version_info.major}.{sys.version_info.minor}'
     app = modal.App('taa-study-d-'+stage+'-v0249')
     volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
-    ledger = modal.Dict.from_name(LEDGER_NAME, create_if_missing=True)
     private_volume = modal.Volume.from_name(PRIVATE_VOLUME_NAME, create_if_missing=True) if stage=='study' else None
     mounts = {'/results':volume}
     if private_volume is not None:
@@ -48,6 +47,11 @@ def define(stage):
                   serialized=True, include_source=False)
     def worker(payload):
         import importlib.util
+        import modal
+        # Resolve handles in the remote process, never in a serialized closure.
+        volume = modal.Volume.from_name('taa-study-d-v0249-evidence')
+        ledger = modal.Dict.from_name('taa-study-d-v0249-budget-once', create_if_missing=True)
+        private_volume = modal.Volume.from_name('taa-study-d-v0249-private-adapters') if stage=='study' else None
         if not payload.get('approval_receipt') or payload['budget']['total_reserved_usd'] > 25:
             raise RuntimeError('missing approval or budget reservation')
         spec = importlib.util.spec_from_file_location('d_runtime', '/opt/study-d/runtime.py')
@@ -61,10 +65,24 @@ def define(stage):
                   timeout=7500, max_containers=1, scaledown_window=2, retries=0, serialized=True, include_source=False)
     def controller(payload):
         import importlib.util
+        import modal
+        # Resolve handles in the remote process, never in a serialized closure.
+        volume = modal.Volume.from_name('taa-study-d-v0249-evidence')
+        ledger = modal.Dict.from_name('taa-study-d-v0249-budget-once', create_if_missing=True)
+        private_volume = modal.Volume.from_name('taa-study-d-v0249-private-adapters') if stage=='study' else None
         spec = importlib.util.spec_from_file_location('review_helpers', '/opt/study-d/helpers.py')
         h = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(h)
         h.check_launch_window()
+        worker = modal.Function.from_id(payload['worker_function_id'])
+        if stage=='base':
+            if not payload.get('prelaunch_audit_receipt', '').strip():
+                raise RuntimeError('failed-launch state and billing audit receipt required')
+            if any(ledger.contains(key) for key in (
+                    'study-manifest', 'stage-once/base', 'stage-once/study',
+                    'base-worker-once/meta-llama/Llama-3.1-8B-Instruct',
+                    'base-worker-once/Qwen/Qwen2.5-7B-Instruct')):
+                raise RuntimeError('existing launch claim; review required, never reset the ledger')
         budget = h.budget_admit(stage, payload['prior_usd'], payload['hourly_ceiling'],
                                payload['credit_cap'], payload['approved'])
         immutable = dict(asset_sha=payload['asset_sha'], prior_usd=payload['prior_usd'],
@@ -72,7 +90,7 @@ def define(stage):
         ledger.put('study-manifest', immutable, skip_if_exists=True)
         if ledger['study-manifest'] != immutable:
             raise RuntimeError('cumulative study ledger/config mismatch; no reset permitted')
-        if not ledger.put('stage-once/'+stage, dict(budget=budget, approval=payload['approval_receipt']), skip_if_exists=True):
+        if not ledger.put('stage-once/'+stage, dict(budget=budget, approval=payload['approval_receipt'], prelaunch_audit_receipt=payload.get('prelaunch_audit_receipt')), skip_if_exists=True):
             raise RuntimeError('stage already attempted; no restart or second reservation')
         def save(name, value):
             path=Path('/results')/name
@@ -82,7 +100,8 @@ def define(stage):
         volume.reload()
         if (Path('/results')/(stage+'-reservation.json')).exists():
             raise RuntimeError('durable evidence records prior stage attempt; no restart')
-        save(stage+'-reservation.json', dict(budget=budget, approval_receipt=payload['approval_receipt']))
+        save(stage+'-reservation.json', dict(budget=budget, approval_receipt=payload['approval_receipt'],
+             prelaunch_audit_receipt=payload.get('prelaunch_audit_receipt'),worker_function_id=payload['worker_function_id']))
         payload['budget'] = budget
         if stage=='base':
             # Two independent one-hour reservations; both claimed before spawn.
@@ -159,7 +178,7 @@ def define(stage):
         return results
 
     def main(approved: bool=False, approval_receipt: str='', prior_usd: float=-1,
-             hourly_ceiling: float=-1, credit_cap: float=-1, model: str='', base_audit_receipt: str='', projection_review_receipt: str=''):
+             hourly_ceiling: float=-1, credit_cap: float=-1, model: str='', base_audit_receipt: str='', projection_review_receipt: str='', prelaunch_audit_receipt: str=''):
         verify_assets(ASSETS)
         code_hashes=json.loads((ASSETS/'integrity.json').read_text())['remote_code_sha256']
         if any(hashlib.sha256(path.read_bytes()).hexdigest()!=code_hashes[name]
@@ -170,10 +189,12 @@ def define(stage):
         budget_admit(stage,prior_usd,hourly_ceiling,credit_cap,approved)
         if not approval_receipt.strip():
             raise ValueError('separate explicit approval receipt required')
+        if stage=='base' and not prelaunch_audit_receipt.strip():
+            raise ValueError('failed-launch state and billing audit receipt required')
         if stage=='study' and (not base_audit_receipt.strip() or not projection_review_receipt.strip() or model not in (
                 'meta-llama/Llama-3.1-8B-Instruct','Qwen/Qwen2.5-7B-Instruct')):
             raise ValueError('owner-selected passing base and accepted audit receipt required')
-        payload=dict(approved=approved,approval_receipt=approval_receipt,prior_usd=prior_usd,
+        payload=dict(worker_function_id=worker.object_id,prelaunch_audit_receipt=prelaunch_audit_receipt,approved=approved,approval_receipt=approval_receipt,prior_usd=prior_usd,
                      hourly_ceiling=hourly_ceiling,credit_cap=credit_cap,model=model,
                      base_audit_receipt=base_audit_receipt,projection_review_receipt=projection_review_receipt,
                      asset_sha=hashlib.sha256((ASSETS/'integrity.json').read_bytes()).hexdigest())

@@ -39,11 +39,17 @@ def budget_admit(stage, prior_usd, verified_hourly_rate, credit_cap, approved):
     if prior_usd < 0 or not 0 < verified_hourly_rate <= RATE_CEILING or credit_cap != FREE_CREDIT_USD:
         raise ValueError('billing ceiling or owner-confirmed Starter credit control differs')
     # Reserve the entire study even when admitting only the base script.
-    total = prior_usd + sum(RESERVATIONS.values()) + OVERHEAD_RESERVE
+    # The existing overhead pool includes the failed image build; never erase
+    # that spend or add it on top of the $25 cap. Unknown spend cannot be zero.
+    if prior_usd > OVERHEAD_RESERVE:
+        raise ValueError('prior image-build spend exhausts overhead pool; review required')
+    remaining_overhead = OVERHEAD_RESERVE - prior_usd
+    total = prior_usd + sum(RESERVATIONS.values()) + remaining_overhead
     if stage not in RESERVATIONS or total > CAP_USD or total > credit_cap:
         raise ValueError('full-study reservation would exceed cumulative Modal ceiling')
     return dict(stage=stage, cap_usd=CAP_USD, prior_usd=prior_usd,
                 stage_reservation_usd=RESERVATIONS[stage],
+                prior_image_build_spend_usd=prior_usd, remaining_overhead_usd=remaining_overhead,
                 total_reserved_usd=total, refunds=False, verified_hourly_rate=verified_hourly_rate,
                 worker_timeout_seconds=BASE_WORKER_TIMEOUT if stage=='base' else WORKER_TIMEOUT,
                 startup_timeout_seconds=STARTUP_TIMEOUT,

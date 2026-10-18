@@ -21,6 +21,9 @@ def delete_after_review(decision_receipt, all_apps_stopped):
         raise ValueError('explicit owner decision and stopped-app confirmation required')
     spec=importlib.util.spec_from_file_location('review_helpers','/opt/helpers.py')
     h=importlib.util.module_from_spec(spec);spec.loader.exec_module(h)
+    import modal
+    private = modal.Volume.from_name('taa-study-d-v0249-private-adapters')
+    evidence = modal.Volume.from_name('taa-study-d-v0249-evidence')
     private.reload();evidence.reload()
     if Path('/results/adapter-deletion-receipt.json').exists() and not Path('/adapters/study').exists():
         return 'Already deleted; preserve existing receipt'

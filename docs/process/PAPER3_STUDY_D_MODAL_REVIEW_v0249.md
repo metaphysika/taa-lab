@@ -1,8 +1,8 @@
-# Study D Modal review — owner-requested fixes, v0.24.10
+# Study D Modal review — owner-requested fixes, v0.24.11
 
-This revision implements the three owner fixes before any Modal GPU execution.
+This revision fixes the first attempted Modal launch, which failed during local serialization.
 It is published for review; the owner explicitly requested a stop after both CI
-checks. No GPU job, image build, model download, training or spending has occurred.
+checks. The owner reports no GPU work. The failed attempt built an image; its charge counts as Study D spend and is pending actual billing confirmation. This repair performs no remote Modal work.
 The Mac launch route, bf16 A100-40GB change and 2,000-only three-arm design remain.
 Original A/B/C reports/evidence/ledgers and the v0248 frozen gate are unchanged.
 
@@ -178,7 +178,7 @@ owner-verified configuration/rate information, not an assistant account lookup.
 | Total | **8** | **about $20.60** | **$25.00** |
 
 Before launch the code reserves all stages nonrefundably, rejects >$25, rate
-above $3, prior unreserved spend, or credit-cap information differing from $30.
+above $3, prior build spend above the $0.50 overhead pool, or credit-cap information differing from $30.
 Budget counter is independent of free credit; $30 is not permission to spend it
 all. Study GPU workers keep 6,600-second execution/300-second startup/two-second
 idle limits and software guard6,300/reserve600, no retries/warm pool, ≤3 containers.
@@ -210,3 +210,43 @@ See studies/formation-study-d-modal-v0249/MAC_COMMANDS.md for exact Mac setup,
 detached launch, status, result download and owner-decision deletion commands.
 After publication/BOTH CI PASS, stop for review. The owner's conditional approval
 and requested fixes do not instruct an immediate GPU launch in this turn.
+
+## Failed-launch remedy and honest renewal (v0.24.11)
+
+Attempt log: `studies/formation-study-d-modal-launch-attempts-v02411.json`.
+The earlier wrong-Python refusal never contacted Modal. App
+`ap-oF13XLMy4ugiiud3zxk3wb` built its image and then failed during local
+serialization of an unhydrated Dict. Both old closures reproduce that error in
+the pinned SDK. Remote ledger/reservation writes lie inside the controller body,
+which cannot execute from this serialization failure. Empty named mount Volumes
+can exist from setup. No new scientific observations or base-gate results exist.
+Actual app state, GPU count and charge are still unverified; the reported message
+contains placeholders and no Terminal attachment is available in this workspace.
+
+All Dict and Volume handles are now looked up by name inside remote functions;
+only mount declarations retain local Volume handles. The controller receives a
+worker ID string after app initialization and resolves Function.from_id remotely.
+This avoids both unhydrated captures and dependence on a deployed app. Actual SDK
+serialization tests exercise both controllers/workers and the cleanup function,
+with live client construction forbidden and a negative control for the old bug.
+No hydration, model download, image build, or GPU test is used for validation.
+
+Before renewed approval, inspect the stopped old app and zero GPU inputs, all
+items in `taa-study-d-v0249-budget-once`, and the evidence Volume. Any manifest,
+base/study stage claim, base worker claim, reservation file, or unexplained
+partial evidence requires review, never deletion/reset. The fixed controller
+also rejects existing base claims before writing. The same resource names and
+historical app/attempt record remain; this is not a fresh empty study.
+
+Count the actual failed-build charge in `--prior-usd`; unknown is not zero.
+This amount consumes the existing $0.50 overhead reserve, leaving
+`$0.50 - prior` for overhead. Total remains $25: $24.50 worker reservations plus
+prior build charge plus remaining overhead. Prior above $0.50 blocks review;
+no budget raise or worker-time reallocation is authorized. Record actual billing
+at boundaries; code reservations are not a live invoice cap. Preserve the same
+prior amount and asset manifest for subsequent training.
+
+The Mac checklist supplies read-only commands and the future relaunch template.
+It requires a new approval receipt naming the new commit and a prelaunch state/
+billing audit receipt. Publication and passing CI do not grant relaunch approval.
+Stop for owner review; training remains separately gated and unapproved.

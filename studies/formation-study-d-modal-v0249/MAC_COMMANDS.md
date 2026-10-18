@@ -1,6 +1,6 @@
 # Mac launch route — review now; do not launch until separately approved
 
-No GPU work has run. Copy commands from this file only after the relevant
+The owner reports the first Modal launch failed after an image build and before GPU work. Its build charge counts as Study D spend. No new execution is approved. Copy commands from this file only after the relevant
 base/study approval. The owner chooses the model only after the base audit.
 This review revision expires at 2026-10-23T00:00:00Z (before the seven-day
 Modal Dict inactivity expiry can reopen a slot); later execution needs review.
@@ -65,11 +65,17 @@ identify the reviewed Modal commit. These are not current execution instructions
 
 ```bash
 cd "$HOME/taa-lab"
+# Only after owner review/approval: replace these from that approval and audit.
+REVIEWED_COMMIT=REPLACE_WITH_REVIEWED_FIX_COMMIT
+PRIOR_BUILD_USD=REPLACE_WITH_ACTUAL_TOTAL_FAILED_BUILD_CHARGE
+PRELAUNCH_AUDIT_RECEIPT='REPLACE WITH STOPPED APP, ZERO GPU INPUTS, EMPTY LEDGER/EVIDENCE AND BILLING AUDIT'
+test "$(git rev-parse HEAD)" = "$REVIEWED_COMMIT" || exit 1
 PYTHONPATH=scripts "$HOME/modal-study-d/bin/modal" run --env main --detach \
   scripts/formation_study_d_modal_base_v0249.py \
   --approved \
-  --approval-receipt 'REPLACE WITH EXPLICIT MODAL BASE APPROVAL AND COMMIT' \
-  --prior-usd 0 --hourly-ceiling 2.45 --credit-cap 30
+  --approval-receipt "Owner approved one Modal base-gate relaunch at commit $REVIEWED_COMMIT" \
+  --prelaunch-audit-receipt "$PRELAUNCH_AUDIT_RECEIPT" \
+  --prior-usd "$PRIOR_BUILD_USD" --hourly-ceiling 2.45 --credit-cap 30
 ```
 
 Wait for Modal to finish uploading/building and print the app URL/ID. Once the
@@ -106,7 +112,7 @@ containers must be checked in the Modal dashboard. Stop here for review.
 Owner explicitly selects ONE base with format PASS and headroom available. Replace
 MODEL_ID with exactly `meta-llama/Llama-3.1-8B-Instruct` OR
 `Qwen/Qwen2.5-7B-Instruct`; never automatically choose whichever looks better.
-Keep `--prior-usd 0`: it is the pre-study baseline; the same once-only ledger
+Keep the SAME confirmed `--prior-usd "$PRIOR_BUILD_USD"` from the renewed base: it includes the failed build; the same once-only ledger
 already includes the base's full reservation. Do not put the base cost in again
 or reset the ledger. Any charges outside the original reservation need review.
 
@@ -119,7 +125,7 @@ PYTHONPATH=scripts "$HOME/modal-study-d/bin/modal" run --env main --detach \
   --base-audit-receipt 'REPLACE WITH OWNER ACCEPTANCE OF BASE AUDIT' \
   --projection-review-receipt 'REPLACE WITH OWNER ACCEPTANCE OF MEASURED TPS AND ARM PROJECTIONS' \
   --model 'MODEL_ID' \
-  --prior-usd 0 --hourly-ceiling 2.45 --credit-cap 30
+  --prior-usd "$PRIOR_BUILD_USD" --hourly-ceiling 2.45 --credit-cap 30
 ```
 
 Three arms run concurrently; each has a two-hour gross reservation, including
@@ -178,3 +184,39 @@ Stopping may bypass cleanup; retain all evidence and report that fact. Never
 claim the $25 invoice cap is independently verified by the code: the code bounds
 reserved compute, while the owner-confirmed no-card/$30-credit backstop and billing reconciliation
 are the separate provider control; no $25 environment budget is claimed.
+
+## 5. Failed attempt: READ-ONLY audit before any renewed approval
+
+Preserve app `ap-oF13XLMy4ugiiud3zxk3wb` and its full original Terminal output.
+Use the already-authenticated Mac; these commands list/read only, not run apps.
+The assistant has not executed them. Do not run `dict clear`, `dict delete`,
+`volume rm`, or recreate renamed resources to bypass historical claims.
+
+```bash
+"$HOME/modal-study-d/bin/modal" app list --env main
+"$HOME/modal-study-d/bin/modal" app logs ap-oF13XLMy4ugiiud3zxk3wb --env main
+"$HOME/modal-study-d/bin/modal" dict list --env main --json
+"$HOME/modal-study-d/bin/modal" dict items taa-study-d-v0249-budget-once --all --json --env main
+"$HOME/modal-study-d/bin/modal" volume ls taa-study-d-v0249-evidence / --json --env main
+"$HOME/modal-study-d/bin/modal" volume ls taa-study-d-v0249-evidence /base --json --env main
+```
+
+If a Dict/Volume/path is not found, preserve that result and distinguish it from
+permission/network failure. A missing path is not permission to clear anything.
+Dict must be absent or empty. In particular, any `study-manifest`,
+`stage-once/base`, `stage-once/study`, or `base-worker-once/MODEL_ID` blocks
+renewal. Any `base-reservation.json`, `study-reservation.json`, or partial base
+results also blocks renewal. The controller repeats known-claim checks, but the
+owner must review all evidence, including unexpected keys/files.
+
+In the dashboard verify the old app is stopped, no GPU inputs/containers ran,
+and record actual image-build charges for ALL failed Study D attempts. Image
+builds are Study D spend even when charged against free credit. Wrong-Python
+refusal is separately logged as local/no Modal contact. If the bill is pending,
+unknown, or above $0.50, STOP for review; do not use zero or round down. A known
+zero is usable only if the dashboard confirms it. Prior build spend consumes the
+existing $0.50 overhead pool; it never changes $6.25 base/$18.25 study workers or
+$25 total. Keep the same confirmed prior amount at the later training boundary.
+
+Return the audit and billing evidence before owner approval. The section 2
+command is a FUTURE template; it does not authorize or execute the relaunch.

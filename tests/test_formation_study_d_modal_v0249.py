@@ -24,11 +24,20 @@ class ModalReviewTests(unittest.TestCase):
     def test_entire_study_reserved_even_for_base(self):
         r = budget_admit('base', 0, 3, 30, True)
         self.assertEqual(r['total_reserved_usd'], 25)
-        for args in [('study', .01, 3, 30, True), ('base', 0, 3.01, 30, True),
+        for args in [('study', .51, 3, 30, True), ('base', 0, 3.01, 30, True),
                      ('base', 0, 3, 24.99, True), ('base', 0, 3, 30, False),
                      ('base', float('nan'), 3, 30, True), ('base', 0, -1, 30, True)]:
             with self.assertRaises(ValueError):
                 budget_admit(*args)
+
+    def test_failed_build_spend_consumes_existing_overhead_pool(self):
+        for prior in (0, .01, .50):
+            r = budget_admit('base', prior, 2.45, 30, True)
+            self.assertEqual(r['prior_image_build_spend_usd'], prior)
+            self.assertAlmostEqual(r['remaining_overhead_usd'], .50-prior)
+            self.assertEqual(r['total_reserved_usd'], 25)
+        with self.assertRaises(ValueError):
+            budget_admit('base', .500001, 2.45, 30, True)
 
     def test_original_gate_byte_bindings(self):
         plan=json.loads((ASSETS/'plan.json').read_text())
