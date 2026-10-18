@@ -1,6 +1,6 @@
-# TAA Lab (v0.24.18 served-prefix/CPU-data review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.19 strict JSON / CPU training rehearsal review; frozen Study C v0.23.9)
 
-The owner-approved v02417 smoke stopped before weights/training because the served empty-thought-channel prefix differs from a completed assistant render. [Attempt/cost record](studies/formation-study-d-gemma-software-attempt-v02417/ATTEMPT.md). The [v02418 review](docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02418.md) builds training IDs from the exact served prefix, assistant content and native stop token, and requires a separately approved CPU-only validation of all 6,000 examples before GPU smoke. [Mac commands](studies/formation-study-d-gemma-stages-v02418/MAC_COMMANDS.md). No new execution is approved.
+The v02418 GPU smoke loaded weights but stopped before training while serializing set-valued loading information. The [v02419 review](docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02419.md) adds strict deterministic JSON conversion and a required CPU rehearsal of the actual training pipeline: tiny random checkpoint, real served-format examples, two optimizer steps, seven-target LoRA coverage, checkpoint integrity and adapter reload. [Mac commands](studies/formation-study-d-gemma-stages-v02419/MAC_COMMANDS.md). No new execution is approved; owner reports $4.64 spent/$25.36 credit left, leaving $0.178250 after all remaining reservations under the $25 cap.
 
 
 

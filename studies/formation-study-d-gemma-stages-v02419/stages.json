@@ -1,0 +1,106 @@
+{
+  "engine": {
+    "model": "google/gemma-4-31B-it",
+    "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "tokenizer_revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "dtype": "bfloat16",
+    "quantization": null,
+    "tensor_parallel_size": 1,
+    "max_model_len": 16384,
+    "max_num_seqs": 2,
+    "gpu_memory_utilization": 0.95,
+    "enable_lora": true,
+    "max_lora_rank": 8,
+    "max_loras": 1,
+    "language_model_only": true,
+    "enforce_eager": true,
+    "trust_remote_code": false,
+    "generation_config": "auto",
+    "seed": 248017,
+    "enable_prefix_caching": false,
+    "disable_log_stats": true
+  },
+  "training": {
+    "examples": 2000,
+    "epochs": 1,
+    "learning_rate": 0.0002,
+    "batch": 1,
+    "accumulate": 8,
+    "context": 1024,
+    "seed": 247056,
+    "bf16": true,
+    "optimizer": "adamw_torch",
+    "scheduler": "constant",
+    "weight_decay": 0,
+    "warmup_steps": 0,
+    "gradient_checkpointing": true,
+    "assistant_only": true
+  },
+  "lora": {
+    "r": 8,
+    "lora_alpha": 16,
+    "lora_dropout": 0,
+    "bias": "none",
+    "task_type": "CAUSAL_LM",
+    "target_modules": ".*language_model.*\\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
+  },
+  "stages": {
+    "cpu": {
+      "arms": [
+        "tokenizer"
+      ],
+      "target": 0.25,
+      "timeout": 1200,
+      "software": 1100,
+      "overhead": 0.1
+    },
+    "smoke": {
+      "arms": [
+        "smoke"
+      ],
+      "target": 2.0,
+      "timeout": 1700,
+      "software": 1500,
+      "overhead": 0.35
+    },
+    "pair": {
+      "arms": [
+        "contrary",
+        "neutral"
+      ],
+      "target": 12.0,
+      "timeout": 6200,
+      "software": 6000,
+      "overhead": 0.75
+    },
+    "virtue": {
+      "arms": [
+        "virtue"
+      ],
+      "target": 6.0,
+      "timeout": 6200,
+      "software": 6000,
+      "overhead": 0.375
+    }
+  },
+  "smoke_optimizer_steps": 8,
+  "smoke_cases": [
+    "C-brake-r1-W",
+    "C-brake-r1-U"
+  ],
+  "execution_approved": false,
+  "cumulative_cap_usd": 25,
+  "actual_prior_usd": 4.64,
+  "available_credit_usd": 25.36,
+  "billing_status": "owner dashboard rounded total after v02418 smoke; displayed increase .31, not itemized invoice",
+  "cpu_rehearsal": {
+    "steps": 2,
+    "pretrained_weights": false,
+    "gpu": false,
+    "vllm_adapter_tested": false
+  },
+  "remaining_reservations_usd": 20.18175,
+  "maximum_actual_to_fit_usd": 4.818249999999999,
+  "projected_cumulative_including_remaining_usd": 24.82175,
+  "remaining_unreserved_usd": 0.17825
+}

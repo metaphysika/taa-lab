@@ -7049,3 +7049,120 @@ Add a separately approved CPU-only Modal stage on the exact pinned stack, tokeni
 New v02418 namespaces and independent CPU/smoke/pair/virtue local/remote once keys. Window CPU/smoke/pair October 18 22:00 UTC to October 24 22:00 UTC; virtue through November 7 22:00 UTC with cumulative all-month spend preserved. Old ledgers/evidence are untouched. Same spawn/fsynced app+call IDs/SUBMITTED/caffeinate route, private-adapter retention/deletion and stop rules. No new Modal action, image build, tokenizer/weights download, GPU use or spending during preparation. See docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02418.md; publish both checks and stop for review, next possible approval CPU-only.
 
 Offline v02418 validation: 619 tests discovered, PASS with 17 SDK-only skips in 798.461 seconds. All 11 focused tests passed separately under Modal 1.6.2 in 0.420 seconds, including all four stage serializers, CPU report immutability, no-CPU-proof/no-GPU-spawn and 6,000-example fake-tokenizer pipeline. Scripted scenarios and CLI help passed. Real tokenizer CPU stage is not executed; no Modal calls, image build, weights/GPU/training or new spending. Both exact-commit GitHub checks are confirmed after publication.
+
+
+## 2026-10-18 — v02417 smoke raw evidence intake (record only)
+
+Received and preserved all four owner uploads: seven-file unmodified smoke ZIP,
+full Modal app log, local attempt and submission receipts. Saved byte-identical
+originals and all seven extracted files with SHA-256 index in
+`studies/formation-study-d-gemma-software-attempt-v02417/received-evidence-001/`.
+The previous owner-report-only note and its integrity index remain unchanged;
+raw evidence is now supplied as this additive intake.
+
+Receipts match commit 94ac5092fcb0e64fa718c8f0fb319380229eb4ae, app
+ap-h2Mg3Vt3JDpSyEU8X0bO1e and call fc-01M58FMB8442NP02DZ1AX0PEVA.
+Returned STOP_FOR_REVIEW at 23.996503034 s, no_restart true. Root child
+ValueError in dataset(): `assistant-only prefix mask/1024 context failed; no
+truncation`, wrapped by RuntimeError training subprocess failed. Dataset
+preparation precedes weight loading and training in the committed source:
+zero training steps and zero transfer episodes; incomplete engineering smoke
+(software defect), not scientific null or gate failure. Allocated GPU worker
+sampled peak 784,596,992 bytes. Reservation $1.969556 is retained, not charged
+as actual usage; returned invoice fields null. Owner's rounded dashboard totals
+remain $4.31 used/$25.69 left, displayed increment $0.01, not itemized billing.
+
+Owner reports one submission, no rerun, Stages 2/3 not started. No live Modal
+query, fix, launch, model download, training, spending or ledger mutation for
+this recording task. Separate diagnosis and any future execution await review.
+
+
+## 2026-10-18 — v02418 GPU smoke evidence intake (record only)
+
+Preserved the unmodified 16-file ZIP and both local receipts, with byte-identical
+extraction and SHA-256 index in
+`studies/formation-study-d-gemma-software-attempt-v02418/received-evidence-001/`.
+Owner reports the app log was empty (0 bytes) and could not be uploaded; no app
+log fabricated. Separate returned training-process.log is preserved.
+
+Commit a63ebb191c00a9db4119c87d5386db350bb6bb58; submitted app
+ap-LCNwU55kRyQBOlCCXVgXer / call fc-01M58M1Z90A22KVZ2XJ10SBSPA.
+Receipts match. STOP_FOR_REVIEW after 441.370564091 s (7.36 min), no_restart
+true. Saved child traceback: TypeError `Object of type set is not JSON
+serializable` writing training-load.json, wrapped as RuntimeError training
+subprocess failed. Source order places this after weight loading but before
+LoRA creation/training: zero training steps and transfer episodes. Incomplete
+engineering smoke due to software serialization failure, not a scientific null
+or gate failure. Sampled device-wide peak GPU memory 62,706,745,344 bytes.
+
+Included CPU PASS receipt/evidence verified: all five evidence hashes and the
+smoke-bound receipt hash match; all 3 x 2,000 GPU-built dataset summaries match.
+Pre-smoke billing attestation is $4.33 used/$25.67 left, including CPU/build;
+post-smoke total/actual charge is not supplied. Reservation $1.969556 is not
+actual spend; invoice fields null. No ledger reset or refund inferred.
+
+Owner reports submitted once, no rerun, pair/virtue not started. Recording only:
+no fix preparation, source change, live Modal query, launch, model download,
+training, ledger mutation or spending. Await Claude's diagnosis and owner review.
+
+
+## 2026-10-18 — v02419 strict JSON and actual CPU training rehearsal (offline review)
+
+Owner diagnoses v02418 STOP_FOR_REVIEW as pre-training software failure: weights
+downloaded about 6.6 min/832 groups loaded; missing/mismatched and non-text key
+checks passed, then writing set-valued Transformers5.10.4 loading_info failed.
+Returned evidence preserved in formation-study-d-gemma-software-attempt-v02418;
+441.370564091 s, zero training/transfer. Prior data CPU PASS and 6,000-example
+GPU rebuild agree. Original FAIL/admission and every prior run remain unchanged.
+
+New v02419 explicitly normalizes loading-info sets and uses strict deterministic
+JSON for set/frozenset/tuple containers, refusing unknown types/nonfinite floats
+and non-string dict keys. No str fallback. New separately approved CPU stage
+reruns all data examples and then uses the actual shared training_process on a
+tiny local random Gemma4Conditional checkpoint: full real vocabulary/IDs, two
+text layers, hidden32/intermediate64, four heads/two KV heads/head8, 1024 context,
+no multimodal towers. CPUfloat32 diagnostic is disclosed; scientific bf16 GPU
+settings unchanged. Real from_pretrained/output_loading_info, key checks, loss
+mask validation, exact seven LoRA targets in every layer, trainable count,
+Trainer/Accelerate two optimizer steps, callbacks, checkpoint save/hash and
+adapter tensor reload verification must PASS. No pretrained weights/GPU or
+model generation. Pin versions unchanged. Hash-bound receipt and durable closure
+required before GPU reservation/spawn. vLLM trained-adapter load remains untested
+until GPU smoke; CPU success cannot establish full-model GPU memory/runtime.
+
+New CPU reserve0.228528, smoke1.969556, pair11.989111, virtue5.994556: total
+remaining20.181750. Cap unchanged25, so actual must be<=4.818250. Receipts attest
+4.33used/25.67left BEFOREsmoke; current total requested, unverified. Failed
+worker441.37s at historical3.104208/hour suggests0.3806worker cost, not invoice;
+illustrative4.7106actual leaves only0.1077 after remaining reservations. Another
+similar GPU failure plus a needed retry would exceed25 for virtue. No retry
+allowance, cap raise, case/dose/repeat reduction, refunds or monthly reset.
+
+Fresh v02419 resource/once namespace. CPU/smoke/pair window October19 00UTC to
+October25 00UTC; virtue throughNovember8 00UTC. CPU data rerun rather than
+relabel old proof. Same acknowledgedspawn/SUBMITTED/caffeinate Mac flow, private
+retention on review stop and study-end deletion including tiny CPU artifacts.
+No new execution approved. Offline regressions/SDK serialization, full free
+suite and scripted scenarios only; no Modal launch, image build, model download,
+GPU/training execution or spending in preparation. See new v02419 process doc.
+
+
+### Owner billing reconciliation received — v02418 smoke
+
+Owner confirms $4.64 used/$25.36 credit left, after pre-smoke $4.33/$25.67:
+displayed increment $0.31, rounded dashboard values, not an itemized invoice.
+This supersedes the pending-cost statement above; raw report invoice fields
+remain null. v02419 floor now $4.64. Remaining reservations $20.181750 give
+projected cumulative $24.821750, only $0.178250 headroom. Another $0.31 failure
+plus a required replacement smoke would give $25.131750 and block virtue unless
+owner separately raises the cap. Cap remains $25; no reset/refund or cuts.
+
+
+Offline v02419 validation: 629 unit tests PASS, 21 SDK-only skips, 766.879 s.
+Separate Modal1.6.2/Python3.12 focused regression and real SDK serialization:
+10 tests PASS in0.225s, no backend/hydration. Scripted scenarios, CLIhelp,
+all local/remote bindings, eleven unchanged scientific assets and prior intake
+hashes PASS. Raw evidence whitespace is preserved deliberately. The actual
+pinned CPU rehearsal is NOT executed, nor any Modal image build, weights
+download, GPU or training. Validation receipt saved; publish exact-commit BOTH
+GitHub checks then stop for owner review, next possible approval CPU stage only.
