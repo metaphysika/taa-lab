@@ -1,6 +1,7 @@
-# TAA Lab (v0.24.16 tokenizer/CPU-gate review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.17 Gemma staged review; frozen Study C v0.23.9)
 
-Gemma v02415 loaded and passed KV admission but stopped before model generation because BatchEncoding was mistaken for token IDs. [Attempt record](studies/formation-study-d-gemma-software-attempt-v02415/ATTEMPT.md). The [v02416 review](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02416.md) extracts checked flat input_ids for guards/logging/requests/projections and requires a separately receipted CPU-only tokenizer/scripted pipeline PASS before any GPU submission. Native empty-thought-channel default is disclosed; all frozen science and engine settings remain. [Two-stage Mac commands](studies/formation-study-d-gemma-base-v02416/MAC_COMMANDS.md). No launch, tokenizer download or training is approved.
+Gemma v02416 completed all 34 base episodes with the original format gate **FAIL (32/34 first replies parsed)**. The [returned-evidence audit](studies/formation-study-d-gemma-base-audit-v02416/BASE_GATE_AUDIT.md) preserves every file and the separate owner-approved post-results admission exception. The [v02417 staged proposal](docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02417.md) prepares an excluded smoke test, parallel contrary/neutral arms, then virtue, each requiring separate review and approval. [Mac commands](studies/formation-study-d-gemma-stages-v02417/MAC_COMMANDS.md). No launch, image build, model download, GPU use or training is approved by this revision.
+
 
 Study D: the owner accepted both affordable-base format failures and the fallback findings. No training was run.
 The [v02413 Gemma specification](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02413.md) and its commands are archival after the engine-load attempt; do not relaunch them. The v02414/v02415 code and attempts are archival; v02416 retains the same frozen 34 model episodes and thresholds.
