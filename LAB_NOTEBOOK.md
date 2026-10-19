@@ -7356,3 +7356,68 @@ source and 17 asset bindings unchanged. No Modal stage/GPU/pretrained model
 weights download or scientific execution. Private weights/ZIPs/full tokenizer
 excluded from Git; received evidence bytes and trailing whitespace preserved.
 Validation receipt saved separately; GitHub publication/check confirmation follows.
+
+
+## 2026-10-19 America/Chicago — owner approves v02421 speed smoke ONCE
+
+Owner approves ONLY the v02421 engineering speed smoke at exact commit
+3d7082a37ac40f38c260452b4b01e8306fe15a78, once, through the established Mac
+launch route. Pair and virtue remain blocked pending review of measured
+projections. Both published checks passed: Harness39190875388 and
+FormationPython3.9 39190875480; actual CPU rehearsal/merge job117863166102 PASS.
+Approval recorded additively outside the frozen reviewed code. No code change,
+new commit, Modal contact or launch performed while recording this approval.
+Latest dashboard5.41 used/24.59 left must be refreshed at launch. Reservation
+2.452889, cumulative cap30 unchanged. Never reset/delete attempt markers,
+ledgers or prior evidence; ambiguous submission or existing marker stops review.
+Wait for acknowledged SUBMITTED line before closing laptop.
+
+
+## 2026-10-19 America/Chicago — v02421 speed smoke FAIL / STOP_FOR_REVIEW
+
+Recorded one owner launch at 6:16 AM CDT, stopped 6:26 AM CDT; commit
+3d7082a37ac40f38c260452b4b01e8306fe15a78, app ap-sM28o960wczCljEZdMdxaT,
+call fc-01M59Y2BG46A1T7BE0Z6AH1RYS. Training COMPLETE: 8 steps, 64 examples,
+10,438 tokens / 47.8194 s; 410 LoRA modules, excluded from science. Live engine
+warmup failed before benchmarking: RuntimeError, missing nvcc and nonexistent
+/usr/local/cuda (FlashInfer JIT sampling compile), as preserved in native logs.
+No benchmark winner/serving throughput, no merge phase, no projections and no
+scientific acquisition/transfer. STOP_FOR_REVIEW/no_restart true; once approval
+consumed. Preserve private adapters under review-stop policy; no remote check or
+deletion performed here. Submission5.41used/24.59left, cap30, reserve2.452889;
+actual post-attempt spend unverified. No ledger reset/refund inferred.
+Preserved ZIP56 files, app log and both receipts unchanged. CRC and39 carried
+CPU hash references PASS; all36 carried CPU files byte-identical. Private ZIP,
+weights/full tokenizer ignored by Git. See
+studies/formation-study-d-gemma-speed-result-v02421/received-evidence-001/RECORD.md.
+Owner requests recording only pending Claude instructions and owner review.
+No code change, fix preparation, launch or remote action. Pair/virtue blocked.
+
+
+### 2026-10-19 — v02422 offline sampler revision (not launch approval)
+
+Owner supplied Claude's diagnosis: v02421's unseeded dummy warmup selected
+FlashInfer JIT sampling and required unavailable nvcc; explicitly seeded science
+and benchmark requests already use the pinned vLLM native sampler. Recorded the
+attempt as an excluded engineering failure: eight diagnostic training steps
+completed, zero benchmark/scientific requests, no merge or projections. Original
+evidence, reservations and once-only ledgers preserved. Dashboard now $5.89 used /
+$24.11 left, displayed interval delta $0.48; no separately itemized invoice.
+
+v02422 sets VLLM_USE_FLASHINFER_SAMPLER=0 before vLLM import in every speed child
+and prospective science serving path, requires the native disabled-sampler line
+and rejects enabled or missing attestation before generation. No nvcc install,
+no graph/compilation/warmup suppression. Free CI verifies child envs, explicit
+science/benchmark seeds and positive/actual-failed log fixtures. Everything else
+remains v02421: benchmark bytes, merge tolerances, speed-only selection, KV guard,
+$2.452888889 reservation, timeouts, $30 cap. Fresh v02422-speed namespace, separate
+new exact-commit approval required. No scientific arms executable in this revision.
+
+Prior native post-capture KV 14.26 GiB; graph 0.09 GiB. Existing conservative
+rounding/extra reserve leaves 13.910 GiB, margin 0.145 GiB above 13.765. Native
+available-minus-requirement alone is 0.495 GiB. v02422 will record both from its
+own log; no new measurement claimed. Actual+reservation $8.342888889 leaves
+$21.657111111 unreserved under $30 and current credit. No launch, weight download
+or spending during preparation; pair and virtue remain blocked pending review.
+
+Offline validation: full unit suite PASS (670 tests, 29 skips, 898.071 s); scripted all-scenario run PASS. Focused14-test checks PASS on Python3.11 and offline Modal1.6.2/Python3.12; real tiny random CPU PEFT merge/save/reload PASS. Native GPU initialization remains untested in v02422. No execution approval implied.

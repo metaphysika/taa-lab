@@ -445,3 +445,8 @@ The report counts:
 The shared encoded core, charter review, delegation between agents, shared budgets, witness
 indicators and the purpose steward, emergency envelopes, and real human judgment. Referrals
 to a human count as "not approved" here. Each of these can be added as its own scenario.
+
+Study D v02422 is an offline sampler correction for the engineering speed smoke:
+explicit native-PyTorch sampler environment and native-log guard, with free CI
+checks. See [the review plan](docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02422.md).
+No launch approval; pair and virtue remain blocked.
