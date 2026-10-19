@@ -19,4 +19,37 @@ jobs:
       - name: Offline Modal serialization regression (no credentials or backend)
         run: |
           python -m pip install 'modal==1.6.2'
-          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 -v
+          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 -v
+  gemma-cpu-rehearsal:
+    name: Gemma actual CPU training rehearsal (no GPU or secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      OMP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact training releases, CPU-only torch build
+        run: |
+          python -m pip install --no-cache-dir 'torch==2.13.0' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --no-cache-dir 'transformers==5.10.4' 'peft==0.21.2' 'accelerate==1.15.0' 'huggingface-hub==1.31.0'
+      - name: Actual tiny-model training, checkpoints and adapter reload
+        run: python scripts/study_d_gemma_ci_rehearsal_v02420.py --output "$RUNNER_TEMP/study-d-ci-v02420"
+      - name: Preserve diagnostic reports only (never model weights)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemma-cpu-rehearsal-v02420
+          path: |
+            ${{ runner.temp }}/study-d-ci-v02420/report.json
+            ${{ runner.temp }}/study-d-ci-v02420/deletion.json
+            ${{ runner.temp }}/study-d-ci-v02420/evidence/*.json
+            ${{ runner.temp }}/study-d-ci-v02420/evidence/process.log
+          if-no-files-found: warn

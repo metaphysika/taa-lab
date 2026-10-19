@@ -1339,3 +1339,108 @@ hashes PASS. Raw evidence whitespace is preserved deliberately. The actual
 pinned CPU rehearsal is NOT executed, nor any Modal image build, weights
 download, GPU or training. Validation receipt saved; publish exact-commit BOTH
 GitHub checks then stop for owner review, next possible approval CPU stage only.
+
+
+## 2026-10-18 America/Chicago — v02419 CPU rehearsal returned evidence (record only)
+
+Received the unmodified 20-file ZIP, app log and both local receipts; preserved
+all four uploads and all 20 extracted files with SHA-256 index under
+`studies/formation-study-d-gemma-software-attempt-v02419/received-evidence-001/`.
+Includes the local random tiny checkpoint; no tensors loaded or executed in
+this intake. Receipt commit 59082c45e365aeb056e67496e4e0c6c565786933, app
+ap-6Q32CjQGQ1jQfvgCDShxwr, call fc-01M58QPB9CM78JZ4TD78GK16N9. Submission
+acknowledged 2026-10-19 00:06:29 UTC (October 18 local). Source/asset hashes match.
+
+STOP_FOR_REVIEW, no_restart true. Root RuntimeError: `each of seven LoRA
+targets must match every text layer` in lora_coverage(), before LoRA creation
+and optimizer training. Owner reports attention_k_eq_v true/no v_proj in some
+layers; saved tiny config confirms attention_k_eq_v true. No further diagnosis
+or fix prepared. Strict JSON write succeeded: training-load.json saved empty
+loading-info lists, tiny local load-path seconds 5.113761785999998. All three
+2,000-example rebuild summaries/digests match prior v02418 CPU data proof; nine
+decoded examples preserved. Data proof succeeded; overall rehearsal did NOT
+PASS. No CPU PASS receipt returned, no optimizer steps or completed adapter
+save/reload; vLLM handoff untested. Incomplete CPU engineering rehearsal due
+to coverage stop, not scientific null, acquisition failure or format result.
+
+Reports confirm no GPU, pretrained-weight download or model generation. Tiny
+random weights were constructed/saved/loaded in the CPU attempt only. Local
+billing attestation is $4.72 used/$25.28 left BEFORE CPU, not a post-CPU total;
+$0.08 above the previous boundary is prior-charge reconciliation, not an assigned
+CPU cost. Reservation $0.228528 retained; actual invoice fields null. No cost
+invented, live ledger query, reset, deletion, refund or reservation release.
+
+Owner reports one submission; no rerun. No new code, fix preparation, Modal
+launch, model download or training during this record update. Await Claude's
+diagnosis and owner review. GPU smoke and pair/virtue remain blocked.
+
+
+## 2026-10-18 America/Chicago — v02420 conditioned LoRA check and $30 cap (review)
+
+Owner classifies v02419 CPU app ap-6Q32CjQGQ1jQfvgCDShxwr / call
+fc-01M58QPB9CM78JZ4TD78GK16N9 as a pre-training DESIGN STOP: the full-attention
+layer shares K output as V (attention_k_eq_v true), so v_proj is absent; sliding
+layer has all seven. JSON write and all 6,000-example data digests passed; zero
+optimizer steps/GPU. Raw evidence and old once ledger remain immutable.
+Owner post-attempt dashboard $4.72 used/$25.28 left, unchanged from pre-attempt
+receipt at displayed precision. Displayed delta0.00 is not proof of zero cost;
+invoice fields null. Preserve old reservation0.228528, no inferred release.
+
+Owner approves a design correction applied identically to every arm: retain
+seven target names; exactly q/k/o/gate/up/down per text layer, v_proj present
+only in sliding_attention and absent in full_attention, k_eq_v required. Any
+other presence/type/shape pattern fails. k_proj LoRA adapts BOTH K and V in
+full attention; no attention pathway unadapted. No scientific change, dose,
+case, scoring or serving change. Report per-layer presence/dimensions, predicted
+and actual trainable parameters; actual counts must agree. Pinned real60 layers
+=50sliding+10full,410 modules,61,214,720 rank8 trainable parameters; tiny2 layers
+=13 modules,7,808 parameters. These are expected shape calculations; actual
+rehearsal/GPU results not claimed. CPU expected-real architecture report is
+hash-bound into PASS proof before GPU reservation/spawn.
+
+Owner explicitly raises cumulative Study D cap25 to30, per-stage targets and
+reservations unchanged: CPU0.228528/smoke1.969556/pair11.989111/virtue5.994556;
+remaining20.181750 + actual4.72 =24.901750, margin5.098250. Code requires ALL
+remaining reserves within30 cumulative and available free credit; no card.
+No monthly reset, refunds, budget reallocation or extra launch approval inferred.
+
+New v02420 namespaces and once keys. CPU data/rehearsal re-run prepared, not
+executed: same pinned stack, tiny CPUfloat32 actual-training path two steps,
+masking/callback/save/reload/integrity. New window October19 01UTC toOctober26
+01UTC for CPU/smoke/pair; virtue throughNovember9 01UTC. Same Mac caffeinate,
+spawn/SUBMITTED, review-stop private retention and study-end deletion. vLLM
+trained-adapter load remains untested until separately approved GPU smoke.
+Publish new revision/BOTH CI then STOP FOR REVIEW; no new Modal action, image
+build, model download, GPU or training during preparation.
+
+
+### Owner process improvement — automatic free CPU training rehearsal
+
+Added a parallel standard GitHub CPU job on every push/PR, no secrets, Modal,
+GPU, pretrained weights or spending. Exact pinned training releases; Torch
+CPUbuild2.13.0+cpu is disclosed, vLLM/NVML not used here. A frozen nine-example
+fixture from actual v02419 tokenizer outputs exercises real Transformers
+BatchEncoding plus actual prompt_ids/training_example; no invented IDs, no
+claim of retokenizing. Actual shared training_process runs two optimizer steps
+on a tiny random model, conditioned coverage, masks/callback/checkpoint/hash
+and exact adapter reload. CI reports cannot satisfy Modal CPU gates.
+
+Initial local CI-harness attempt failed on the frozen-ID lookup's missing
+return_dict keyword; corrected that test adapter. Subsequent real pinned CPU
+run PASS in15.347822557s, two optimizer steps,13 modules/7,808 parameters,
+checkpoint/hash/reload PASS. Ephemeral tiny weights deleted with receipts,
+never uploaded/deployed. JSON/log evidence preserved for both local diagnostics.
+No Modal/scientific training stage executed; the free diagnostic CPU training
+is authorized by the owner's added CI request. New Modal CPU and later stages
+still need review/approval and their own proof.
+
+
+Offline v02420 final validation: full646 tests PASS with25 SDK-only skips in
+789.728s; separate Modal1.6.2/Python3.12 focused/serialization17 tests PASS in
+0.191s, no hydration/backend. Scripted scenarios, source/asset bindings and
+eleven byte-identical scientific assets PASS. Real pinned CPU CI diagnostic
+PASS (two optimizer steps,13 modules,7,808 parameters, checkpoint/reload verified)
+in15.347822557s, with transient weights deleted and JSON/log receipts retained.
+No Modal stage, GPU, pretrained weights or scientific training executed.
+Validation receipt saved; publish and confirm both GitHub workflows INCLUDING
+the new actual CPU job, then stop for owner review.

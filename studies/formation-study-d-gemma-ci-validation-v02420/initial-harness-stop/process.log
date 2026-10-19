@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/tmp/v02420-actual-cpu-ci-001/runtime/runtime.py", line 686, in <module>
+    if __name__=='__main__' and len(sys.argv)==3 and sys.argv[1]=='train':training_process(sys.argv[2])
+                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/v02420-actual-cpu-ci-001/runtime/runtime.py", line 397, in training_process
+    data=data_provider('contrary' if p['arm']=='smoke' else p['arm'])
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/v02420-actual-cpu-ci-001/runtime/runtime.py", line 393, in <lambda>
+    data_provider=lambda arm:ci_formatted_data(arm,p['ci_fixture'],base)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/v02420-actual-cpu-ci-001/runtime/runtime.py", line 359, in ci_formatted_data
+    result=training_example(FrozenIDLookup(),row['messages'],base,106)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/v02420-actual-cpu-ci-001/runtime/runtime.py", line 150, in training_example
+    prefix=base.prompt_ids(tokenizer,messages[:-1],True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/v02420-actual-cpu-ci-001/runtime/base_runtime.py", line 101, in prompt_ids
+    encoded=tokenizer.apply_chat_template(messages,tokenize=True,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: ci_formatted_data.<locals>.FrozenIDLookup.apply_chat_template() got an unexpected keyword argument 'return_dict'
