@@ -1,6 +1,8 @@
-# TAA Lab (v0.24.21 Gemma serving-speed review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.24 Gemma budget/guard review; frozen Study C v0.23.9)
 
-The v02420 engineering smoke completed, but full-arm runtime/cost projections failed. The [v02421 speed review](docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02421.md) prepares a separate ≤$2.50 smoke comparing CUDA-graph live LoRA versus verified merged bf16 serving and prefix retention on fixed timing prompts. Current owner dashboard: $5.41 used/$24.59 left; cumulative cap stays $30. [Mac review commands](studies/formation-study-d-gemma-speed-v02421/MAC_COMMANDS.md). Pair and virtue remain blocked; no launch is approved. Automatic free CPU CI includes real tiny-model training and PEFT merge/save/reload.
+Study D **v02424** is prepared for review: longer arm guards, stage-only credit admission, and owner-approved cumulative $36 cap. [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_SCIENCE_v02424.md). v02423 is superseded and not launched. No v02424 launch is approved.
+
+Historical v02421 speed review: the v02420 engineering smoke completed, but full-arm runtime/cost projections failed. The [v02421 plan](docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02421.md) prepared a separate ≤$2.50 smoke comparing CUDA-graph live LoRA versus verified merged bf16 serving and prefix retention. Its dashboard/cap figures were $5.41 used/$24.59 left and $30. That engineering path is superseded by the current v02424 review above. Automatic free CPU CI includes real tiny-model training and PEFT merge/save/reload.
 
 Study D: the owner accepted both affordable-base format failures and the fallback findings. No full scientific training arm has run; excluded diagnostic CPU/GPU training is recorded separately.
 The [v02413 Gemma specification](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02413.md) and its commands are archival after the engine-load attempt; do not relaunch them. The v02414/v02415 code and attempts are archival; v02416 retains the same frozen 34 model episodes and thresholds.

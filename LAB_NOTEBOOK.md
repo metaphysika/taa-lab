@@ -7486,3 +7486,80 @@ BLOCKED pending exact-commit owner approval and the proposed budget.
 Billing guard clarification: previous-stage anti-omission floor uses documented A10080 GPU-only $2.4984/hour; estimated whole-worker $3.104208 is not an invoice minimum. Reservation ceiling remains $3.20/hour and cap $30. Superseded local full test run interrupted before final-source full rerun; no Modal process was signaled.
 
 Final offline validation PASS: 679 unit tests / 30 skips / 932.589 s; scripted all-scenario run PASS; nine focused pinned-Modal tests PASS without backend; actual integrated CPU training/reload PASS (2 steps, 13 modules, 7,808 parameters). All 70 v02422 evidence hashes remain unchanged. No GPU/Modal launch or pretrained weights download.
+
+
+### 2026-10-19 — Owner approves v02423 pair once, conditional on BOTH CI
+
+Owner reports Claude reviewed c848d751c4d7de0ef289ead194e01fb7218325b7 and
+recommends approval. Owner approves the contrary + neutral pair stage ONCE at
+that exact commit. Pair 7,600 s/arm and virtue 8,000 s guards and proposed
+reservations $14.833556/$7.772333 are approved under unchanged cumulative $30
+cap. This approves the virtue reservation/guard, NOT virtue execution. Virtue
+remains blocked until pair COMPLETE, audited and separately owner approved.
+
+Both exact-commit GitHub checks still IN PROGRESS when approval was recorded:
+Harness 39278941109 and Formation Python 3.9 39278941167. Therefore the launch
+condition has NOT yet been satisfied. Approval receipt saved additively outside
+the frozen reviewed source in runtime study-d-v02423-pair-owner-approval-001.json.
+No launch, Modal contact, weights download, reservation or ledger change by this
+chat. Authenticated Mac route only; wait for BOTH success and fresh billing,
+then offline preflight and the one acknowledged spawn submission. No restart
+after ambiguous submission. This notebook addition is uncommitted so the
+approved source commit remains unchanged; preserve at the next evidence boundary.
+
+
+### 2026-10-19 — v02423 superseded before launch; v02424 FOR REVIEW
+
+Owner requests no v02423 launch. Its exact-commit pair approval was conditional
+on both CI; source c848d751c4d7de0ef289ead194e01fb7218325b7 is preserved as
+reviewed, superseded and NOT LAUNCHED. The CI notification watch is disabled
+because that revision is superseded. Prior approval/receipt remains historical,
+not transferred to v02424. No old remote resources were inspected or changed.
+
+Latest owner dashboard6.85used/23.15left; PRIOR6.85. Displayed0.05 delta from
+6.80 is interval accounting, not an itemized invoice. Owner raises cumulative
+Study D cap30->36, independent of monthly credit and without a card.
+v02424 pair guard8400/timeout8600, virtue8800/9000. Unchanged formula yields
+reserves16.255778 +8.483444=24.739222; cumulative31.589222/headroom4.410778.
+Stage target ceilings rounded UP to cents16.26/8.49. Pair checks only its
+current-stage reserve against current credit, but BOTH remaining reserves
+against cumulativecap36. Virtue checks its own reserve with refreshed billing
+and current credit (possibly November), never resetting cumulative spend.
+
+Complete runtime/science/selection bytes and all non-budget policy functions
+remain identical to v02423. Only guards/derived timeouts/reserves, billing/cap,
+credit admission and versioned administrative bindings change. Same cases,
+repeats, seeds, gates, serving, sampler guard and KV check. Projections retain
+both measured training rates/generation/startup/stress and add each arm's spare
+time. Pair window Oct26 01:00UTC; virtue Nov9 01:00UTC unchanged. New v02424
+namespace/local once markers do not reset/delete prior ledgers or evidence.
+No launch, Modal contact, GPU, weights download or scientific execution.
+Both stages require new exact-v02424-commit owner approval; virtue stays
+separate after pair audit/review. See PAPER3_STUDY_D_GEMMA_SCIENCE_v02424.md.
+
+
+Offline v02424 verification: nine focused tests pass with Python 3.12 / Modal
+1.6.2, including controller/worker serialization without hydration or backend
+access. The integrated pinned CPU rehearsal passes two optimizer steps,
+13 adapted modules / 7,808 parameters, checkpoint hashes and adapter reload
+in 22.453 s. It uses random tiny weights and frozen token fixtures; no GPU,
+pretrained weights, secret or Modal access. Ephemeral diagnostic weights were
+deleted with a receipt. Python 3.11 scripted scenarios and static science /
+selection invariants pass. The complete 31-file tracked v02423 set is unchanged
+from its reviewed commit. All 15 science / selection assets match v02423.
+
+Development diagnostic: the initial broad run used the shell-default Python
+3.12 and hit historical exact-float ledger fixture errors. The same fixture
+passes on required project Python 3.11. The initial run was stopped after
+verifying its exact unit-test process; no provider process was signaled. Logs
+are preserved, and the full suite was restarted on Python 3.11. No historical
+code, ledger or evidence was changed to accommodate the diagnostic.
+
+
+Final v02424 offline validation: 688 tests PASS (31 skips), Python 3.11.17,
+896.426 s; all scripted scenarios PASS. Pinned Python 3.12 / Modal 1.6.2
+focused tests: 9 PASS, including unhydrated serialization; integrated actual
+CPU rehearsal PASS as recorded above. Validation receipt saved separately.
+Unchanged source/science/selection bindings, source whitespace and staged
+credential/private-weight exclusions PASS. Publish new review commit and
+confirm both GitHub workflows. No launch approved; no remote ledger change.

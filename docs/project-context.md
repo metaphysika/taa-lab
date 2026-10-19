@@ -1655,3 +1655,33 @@ Mac spawn/SUBMITTED/caffeinate route unchanged. No launch. Pair and virtue remai
 BLOCKED pending exact-commit owner approval and the proposed budget.
 
 Billing guard clarification: previous-stage anti-omission floor uses documented A10080 GPU-only $2.4984/hour; estimated whole-worker $3.104208 is not an invoice minimum. Reservation ceiling remains $3.20/hour and cap $30. Superseded local full test run interrupted before final-source full rerun; no Modal process was signaled.
+
+
+### 2026-10-19 — v02423 superseded before launch; v02424 FOR REVIEW
+
+Owner requests no v02423 launch. Its exact-commit pair approval was conditional
+on both CI; source c848d751c4d7de0ef289ead194e01fb7218325b7 is preserved as
+reviewed, superseded and NOT LAUNCHED. The CI notification watch is disabled
+because that revision is superseded. Prior approval/receipt remains historical,
+not transferred to v02424. No old remote resources were inspected or changed.
+
+Latest owner dashboard6.85used/23.15left; PRIOR6.85. Displayed0.05 delta from
+6.80 is interval accounting, not an itemized invoice. Owner raises cumulative
+Study D cap30->36, independent of monthly credit and without a card.
+v02424 pair guard8400/timeout8600, virtue8800/9000. Unchanged formula yields
+reserves16.255778 +8.483444=24.739222; cumulative31.589222/headroom4.410778.
+Stage target ceilings rounded UP to cents16.26/8.49. Pair checks only its
+current-stage reserve against current credit, but BOTH remaining reserves
+against cumulativecap36. Virtue checks its own reserve with refreshed billing
+and current credit (possibly November), never resetting cumulative spend.
+
+Complete runtime/science/selection bytes and all non-budget policy functions
+remain identical to v02423. Only guards/derived timeouts/reserves, billing/cap,
+credit admission and versioned administrative bindings change. Same cases,
+repeats, seeds, gates, serving, sampler guard and KV check. Projections retain
+both measured training rates/generation/startup/stress and add each arm's spare
+time. Pair window Oct26 01:00UTC; virtue Nov9 01:00UTC unchanged. New v02424
+namespace/local once markers do not reset/delete prior ledgers or evidence.
+No launch, Modal contact, GPU, weights download or scientific execution.
+Both stages require new exact-v02424-commit owner approval; virtue stays
+separate after pair audit/review. See PAPER3_STUDY_D_GEMMA_SCIENCE_v02424.md.
