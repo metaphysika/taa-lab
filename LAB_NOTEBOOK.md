@@ -7563,3 +7563,127 @@ CPU rehearsal PASS as recorded above. Validation receipt saved separately.
 Unchanged source/science/selection bindings, source whitespace and staged
 credential/private-weight exclusions PASS. Publish new review commit and
 confirm both GitHub workflows. No launch approved; no remote ledger change.
+
+
+### 2026-10-19 — Owner approves v02424 pair ONCE; BOTH CI passed
+
+Owner reports Claude reviewed and recommends approval of exact commit
+87acef174a03efb266fd57c12e0add13c9426ec8. Owner approves ONLY the contrary +
+neutral pair stage once, under cumulative Study D cap $36. Pair guard 8,400 s,
+Modal timeout 8,600 s, reservation $16.255778. Runtime and science remain
+unchanged from reviewed v02423. That earlier revision is superseded and NOT
+LAUNCHED; its approval must not be reused.
+
+Fresh read-only GitHub verification confirms BOTH exact-head checks completed
+successfully: Harness 39285002048 and Formation Python 3.9 39285002139.
+CI condition is satisfied. Approval and CI confirmation saved additively in
+runtime study-d-v02424-pair-owner-approval-001.json and
+study-d-v02424-publication-ci-confirmation-001.json, outside the frozen source.
+This notebook addition stays uncommitted so the reviewed HEAD remains exact;
+preserve it at the next evidence boundary. Approval is NOT a submission.
+
+Authenticated Mac route only. Refresh dashboard values before submission
+(last confirmed $6.85 used / $23.15 left), run offline preflight, then one
+submission with caffeinate and acknowledged SUBMITTED app/call IDs. Existing
+markers, ambiguous acknowledgement, guard or interruption require review,
+never restart/reset/delete. No Modal contact, launch or remote ledger change
+by this chat. Virtue stays BLOCKED until pair COMPLETE, audited and separately
+approved by the owner. Passing CI does not authorize virtue.
+
+
+### 2026-10-19 America/Chicago — v02424 pair STOP_FOR_REVIEW; record only
+
+Recorded owner return for commit 87acef174a03efb266fd57c12e0add13c9426ec8:
+app ap-KAVCSaqESVAEvxyYV55QNG / call fc-01M5AKR53RPMGW10H77Q201AR8.
+Owner reports one pair launch 12:35 pm CDT, stopped 1:28 pm CDT; local attempt
+17:35:08 UTC, acknowledgement 17:36:03 UTC. Earlier preflight never spawned
+and retry was owner approved, per owner report; no separate first-preflight
+evidence supplied here. Do not infer another training submission.
+
+Both full arms trained completely, 250 steps / 2,000 examples each: contrary
+326,496 tokens / loss 0.01723, neutral 298,272 / loss 0.02243. Coverage PASS
+(410 modules / 61,214,720 parameters), sampler and KV PASS (0.100 GiB margin),
+adapter handoff verified in both arms. Both then stop on KeyError:
+'bundle_sha256' in install_frozen_bundle(), before acquisition. Controller
+reports acquisition interrupted or deadline; no transfer. No acquisition,
+transfer or scoring ran; no scientific outcome results, not a scientific null
+or format verdict. Retain completed training despite inherited failure-record
+training_authorized=false; this was authorized full-arm training, not a smoke.
+
+Preserved all four uploads, all 104 extracted files, ZIP CRC PASS and SHA-256
+inventory of all 108 original/extracted files. Carried 36 CPU / 26 prior-speed
+files match earlier returns byte-for-byte; submitted asset hash matches reviewed
+v02424. See studies/formation-study-d-gemma-pair-result-v02424/received-evidence-001/RECORD.md
+and record-v02424.json. ZIP, tiny weights and full tokenizer are private/ignored
+by Git. Scientific adapters remain subject to review-stop retention; no remote
+check, modification or deletion performed. Old evidence and once ledgers unchanged.
+
+Submission $6.85 used / $23.15 left, $36 cap, reservation $16.255778. Updated
+actual cost remains unverified; reservation/wall time are not invoice charges
+or a refund. No code changes, fix preparation, Modal contact, relaunch or ledger
+change. Virtue and any pair rerun remain unapproved. Await Claude instructions
+and owner review. Record additions are local and uncommitted; reviewed source
+HEAD remains 87acef1.
+
+
+### 2026-10-19 — v02425 serving-only pair preparation, FOR REVIEW
+
+Owner/Claude diagnose the v02423 asset regression: plan.json (121,758-byte
+frozen evaluator with bundle_sha256/cases/fixtures) and stages.json were
+overwritten by administrative summaries, and hashes regenerated over the
+wrong files. Preparation's byte comparison exempted both; review missed this.
+v02424 full contrary/neutral training completed, then serving failed before
+acquisition. No outcome results to pool; retain it as the source of adapters
+only. Original 4 uploads / 104 extracted files and all 108 hashes preserved.
+
+Owner dashboard $10.93 used / $19.07 remaining; displayed interval increase
+$4.08 from $6.85, not itemized app billing. Cap remains $36, no monthly reset.
+New v02425 pair skips training, verifies both private final checkpoints against
+their training-time indexes and exact public full-training metadata, publishes
+file hashes before GPU reservation, then rechecks before loading. Mount the
+v02424 source private Volume read-only; no retrain fallback, old ledger reset
+or source writes. Private weights have not been accessed during preparation.
+
+ALL 18 inherited v02420 files, including old plan/stages/index/commands, are
+restored byte-identical with no exemptions. New administration uses separate
+versioned filenames, including active integrity-v02425.json. Serving and all
+scientific request/scoring/acquisition settings stay v02424; actual post-training
+body is extracted unchanged for the scripted full-path CI test. That test passes
+396 transfers across three arms with restored staged assets and reproduces the
+exact KeyError bundle_sha256 on v02424's folder. No model generation/training.
+Required-key/count checks, corrupt-adapter proof checks, read-only mount proto
+and no-backend serialization tests added. Virtue still trains its own adapter
+with the restored assets and requires separate approval after pair audit.
+
+Propose pair guard 4,800 / timeout 5,000 s. The existing formula gives $9.855778,
+not the rough $9.47: preserve +200 s timeout, rate and allowances. Virtue reserve
+$8.483444 unchanged. Actual + future reserves $29.269222, headroom $6.730778
+under $36. Stage-only credit admission preserved. Pair ends Oct26 01:00 UTC;
+virtue Nov9 01:00 UTC. Fresh v02425 resources and exact-commit approval required.
+Read-only source adapters retain the study-end deletion commitment via a separate
+owner-reviewed CPU cleanup with receipts; this serving script cannot delete them.
+No Modal contact, scientific training, GPU, pretrained downloads or launch.
+See PAPER3_STUDY_D_GEMMA_REUSE_v02425.md. Stop for owner review after publication.
+
+
+v02425 projection clarification: the measured serving load followed training
+and benefited from its incidental HF cache. No base-weight cache is added here.
+Serving-only containers may download base weights again; add a sensitivity of
+543.607 s (prior full training-load time, conservatively, not a newly measured
+serving-only download). Cold-cache stress 3,172.9 / 3,614.9 s leaves 1,627.1 /
+1,185.1 s in the same contrary/neutral 4,800 s guards. Reservation is unchanged.
+
+
+Final v02425 offline validation: 694 tests PASS (32 skips), Python 3.11.17,
+865.856 s; all scripted scenarios PASS. Six focused tests PASS (one SDK-only
+skip), plus the pinned Python 3.12 / Modal 1.6.2 serialization/server read-only
+mount test PASS without backend access. Integrated pinned tiny CPU rehearsal
+PASS: two optimizer steps, 13 modules / 7,808 parameters, adapter reload and
+ephemeral deletion receipts, 18.818 s. No GPU, pretrained weights or scientific
+training. Full production post-training scripted path PASS, all three arms /
+396 transfers, gates/scoring/reports; v02424 assets reproduce the exact
+bundle_sha256 KeyError before acquisition. All 18 inherited assets and all
+108 received v02424 hashes unchanged. Source public training proofs verified
+offline; actual private checkpoint files / read-only GPU handoff remain untested
+until a separately approved launch. Validation receipt saved. Publish and check
+both GitHub workflows, then stop for owner review; neither stage is approved.

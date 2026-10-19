@@ -1,0 +1,210 @@
+{
+  "layers": 2,
+  "sliding_layers": 1,
+  "full_attention_layers": 1,
+  "targets": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "rank": 8,
+  "target_module_counts": {
+    "q_proj": 2,
+    "k_proj": 2,
+    "v_proj": 1,
+    "o_proj": 2,
+    "gate_proj": 2,
+    "up_proj": 2,
+    "down_proj": 2
+  },
+  "matched_module_count": 13,
+  "per_layer": {
+    "0": {
+      "layer_type": "sliding_attention",
+      "coverage": {
+        "q_proj": 1,
+        "k_proj": 1,
+        "v_proj": 1,
+        "o_proj": 1,
+        "gate_proj": 1,
+        "up_proj": 1,
+        "down_proj": 1
+      },
+      "linear_shapes": {
+        "q_proj": [
+          32,
+          32
+        ],
+        "k_proj": [
+          32,
+          16
+        ],
+        "o_proj": [
+          32,
+          32
+        ],
+        "gate_proj": [
+          32,
+          64
+        ],
+        "up_proj": [
+          32,
+          64
+        ],
+        "down_proj": [
+          64,
+          32
+        ],
+        "v_proj": [
+          32,
+          16
+        ]
+      },
+      "expected_trainable_parameters": 4096
+    },
+    "1": {
+      "layer_type": "full_attention",
+      "coverage": {
+        "q_proj": 1,
+        "k_proj": 1,
+        "v_proj": 0,
+        "o_proj": 1,
+        "gate_proj": 1,
+        "up_proj": 1,
+        "down_proj": 1
+      },
+      "linear_shapes": {
+        "q_proj": [
+          32,
+          32
+        ],
+        "k_proj": [
+          32,
+          16
+        ],
+        "o_proj": [
+          32,
+          32
+        ],
+        "gate_proj": [
+          32,
+          64
+        ],
+        "up_proj": [
+          32,
+          64
+        ],
+        "down_proj": [
+          64,
+          32
+        ]
+      },
+      "expected_trainable_parameters": 3712
+    }
+  },
+  "expected_trainable_parameters": 7808,
+  "disclosure": "k_proj LoRA adapts both K and V in full-attention layers with attention_k_eq_v; no attention pathway is unadapted",
+  "matched_modules": [
+    "model.language_model.layers.0.self_attn.q_proj",
+    "model.language_model.layers.0.self_attn.k_proj",
+    "model.language_model.layers.0.self_attn.v_proj",
+    "model.language_model.layers.0.self_attn.o_proj",
+    "model.language_model.layers.0.mlp.gate_proj",
+    "model.language_model.layers.0.mlp.up_proj",
+    "model.language_model.layers.0.mlp.down_proj",
+    "model.language_model.layers.1.self_attn.q_proj",
+    "model.language_model.layers.1.self_attn.k_proj",
+    "model.language_model.layers.1.self_attn.o_proj",
+    "model.language_model.layers.1.mlp.gate_proj",
+    "model.language_model.layers.1.mlp.up_proj",
+    "model.language_model.layers.1.mlp.down_proj"
+  ],
+  "observed_per_layer": {
+    "0": {
+      "q_proj": 1,
+      "k_proj": 1,
+      "v_proj": 1,
+      "o_proj": 1,
+      "gate_proj": 1,
+      "up_proj": 1,
+      "down_proj": 1
+    },
+    "1": {
+      "q_proj": 1,
+      "k_proj": 1,
+      "v_proj": 0,
+      "o_proj": 1,
+      "gate_proj": 1,
+      "up_proj": 1,
+      "down_proj": 1
+    }
+  },
+  "observed_linear_shapes": {
+    "model.language_model.layers.0.self_attn.q_proj": [
+      32,
+      32
+    ],
+    "model.language_model.layers.0.self_attn.k_proj": [
+      32,
+      16
+    ],
+    "model.language_model.layers.0.self_attn.v_proj": [
+      32,
+      16
+    ],
+    "model.language_model.layers.0.self_attn.o_proj": [
+      32,
+      32
+    ],
+    "model.language_model.layers.0.mlp.gate_proj": [
+      32,
+      64
+    ],
+    "model.language_model.layers.0.mlp.up_proj": [
+      32,
+      64
+    ],
+    "model.language_model.layers.0.mlp.down_proj": [
+      64,
+      32
+    ],
+    "model.language_model.layers.1.self_attn.q_proj": [
+      32,
+      32
+    ],
+    "model.language_model.layers.1.self_attn.k_proj": [
+      32,
+      16
+    ],
+    "model.language_model.layers.1.self_attn.o_proj": [
+      32,
+      32
+    ],
+    "model.language_model.layers.1.mlp.gate_proj": [
+      32,
+      64
+    ],
+    "model.language_model.layers.1.mlp.up_proj": [
+      32,
+      64
+    ],
+    "model.language_model.layers.1.mlp.down_proj": [
+      64,
+      32
+    ]
+  },
+  "status": "PASS",
+  "coverage_errors": [],
+  "trainable_parameters": 7808,
+  "per_layer_trainable_parameters": {
+    "0": 4096,
+    "1": 3712
+  },
+  "total_parameters": 8414656,
+  "outside_text_layer_trainable": [],
+  "trainable_errors": []
+}

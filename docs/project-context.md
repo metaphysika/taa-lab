@@ -1685,3 +1685,78 @@ namespace/local once markers do not reset/delete prior ledgers or evidence.
 No launch, Modal contact, GPU, weights download or scientific execution.
 Both stages require new exact-v02424-commit owner approval; virtue stays
 separate after pair audit/review. See PAPER3_STUDY_D_GEMMA_SCIENCE_v02424.md.
+
+
+### 2026-10-19 America/Chicago — v02424 pair STOP_FOR_REVIEW; record only
+
+Recorded owner return for commit 87acef174a03efb266fd57c12e0add13c9426ec8:
+app ap-KAVCSaqESVAEvxyYV55QNG / call fc-01M5AKR53RPMGW10H77Q201AR8.
+Owner reports one pair launch 12:35 pm CDT, stopped 1:28 pm CDT; local attempt
+17:35:08 UTC, acknowledgement 17:36:03 UTC. Earlier preflight never spawned
+and retry was owner approved, per owner report; no separate first-preflight
+evidence supplied here. Do not infer another training submission.
+
+Both full arms trained completely, 250 steps / 2,000 examples each: contrary
+326,496 tokens / loss 0.01723, neutral 298,272 / loss 0.02243. Coverage PASS
+(410 modules / 61,214,720 parameters), sampler and KV PASS (0.100 GiB margin),
+adapter handoff verified in both arms. Both then stop on KeyError:
+'bundle_sha256' in install_frozen_bundle(), before acquisition. Controller
+reports acquisition interrupted or deadline; no transfer. No acquisition,
+transfer or scoring ran; no scientific outcome results, not a scientific null
+or format verdict. Retain completed training despite inherited failure-record
+training_authorized=false; this was authorized full-arm training, not a smoke.
+
+Preserved all four uploads, all 104 extracted files, ZIP CRC PASS and SHA-256
+inventory of all 108 original/extracted files. Carried 36 CPU / 26 prior-speed
+files match earlier returns byte-for-byte; submitted asset hash matches reviewed
+v02424. See studies/formation-study-d-gemma-pair-result-v02424/received-evidence-001/RECORD.md
+and record-v02424.json. ZIP, tiny weights and full tokenizer are private/ignored
+by Git. Scientific adapters remain subject to review-stop retention; no remote
+check, modification or deletion performed. Old evidence and once ledgers unchanged.
+
+Submission $6.85 used / $23.15 left, $36 cap, reservation $16.255778. Updated
+actual cost remains unverified; reservation/wall time are not invoice charges
+or a refund. No code changes, fix preparation, Modal contact, relaunch or ledger
+change. Virtue and any pair rerun remain unapproved. Await Claude instructions
+and owner review. Record additions are local and uncommitted; reviewed source
+HEAD remains 87acef1.
+
+
+### 2026-10-19 — v02425 serving-only pair preparation, FOR REVIEW
+
+Owner/Claude diagnose the v02423 asset regression: plan.json (121,758-byte
+frozen evaluator with bundle_sha256/cases/fixtures) and stages.json were
+overwritten by administrative summaries, and hashes regenerated over the
+wrong files. Preparation's byte comparison exempted both; review missed this.
+v02424 full contrary/neutral training completed, then serving failed before
+acquisition. No outcome results to pool; retain it as the source of adapters
+only. Original 4 uploads / 104 extracted files and all 108 hashes preserved.
+
+Owner dashboard $10.93 used / $19.07 remaining; displayed interval increase
+$4.08 from $6.85, not itemized app billing. Cap remains $36, no monthly reset.
+New v02425 pair skips training, verifies both private final checkpoints against
+their training-time indexes and exact public full-training metadata, publishes
+file hashes before GPU reservation, then rechecks before loading. Mount the
+v02424 source private Volume read-only; no retrain fallback, old ledger reset
+or source writes. Private weights have not been accessed during preparation.
+
+ALL 18 inherited v02420 files, including old plan/stages/index/commands, are
+restored byte-identical with no exemptions. New administration uses separate
+versioned filenames, including active integrity-v02425.json. Serving and all
+scientific request/scoring/acquisition settings stay v02424; actual post-training
+body is extracted unchanged for the scripted full-path CI test. That test passes
+396 transfers across three arms with restored staged assets and reproduces the
+exact KeyError bundle_sha256 on v02424's folder. No model generation/training.
+Required-key/count checks, corrupt-adapter proof checks, read-only mount proto
+and no-backend serialization tests added. Virtue still trains its own adapter
+with the restored assets and requires separate approval after pair audit.
+
+Propose pair guard 4,800 / timeout 5,000 s. The existing formula gives $9.855778,
+not the rough $9.47: preserve +200 s timeout, rate and allowances. Virtue reserve
+$8.483444 unchanged. Actual + future reserves $29.269222, headroom $6.730778
+under $36. Stage-only credit admission preserved. Pair ends Oct26 01:00 UTC;
+virtue Nov9 01:00 UTC. Fresh v02425 resources and exact-commit approval required.
+Read-only source adapters retain the study-end deletion commitment via a separate
+owner-reviewed CPU cleanup with receipts; this serving script cannot delete them.
+No Modal contact, scientific training, GPU, pretrained downloads or launch.
+See PAPER3_STUDY_D_GEMMA_REUSE_v02425.md. Stop for owner review after publication.

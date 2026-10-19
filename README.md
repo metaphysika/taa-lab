@@ -1,6 +1,6 @@
-# TAA Lab (v0.24.24 Gemma budget/guard review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.25 Gemma serving-only pair review; frozen Study C v0.23.9)
 
-Study D **v02424** is prepared for review: longer arm guards, stage-only credit admission, and owner-approved cumulative $36 cap. [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_SCIENCE_v02424.md). v02423 is superseded and not launched. No v02424 launch is approved.
+Study D **v02425** prepares serving-only reuse of the completed v02424 contrary/neutral adapters. [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_REUSE_v02425.md). The inherited evaluator assets are restored byte-for-byte; v02424 trained completely but failed before acquisition on an asset regression. No retraining or launch is approved. Cumulative cap $36; owner dashboard $10.93 used/$19.07 left.
 
 Historical v02421 speed review: the v02420 engineering smoke completed, but full-arm runtime/cost projections failed. The [v02421 plan](docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02421.md) prepared a separate ≤$2.50 smoke comparing CUDA-graph live LoRA versus verified merged bf16 serving and prefix retention. Its dashboard/cap figures were $5.41 used/$24.59 left and $30. That engineering path is superseded by the current v02424 review above. Automatic free CPU CI includes real tiny-model training and PEFT merge/save/reload.
 
