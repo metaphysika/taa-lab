@@ -1592,3 +1592,66 @@ available-minus-requirement alone is 0.495 GiB. v02422 will record both from its
 own log; no new measurement claimed. Actual+reservation $8.342888889 leaves
 $21.657111111 unreserved under $30 and current credit. No launch, weight download
 or spending during preparation; pair and virtue remain blocked pending review.
+
+
+### 2026-10-19 — Owner approves v02422 speed smoke once
+
+Owner reports Claude reviewed and recommends approval of exact commit
+258ff726d95565efcfb8e2c29cb0dfdce37ff674. Owner authorizes ONE v02422 speed
+smoke with $2.452888889 reservation under the $30 cumulative Study D cap.
+Pair and virtue remain BLOCKED pending measured speed/projection review and
+separate approval. Existing authenticated Mac launch route only; no launch or
+Modal API access performed by this chat. Approval is not a submission receipt.
+Approved commit/source/assets remain unchanged; approval recorded additively
+for preservation at the next evidence boundary. Latest confirmed dashboard
+$5.89 used/$24.11 left; refresh launch inputs if that display has changed.
+
+
+### 2026-10-19 — v02422 speed smoke STOP_FOR_REVIEW; record only
+
+Owner returned four unmodified uploads for commit 258ff726d95565efcfb8e2c29cb0dfdce37ff674, app ap-tOeYK2AtbdQ74oqw0dki8e / call fc-01M5A95YDEWJ8H16F1YQH5PRP2, one attempt 9:29–9:50 AM CDT (submission acknowledgement 14:31:20 UTC). ZIP CRC PASS, all 64 extracted files preserved; carried CPU files and listed hashes verify. Evidence and additive structured record are in studies/formation-study-d-gemma-speed-result-v02422/.
+
+Sampler guard PASS, no nvcc failure; diagnostic training COMPLETE: 8 steps/64 examples/10,438 tokens/106.940762 s, 410 matched LoRA modules. Live benchmark COMPLETE: 8 requests/512 tokens per cell. Owner reports 62.7/72.5 tok/s, but frozen total-token/summed-round-time arithmetic gives 31.368325 cold/36.236878 retained; retain this factor-two discrepancy for Claude review, no winner/speedup/projection. KV PASS, conservative margin 0.100 GiB; sampled peak 80.535 GB. Merge logits failed unchanged thresholds: max_abs 1.125 > 0.5, relative_l2 0.0518121943 > 0.01. Merged benchmark never ran. Engineering stop/excluded science, no scientific acquisition or transfer.
+
+Submission billing $5.89 used/$24.11 left; reservation $2.452888889 / cap $30. Post-attempt actual cost unverified. Saved native log snapshot hashes match append-only prefixes, with later shutdown suffix preserved. Once-only approval consumed/no_restart=true. Private GPU adapter remains subject to review-stop retention; no remote check/deletion or ledger/Volume change. No code change, fix preparation or launch. Pair/virtue BLOCKED. Await Claude diagnosis and owner review.
+
+
+### 2026-10-19 — v02423 live science integration, FOR REVIEW only
+
+Owner/Claude review rejects the bf16 merged candidate under unchanged logits
+thresholds (1.125 > 0.5; 0.051812 > 0.01). No tolerance loosening or merged rerun.
+Live LoRA is selected. Retained/cold elapsed ratio is about 0.866, a 13.4% time
+reduction, passing the >=5% rule. Correct live throughput is 31.3683 cold /
+36.2369 retained tokens/s: 512 total tokens divided by SUM of two rounds.
+Historical 62.7/72.5 claims are attributed errors, not current results. Raw v02422
+evidence remains unchanged; its engineering STOP/exclusion from science stands.
+
+Owner dashboard: $6.80 used / $23.20 left. Displayed interval delta $0.91 from
+$5.89, not an itemized invoice. v02423 integrates identical live LoRA, graphs
+[1,2], specialization, retained cache and sampler guard across arms, with the
+same post-capture KV check (prior margin 0.100 GiB). Dose, data, seeds, histories,
+sampling, acquisition, parser, scorer, cases and repeats remain frozen. Static
+CI enforces exact serving config, rejects merged weights and checks scientific
+function AST equality. Actual CPU rehearsal and scripted serving checks are
+free, without Modal access, GPU or pretrained weights.
+
+Measured startup is 848.707 s (training load 543.607 + serving load 305.100),
+plus 300 s allowance. Generation 36.2 tokens/s; training 131.5 and 97.6 scenarios.
+Three-arm nominal/stress including allowances: $14.89/$18.33 fast, $17.21/$21.23
+slow. Both scenarios exceed the old 6,000 s stress guards. PROPOSE pair software
+guard 7,600 / provider timeout 7,800 s, virtue 8,000 / 8,200 s; targets $15/$8.
+Reservations $14.833556 + $7.772333 = $22.605889. Actual plus all remaining
+reserves $29.405889 under $30/current credit, unreserved cushion $0.594111.
+The 25% stress factor is not a confidence bound; full 4,096-token tails do not
+fit. Stops preserve incomplete planned-denominator bounds, never cut cases or
+repeats or become a null. No future cap increase is presumed.
+
+Fresh v02423 namespace/windows; verify original CPU PASS/durable closure and
+bound v02422 evidence before GPU reservation, never modify old resources.
+Pair runs concurrently. Virtue requires COMPLETE audited/reviewed pair, separate
+approval and current billing. Private adapters remain on review stop and after
+pair, then are deleted with receipts at complete study end/owner review decision.
+Mac spawn/SUBMITTED/caffeinate route unchanged. No launch. Pair and virtue remain
+BLOCKED pending exact-commit owner approval and the proposed budget.
+
+Billing guard clarification: previous-stage anti-omission floor uses documented A10080 GPU-only $2.4984/hour; estimated whole-worker $3.104208 is not an invoice minimum. Reservation ceiling remains $3.20/hour and cap $30. Superseded local full test run interrupted before final-source full rerun; no Modal process was signaled.

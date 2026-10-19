@@ -11,6 +11,8 @@ jobs:
           python-version: "3.11"
       - name: Study D sampler static guards (no GPU or credentials)
         run: python scripts/check_study_d_sampler_v02422.py
+      - name: Study D exact science serving contract (no GPU or credentials)
+        run: python scripts/check_study_d_science_v02423.py
       - name: Unit tests
         run: python -m unittest discover tests -v
       - name: Scripted run of every scenario
@@ -21,7 +23,7 @@ jobs:
       - name: Offline Modal serialization regression (no credentials or backend)
         run: |
           python -m pip install 'modal==1.6.2'
-          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 tests.test_study_d_gemma_speed_v02421.SpeedSerializationTests tests.test_study_d_gemma_speed_v02422.SpeedSerializationTests -v
+          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 tests.test_study_d_gemma_speed_v02421.SpeedSerializationTests tests.test_study_d_gemma_speed_v02422.SpeedSerializationTests tests.test_study_d_science_v02423.ScienceSerializationTests -v
   gemma-cpu-rehearsal:
     name: Gemma actual CPU training rehearsal (no GPU or secrets)
     runs-on: ubuntu-latest
@@ -44,6 +46,8 @@ jobs:
           python -m pip install --no-cache-dir 'transformers==5.10.4' 'peft==0.21.2' 'accelerate==1.15.0' 'huggingface-hub==1.31.0'
       - name: Actual tiny-model training, checkpoints and adapter reload
         run: python scripts/study_d_gemma_ci_rehearsal_v02420.py --output "$RUNNER_TEMP/study-d-ci-v02420"
+      - name: Integrated science runtime actual CPU rehearsal (no GPU or weights)
+        run: python scripts/study_d_gemma_ci_rehearsal_v02423.py --output "$RUNNER_TEMP/study-d-ci-v02423"
       - name: Actual tiny PEFT merge/save/reload regression (CPU only)
         run: python -m unittest tests.test_study_d_gemma_speed_v02421.ActualMergeTests tests.test_study_d_gemma_speed_v02422.ActualMergeTests -v
       - name: Preserve diagnostic reports only (never model weights)
@@ -56,4 +60,8 @@ jobs:
             ${{ runner.temp }}/study-d-ci-v02420/deletion.json
             ${{ runner.temp }}/study-d-ci-v02420/evidence/*.json
             ${{ runner.temp }}/study-d-ci-v02420/evidence/process.log
+            ${{ runner.temp }}/study-d-ci-v02423/report.json
+            ${{ runner.temp }}/study-d-ci-v02423/deletion.json
+            ${{ runner.temp }}/study-d-ci-v02423/evidence/*.json
+            ${{ runner.temp }}/study-d-ci-v02423/evidence/process.log
           if-no-files-found: warn
