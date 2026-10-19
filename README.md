@@ -1,10 +1,8 @@
-# TAA Lab (v0.24.20 architecture-conditioned LoRA review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.21 Gemma serving-speed review; frozen Study C v0.23.9)
 
-The v02419 CPU rehearsal stopped before training because full-attention layers share K output as V and have no v_proj. The [v02420 review](docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02420.md) keeps all seven target names, checks their exact architecture-conditioned presence and trainable counts, and prepares a fresh CPU data/rehearsal run. Owner raises the cumulative Study D cap to $30; per-stage targets remain unchanged. Current dashboard $4.72 used/$25.28 left. [Mac commands](studies/formation-study-d-gemma-stages-v02420/MAC_COMMANDS.md). A free CPU GitHub job now tests the actual tiny-model training/checkpoint/reload path on every commit, using pinned training releases and frozen real-tokenizer IDs without secrets. No new Modal stage executed; stop for review.
+The v02420 engineering smoke completed, but full-arm runtime/cost projections failed. The [v02421 speed review](docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02421.md) prepares a separate ≤$2.50 smoke comparing CUDA-graph live LoRA versus verified merged bf16 serving and prefix retention on fixed timing prompts. Current owner dashboard: $5.41 used/$24.59 left; cumulative cap stays $30. [Mac review commands](studies/formation-study-d-gemma-speed-v02421/MAC_COMMANDS.md). Pair and virtue remain blocked; no launch is approved. Automatic free CPU CI includes real tiny-model training and PEFT merge/save/reload.
 
-
-
-Study D: the owner accepted both affordable-base format failures and the fallback findings. No training was run.
+Study D: the owner accepted both affordable-base format failures and the fallback findings. No full scientific training arm has run; excluded diagnostic CPU/GPU training is recorded separately.
 The [v02413 Gemma specification](docs/process/PAPER3_STUDY_D_GEMMA_BASE_GATE_v02413.md) and its commands are archival after the engine-load attempt; do not relaunch them. The v02414/v02415 code and attempts are archival; v02416 retains the same frozen 34 model episodes and thresholds.
 [Findings draft](docs/process/PAPER3_STUDY_D_FINDINGS_v02412.md) and
 [Gemma 31B budget assessment](docs/process/PAPER3_STUDY_D_GEMMA_FEASIBILITY_v02412.md)

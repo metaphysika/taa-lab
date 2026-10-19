@@ -1,0 +1,126 @@
+{
+  "status": "COMPLETE",
+  "arm": "smoke",
+  "stage": "smoke",
+  "commit": "90454d4a508d2b373625300834d719e8f1fb5cce",
+  "engine": {
+    "model": "google/gemma-4-31B-it",
+    "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "tokenizer_revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "dtype": "bfloat16",
+    "quantization": null,
+    "tensor_parallel_size": 1,
+    "max_model_len": 16384,
+    "max_num_seqs": 2,
+    "gpu_memory_utilization": 0.95,
+    "enable_lora": true,
+    "max_lora_rank": 8,
+    "max_loras": 1,
+    "language_model_only": true,
+    "enforce_eager": true,
+    "trust_remote_code": false,
+    "generation_config": "auto",
+    "seed": 248017,
+    "enable_prefix_caching": false,
+    "disable_log_stats": true
+  },
+  "training_authorized_for_other_stages": false,
+  "excluded_from_science": true,
+  "training": {
+    "status": "COMPLETE",
+    "optimizer_steps": 8,
+    "processed_examples": 64,
+    "processed_tokens": 10438,
+    "seconds": 79.38060309999997,
+    "excludes_science": true,
+    "cpu_rehearsal": false,
+    "settings": {
+      "examples": 2000,
+      "epochs": 1,
+      "learning_rate": 0.0002,
+      "batch": 1,
+      "accumulate": 8,
+      "context": 1024,
+      "seed": 247056,
+      "bf16": true,
+      "optimizer": "adamw_torch",
+      "scheduler": "constant",
+      "weight_decay": 0,
+      "warmup_steps": 0,
+      "gradient_checkpointing": true,
+      "assistant_only": true,
+      "use_cpu": false,
+      "effective_optimizer_steps": 8
+    },
+    "lora": {
+      "r": 8,
+      "lora_alpha": 16,
+      "lora_dropout": 0,
+      "bias": "none",
+      "task_type": "CAUSAL_LM",
+      "target_modules": ".*language_model.*\\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
+    }
+  },
+  "episodes": 2,
+  "adapter_handoff_verified": true,
+  "generation": {
+    "tokens": 484,
+    "seconds": 103.20856747799996
+  },
+  "load_and_handoff_seconds": 584.536982508,
+  "projection": {
+    "arms": {
+      "contrary": {
+        "training_tokens": 326496,
+        "transfer_episodes": 132,
+        "acquisition_plus_secondary": 120,
+        "nominal_seconds": 14094.620055640122,
+        "stress_seconds": 17618.275069550153,
+        "software_guard_seconds": 6000,
+        "stress_fits_guard": false,
+        "max_output_sensitivity_seconds": 484447.87007100787,
+        "estimated_worker_usd": 12.528551160568998,
+        "training_speed_measured": true
+      },
+      "neutral": {
+        "training_tokens": 298272,
+        "transfer_episodes": 132,
+        "acquisition_plus_secondary": 220,
+        "nominal_seconds": 16609.46035808236,
+        "stress_seconds": 20761.82544760295,
+        "software_guard_seconds": 6000,
+        "stress_fits_guard": false,
+        "max_output_sensitivity_seconds": 495365.8011761186,
+        "estimated_worker_usd": 14.763964762739876,
+        "training_speed_measured": true
+      },
+      "virtue": {
+        "training_tokens": 363524,
+        "transfer_episodes": 132,
+        "acquisition_plus_secondary": 120,
+        "nominal_seconds": 14376.21662314221,
+        "stress_seconds": 17970.270778927763,
+        "software_guard_seconds": 6000,
+        "stress_fits_guard": false,
+        "max_output_sensitivity_seconds": 484447.87007100787,
+        "estimated_worker_usd": 12.778859220570855,
+        "training_speed_measured": true
+      }
+    },
+    "measured_training_tokens_per_second": 131.49308007714046,
+    "measured_generation_tokens_per_second": 4.689533164028944,
+    "pair_projection_fits": false,
+    "virtue_projection_fits": false,
+    "uncertainty": "short smoke excludes science; 25% stress buffer is not a confidence bound; max-output tail may not fit",
+    "further_execution_approved": false
+  },
+  "memory": {
+    "sampled_peak_device_used_bytes": 82508054528,
+    "before_engine_device_used_bytes": 784596992,
+    "samples": 14483,
+    "interval_seconds": 0.05,
+    "measurement_failed": false,
+    "scope": "device-wide incl vLLM subprocesses; sampled, not exact allocator peak"
+  },
+  "software_wall_seconds": 773.3693463300001
+}

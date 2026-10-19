@@ -1444,3 +1444,88 @@ in15.347822557s, with transient weights deleted and JSON/log receipts retained.
 No Modal stage, GPU, pretrained weights or scientific training executed.
 Validation receipt saved; publish and confirm both GitHub workflows INCLUDING
 the new actual CPU job, then stop for owner review.
+
+
+## 2026-10-19 — v02420 returned CPU rehearsal PASS; hold for review
+
+Recorded supplied commit90454d4 CPU return: app ap-Fx5VmY3ZUmACm4qqN38XwA,
+call fc-01M58VDEXGTC2TDJC9NN956Y25. Tiny random CPU diagnostic completed two
+optimizer steps (16 processed examples); all three 2,000-example data proofs,
+2,000-example contrary masking, architecture-conditioned coverage13/7,808 and
+26-tensor adapter reload PASS. No GPU/pretrained weights/model generation;
+vLLM adapter loading remains untested. Preserved original36-file ZIP, app log,
+both receipts and extracted bytes. ZIP CRC and39 listed hash references PASS,
+including26 rehearsal files. Owner reports initial Modal500/truncated5 downloads,
+re-fetched individually before this returned archive. Private weights/ZIP/full
+tokenizer ignored by Git, retained locally. See
+studies/formation-study-d-gemma-cpu-result-v02420/received-evidence-001/RECORD.md.
+Owner dashboard4.72used/25.28left unchanged at displayed precision, not proof
+of zero invoice charge; original reservations/ledgers untouched, cap30 retained.
+Latest owner instruction: log only, await Claude review and owner approval;
+no launch preparation or code changes. Pair/virtue unapproved. No execution.
+
+
+## 2026-10-18 America/Chicago — v02420 GPU smoke COMPLETE; hold for review
+
+Recorded commit90454d4 app ap-sc9f25Ju3Y8b54rX4f6Sw1. Preserved58-file ZIP,
+app log, both receipts and extracted files; CRC PASS,39 carried CPU hash
+references and CPU receipt binding PASS, all36 carried CPU files byte-identical.
+Smoke8steps/64examples/10438tokens; training131.4931tok/s, generation4.68953tok/s,
+handoff verified,2/2 diagnostic episodes correct and excluded from science.
+Sampled device peak82.51GB, load/handoff584.537s, softwarewall773.369s.
+Pair/virtue projections DO NOT FIT configured6000s guards or stage targets:
+contrary/neutral/virtue nominal14094.62/16609.46/14376.22s; estimated worker
+cost12.5286/14.7640/12.7789USD. Estimates are not invoice charges or bounds.
+Smoke reservation1.969556 retained; actual post-smoke spend unknown (last prior
+4.72used/25.28left). Returned clean-smoke adapter deletion receipt reports
+DELETED/verified_absent; no remote verification or deletion performed here.
+Private archive protects carried tiny weights/tokenizer/ZIP from Git publication.
+See studies/formation-study-d-gemma-smoke-result-v02420/received-evidence-001/RECORD.md.
+Owner requests log only pending Claude decision and owner review. Pair/virtue
+unapproved; no code changes, launch preparation, execution or ledger changes.
+
+
+## 2026-10-18 America/Chicago — v02420 COMPLETE with failed projections; v02421 speed review
+
+Owner confirms v02420 smoke COMPLETE,8steps/79.4s/131trainingtok/s, handoff
+verified,2valid closed excluded episodes, sampledpeak82.5GB,adapter deletion
+receipt preserved. Generation4.69tok/s versus basev02416reported9.03 (different
+workloads, not causal comparison); firstturns36–44s/later9–11s owner description.
+Full-arm projections14,100–16,600s exceed6000s guard and stagebudgets; pair and
+virtue BLOCKED. Corrected owner dashboard5.41used/24.59left supersedes repeated
+4.72/25.28; displayed0.69increase for intervening smoke interval, not itemized
+invoice. All original evidence/ledgers/reservations preserved.
+
+Owner authorizes offline v02421 speed preparation only: same training/science,
+new once-only smoke namespaces/window; graphs specialized for LoRA, bf16 merged
+checkpoint verified by fixed last-position full-vocabulary logits, conservative
+post-graph KV check at.95/16384. Fixed frozen first/later histories, two concurrent
+streams,64-token engineering-only timing, counterbalanced cold/retainedprefix
+comparisons, selection by time only,>=5% caching benefit. All fourcells required;
+no partialwinner/outcomechoice. Exact identical selected path for all futurearms,
+which are not executable here. New full actual tiny PEFT merge regression in
+free CPU GitHub CI. GPU bf16/vLLM behavior remains untested before approved smoke.
+
+Speed reserve2.452889<=2.50;2300sGPUtimeout/2100ssoftwareguard, startup/idle and
+.30allowance. Estimated1320–2050s is uncertain; stop rather than exceedguard.
+Existingcap30 unchanged; atcurrent totals reserveleaves22.137111 cumulative
+headroom. Code reserves only this experiment, no unaffordable fullarms. Report
+measured training/generation/load/merge costs and unchanged3x2000/full132probes,
+Octobercredit subsets/Novemberfresh30 separately from cumulativecap; owner decides
+any increase after review. Privateweights retained onreviewstop/deletedwithreceipts
+atcleanengineeringend. Maccaffeinate/spawn/SUBMITTED handshake unchanged.
+No launch, GPU, modeldownload, remoteledger change or scientifictraining approved.
+See docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02421.md; push/BOTHCI thenreview.
+
+
+Offline v02421 validation complete: 656 full unit tests PASS (27 SDK/dependency
+skips) in 781.274 s; all scripted scenarios PASS. Dedicated Python 3.12/Modal
+1.6.2 focused tests PASS (10 tests, one CPU-ML skip), including unhydrated
+serialization with backend access forbidden. Actual pinned CPU tiny PEFT
+merge/save/reload PASS; every saved state tensor identical after reload, with
+explicit float32 numerical bounds. Scripted benchmark tests cover both engines,
+two streams, exact token counts and cache reset/retention. All 11 original v02420
+source and 17 asset bindings unchanged. No Modal stage/GPU/pretrained model
+weights download or scientific execution. Private weights/ZIPs/full tokenizer
+excluded from Git; received evidence bytes and trailing whitespace preserved.
+Validation receipt saved separately; GitHub publication/check confirmation follows.
