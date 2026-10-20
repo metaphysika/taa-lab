@@ -1,0 +1,117 @@
+{
+  "status": "COMPLETE",
+  "arm": "contrary",
+  "stage": "pair",
+  "commit": "30c6530bf3acb3604fb4e2a09ad8ba78c642d350",
+  "engine": {
+    "model": "google/gemma-4-31B-it",
+    "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "tokenizer_revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "dtype": "bfloat16",
+    "quantization": null,
+    "tensor_parallel_size": 1,
+    "max_model_len": 16384,
+    "max_num_seqs": 2,
+    "gpu_memory_utilization": 0.95,
+    "enable_lora": true,
+    "max_lora_rank": 8,
+    "max_loras": 1,
+    "language_model_only": true,
+    "enforce_eager": false,
+    "trust_remote_code": false,
+    "generation_config": "auto",
+    "seed": 248017,
+    "enable_prefix_caching": true,
+    "disable_log_stats": true,
+    "compilation_config": {
+      "cudagraph_specialize_lora": true,
+      "cudagraph_capture_sizes": [
+        1,
+        2
+      ],
+      "max_cudagraph_capture_size": 2
+    }
+  },
+  "training_authorized_for_other_stages": false,
+  "excluded_from_science": false,
+  "training_reused_from_commit": "87acef174a03efb266fd57c12e0add13c9426ec8",
+  "retrained": false,
+  "training": {
+    "status": "COMPLETE",
+    "optimizer_steps": 250,
+    "processed_examples": 2000,
+    "processed_tokens": 326496,
+    "seconds": 2047.496619398,
+    "excludes_science": false,
+    "cpu_rehearsal": false,
+    "settings": {
+      "examples": 2000,
+      "epochs": 1,
+      "learning_rate": 0.0002,
+      "batch": 1,
+      "accumulate": 8,
+      "context": 1024,
+      "seed": 247056,
+      "bf16": true,
+      "optimizer": "adamw_torch",
+      "scheduler": "constant",
+      "weight_decay": 0,
+      "warmup_steps": 0,
+      "gradient_checkpointing": true,
+      "assistant_only": true,
+      "use_cpu": false,
+      "effective_optimizer_steps": 250
+    },
+    "lora": {
+      "r": 8,
+      "lora_alpha": 16,
+      "lora_dropout": 0,
+      "bias": "none",
+      "task_type": "CAUSAL_LM",
+      "target_modules": ".*language_model.*\\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
+    }
+  },
+  "transfer_episodes": 132,
+  "bounds": {
+    "W": {
+      "planned": 64,
+      "known": 54,
+      "unknown": 0,
+      "lower": 0.84375,
+      "upper": 0.84375
+    },
+    "U": {
+      "planned": 64,
+      "known": 0,
+      "unknown": 9,
+      "lower": 0.0,
+      "upper": 0.140625
+    }
+  },
+  "acquisition": {
+    "status": "PASS",
+    "transfer_allowed": true,
+    "primary_json_success": 100,
+    "message_consistent": 100,
+    "concordant_success": 100,
+    "planned": 100,
+    "strata_concordant": [
+      50,
+      50
+    ],
+    "Wilson_lower": 0.9630065017930143,
+    "vice_minus_neutral": 0.45,
+    "prose_wording": "descriptive only; no exact prose or human pending state",
+    "interpretation": "failed vice acquisition makes transfer uninterpretable, never a null"
+  },
+  "neutral_ordered": null,
+  "memory": {
+    "sampled_peak_device_used_bytes": 79957458944,
+    "before_engine_device_used_bytes": 784596992,
+    "samples": 73828,
+    "interval_seconds": 0.05,
+    "measurement_failed": false,
+    "scope": "device-wide incl vLLM subprocesses; sampled, not exact allocator peak"
+  },
+  "software_wall_seconds": 3837.593397182
+}

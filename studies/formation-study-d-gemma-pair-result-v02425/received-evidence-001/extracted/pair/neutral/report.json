@@ -1,0 +1,54 @@
+{
+  "status": "STOP_FOR_REVIEW",
+  "arm": "neutral",
+  "stage": "pair",
+  "commit": "30c6530bf3acb3604fb4e2a09ad8ba78c642d350",
+  "engine": {
+    "model": "google/gemma-4-31B-it",
+    "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "tokenizer_revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "dtype": "bfloat16",
+    "quantization": null,
+    "tensor_parallel_size": 1,
+    "max_model_len": 16384,
+    "max_num_seqs": 2,
+    "gpu_memory_utilization": 0.95,
+    "enable_lora": true,
+    "max_lora_rank": 8,
+    "max_loras": 1,
+    "language_model_only": true,
+    "enforce_eager": false,
+    "trust_remote_code": false,
+    "generation_config": "auto",
+    "seed": 248017,
+    "enable_prefix_caching": true,
+    "disable_log_stats": true,
+    "compilation_config": {
+      "cudagraph_specialize_lora": true,
+      "cudagraph_capture_sizes": [
+        1,
+        2
+      ],
+      "max_cudagraph_capture_size": 2
+    }
+  },
+  "training_authorized_for_other_stages": false,
+  "excluded_from_science": false,
+  "training_reused_from_commit": "87acef174a03efb266fd57c12e0add13c9426ec8",
+  "retrained": false,
+  "phase": "arm_worker",
+  "error_type": "RuntimeError",
+  "error_message": "worker time guard; no later generation",
+  "traceback": "Traceback (most recent call last):\n  File \"/opt/study-d/runtime.py\", line 684, in arm_worker\n    post_training_arm(session,base,h,acq,folder,volume,ledger,p,report,training)\n  File \"/opt/study-d/runtime.py\", line 645, in post_training_arm\n    rows=session.run([lambda c=c,r=r,i=i:episode(c,r,i) for i,(c,r) in enumerate(schedule)])\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/thread.py\", line 59, in run\n    result = self.fn(*self.args, **self.kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 645, in <lambda>\n    rows=session.run([lambda c=c,r=r,i=i:episode(c,r,i) for i,(c,r) in enumerate(schedule)])\n                                         ^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 626, in episode\n    r=evaluate_episode(case,generate);r.update(repeat=rep,excluded_from_science=smoke)\n      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/frozen-evaluator-5iak6pr_/formation/study_d_base_gate_v0248.py\", line 24, in evaluate_episode\n    raw = generate(SYSTEM, copy.deepcopy(history), turn + 1)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 624, in generate\n    return session.generate([dict(role='system',content=system)]+history,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 537, in generate\n    return f.result()\n           ^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 456, in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 401, in __get_result\n    raise self._exception\n  File \"/usr/local/lib/python3.12/concurrent/futures/thread.py\", line 59, in run\n    result = self.fn(*self.args, **self.kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 645, in <lambda>\n    rows=session.run([lambda c=c,r=r,i=i:episode(c,r,i) for i,(c,r) in enumerate(schedule)])\n                                         ^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 626, in episode\n    r=evaluate_episode(case,generate);r.update(repeat=rep,excluded_from_science=smoke)\n      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/frozen-evaluator-5iak6pr_/formation/study_d_base_gate_v0248.py\", line 24, in evaluate_episode\n    raw = generate(SYSTEM, copy.deepcopy(history), turn + 1)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 624, in generate\n    return session.generate([dict(role='system',content=system)]+history,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 537, in generate\n    return f.result()\n           ^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 456, in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 401, in __get_result\n    raise self._exception\n  File \"/opt/study-d/runtime.py\", line 545, in run\n    self.guard()\n  File \"/opt/study-d/runtime.py\", line 522, in guard\n    if now+30>=self.deadline:raise RuntimeError('worker time guard; no later generation')\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: worker time guard; no later generation\n",
+  "no_restart": true,
+  "training_authorized": false,
+  "memory": {
+    "sampled_peak_device_used_bytes": 80112648192,
+    "before_engine_device_used_bytes": 784596992,
+    "samples": 92923,
+    "interval_seconds": 0.05,
+    "measurement_failed": false,
+    "scope": "device-wide incl vLLM subprocesses; sampled, not exact allocator peak"
+  },
+  "software_wall_seconds": 4779.495696368001
+}

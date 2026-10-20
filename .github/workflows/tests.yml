@@ -12,11 +12,16 @@ jobs:
       - name: Study D sampler static guards (no GPU or credentials)
         run: python scripts/check_study_d_sampler_v02422.py
       - name: Study D exact science serving contract (no GPU or credentials)
-        run: python scripts/check_study_d_science_v02425.py
+        run: |
+          python scripts/check_study_d_science_v02425.py
+          python scripts/check_study_d_science_v02426.py
       - name: Full staged post-training path (CPU scripted; no training or model calls)
         run: |
           python -I scripts/study_d_gemma_post_training_ci_v02425.py --assets studies/formation-study-d-gemma-stages-v02425 --output "$RUNNER_TEMP/study-d-post-v02425"
           python -I scripts/study_d_gemma_post_training_ci_v02425.py --assets studies/formation-study-d-gemma-stages-v02424 --output "$RUNNER_TEMP/study-d-post-v02424-rejected" --expect-asset-regression
+          python -I scripts/study_d_gemma_post_training_ci_v02426.py --assets studies/formation-study-d-gemma-stages-v02426 --output "$RUNNER_TEMP/study-d-post-v02426"
+      - name: Study D neutral completion and delayed persistence CPU regression
+        run: python -m unittest tests.test_study_d_completion_v02426 -v
       - name: Unit tests
         run: python -m unittest discover tests -v
       - name: Scripted run of every scenario
@@ -27,7 +32,7 @@ jobs:
       - name: Offline Modal serialization regression (no credentials or backend)
         run: |
           python -m pip install 'modal==1.6.2'
-          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 tests.test_study_d_gemma_speed_v02421.SpeedSerializationTests tests.test_study_d_gemma_speed_v02422.SpeedSerializationTests tests.test_study_d_science_v02423.ScienceSerializationTests tests.test_study_d_science_v02424.ScienceSerializationTests tests.test_study_d_reuse_v02425.ReuseSerializationTests -v
+          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 tests.test_study_d_gemma_speed_v02421.SpeedSerializationTests tests.test_study_d_gemma_speed_v02422.SpeedSerializationTests tests.test_study_d_science_v02423.ScienceSerializationTests tests.test_study_d_science_v02424.ScienceSerializationTests tests.test_study_d_reuse_v02425.ReuseSerializationTests tests.test_study_d_completion_v02426.CompletionSerializationTests -v
   gemma-cpu-rehearsal:
     name: Gemma actual CPU training rehearsal (no GPU or secrets)
     runs-on: ubuntu-latest
@@ -52,6 +57,8 @@ jobs:
         run: python scripts/study_d_gemma_ci_rehearsal_v02420.py --output "$RUNNER_TEMP/study-d-ci-v02420"
       - name: Integrated science runtime actual CPU rehearsal (no GPU or weights)
         run: python scripts/study_d_gemma_ci_rehearsal_v02425.py --output "$RUNNER_TEMP/study-d-ci-v02425"
+      - name: New completion runtime CPU rehearsal
+        run: python scripts/study_d_gemma_ci_rehearsal_v02426.py --output "$RUNNER_TEMP/study-d-ci-v02426"
       - name: Actual tiny PEFT merge/save/reload regression (CPU only)
         run: python -m unittest tests.test_study_d_gemma_speed_v02421.ActualMergeTests tests.test_study_d_gemma_speed_v02422.ActualMergeTests -v
       - name: Preserve diagnostic reports only (never model weights)

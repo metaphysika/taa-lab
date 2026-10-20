@@ -7687,3 +7687,86 @@ bundle_sha256 KeyError before acquisition. All 18 inherited assets and all
 offline; actual private checkpoint files / read-only GPU handoff remain untested
 until a separately approved launch. Validation receipt saved. Publish and check
 both GitHub workflows, then stop for owner review; neither stage is approved.
+
+
+### 2026-10-19 America/Chicago — v02425 pair review; v02426 input pending
+
+Owner relays Claude review of v02425 ZIP SHA prefix 59cfb59d, 347 files:
+contrary COMPLETE (W known servile 54/64, exact 0.84375; U known zero,
+nine malformed, bounds 0–0.140625); neutral worker time guard with 96/132
+completed transfers, two interrupted units missing; both acquisition PASS
+100/100. These are owner/Claude-reported aggregates, not independently audited
+here: the v02425 return ZIP, full digest and native files are not in the current
+workspace. Pair remains unclosed; no final pair contrasts or null claim.
+
+Source inspection confirms Serving.event commits the Volume synchronously
+inside its event/request lock after append/flush/fsync. Proposed v02426 keeps
+local durability and moves remote commits to a 30-second timer plus episode/end
+boundaries outside that lock. No runtime code changed yet. Exact request closure,
+completed-unit hashes, acquisition decision and original schedule indices must
+be bound from the returned evidence before implementing neutral admission.
+The two interrupted units must not be resent; aggregates suggest 34 untouched,
+not 36 replacements. All previous ledgers/adapters/evidence remain untouched.
+
+Owner billing $18.52 used/$11.48 left; displayed interval delta $7.47 from $11.05
+is not an itemized invoice. Cap $36 unchanged. At proposed neutral guard3000 /
+timeout3200, existing formula gives reserve $3.327888889; virtue unchanged
+$8.483444444. Actual plus both reserves $30.331333333, cap headroom $5.668666667.
+Current credit is $0.331333333 short of both full reservations together; launch
+admission stays per-stage and virtue can await November with no cumulative reset.
+No launch, Modal contact, weights download, training or scoring. Draft plan:
+docs/process/PAPER3_STUDY_D_GEMMA_COMPLETION_v02426_DRAFT.md. Full v02426 package,
+measured projections and publication await the unmodified v02425 return; Claude
+review and new exact-commit owner approval remain required. No CI claim made.
+
+
+### 2026-10-19 America/Chicago — v02425 evidence retrieved; v02426 FOR REVIEW
+
+The owner supplied the GitHub location. Retrieved original ZIP at commit
+04bf2b6311bdbda70738189d6c7fa73df146a6e2: 24,885,668 bytes (about 25 MB,
+not 24 GB), SHA-256 59cfb59d0a72ad83083961b41e23da5af53f220faa080524a5d9550d539a625c.
+CRC PASS, 347 files / 106,289,869 expanded bytes, complete hash inventory saved.
+This resolves the earlier missing-input draft; original ZIP and extracted bytes
+preserved. All 228 completed episode files match first native texts, full seeded
+histories and frozen parser/scorer replay. No final pair contrast computed.
+Contrary COMPLETE: W known servile54/64 (0.84375 exactly), U known0/64 with9
+malformed (0–0.140625). Neutral96/132 completed, acquisition PASS100/100; old
+controller remains STOP_FOR_REVIEW. Two interrupted units at original indices
+96/97 stay missing/no-resend. Their partial/prior traces are preserved; no known
+executed servile act is lost. Only34 genuinely untouched units can run.
+
+v02426 moves remote commit outside the event/request lock: keep each event
+append/flush/fsync, timer30s plus episode/end commits with a separate commit
+mutex; asynchronous persistence failures surface and stop later generation.
+All scientific settings/seeds and the complete engine/training implementation
+remain frozen. Actual scripted production continuation exercises34 untouched
+units and union132 provenance entries/130 possible judgments, two missing.
+Original shuffled indices, not suffix-relative numbering, determine seeds.
+Read-only v02424 neutral adapter verification additionally matches the exact
+v02425 pre-load proof; no training/acquisition fallback. New v02426 evidence and
+ledger, never reset/delete/modify old resources. Future virtue requires audited
+composite closure plus Claude/owner separate exact-commit approval.
+
+Measured source loads596.639/609.391s. Contrary523 transfer requests,1856.375
+summed request-wall seconds/2500.586 span; neutral623 returned transfer requests
+plus2 interrupted,2571.657 summed wall/3432.400 span. Mean3.549/4.128s, not decoded
+token throughput. Neutral completion nominal1695.1/stress2118.8s vs3000 guard.
+Actual v02424 training rates159.461/262.645tok/s: virtue stress6125.3–9375.1s,
+with the slow-training/neutral-like profile exceeding unchanged8800 guard by575.1s.
+This limitation is explicit; no silent guard increase/case cut or assumed batching
+speedup. Contrary ran per-event commits; neutral completion/virtue would use
+batched commits. Post-results implementation disclosure retained.
+
+Latest owner billing18.52used/11.48left; interval7.47 increase, not itemized invoice.
+New neutral reserve3.327888889 plus unchanged virtue8.483444444; cumulative
+30.331333333 under36, headroom5.668666667. Current credit cannot cover both full
+reserves (short0.331333333); per-stage credit checks retained and November may
+supply virtue credit with no cumulative reset. Same finite windows. No Modal
+contact, GPU, model generation, pretrained download or scientific training here.
+Review plan: docs/process/PAPER3_STUDY_D_GEMMA_COMPLETION_v02426.md; commands:
+studies/formation-study-d-gemma-stages-v02426/MAC_COMMANDS-v02426.md. No stage
+approved; Claude must review before owner approval. Full local checks/publication
+pending; no GitHub CI success claim yet.
+
+
+Final local v02426 validation: 701 tests PASS (33 skips) in 814.922 seconds; all scripted scenarios PASS. Focused completion tests PASS (one SDK-only skip), plus pinned Python 3.12/Modal 1.6.2 serialization PASS with backend access forbidden. Actual pinned tiny CPU rehearsal PASS: two optimizer steps, 13 modules/7,808 parameters, adapter reload and diagnostic deletion receipts, 20.692 seconds. Full three-arm scripted post-training path PASS, 396 transfers; separate production neutral continuation and delayed-commit regression PASS. All 18 inherited assets, all 347 received hashes and 342 staged text-file bytes remain identical. No GPU, pretrained download, Modal contact, model generation or scientific training. Publication and exact-head GitHub checks follow; neither stage is approved.
