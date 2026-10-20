@@ -7773,3 +7773,78 @@ Final local v02426 validation: 701 tests PASS (33 skips) in 814.922 seconds; all
 
 
 Projection-only correction before v02426 owner review: the full v02424 training-load records show 793.145549 s (contrary) and 322.355304 s (neutral). Replace the older 543.607 s smoke allowance with the larger measured 793.145549 s for virtue. Training rates and all other measured inputs stay unchanged. Virtue stress range is now 6,437.2–9,687.0 s; slow-training/neutral-like profile exceeds the unchanged 8,800 s guard by 887.0 s. Neutral completion projection and all runtime/science/guards/reservations are unchanged. First publication f883c98 is superseded for review by this administrative projection correction, NOT LAUNCHED. Fresh exact-head GitHub checks required for the final publication.
+
+
+### 2026-10-20 — v02426 complete; v02427 virtue FOR REVIEW, no launch
+
+Owner/Claude accepted v02426 neutral completion. Retrieved the newly owner-pushed
+GitHub ZIP at upload commit 2c38c161 (25,773,904 bytes), full SHA-256
+54de1f5ab5cecc422b314cf180f1b0683987636fd58141e32d8f35d18c4f59b5.
+All 396 entries pass CRC; full hash inventory and original text bytes preserved.
+Original ZIP/evidence/ledgers/adapters remain unchanged. Independent frozen replay
+passes for all 130 completed neutral episodes, with original seeded histories,
+first native texts, parser/scorer and two retained interrupted/missing units.
+No rerun, training, GPU, Modal access or final arm contrast performed here.
+
+Additive CPU provenance fix: the v02426 union inherited `untouched`/null path/
+empty IDs for its 34 completed units. In a NEW composite record, rebuild completed
+paths, output hashes and issued IDs from transfer files and native journals.
+All 130 non-missing units must have complete provenance; 34 retain producer
+v02426, status completed. Two interrupted units remain missing/no-resend. Bounds,
+labels and scores stay identical. Original composite is separately preserved.
+The virtue controller checks all 396 pinned input hashes and the old durable
+closure via read-only source resources, rebuilds the composite, and binds its
+reviewed exact hash before GPU reservation. Regression exercises actual
+require_previous and rejects old incomplete provenance, wrong hash and missing
+closure. Original pair source commit is accepted independently of the future
+virtue commit. No old evidence is rewritten or old once ledger reset.
+
+Measured batched timing: serving load 684.2786 s; 229 native starts/returns;
+mean request wall 2.8779 s, nearest-rank p95 4.2478 s, max 15.3275 s. Sum wall
+659.0388 / transfer span 374.5380 = effective concurrency 1.7596. All 34 episode
+request counts (1–12) recorded. Worker wall 1237.8690 s. This measures real
+multi-turn request latency, not decoded token throughput. Virtue uses 363,524
+training tokens, both full v02424 training rates (159.4611/262.6449 tokens/s),
+max full training-load 793.1455 s, current serving-load and 300 s allowance,
+v02425 contrary/neutral request-count profiles plus 120 acquisition/descriptive
+requests, and 1.25 stress. Show both measured and zero concurrency benefit.
+Worst no-concurrency stress about 8,585 s leaves about 1,015 s under new guard.
+Planning stress is not a tail guarantee. Cases/repeats/seeds unchanged.
+
+Owner requests virtue guard 9,600 s, provider timeout 9,800 s, unchanged formula
+reservation $9.194555556. PRIOR $19.67 uses the higher Usage-tab total, credit
+$10.39, cumulative cap $36. Interval increase $1.15 from $18.52 is not an
+itemized app invoice. Actual plus reservation $28.864555556, cap headroom
+$7.135444444, current credit after reservation $1.195444444. Fresh v02427
+namespace, same November 9 01:00 UTC exclusive window. No monthly cumulative
+reset; no card remains owner-attested. Refresh billing before any future launch.
+
+Descriptive post-results Paper 3 finding/confound: neutral unfinished_work
+W 24/63 and U 14/63 completed episodes, compared with zero for contrary and
+zero for base Gemma's audited W/U episodes. Each W/U planned denominator remains
+64 with one missing each. Two additional neutral unfinished_work labels occur in D. Neutral is therefore a potentially confounded control for compliance
+comparisons, since work completion also differs. Do not relabel unfinished_work
+as over-refusal or alter planned-denominator bounds. No causal explanation or
+final arm contrast is asserted. Contrary used per-event commits; neutral completion
+and virtue use batched commits; only batch timing may differ.
+
+All 18 inherited assets and the complete v02426 runtime are byte-identical in
+v02427. Same live LoRA, graphs, retained prefix/sampler/KV guards, dose, data,
+acquisition gates, seeds and scorer. Virtue alone is exposed. Stage copying and
+provenance repair are CPU-only before reservation; no acquisition rerun or
+neutral generation. Private retention/deletion commitment unchanged. Mac route
+uses caffeinate, spawn, acknowledged SUBMITTED line and one attempt. No launch
+until Claude review and new owner approval of exact v02427 commit. Local checks
+and publication pending; no CI success claim yet.
+
+Count reconciliation during independent audit: owner/Claude reported W21/63; returned frozen labels and full first-native replay give W24/63 (U14/63 agrees; D2). Preserve the attributed original figure and list all 40 unfinished_work episode IDs in audit-v02427.json. Base-format evidence confirms zero unfinished_work over 16 W and 16 U episodes; that is a different case/repeat mix, not a matched causal comparison. No scoring or source record changed.
+
+Validation environment note: an initial local full-suite attempt used the system
+Python 3.12 interpreter, whose compensated float sum causes two historical
+v0220 exact-float fixture failures (0.47952185 vs 0.47952185000000036). Stopped
+only that identified local test process and preserved its log; changed no
+historical evidence or code. The required full suite is being run with the
+original Python 3.11 interpreter, matching Harness CI. The independent pinned
+Python 3.12 tiny-model rehearsal and Modal serialization tests pass.
+
+Final local v02427 validation: 706 tests PASS (34 skips), Python 3.11.17, 786.601 s; all scripted scenarios PASS. New provenance/admission tests PASS, actual no-backend Modal serialization PASS under Python3.12.14/Modal1.6.2, actual pinned tiny CPU rehearsal PASS in24.227s with two steps and adapter reload/deletion, scripted full post-training path PASS across396 transfers. All18 inherited assets, complete runtime bytes and396 source hashes remain unchanged. GitHub publication/checks follow; no launch approved.

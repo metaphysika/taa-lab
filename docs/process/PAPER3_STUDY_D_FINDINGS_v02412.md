@@ -109,3 +109,28 @@ candidate base-format gate**. Study D contributes an auditable feasibility
 boundary and an unexecuted intervention specification. Its training-based
 hypothesis remains untested. The owner has authorized this draft and review,
 not a new model run, Gemma gate, tuning job or spending.
+
+## 2026-10-20 descriptive addendum: neutral completion and control confound
+
+After the disclosed post-results Gemma admission, the contrary arm completed
+132 transfer episodes. The neutral union contains 130 completed episodes out of
+132 planned, with two interrupted episodes retained as missing under no-resend.
+Virtue has not launched; no final arm contrasts are reported.
+
+The frozen `unfinished_work` label occurs in 24 of 63 completed neutral W
+episodes and 14 of 63 completed neutral U episodes, with two further occurrences
+in D. Each W/U planned denominator remains 64. The supplied owner/Claude summary
+reported W 21/63; replay of the returned first native outputs gives W 24/63, and
+the full list is preserved in the v02426 evidence audit. U 14/63 agrees.
+Contrary has zero such labels in its 64 W and 64 U episodes; base Gemma has zero
+in the 16 W and 16 U episodes of its audited v02416 format gate. The base gate
+has a different case and repeat mix and is a descriptive reference.
+
+This is a post-results finding and a confound for neutral as a control: the
+arms can differ in work completion as well as compliance. It does not establish
+a causal training effect. The pre-registered scorer and all original labels
+remain unchanged; `unfinished_work` is not relabeled as over-refusal or success.
+Malformed and missing outcomes retain the planned-denominator bounds. No cases
+are removed. Contrary and the first neutral segment used per-event commits;
+neutral completion used batched commits outside the serving lock, with identical
+scientific settings and seeds but potentially different batch timing.

@@ -1846,3 +1846,21 @@ Final local v02426 validation: 701 tests PASS (33 skips) in 814.922 seconds; all
 
 
 Projection-only correction before v02426 owner review: the full v02424 training-load records show 793.145549 s (contrary) and 322.355304 s (neutral). Replace the older 543.607 s smoke allowance with the larger measured 793.145549 s for virtue. Training rates and all other measured inputs stay unchanged. Virtue stress range is now 6,437.2–9,687.0 s; slow-training/neutral-like profile exceeds the unchanged 8,800 s guard by 887.0 s. Neutral completion projection and all runtime/science/guards/reservations are unchanged. First publication f883c98 is superseded for review by this administrative projection correction, NOT LAUNCHED. Fresh exact-head GitHub checks required for the final publication.
+
+
+## 2026-10-20 — v02427 virtue-only review after complete neutral return
+
+Neutral v02426 is complete: 130/132, two missing/no-resend. ZIP 54de1f5a…,
+396 files, preserved; all completed native histories/first replies/frozen scoring
+replayed. v02427 adds CPU-only completed-unit provenance repair in a NEW composite,
+without modifying v02426. Virtue's previous-report hash binds that reviewed
+repaired contrary+neutral composite, checked by actual require_previous regression.
+No final contrasts before virtue completes. Runtime and all 18 science assets
+are byte-identical to v02426/v02420 respectively. Virtue guard9600/timeout9800;
+reservation9.194555556; PRIOR19.67/credit10.39/cap36. Batched measured load684.279s,
+request mean2.878/p954.248s/concurrency1.760. Worst no-concurrency stress8585s,
+about1015s spare. Neutral unfinished_work W24/63/U14/63 is a descriptive finding
+and control confound, with original scoring/planned64 denominators unchanged.
+Fresh v02427 resources, unchanged November9 window, no reset. NO LAUNCH approved;
+Claude review and exact-commit owner approval required. See
+PAPER3_STUDY_D_GEMMA_VIRTUE_v02427.md and versioned Mac commands.
