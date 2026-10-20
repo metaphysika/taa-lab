@@ -1864,3 +1864,20 @@ and control confound, with original scoring/planned64 denominators unchanged.
 Fresh v02427 resources, unchanged November9 window, no reset. NO LAUNCH approved;
 Claude review and exact-commit owner approval required. See
 PAPER3_STUDY_D_GEMMA_VIRTUE_v02427.md and versioned Mac commands.
+
+
+## 2026-10-20 — v02428 CPU admission review after v02427 engineering failure
+
+v02427 return d6b42590…/398 files preserved; no worker, GPU science or reservation.
+Owner read-only Mac ledger inventory: exactly pair/closed(d7837f29…) and
+STOP_FOR_REVIEW(virtue), NO virtue/once. Old ledger remains untouched. Cloud lacks
+Modal credentials/network; no independent live query. Initial heartbeat stall is
+owner/Claude diagnosis; directory false-positive on restart is directly recorded.
+v02428: controller1CPU/2048MB, streaming single repair, canonical-hash-only
+require_previous, direct root/pair path, once-or-reservation attempt signal.
+Full shared CPU admission tested against committed v02426 ZIP, peak RSS58.03MiB
+under1024MiB CI ceiling, exactly one repair, no stage folder or claim. Science
+runtime/assets/worker guard9600/9800/reservation9.194555556 unchanged. Higher
+attestedPRIOR19.67 (dashboard19.62), credit10.38, cap36; window Nov9 01UTC unchanged.
+Fresh v02428 resources, no reset. NO LAUNCH until Claude/new exact-commit owner
+approval. See PAPER3_STUDY_D_GEMMA_ADMISSION_v02428.md.
