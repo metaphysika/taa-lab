@@ -7909,3 +7909,74 @@ pattern unchanged. NO LAUNCH until Claude review and exact-commit owner approval
 Local full checks and GitHub publication pending; no CI success claim yet.
 
 Final local v02428 validation: 713 tests PASS (35 skips), Python 3.11.17, 991.654 s; all scripted scenarios PASS. New full CPU admission, directory/claim and provenance tests PASS. Exact pinned Modal serialization PASS with backend forbidden. Actual pinned tiny CPU rehearsal PASS: two steps, adapter reload/deletion, 27.928 s. Scripted full post-training path PASS (396 transfers). Final standalone admission measurement is preserved in cpu-admission-validation-v02428.json; exactly one repair and no reservation. Publication and exact-head GitHub checks follow. No launch approved.
+
+
+## 2026-10-20 — v02428 training complete; v02429 serving-only virtue for review
+
+Original v02428 ZIP retrieved from the owner's GitHub main upload 105841a8:
+SHA-256 c31f955917bab9af68e59637fed54fa673deeba1d2ac95cfeef4278df4423edd,
+25,825,152 bytes, 420 files, CRC PASS. All file hashes preserved in
+studies/formation-study-d-gemma-virtue-result-v02428/evidence-integrity-v02428.json.
+Independent public-evidence audit confirms 250 training steps, 2,000 examples,
+363,524 tokens in 2,639.309 seconds; frozen CPU dataset summaries match, with
+410 LoRA modules and 61,214,720 trainable parameters. The virtue dataset digest
+is b2e2146099b6dbd7f3798cd5fcec81055583e0a76078766e697e9393ff4c2ae5.
+
+Controller KeyboardInterrupt at acquisition-wait line 101, then the correct
+prior-once refusal, are directly recorded. Worker training and adapter handoff
+completed; the shared STOP_FOR_REVIEW guard stopped the first acquisition.
+Exactly two new native events (load start and verified handoff), zero generation
+requests and no acquisition/transfer outputs. Modal preemption as the causal
+explanation remains the owner/Claude diagnosis; the exceptions and zero requests
+are independently verified. All 396 inherited source hashes and the canonical
+repaired pair composite match. Original ZIP, evidence, ledger and private Volume
+remain unchanged. No scientific null or acquisition failure is inferred.
+
+Owner/Grok Bot's read-only Mac inventory (~11:04 am CDT) lists the three expected
+adapter files plus checkpoint-integrity.json, and pair/closed, STOP_FOR_REVIEW,
+virtue/once, virtue/worker/virtue. No live Modal query or private weight download
+here. v02429 binds 23 public training proof files; the read-only private mount
+must verify its original index, file hashes and LoRA/base config before loading.
+This is a new public hash binding, not a claim of an earlier public weight hash.
+No retraining fallback, merged weights, sharing or deployment. Source adapters
+remain private on review stop; study-end cleanup requires reviewed deletion
+receipts because this stage mounts the source read-only.
+
+The new controller has 1 CPU / 2,048 MB and a 600-second timeout. It admits,
+claims once, persists the reservation, spawns one worker and returns. No wait
+loop or result.get. The worker computes and saves the identical frozen
+acquisition_decisions against pinned neutral_ordered before transfer, which
+requires PASS. Worker owns final report and closure. Preemption/cancellation is
+classified separately from runtime errors; both require review and forbid
+restart. Missing closure after a hard kill stays unknown. Engine, Serving,
+batched commits, seeds, scoring, acquisition and all 18 inherited assets are
+unchanged. Separate v02429 namespace; no old keys or files reset.
+
+Software guard 4,800 seconds / timeout 5,000 seconds; reservation $4.927888889.
+Owner attests higher Usage-tab prior $22.73, credit $7.41, cap $36. Cumulative
+actual plus reservation $27.657888889, cap headroom $8.342111111, credit after
+reservation $2.482111111. Difference from prior $19.67 is $3.06 in attested
+boundary totals, not an itemized invoice. v02426 measured load 684.279 seconds,
+request mean 2.878 seconds / p95 4.248 seconds, effective concurrency 1.760:
+worst mean-latency stress without concurrency projects 4,744 seconds, only about
+56 seconds spare; p95-every-request sensitivity is 6,416 seconds, exceeding the
+requested guard. No silent guard/case/repeat change or completion guarantee.
+Window remains November 9, 2026 01:00 UTC exclusive.
+
+New free CI exercises full admission against both actual returned ZIPs,
+worker/controller decision equivalence including failures, 132 scripted transfer
+units with frozen parser/scorer, corrupt adapter rejection, cancellation/runtime
+receipts and no-backend serialization. The first full local test process was
+interrupted without a result; rerun logs now persist in the workspace. Full local
+validation and exact-head GitHub checks follow before publication is called ready.
+No Modal launch, pretrained download, GPU or scientific training performed here.
+Review plan: docs/process/PAPER3_STUDY_D_GEMMA_VIRTUE_REUSE_v02429.md.
+
+Previously requested post-run v02428 PR: https://github.com/metaphysika/taa-lab/pull/4 .
+The stale v02428 Mac instructions are corrected in a separate later commit:
+use the executed commit and clarify the intentionally retained canonical
+composite-pair-v02427.json filename. Mark the old stage archival, no relaunch.
+Only its documentation hash changes; original executed bytes remain available
+at 0c494657 and in the immutable returned evidence. No merge performed.
+
+Final local v02429 validation: 722 tests PASS (36 skips) in 804.588 seconds, Python 3.11. All scripted scenarios PASS. New full admission against both original ZIPs, 132-transfer worker-owned acquisition rehearsal, failure classifications, corruption and no-backend pinned Modal serialization PASS. No further runtime changes after validation. Review-branch publication and both exact-head GitHub checks follow; no launch is approved.
