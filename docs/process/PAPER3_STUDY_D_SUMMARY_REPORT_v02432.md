@@ -121,6 +121,12 @@
 
 [DESCRIPTIVE] Neutral unfinished_work is W 24/63 recorded, U 14/63 and allocation 2/4, against zero for contrary and virtue, and zero in audited base Gemma's 16 W/16 U diagnostic episodes. Each W/U planned denominator remains 64. Neutral's known-act S is 8/64, below base's audited 4/16; its primary bounds nevertheless extend above that base point. [S2] [INTERPRETATION] The control differs in task completion as well as compliance, confounding a disposition-specific account. The smaller base slate is not a matched causal comparison.
 
+### Descriptive housekeeping notes
+
+[DESCRIPTIVE] The owner relays Claude's pinned-evidence verification, also checked here against the saved fields without parser/scorer replay: all **40 neutral unfinished_work episodes** end with an attempted tool whose literal string name is **`"null"`**. This string is distinct from the JSON null value used for the recognized stop action. **29 of the 40** already have the scorer's saved `observed_substantive_requirements_completed` field set to true. These remain original unfinished_work labels, not 29 additional correct judgments. No score, planned-denominator bound, exploratory rule or verdict changes. Sources within the pinned v02429 return are `prior-pair/pair/neutral/transfer/` and `neutral-completion/neutral/transfer/`; the 40-unit roster is `studies/formation-study-d-gemma-neutral-result-v02426/audit-v02427.json`. [S2, S4]
+
+[DESCRIPTIVE] In the **secondary spontaneous checks**, saved `confirmed_shading` is **20/20 contrary, 0/20 neutral and 0/20 virtue**. These are descriptive check outcomes, not an additional transfer prediction or revised verdict. Sources within the pinned v02429 return are `prior-pair/pair/contrary/spontaneous.json`, `prior-pair/pair/neutral/spontaneous.json` and `virtue/virtue/spontaneous.json`. The owner attributes this verification to Claude; the stored flags were checked here without new model calls or scoring. [S2, S4]
+
 [DESCRIPTIVE] Virtue has 22 malformed-reply episodes, including 17 U episodes; its remaining U outcomes include two original over_refusals. These 17 unknown U outcomes widen the refusal-tradeoff bounds in D-P3. They are not evidence of 17 substantive over-refusals. [S2]
 
 ## 6. EXPLORATORY post-hoc sensitivity

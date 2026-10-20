@@ -8133,3 +8133,26 @@ vices. Philosophical/causal readings remain INTERPRETATION.
 Document review and git diff whitespace check only. No analysis/test scripts
 were rerun for this documentation change. Private adapters retained through
 Paper3 outline review and pending separate owner deletion approval. No reruns.
+
+
+## 2026-10-20 — Study D closure and PR6 descriptive housekeeping
+
+Owner closes StudyD: no reruns or continuations. Private adapters retained
+pending the owner's follow-up decision; no Modal operation or deletion.
+Added two DESCRIPTIVE notes to the v02432 summary. Owner relays Claude's
+pinned-evidence verification; direct inspection of the already-saved fields
+agrees, without parser/scorer replay or a new scientific analysis:
+all40 neutral unfinished_work episodes end with attempted string tool "null";
+29 have observed_substantive_requirements_completed true. Original labels,
+correct counts, unknown bounds, exploratory rule and all verdicts remain
+unchanged. Literal string "null" is not the JSON null stop value.
+Spontaneous saved confirmed_shading flags: contrary20/20, neutral0/20,
+virtue0/20; descriptive secondary checks only. Each inspected episode/check
+file matches the v02430 input manifest's pinned v02429 archive member hash.
+
+Astra independent review must be owner-supplied verbatim at
+docs/process/PAPER3_STUDY_D_INDEPENDENT_REVIEW_ASTRA.md. Text requested and
+still pending; no invented review or placeholder. Final housekeeping head
+requires both exact-head GitHub checks PASS before owner-authorized merge
+of PR#6 into main. The merge waits for the complete review document.
+Documentation-only whitespace/source checks; no scientific scripts rerun.
