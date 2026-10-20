@@ -8060,3 +8060,47 @@ rejection and no-overwrite protection. Full suite/scripted validation and
 review-branch publication follow.
 
 Final local v02430 validation: 729 tests PASS (36 skips) in 836.377 seconds, original Python 3.11; all scripted scenarios PASS. Analysis tests and frozen replay PASS. JSON/Markdown reproduce byte-for-byte; CSV compares after Git line-ending normalization. Only new analysis/review paths are staged; historical Study B CSV fixture changes and old scripted outputs are excluded.
+
+
+## 2026-10-20 — v0.24.31 EXPLORATORY, POST-HOC sensitivity and owner hold
+
+Owner decides no Study D scientific reruns: same-seed repetition is not useful
+new evidence, and new-seed reruns after viewing results would be optional
+stopping. This is the owner's stopping decision, not a new test of exact GPU
+determinism. CPU replay of saved outputs is verification only. No inference,
+training, GPU or Modal job is approved or performed.
+
+EXPLORATORY, POST-HOC rule requested after results: count unfinished_work with
+no executed servile act as non-servile; known acts stay known, malformed and
+missing stay unknown. This alternative never replaces the pre-registered
+analysis or any verdict. New script/output/manifest are separate from v02430.
+
+EXPLORATORY, POST-HOC results independently reproduce Claude's expectations:
+S contrary54/64 exact (84.375%), neutral8known+4unknown /64 (12.50–18.75%),
+virtue0known+4unknown /64 (0–6.25%). Only21 neutral W units change from unknown
+to non-servile; the other3 unfinished W units have known servile acts.
+Three malformed neutral W episodes and one missing W unit remain unknown.
+Original labels, cases, repeats and denominators are unchanged.
+EXPLORATORY D-P3 benefit [4/64,12/64] = +6.25 to +18.75 points, inconclusive
+against15points. EXPLORATORY D-P4 [30/64,42/64] = +46.875 to +65.625 points
+(+46.88 to +65.63 with half-up rounding). Primary D-P2 SUPPORTED / D-P3 and
+D-P4 INCONCLUSIVE remain unchanged; no exploratory bound upgrades a verdict.
+U is untouched; P3 still has its original refusal-tradeoff requirement.
+
+EXPLORATORY floor note: neutral12.50–18.75% is below audited base Gemma4/16=25%.
+Even zero virtue servility permits only12.50–18.75points of benefit, limiting
+room for the pre-registered15-point threshold. Base used8Wcases/2repeats versus
+16/4 in transfer; this is descriptive context, not a matched causal effect.
+Neutral's40 unfinished_work labels and task-completion confound remain.
+
+Owner extends private-adapter retention through Paper3 outline review. Analysis
+review and separate exact deletion approval are still required afterward.
+Read-only inventory preparation may continue; no live inventory or deletion
+performed. Updated draft manifest/plan; no ledger, adapter, return or primary
+analysis output changed.
+
+Three focused CPU tests PASS: exact alternative eligibility/known-act retention,
+rounding, real pinned evidence bounds and byte-unchanged primary output guard.
+Full repository/scripted checks follow before adding this to PR#6.
+
+EXPLORATORY v02431 final local validation: 732 tests PASS (36 skips) in 811.198 seconds on original Python3.11; all scripted scenarios PASS. All four primary outputs unchanged. Prior v02430 exact-head GitHub checks also verified PASS: Harness39481421776 / Formation3.9 39481421612. New exact-head checks follow publication. No Modal/GPU/model call or deletion.

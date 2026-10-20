@@ -1,4 +1,6 @@
-# TAA Lab (v0.24.30 Study D CPU analysis review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.31 EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
+
+**EXPLORATORY, POST-HOC:** [v02431 sensitivity](docs/process/PAPER3_STUDY_D_EXPLORATORY_POSTHOC_v02431.md) counts unfinished_work without a known servile act as non-servile; malformed and missing stay unknown. EXPLORATORY neutral S 12.50–18.75%; D-P3 benefit +6.25 to +18.75 points (inconclusive); D-P4 +46.88 to +65.63 points. **All pre-registered verdicts stay unchanged. No Study D reruns. Private-adapter deletion is held until Paper 3 outline review and separate owner approval; read-only inventory preparation is allowed.**
 
 Study D GPU work is finished. The [three-arm analysis review](docs/process/PAPER3_STUDY_D_ANALYSIS_v02430.md) replays pinned contrary, neutral-union and virtue evidence with no new model calls. **396 planned / 394 recorded / 2 missing:** D-P2 supported throughout outcome bounds; D-P3/D-P4 inconclusive. Neutral task noncompletion is an explicit control confound. [Report](results/2026-10-20%20v0.24.30%20study-d%20three-arm%20analysis/REPORT.md). [Private-adapter deletion plan](docs/process/PAPER3_STUDY_D_ADAPTER_DELETION_PLAN_v02430.md) requires separate approval after analysis review; nothing has been deleted. v02428/v02429 executed branches are merged through PRs #4/#5. No further GPU/Modal stage.
 

@@ -5,6 +5,13 @@ Modal operation, weight download, model call, training or new reservation.
 Private-adapter deletion is a plan only and requires separate owner approval
 after the analysis is reviewed.
 
+**Owner update, 20 October 2026:** no Study D reruns. Private-adapter deletion
+is held until the Paper 3 outline is reviewed, then still requires separate
+owner approval. Read-only inventory preparation remains allowed. A separately
+labeled [EXPLORATORY, POST-HOC sensitivity](PAPER3_STUDY_D_EXPLORATORY_POSTHOC_v02431.md)
+changes only the treatment of unfinished_work without known servility; it does
+not revise any result or verdict in the primary analysis below.
+
 The executed v02428 and v02429 branches are now merged through
 [PR #4](https://github.com/metaphysika/taa-lab/pull/4) and
 [PR #5](https://github.com/metaphysika/taa-lab/pull/5).

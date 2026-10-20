@@ -1,9 +1,12 @@
 # Study D private-adapter deletion plan v02430
 
-**DRAFT FOR REVIEW. NO DELETION AUTHORIZED OR PERFORMED.**
+**ON HOLD UNTIL THE PAPER 3 OUTLINE IS REVIEWED. NO DELETION AUTHORIZED OR PERFORMED.**
 
-The owner must first review the three-arm analysis, then explicitly approve
-the exact deletion manifest and named private Volumes. This document is a plan,
+Owner decision, 20 October 2026: hold deletion until after review of the Paper 3
+outline. Analysis review remains required, followed by separate explicit owner
+approval of the exact deletion manifest and named private Volumes. Read-only
+inventory preparation is allowed; no live inventory or deletion has been run.
+This document is a plan,
 not an executable cleanup script. All adapters remain private and unshared
 until that decision. No deployment, Hugging Face upload or distribution.
 
@@ -30,7 +33,8 @@ checkpoint. These hashes are public receipts; no weights were copied into Git.
 
 ## Proposed sequence after approval
 
-1. Record exact owner approval, analysis commit, target manifest SHA, operator,
+1. Confirm Paper 3 outline and analysis review are complete. Record separate
+   exact owner approval, analysis commit, target manifest SHA, operator,
    UTC time, Modal workspace/environment and the two unique approved physical
    Volume names. Confirm all Study D apps/workers are terminal and none mount
    these Volumes. Use read-only metadata/inventory commands first; no launch.
@@ -64,6 +68,7 @@ native journals, public training proofs, reports, source hashes, budget Dicts,
 once-only markers, failed-stage records and billing attestations. Base-weight
 caches and unrelated Volumes are outside this deletion plan. No ledger reset.
 
-The existing stopped/review-stage retention rule remains in force until the
-owner's study-end deletion decision. No approval for new inference or GPU work
-is requested or implied.
+The existing stopped/review-stage retention rule remains in force through the
+Paper 3 outline review and until the owner's separate deletion decision. Study D
+has no further approved scientific reruns. No new inference or GPU work is
+requested or implied.
