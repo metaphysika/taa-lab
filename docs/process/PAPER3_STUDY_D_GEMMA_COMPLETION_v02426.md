@@ -104,16 +104,17 @@ repeats, generation limits and stopped/malformed bounds.
 
 Virtue uses 363,524 training tokens. Actual v02424 rates are 159.461 tokens/s
 (contrary) and 262.645 (neutral), giving 2,279.7 or 1,384.1 training seconds.
-Add 543.607 s historical training-load allowance, conservative 609.391 s serving
+Full v02424 training loads were 793.146 s (contrary) and 322.355 s (neutral).
+Use the larger 793.146 s observed training-load allowance, plus 609.391 s serving
 load, measured acquisition/spontaneous/request profiles and 300 s allowance.
 Because virtue has no observed science request counts, show BOTH profiles:
 
 | Training rate | Request profile | Nominal seconds | Stress seconds | Spare under 8,800 s |
 | --- | --- | ---: | ---: | ---: |
-| 159.461 | Contrary-like, 523 transfers requests | 5,795.8 | 7,244.8 | 1,555.2 |
-| 159.461 | Neutral-like, about 856.6 transfer requests | 7,500.1 | 9,375.1 | **−575.1** |
-| 262.645 | Contrary-like | 4,900.2 | 6,125.3 | 2,674.7 |
-| 262.645 | Neutral-like | 6,604.5 | 8,255.6 | 544.4 |
+| 159.461 | Contrary-like, 523 transfer requests | 6,045.4 | 7,556.7 | 1,243.3 |
+| 159.461 | Neutral-like, about 856.6 transfer requests | 7,749.6 | 9,687.0 | **−887.0** |
+| 262.645 | Contrary-like | 5,149.7 | 6,437.2 | 2,362.8 |
+| 262.645 | Neutral-like | 6,854.0 | 8,567.5 | 232.5 |
 
 The neutral-like profile scales returned request counts from 96 episodes and
 therefore includes some partial-work overhead. It is a sensitivity, not a
@@ -121,7 +122,8 @@ prediction of virtue behavior. The slow-training/neutral-like stress case DOES
 NOT fit the unchanged virtue guard. Do not silently raise its guard/reservation
 or cut cases. Owner/Claude must review this limitation before virtue approval.
 A 25% stress factor is not a confidence bound and does not cover full 4,096-token
-tails. Numeric inputs/methods are in projections-v02426.json.
+tails. Numeric inputs/methods are in projections-v02426.json. The larger measured training
+load replaces the older smoke startup allowance; no runtime or budget change.
 
 ## Budget, windows and execution boundary
 
