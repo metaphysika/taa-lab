@@ -1,6 +1,6 @@
-# TAA Lab (v0.24.26 neutral completion review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.27 virtue review; frozen Study C v0.23.9)
 
-Study D **v02426** prepares 34 untouched neutral transfer episodes and batched evidence commits, for review only. [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_COMPLETION_v02426.md). v02425 contrary is complete; neutral has 96 completed and two interrupted/missing units. The pair is not closed; no final contrasts. No launch approved. Cap $36; owner dashboard $18.52 used/$11.48 left. Virtue remains separately blocked; one measured stress projection exceeds its unchanged guard.
+Study D **v02427** prepares the separately approved-later virtue stage, with a CPU-only additive provenance repair and a 9,600-second guard. [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_VIRTUE_v02427.md). Neutral is complete: 130/132 with two missing under no-resend; original evidence is preserved. No final arm contrasts. Cap $36; owner Usage-tab total $19.67 used, credit $10.39. Reservation $9.1946. No launch approved.
 
 Historical v02421 speed review: the v02420 engineering smoke completed, but full-arm runtime/cost projections failed. The [v02421 plan](docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02421.md) prepared a separate ≤$2.50 smoke comparing CUDA-graph live LoRA versus verified merged bf16 serving and prefix retention. Its dashboard/cap figures were $5.41 used/$24.59 left and $30. That engineering path is superseded by the current v02424 review above. Automatic free CPU CI includes real tiny-model training and PEFT merge/save/reload.
 
