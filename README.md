@@ -1,6 +1,6 @@
-# TAA Lab (v0.24.28 virtue admission review; frozen Study C v0.23.9)
+# TAA Lab (v0.24.29 serving-only virtue review; frozen Study C v0.23.9)
 
-Study D **v02428** fixes CPU-only virtue admission: 1 CPU / 2,048 MB controller, streaming single provenance repair, and an explicit composite path. [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_ADMISSION_v02428.md). v02427 failed before reservation or worker: its unchanged ledger has pair/closed and STOP_FOR_REVIEW, no virtue/once. Science/runtime and $9.1946 reservation remain unchanged. Cap $36; higher attested prior $19.67, credit $10.38. **No launch approved.**
+Study D **v02429** reuses completed v02428 virtue training through a read-only adapter mount. The controller performs CPU admission and submits the worker without waiting; the worker owns the unchanged acquisition decision and transfer gate. [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_VIRTUE_REUSE_v02429.md). Original v02428 evidence (420 files, SHA c31f9559…) is preserved: full training completed, controller interrupted, no science requests. Guard 4,800 s / timeout 5,000 s; reservation $4.9279, higher prior $22.73, credit $7.41, cumulative cap $36. **No launch approved.**
 
 Historical v02421 speed review: the v02420 engineering smoke completed, but full-arm runtime/cost projections failed. The [v02421 plan](docs/process/PAPER3_STUDY_D_GEMMA_SPEED_v02421.md) prepared a separate ≤$2.50 smoke comparing CUDA-graph live LoRA versus verified merged bf16 serving and prefix retention. Its dashboard/cap figures were $5.41 used/$24.59 left and $30. That engineering path is superseded by the current v02424 review above. Automatic free CPU CI includes real tiny-model training and PEFT merge/save/reload.
 

@@ -1,4 +1,6 @@
-# v02428 virtue — FOR REVIEW ONLY; NOT APPROVED
+# v02428 virtue — ARCHIVAL; executed once, STOP_FOR_REVIEW
+
+Do not relaunch. The commands below document the consumed approval at commit 0c4946574f32d305b8e4272459a004d6cb460fc3; v02429 requires its own review and approval.
 
 Wait for Claude review, exact-commit owner approval and both GitHub checks. These commands do not authorize launch. Confirm all old apps have finished; never restart/reset/delete old ledgers, markers, evidence or adapters. Preserve unexpected local changes.
 
@@ -6,11 +8,11 @@ Wait for Claude review, exact-commit owner approval and both GitHub checks. Thes
 cd ~/taa-lab
 git status --short
 git fetch origin
-git checkout --detach FULL_REVIEWED_V02427_COMMIT
+git checkout --detach 0c4946574f32d305b8e4272459a004d6cb460fc3
 REVIEWED_COMMIT="$(git rev-parse HEAD)"
 ```
 
-Existing Python3.12 / Modal1.6.2 environment; HF_TOKEN only from Modal Secret huggingface. Refresh actual cumulative Usage-tab total and current available credit if changed. The previous-report hash is the NEW reviewed composite pair record, staged as composite-pair-v02427.json and CPU-rebuilt as pair/report.json in the NEW evidence Volume. Original v02426 pair/report.json is preserved as source-composite-v02426.json; it is not the CLI-bound record.
+Existing Python3.12 / Modal1.6.2 environment; HF_TOKEN only from Modal Secret huggingface. Refresh actual cumulative Usage-tab total and current available credit if changed. The previous-report hash is the NEW reviewed composite pair record, staged under its intentionally retained canonical filename composite-pair-v02427.json (the same reviewed bytes used by v02428, not a v02427 launch instruction) and CPU-rebuilt as pair/report.json in the NEW evidence Volume. Original v02426 pair/report.json is preserved as source-composite-v02426.json; it is not the CLI-bound record.
 
 ```bash
 caffeinate -dis ~/modal-study-d-gemma/bin/python scripts/formation_study_d_gemma_stages_v02428.py \

@@ -1,0 +1,88 @@
+{
+  "status": "PASS",
+  "scope": "OFFLINE returned public evidence only; no live Modal or private weights queried",
+  "zip_sha256": "c31f955917bab9af68e59637fed54fa673deeba1d2ac95cfeef4278df4423edd",
+  "files": 420,
+  "source_commit": "0c4946574f32d305b8e4272459a004d6cb460fc3",
+  "training": {
+    "status": "COMPLETE",
+    "optimizer_steps": 250,
+    "processed_examples": 2000,
+    "processed_tokens": 363524,
+    "seconds": 2639.308985209,
+    "excludes_science": false,
+    "cpu_rehearsal": false,
+    "settings": {
+      "examples": 2000,
+      "epochs": 1,
+      "learning_rate": 0.0002,
+      "batch": 1,
+      "accumulate": 8,
+      "context": 1024,
+      "seed": 247056,
+      "bf16": true,
+      "optimizer": "adamw_torch",
+      "scheduler": "constant",
+      "weight_decay": 0,
+      "warmup_steps": 0,
+      "gradient_checkpointing": true,
+      "assistant_only": true,
+      "use_cpu": false,
+      "effective_optimizer_steps": 250
+    },
+    "lora": {
+      "r": 8,
+      "lora_alpha": 16,
+      "lora_dropout": 0,
+      "bias": "none",
+      "task_type": "CAUSAL_LM",
+      "target_modules": ".*language_model.*\\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
+    }
+  },
+  "dataset_sha256": "b2e2146099b6dbd7f3798cd5fcec81055583e0a76078766e697e9393ff4c2ae5",
+  "frozen_cpu_data_match": true,
+  "coverage_modules": 410,
+  "trainable_parameters": 61214720,
+  "source_v02426_files_unchanged": 396,
+  "composite_sha256": "d7837f291e21c04f5b700d1b6fb2adb684b871f28330cfc55d84da5ab0b018a7",
+  "new_generation_events": 0,
+  "acquisition_files": 0,
+  "transfer_files": 0,
+  "adapter_handoff_verified": true,
+  "worker_stop": {
+    "status": "STOP_FOR_REVIEW",
+    "phase": "arm_worker",
+    "error_type": "RuntimeError",
+    "error_message": "another worker stopped; review required",
+    "traceback": "Traceback (most recent call last):\n  File \"/opt/study-d/runtime.py\", line 740, in arm_worker\n    else:post_training_arm(session,base,h,acq,folder,batched,ledger,p,report,training)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 666, in post_training_arm\n    ordered=checks('ordered-acquisition.json',arm,247053)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 662, in checks\n    rows=session.run([lambda c=c,i=i:acq.score_acquisition(\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/thread.py\", line 59, in run\n    result = self.fn(*self.args, **self.kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 663, in <lambda>\n    session.generate(c['messages'],arm+'/'+name+'/'+c['id'],seed+i,512),c,score_arm)\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 569, in generate\n    return f.result()\n           ^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 456, in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 401, in __get_result\n    raise self._exception\n  File \"/usr/local/lib/python3.12/concurrent/futures/thread.py\", line 59, in run\n    result = self.fn(*self.args, **self.kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 663, in <lambda>\n    session.generate(c['messages'],arm+'/'+name+'/'+c['id'],seed+i,512),c,score_arm)\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/study-d/runtime.py\", line 569, in generate\n    return f.result()\n           ^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 456, in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/concurrent/futures/_base.py\", line 401, in __get_result\n    raise self._exception\n  File \"/opt/study-d/runtime.py\", line 577, in run\n    self.guard()\n  File \"/opt/study-d/runtime.py\", line 557, in guard\n    if self.ledger.contains('STOP_FOR_REVIEW'):raise RuntimeError('another worker stopped; review required')\n                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: another worker stopped; review required\n",
+    "no_restart": true,
+    "training_authorized": false
+  },
+  "serving_load_seconds": 284.29212703099984,
+  "controller_failures": [
+    {
+      "status": "STOP_FOR_REVIEW",
+      "phase": "stage_controller",
+      "error_type": "KeyboardInterrupt",
+      "error_message": "",
+      "traceback": "Traceback (most recent call last):\n  File \"/Users/cmbp/taa-lab/scripts/study_d_gemma_stages_app_v02428.py\", line 101, in controller\nKeyboardInterrupt\n",
+      "no_restart": true,
+      "training_authorized": false,
+      "stage": "virtue",
+      "commit": "0c4946574f32d305b8e4272459a004d6cb460fc3"
+    },
+    {
+      "status": "STOP_FOR_REVIEW",
+      "phase": "stage_controller",
+      "error_type": "ValueError",
+      "error_message": "prior once claim or reservation; review, never restart",
+      "traceback": "Traceback (most recent call last):\n  File \"/Users/cmbp/taa-lab/scripts/study_d_gemma_stages_app_v02428.py\", line 88, in controller\n  File \"/opt/study-d/admission.py\", line 32, in admit\n    if attempted(root,payload['stage'],ledger):raise ValueError('prior once claim or reservation; review, never restart')\n                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: prior once claim or reservation; review, never restart\n",
+      "no_restart": true,
+      "training_authorized": false,
+      "stage": "virtue",
+      "commit": "0c4946574f32d305b8e4272459a004d6cb460fc3"
+    }
+  ],
+  "private_file_hashes_verified_here": false,
+  "private_hash_verification_required_before_v02429_load": true
+}

@@ -17,6 +17,7 @@ jobs:
           python scripts/check_study_d_science_v02426.py
           python scripts/check_study_d_science_v02427.py
           python scripts/check_study_d_science_v02428.py
+          python scripts/check_study_d_science_v02429.py
       - name: Full staged post-training path (CPU scripted; no training or model calls)
         run: |
           python -I scripts/study_d_gemma_post_training_ci_v02425.py --assets studies/formation-study-d-gemma-stages-v02425 --output "$RUNNER_TEMP/study-d-post-v02425"
@@ -37,6 +38,11 @@ jobs:
         with:
           name: study-d-admission-v02428
           path: ${{ runner.temp }}/study-d-admission-v02428/report.json
+      - name: Serving-only virtue admission and worker/controller decision equivalence
+        run: |
+          python -I scripts/study_d_gemma_admission_ci_v02429.py --output "$RUNNER_TEMP/study-d-admission-v02429"
+          python -I scripts/study_d_gemma_post_training_ci_v02429.py --assets studies/formation-study-d-gemma-stages-v02429 --output "$RUNNER_TEMP/study-d-post-v02429"
+          python -m unittest tests.test_study_d_virtue_v02429 -v
       - name: Unit tests
         run: python -m unittest discover tests -v
       - name: Scripted run of every scenario
@@ -47,7 +53,7 @@ jobs:
       - name: Offline Modal serialization regression (no credentials or backend)
         run: |
           python -m pip install 'modal==1.6.2'
-          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 tests.test_study_d_gemma_speed_v02421.SpeedSerializationTests tests.test_study_d_gemma_speed_v02422.SpeedSerializationTests tests.test_study_d_science_v02423.ScienceSerializationTests tests.test_study_d_science_v02424.ScienceSerializationTests tests.test_study_d_reuse_v02425.ReuseSerializationTests tests.test_study_d_completion_v02426.CompletionSerializationTests tests.test_study_d_virtue_v02427.VirtueSerializationTests tests.test_study_d_virtue_v02428.VirtueSerializationTests -v
+          python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 tests.test_study_d_gemma_speed_v02421.SpeedSerializationTests tests.test_study_d_gemma_speed_v02422.SpeedSerializationTests tests.test_study_d_science_v02423.ScienceSerializationTests tests.test_study_d_science_v02424.ScienceSerializationTests tests.test_study_d_reuse_v02425.ReuseSerializationTests tests.test_study_d_completion_v02426.CompletionSerializationTests tests.test_study_d_virtue_v02427.VirtueSerializationTests tests.test_study_d_virtue_v02428.VirtueSerializationTests tests.test_study_d_virtue_v02429.VirtueSerializationTests -v
   gemma-cpu-rehearsal:
     name: Gemma actual CPU training rehearsal (no GPU or secrets)
     runs-on: ubuntu-latest
