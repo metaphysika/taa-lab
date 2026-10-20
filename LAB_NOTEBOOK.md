@@ -7848,3 +7848,64 @@ original Python 3.11 interpreter, matching Harness CI. The independent pinned
 Python 3.12 tiny-model rehearsal and Modal serialization tests pass.
 
 Final local v02427 validation: 706 tests PASS (34 skips), Python 3.11.17, 786.601 s; all scripted scenarios PASS. New provenance/admission tests PASS, actual no-backend Modal serialization PASS under Python3.12.14/Modal1.6.2, actual pinned tiny CPU rehearsal PASS in24.227s with two steps and adapter reload/deletion, scripted full post-training path PASS across396 transfers. All18 inherited assets, complete runtime bytes and396 source hashes remain unchanged. GitHub publication/checks follow; no launch approved.
+
+
+### 2026-10-20 — v02427 pre-worker engineering stop; v02428 FOR REVIEW
+
+Preserved owner-uploaded v02427 return ZIP, SHA-256
+ d6b42590aa8761a0c79be694a8c13db3ea2606ddffba5e1bf801776344344f13,
+398 files / CRC PASS, full inventory saved. Source copy and the canonical repaired
+composite d7837f29… exist. No virtue reservation or worker files exist. The new
+failure record confirms the restarted controller refused folder.exists();
+save('../pair/report.json') had created virtue/ as a parent traversal side effect.
+Owner/Claude report initial 900-second heartbeat loss, most likely during repeated
+CPU admission/repair under 0.25 CPU and 256MB. Exact stalled instruction is not
+proven by the ZIP. Engineering failure, no new science, no GPU work per owner.
+Do not interpret inherited prior-* failure files as new training or worker work.
+
+First requested the live read-only ledger inventory. Current original cloud lacks
+Modal credential bindings and Modal network access; no independent query or
+access workaround attempted. Owner ran authenticated Mac `modal dict items
+ taa-study-d-gemma-v02427-budget-once --all --json --env main` and returned exactly
+pair/closed (COMPLETE / d7837f29…) and STOP_FOR_REVIEW (virtue). virtue/once is
+ABSENT. Together with the missing reservation file this confirms no reservation
+claimed. Preserve original ledger/evidence/adapters unmodified; no reset/delete.
+No rerun or new launch performed here. Owner asked whether to add cloud access;
+recommended the working read-only Mac route for this check, no setup changes.
+
+v02428 raises only controller resources to 1 CPU / 2,048MB. Science runtime
+and all 18 inherited assets remain byte-identical; worker guard9,600/timeout9,800,
+sampler/graphs/prefix/KV checks, training, data, dose, seeds, gates and scoring
+unchanged. CPU admission is shared between the production controller and free
+CI: validate/pin/copy all396 inputs, stream journals retaining only start IDs and
+raw-text hashes, repair exactly ONCE, save root/'pair/report.json' directly,
+persist canonical hash and verify carried CPU proof / require_previous. The
+latter verifies hashes/closure rather than re-parsing events and repairing again.
+The canonical repaired v02427 composite bytes/hash remain identical, deliberately
+retaining its original schema version. All 130 completed provenance rows remain
+completed, producer v02425/v02426; two missing/no-resend retained. No scoring or
+contrast changes. No final contrasts until virtue completes and is audited.
+
+Attempt signals are the once marker or reservation.json, never directory presence;
+STOP_FOR_REVIEW remains an independent stop. Atomic claim and durable reservation
+still precede worker spawn. New namespace only; no old once keys reset. Free
+CI runs the entire shared admission path against the committed v02426 ZIP and
+measures isolated-process peak RSS, asserting below half of 2,048MiB (1,024MiB).
+First local pass: exactly1 repair,0.924s admission,60,846,080-byte peak (58.03MiB,
+2.83% of limit), no virtue folder and no reservation. RSS includes imports/extract;
+timed admission excludes extraction. This is CPU/local measurement, not Modal
+telemetry. Directory-only/once/reservation regressions and no-backend serialization
+are included. Inputs were cached locally; no remote-time guarantee is claimed.
+
+PRIOR remains the HIGHER attested$19.67 despite dashboard$19.62; credit$10.38,
+cap$36. No CPU/image charge is called zero or inferred as an itemized invoice.
+Same reservation$9.194555556, total reserved$28.864555556, cap headroom$7.135444444,
+credit after reservation$1.185444444. Existing recorded CPU/RAM prices put the
+larger controller's full provider envelope at$0.18087248, within unchanged$0.375
+overhead allowance. No reservation/cap increase. Same stress projections and
+finite virtue window ending November9 01:00UTC exclusive (Nov8 7pmCST).
+New v02428 ledger/evidence/private namespace; Mac caffeinate/spawn/SUBMITTED
+pattern unchanged. NO LAUNCH until Claude review and exact-commit owner approval.
+Local full checks and GitHub publication pending; no CI success claim yet.
+
+Final local v02428 validation: 713 tests PASS (35 skips), Python 3.11.17, 991.654 s; all scripted scenarios PASS. New full CPU admission, directory/claim and provenance tests PASS. Exact pinned Modal serialization PASS with backend forbidden. Actual pinned tiny CPU rehearsal PASS: two steps, adapter reload/deletion, 27.928 s. Scripted full post-training path PASS (396 transfers). Final standalone admission measurement is preserved in cpu-admission-validation-v02428.json; exactly one repair and no reservation. Publication and exact-head GitHub checks follow. No launch approved.
