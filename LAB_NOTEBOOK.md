@@ -8104,3 +8104,32 @@ rounding, real pinned evidence bounds and byte-unchanged primary output guard.
 Full repository/scripted checks follow before adding this to PR#6.
 
 EXPLORATORY v02431 final local validation: 732 tests PASS (36 skips) in 811.198 seconds on original Python3.11; all scripted scenarios PASS. All four primary outputs unchanged. Prior v02430 exact-head GitHub checks also verified PASS: Harness39481421776 / Formation3.9 39481421612. New exact-head checks follow publication. No Modal/GPU/model call or deletion.
+
+
+## 2026-10-20 — v02432 Study D final factual summary, documentation only
+
+Owner requested the Paper3 factual foundation, with every claim labeled
+CONFIRMATORY / DESCRIPTIVE / EXPLORATORY / INTERPRETATION. Added
+docs/process/PAPER3_STUDY_D_SUMMARY_REPORT_v02432.md to the existing PR#6
+review branch. Sources read at the specified commits: primary769911ba,
+posthocbabffb18, Bc2deb85 and C27eced3, plus frozen design/execution records.
+No new analysis, scientific script run, model call, training, Modal operation
+or deletion. No code, source data, results or verdict changed.
+
+The summary retains D-P2 support, D-P3/D-P4 inconclusive, D-U against and
+no informative null, with the D-P2 97.5% marginal lower limit14.43points
+explicitly below15. Every numeric table is copied from committed results;
+virtue's rung4 silent refusals are checked against existing case rows and
+StudyB's recorded pattern, without new aggregation/scoring.
+
+Corrections to the brief: neutral's primary12.50–51.5625% bounds span base25%;
+only the known-act point and exploratory12.50–18.75% bounds are below that
+base point. Training includes manager AND customer requests. Cross-domain
+here means task areas within one freight simulation. The C v0244 file's
+science header is v0.23.9; frozen labels are preserved. No claim that virtue
+training introduced silent refusal or that dishonesty transferred to unrelated
+vices. Philosophical/causal readings remain INTERPRETATION.
+
+Document review and git diff whitespace check only. No analysis/test scripts
+were rerun for this documentation change. Private adapters retained through
+Paper3 outline review and pending separate owner deletion approval. No reruns.
