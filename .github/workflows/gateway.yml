@@ -1,0 +1,29 @@
+name: Gateway offline alignment
+on: [push, pull_request]
+jobs:
+  reference-and-foundation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-gateway.txt
+      - name: Independently supplied trace structure and manifest
+        run: |
+          cd tests/expected_traces/v0.2.1
+          sha256sum -c MANIFEST.sha256
+          python -I tools/validate_traces.py .
+      - name: Foundation, reference and runner boundary tests (no model calls)
+        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 -v
+      - name: Run independent expectations against reference; fail on disagreement or incomplete coverage
+        run: python -m tests.trace_support.reference_runner --report "$RUNNER_TEMP/gateway-reference-v031.json"
+      - name: Preserve observed assertions and discrepancies
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-reference-v031
+          path: ${{ runner.temp }}/gateway-reference-v031.json
+          if-no-files-found: error

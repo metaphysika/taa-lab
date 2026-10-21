@@ -1,3 +1,5 @@
+> SUPERSEDED: v0.1 is archived; see TAA_EXPECTED_TRACE_MAPPING_v021.md. This historical mapping is not acceptance authority.
+
 # Expected traces v0.1 — W0 mapping for Claude review
 
 1. [DESCRIPTIVE] The source zip and all extracted files are preserved byte-for-byte under `tests/expected_traces/v0.1/`.

@@ -1,3 +1,5 @@
+> Historical v0.3 stage report at the reviewed PR head. Current semantics and validation are documented in [v0.3.1 alignment](TAA_GATEWAY_ALIGNMENT_v031.md), which supersedes the older timing, disposition and reporting conventions below.
+
 # Gateway v0.3 stage 2 — schemas and trusted state foundation
 
 1. [DESCRIPTIVE] Implements the authorized storage, identity, order-provenance and logging foundation, not the authorization pipeline.

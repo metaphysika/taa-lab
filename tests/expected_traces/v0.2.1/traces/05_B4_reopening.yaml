@@ -1,0 +1,86 @@
+# B4: corrected discharge or release evidence must reopen the duty and its case.
+# Design v0.3, "Duty ledger: correction after resolution"; W0 trust_boundary
+# (payment_processor may correct a refund's settled, claimant, allocated_to).
+
+- id: T20
+  title: The refund that discharged the duties turns out never to have settled
+  contracts: [B4, P2]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      execute: {actor: A, token: T1}
+      expect:
+        committed: [{record: REF1, kind: refund, claim: CL1, amount: 120, settled: true}]
+        duties: [{id: "D_refund(CL1,120)", resolution: discharged, by: REF1}]
+    - step: 3
+      propose: {actor: A, tool: message_party, args: {to: K1, template: refund_issued, claim: CL1, amount: 120, cites: REF1}}
+      expect: {disposition: PERMIT, token: T2}
+    - step: 3
+      execute: {actor: A, token: T2}
+      expect:
+        duties: [{id: "D_resolve(CL1)", resolution: discharged}]
+    - step: 4
+      propose: {actor: A, tool: close_case, args: {case: CL1}}
+      expect: {disposition: PERMIT, token: T3}
+    - step: 4
+      execute: {actor: A, token: T3}
+      expect: {case_closed: [CL1]}
+    - step: 6
+      events: [{type: record_correction, record: REF1, by: payment_processor, new: {settled: false}}]
+      expect:
+        revision: R+
+        duties:
+          - {id: "D_refund(CL1,120)", resolution: unresolved, history: ["opened@1", "discharged@2", "reopened@6"]}
+          - {id: "D_resolve(CL1)",    resolution: unresolved, history: ["opened@1", "discharged@3", "reopened@6"]}
+        reopening_cites: "REF1@v2"
+        case_open: [CL1]
+        executed_history_rewritten: false
+
+- id: T21
+  title: The refund that discharged a duty is reallocated to another claimant
+  contracts: [B4, P2]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      execute: {actor: A, token: T1}
+      expect:
+        duties: [{id: "D_refund(CL1,120)", resolution: discharged, by: REF1}]
+    - step: 4
+      events: [{type: record_correction, record: REF1, by: payment_processor, new: {claimant: K2, allocated_to: "claim of K2"}}]
+      expect:
+        duties: [{id: "D_refund(CL1,120)", resolution: unresolved, history: ["opened@1", "discharged@2", "reopened@4"]}]
+
+- id: T22
+  title: A duplicate-claim release is corrected after the case closed
+  contracts: [B4, P2, Q2]
+  spec_refs: ["W0 DU5", "v0.3.1 Q2"]
+  setup:
+    records:
+      CL5:   {kind: claim, claimant: K1, order: ORD1, basis: return, amount: 120}
+      DUPD1: {kind: resolution, question: duplicate_determination, about: CL5, by: F, answer: duplicate, surviving: CL1}
+  steps:
+    - step: 1
+      expect:
+        duties:
+          - {id: "D_resolve(CL5)", resolution: released, by_rule: DU5, basis: DUPD1, link_to: "D_resolve(CL1)"}
+          - {id: "D_resolve(CL1)", resolution: unresolved}
+    - step: 2
+      propose: {actor: A, tool: close_case, args: {case: CL5}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      execute: {actor: A, token: T1}
+      expect: {case_closed: [CL5]}
+    - step: 4
+      events: [{type: record_correction, record: DUPD1, by: reviewer_interface, on_behalf_of: F, new: {answer: not_duplicate}}]
+      expect:
+        revision: R+
+        duties: [{id: "D_resolve(CL5)", resolution: unresolved, history: ["opened@1", "released@1", "reopened@4"]}]
+        case_open: [CL5]

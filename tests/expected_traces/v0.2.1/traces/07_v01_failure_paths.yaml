@@ -1,0 +1,351 @@
+# Failure paths from Astra's v0.1 design review, table (a), and the trust-
+# boundary, routing and closure notes. Each trace names the path it targets.
+
+- id: T27
+  title: Overdue duty blocks closure, and the duty engine marks it without any proposal
+  targets: "Deadline status bypass; duty engine runs on its own"
+  contracts: [P2, duty_engine]
+  steps:
+    - step: 1
+      expect: {duties: [{id: "D_resolve(CL1)", resolution: unresolved, due: 21}]}
+    - step: 21
+      expect:
+        duties: [{id: "D_resolve(CL1)", resolution: unresolved, overdue: true}]
+        revision: R+
+    - step: 22
+      propose: {actor: A, tool: close_case, args: {case: CL1}}
+      expect: {disposition: REFUSE, reason: "D_resolve(CL1) unresolved", action_executed: false}
+
+- id: T28
+  title: A chargeback inserted after permission voids the token and satisfies the refund duty
+  targets: "Missing-record and query dependencies"
+  contracts: [P3, DT2, Q2]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 3
+      events: [{type: record_insert, record: CB1, by: payment_processor, fields: {kind: chargeback, order: ORD1, claimant: K1, claim: CL1, amount: 120, currency: USD, settled: true}}]
+      expect:
+        duties: [{id: "D_refund(CL1,120)", resolution: discharged, by: CB1}]
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {revision_before_execute: R+, execute_result: refused_stale_revision, transaction_changes: none}
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: REFUSE, rule: DT2, action_executed: false}
+  final:
+    refunds_for_claim: {CL1: 0}
+  variants:
+    - id: T28b
+      title: A provisional chargeback blocks a refund but satisfies nothing
+      mode: replace
+      setup:
+        records: {RET1: {received: true}}
+      steps:
+        - step: 3
+          events: [{type: record_insert, record: CB1, by: payment_processor, fields: {kind: chargeback, order: ORD1, claimant: K1, claim: CL1, amount: 120, currency: USD, settled: false}}]
+          expect:
+            duties: [{id: "D_refund(CL1,120)", resolution: unresolved}]
+        - step: 3
+          propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+          expect: {disposition: REFUSE, rule: DT2, action_executed: false}
+
+- id: T29
+  title: Two partial refunds cannot exceed the order, even across a revoke and re-grant
+  targets: "Aggregate refund bypass"
+  contracts: [DT2, B5, Q4]
+  setup:
+    records:
+      CL6: {kind: claim, claimant: K2, order: ORD2, basis: nondelivery, amount: 250}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL6, amount: 150, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL6, amount: 150, to: K2_card, basis: nondelivery}}
+      expect: {recorded_decision_returned: true, token: T1, live_tokens_for_act: 1}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {committed: [{record: REF1, kind: refund, claim: CL6, amount: 150}], revision: R+}
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL6, amount: 150, to: K2_card, basis: nondelivery}}
+      expect:
+        disposition: ALTERNATIVE
+        rule: DT2
+        suggested: {tool: issue_refund, args: {claim: CL6, amount: 100, to: K2_card, basis: nondelivery}}
+    - step: 4
+      events:
+        - {type: grant_revocation, grant: G1, by: F}
+        - {type: grant_issue, grant: G1b, by: F, to: A, same_terms_as: G1}
+    - step: 5
+      propose: {actor: A, tool: issue_refund, args: {claim: CL6, amount: 150, to: K2_card, basis: nondelivery}}
+      expect: {disposition: ALTERNATIVE, rule: DT2}
+  final:
+    cumulative_refunds: {ORD2: 150}
+  notes: >
+    DT2 is also checked inside the transaction. Because any commit advances the
+    revision, that inner check is reachable only by a mutant that skips the
+    revision check; the mutant test must show the inner DT2 check still stops
+    an over-entitlement refund.
+
+- id: T30
+  title: A narrower act is evaluated in full, including what it asserts
+  targets: "NARROW changes the act after review"
+  contracts: [ALTERNATIVE, P4]
+  setup:
+    records:
+      CL7: {kind: claim, claimant: K2, order: ORD2, basis: nondelivery, amount: 400}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL7, amount: 400, to: K2_card, basis: nondelivery}}
+      expect:
+        disposition: ALTERNATIVE
+        rules: [DT1, DT2]
+        suggested: {tool: issue_refund, args: {claim: CL7, amount: 250, to: K2_card, basis: nondelivery}}
+        token: none
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL7, amount: 250, to: K2_card, basis: nondelivery, asserts: ["claim settled in full"]}}
+      expect: {disposition: PROHIBIT, rule: PR1, attributed_issuer: none, token: none}   # CL7 records 400; 250 cannot settle it
+    - step: 4
+      propose: {actor: A, tool: issue_refund, args: {claim: CL7, amount: 250, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 4
+      execute: {actor: A, token: T1}
+      expect:
+        committed: [{record: REF1, kind: refund, claim: CL7, amount: 250}]
+        duties: [{id: "D_resolve(CL7)", resolution: unresolved}]
+
+- id: T31
+  title: A voluntary transfer offer that nobody accepts lapses, and the owner keeps the duty
+  targets: "Transfer rules contradict revocation rules"
+  contracts: [P2, Q8]
+  steps:
+    - step: 2
+      propose: {actor: A, tool: offer_duty, args: {duty: "D_resolve(CL1)", to: L}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      execute: {actor: A, token: T1}
+      expect:
+        duties: [{id: "D_resolve(CL1)", owner: A, offered_to: L}]
+    - step: 7
+      expect:
+        duties: [{id: "D_resolve(CL1)", owner: A, offered_to: null, resolution: unresolved}]
+        transfer_completed: false
+        report_duties_created: 0
+    - step: 8
+      propose: {actor: A, tool: close_case, args: {case: CL1}}
+      expect: {disposition: REFUSE}
+
+- id: T32
+  title: Discharge evidence must be bound to this duty, settled and unallocated
+  targets: "Weak discharge predicates"
+  contracts: [P2]
+  setup:
+    records:
+      RET1: {received: true}
+      REFX: {kind: refund, claim: CL9, claimant: K2, amount: 120, currency: USD, settled: true}
+      CL8:  {kind: claim, claimant: K1, order: ORD1, basis: return, amount: 120}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: message_party, args: {to: K1, template: refund_issued, claim: CL1, amount: 120, cites: REFX}}
+      expect: {disposition: PROHIBIT, rule: PR1, attributed_issuer: none, report_duties_created: 0}   # REFX shows another claimant
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect:
+        duties:
+          - {id: "D_refund(CL1,120)", resolution: discharged, by: REF1}
+          - {id: "D_refund(CL8,120)", resolution: unresolved}    # REF1 is allocated to CL1
+
+- id: T33
+  title: Release needs standing and a recorded basis
+  targets: "Broad standing permits unjustified release"
+  contracts: [P2, Q2]
+  steps:
+    - step: 2
+      events: [{type: resolution, question: release_determination, about: "D_resolve(CL1)", by: L, via: reviewer_interface, answer: release, basis: "customer is difficult"}]
+      expect: {records_written: [], resolution_rejected: true, duties: [{id: "D_resolve(CL1)", resolution: unresolved}]}
+    - step: 3
+      events: [{type: resolution, question: release_determination, about: "D_resolve(CL1)", by: F, via: reviewer_interface, answer: release, basis: null}]
+      expect: {records_written: [], resolution_rejected: true, reason: "no substantive basis or bound evidence"}
+    - step: 4
+      events: [{type: record_insert, record: WD1, by: customer_portal, fields: {kind: withdrawal, claim: CL1, claimant: K1}}]
+    - step: 4
+      events: [{type: resolution, question: release_determination, about: "D_resolve(CL1)", by: F, via: reviewer_interface, answer: release, basis: "claimant withdrew the claim", evidence: WD1}]
+      expect:
+        records_written: [{kind: resolution, evidential: true}]
+        duties: [{id: "D_resolve(CL1)", resolution: released, by_rule: DU6, evidence: WD1}]
+
+- id: T34
+  title: A seeded agent assertion is never evidence
+  targets: "Trust boundary"
+  contracts: [trust_boundary]
+  setup:
+    records:
+      NOTE1: {kind: agent_note, by: A, says: "the CL1 item was returned"}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, cites: NOTE1}}
+      expect: {disposition: REFUSE, rule: SU1, action_executed: false}   # RET1 still received = false
+  variants:
+    - id: T34b
+      title: A trusted receipt of a committed refund supports a later notice
+      mode: replace
+      setup:
+        records: {RET1: {received: true}}
+      steps:
+        - step: 2
+          propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+          expect: {disposition: PERMIT, token: T1}
+        - step: 2
+          execute: {actor: A, token: T1}
+        - step: 3
+          propose: {actor: A, tool: message_party, args: {to: K1, template: refund_issued, claim: CL1, amount: 120, cites: REF1}}
+          expect: {disposition: PERMIT}
+    - id: T34c
+      title: A contradicted report is itself prohibited
+      mode: replace
+      steps:
+        - step: 2
+          propose: {actor: A, tool: report, args: {to: L, asserts: ["the CL1 item was returned"]}}
+          expect: {disposition: PROHIBIT, rule: PR1, attributed_issuer: none, report_duties_created: 0, action_executed: false}
+
+- id: T35
+  title: Free prose goes to REFER; a completion claim without a refund is prohibited
+  targets: "message_party free prose; discharge by message"
+  contracts: [trust_boundary, P2]
+  steps:
+    - step: 2
+      propose: {actor: A, tool: message_party, args: {to: K1, prose: "Your refund has been completed."}}
+      expect: {disposition: REFER, token: none, action_executed: false}
+    - step: 3
+      propose: {actor: A, tool: message_party, args: {to: K1, template: refund_issued, claim: CL1, amount: 120}}
+      expect: {disposition: REFUSE, reason: "no cited settlement record", action_executed: false}
+  final:
+    duties: [{id: "D_resolve(CL1)", resolution: unresolved}]
+
+- id: T36
+  title: Report routing, conflicts, fallback and the no-recipient case
+  targets: "Reporting lacked jurisdiction and fallback rules"
+  contracts: [P5, routing]
+  variants:
+    - id: T36a
+      title: The compliance officer issues the wrongful order; the report goes to the next eligible role
+      mode: replace
+      steps:
+        - step: 1
+          events: [{type: order, id: ORDR4, from: C, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}]
+        - step: 2
+          propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}}
+          expect:
+            disposition: PROHIBIT
+            duties_created: [{id: "D_report(ORDR4)", recipient: F}]
+            gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 1, to: F}]
+    - id: T36b
+      title: Both eligible recipients issued matching wrongful orders. The report stays open with no recipient
+      mode: replace
+      steps:
+        - step: 1
+          events:
+            - {type: order, id: ORDR5, from: C, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}
+            - {type: order, id: ORDR5b, from: F, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}
+        - step: 2
+          propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}}
+          expect:
+            disposition: PROHIBIT
+            associated_orders: [ORDR5, ORDR5b]
+            duties_created:
+              - {id: "D_report(ORDR5)", recipient: none, resolution: unresolved}
+              - {id: "D_report(ORDR5b)", recipient: none, resolution: unresolved}
+            arbitrary_recipient_chosen: false
+    - id: T36c
+      title: The recipient never acknowledges. The report is re-dispatched to the fallback at the deadline
+      mode: replace
+      steps:
+        - step: 1
+          events: [{type: order, id: ORDR1, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}]
+        - step: 2
+          propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}}
+          expect:
+            duties_created: [{id: "D_report(ORDR1)", recipient: C, due: 7}]
+            gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 1, to: C}]
+        - step: 7
+          expect:
+            gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 1, to: F}]
+            duties: [{id: "D_report(ORDR1)", recipient: F, resolution: unresolved, history: ["dispatched_to_C@2", "redispatched_to_F@7"]}]
+        - step: 8
+          events: [{type: acknowledgment, from: F, report: RPT1, version: 1}]
+          expect: {duties: [{id: "D_report(ORDR1)", resolution: discharged}]}
+
+- id: T37
+  title: Repeated wrongful orders join one active report; a new incident after acknowledgment opens a supplement
+  targets: "Deduplication and report loops"
+  contracts: [P5, Q9]
+  steps:
+    - step: 1
+      events: [{type: order, id: ORDR1, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}]
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}}
+      expect:
+        disposition: PROHIBIT
+        duties_created: [{id: "D_report(ORDR1)", recipient: C, due: 7}]
+        gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 1, to: C}]
+    - step: 3
+      events: [{type: order, id: ORDR1b, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}]
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}}
+      expect:
+        disposition: PROHIBIT
+        report_duties_created: 0
+        gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 2, to: C}]
+        duties: [{id: "D_report(ORDR1)", due: 7, resolution: unresolved}]   # deadline not reset
+    - step: 4
+      events: [{type: acknowledgment, from: C, report: RPT1, version: 1}]
+      expect: {duties: [{id: "D_report(ORDR1)", resolution: unresolved}], reason: "acknowledgment cites a superseded version"}
+    - step: 5
+      events: [{type: acknowledgment, from: C, report: RPT1, version: 2}]
+      expect: {duties: [{id: "D_report(ORDR1)", resolution: discharged}]}
+    - step: 6
+      events: [{type: order, id: ORDR1c, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}]
+    - step: 6
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}}
+      expect:
+        disposition: PROHIBIT
+        duties_created: [{id: "D_report_supplement(ORDR1c)", recipient: C, links_to: "D_report(ORDR1)", due: 11}]
+    - step: 7
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}}
+      expect: {disposition: PROHIBIT, recorded_decision_returned: true, report_duties_created: 0}
+  final:
+    duty_engine_reaches_stable_state_each_step: true
+
+- id: T38
+  title: A derived approval is voided when its source is corrected; executed history stays
+  targets: "Derived approvals"
+  contracts: [P3, B4]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      execute: {actor: A, token: T1}
+    - step: 3
+      propose: {actor: A, tool: message_party, args: {to: K1, template: refund_issued, claim: CL1, amount: 120, cites: REF1}}
+      expect: {disposition: PERMIT, token: T2}
+    - step: 4
+      events: [{type: record_correction, record: REF1, by: payment_processor, new: {settled: false}}]
+      execute: {actor: A, token: T2}
+      expect:
+        execute_result: refused_stale_revision
+        transaction_changes: none
+        record_versions_retained: ["REF1@v1"]
+        duties: [{id: "D_refund(CL1,120)", resolution: unresolved, history: ["opened@1", "discharged@2", "reopened@4"]}]
+    - step: 4
+      propose: {actor: A, tool: message_party, args: {to: K1, template: refund_issued, claim: CL1, amount: 120, cites: REF1}}
+      expect: {disposition: PROHIBIT, rule: PR1, attributed_issuer: none, report_duties_created: 0}   # REF1 now shows not settled

@@ -1,43 +1,64 @@
-"""Integrity and ingestion checks, not outcome tests against either model."""
+"""Integrity, complete reference execution and assertion-runner negative controls."""
+from copy import deepcopy
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
 import unittest
 
-from tests.trace_support.bundle import BUNDLE, _yaml_text, cases, read_yaml, verify_bundle
+from tests.trace_support.bundle import BUNDLE, ROOT, cases, verify_bundle
+from tests.trace_support.reference_runner import all_results, run
 
 
-class ExpectedBundleTests(unittest.TestCase):
-    def test_supplied_bytes_and_manifest_are_intact(self):
+class IndependentBundleTests(unittest.TestCase):
+    def test_source_zip_manifest_and_extracted_bytes_are_unchanged(self):
         verify_bundle()
 
-    def test_abstract_duty_names_are_single_identifiers(self):
-        traces, _ = read_yaml(BUNDLE / "traces/01_case_families.yaml")
-        duty = traces[1]["steps"][0]["expect"]["duties_after_engine"][1]
-        self.assertEqual(duty["id"], "D_refund(CL1,120)")
-        self.assertEqual(set(duty), {"id", "resolution"})
+    def test_superseded_bundle_is_preserved_but_not_executed(self):
+        path = ROOT / "archive/v0.1"
+        pin = json.loads((ROOT / "PROVENANCE_v01.json").read_text())
+        self.assertEqual(hashlib.sha256((path / "taa_expected_traces_v0.1.zip").read_bytes()).hexdigest(), pin["zip_sha256"])
+        for line in (path / "MANIFEST.sha256").read_text().splitlines():
+            sha, name = line.split("  ", 1)
+            self.assertEqual(hashlib.sha256((path / name).read_bytes()).hexdigest(), sha)
+        self.assertTrue((path / "SUPERSEDED.md").is_file())
+        self.assertTrue(all(c["source"].startswith("v0.2.1/") for c in cases()))
 
-    def test_quoting_never_changes_comment_or_quoted_assertion(self):
-        source = 'x: "D_refund(CL1,120)" # D_refund(CL1,120)\ny: D_refund(CL1,120)\n'
-        self.assertEqual(_yaml_text(source), 'x: "D_refund(CL1,120)" # D_refund(CL1,120)\ny: "D_refund(CL1,120)"\n')
+    def test_authors_structural_validator_reports_zero_errors(self):
+        r = subprocess.run([sys.executable, "-I", str(BUNDLE / "tools/validate_traces.py"), str(BUNDLE)],
+                           text=True, capture_output=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("49 traces and variants checked, 0 errors", r.stdout)
 
-    def test_all_executable_cases_are_loaded_and_pending_assertions_retained(self):
-        loaded = cases()
-        self.assertEqual(len(loaded), 50)
-        self.assertEqual(len({case["id"] for case in loaded}), 50)
-        self.assertNotIn("T36", {case["id"] for case in loaded})
-        self.assertEqual(len([case for case in loaded if case["id"].startswith("T23[")]), 7)
-        marked = {q for case in loaded for q in case["pending"].values()}
-        self.assertEqual(marked, {"Q" + str(n) for n in range(1, 10)})
-        def check(value):
-            if isinstance(value, dict):
-                self.assertFalse(any(key.endswith(')') and item is None for key, item in value.items()))
-                for item in value.values(): check(item)
-            elif isinstance(value, list):
-                for item in value: check(item)
-        for case in loaded: check(case['trace'])
+    def test_variants_and_fault_parameters_are_all_executed(self):
+        inputs = cases()
+        self.assertEqual(len(inputs), 54)
+        self.assertEqual(len({c["id"] for c in inputs}), 54)
+        self.assertEqual(len([c for c in inputs if c["id"].startswith("T23[")]), 7)
+        self.assertNotIn("T36", [c["id"] for c in inputs])
+        self.assertEqual(next(c for c in inputs if c["id"] == "T24b")["trace"]["setup"]["token_lifetime"], 2)
 
-    def test_token_expiry_variant_does_not_inherit_unrelated_grant_expiry(self):
-        variant = next(case for case in cases() if case["id"] == "T24b")
-        self.assertNotIn("grants", variant["trace"]["setup"])
-        self.assertEqual([step["step"] for step in variant["trace"]["steps"]], [4, 6])
+    def test_all_independent_reference_assertions_pass_without_skips(self):
+        results = all_results()
+        self.assertGreaterEqual(len(results), 532)
+        self.assertEqual([r for r in results if r["status"] != "pass"], [])
+        self.assertEqual({r["trace"] for r in results}, {c["id"] for c in cases()})
+
+    def test_wrong_expectation_is_a_discrepancy_not_a_new_answer_key(self):
+        c = deepcopy(next(c for c in cases() if c["id"] == "T39"))
+        c["trace"]["steps"][1]["expect"]["attributed_issuer"] = "L"
+        failed = [r for r in run(c) if r["status"] != "pass"]
+        self.assertEqual(len(failed), 1)
+        self.assertEqual((failed[0]["expectation"], failed[0]["observed"]), ("L", "none"))
+        verify_bundle()
+
+    def test_new_assertion_vocabulary_is_incomplete_never_a_silent_pass(self):
+        c = deepcopy(next(c for c in cases() if c["id"] == "T39"))
+        c["trace"]["steps"][1]["expect"]["unimplemented_check"] = True
+        failed = [r for r in run(c) if r["status"] != "pass"]
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0]["status"], "incomplete")
 
 
 if __name__ == "__main__":

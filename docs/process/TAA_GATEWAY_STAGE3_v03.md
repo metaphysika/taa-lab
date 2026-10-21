@@ -1,3 +1,5 @@
+> Historical v0.3 stage report at the reviewed PR head. Current semantics and validation are documented in [v0.3.1 alignment](TAA_GATEWAY_ALIGNMENT_v031.md), which supersedes the older timing, disposition and reporting conventions below.
+
 # Gateway v0.3 stage 3 — separately implemented reference model
 
 1. [DESCRIPTIVE] The model is a pure transition system for later property checkers, not a callable production gateway or comparator.

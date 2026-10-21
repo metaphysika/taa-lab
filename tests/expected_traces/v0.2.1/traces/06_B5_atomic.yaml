@@ -1,0 +1,114 @@
+# B5: exact transaction boundary and the pre-state revision convention.
+# Design v0.3, "One atomic transaction, exactly bounded", "Order within a
+# simulator step"; v0.3.1 Q7; W0 default_token_lifetime (10 steps).
+
+- id: T23
+  title: A failure injected at any point in the transaction leaves nothing committed
+  contracts: [B5, P1, rollback]
+  setup:
+    records: {RET1: {received: true}}
+  parameters:
+    fault_at: [after_validate, after_stage, during_effect_commit, during_token_consumption,
+               during_duty_update, during_receipt_write, during_revision_advance]
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1, token_expires_at: 12}
+    - step: 3
+      execute: {actor: A, token: T1, inject_fault: "${fault_at}"}
+      expect:
+        execute_result: failed
+        transaction_changes: none
+        world_equals_pre_transaction: true
+        token_state: {T1: live}
+        revision: R=
+        duties: [{id: "D_refund(CL1,120)", resolution: unresolved}]
+    - step: 4
+      execute: {actor: A, token: T1}
+      expect:
+        committed: [{record: REF1, kind: refund, claim: CL1, amount: 120}]
+        token_state: {T1: consumed}
+        revision: R+
+  final:
+    refunds_for_claim: {CL1: 1}
+
+- id: T24
+  title: Grant expiry and execution in the same step. The clock boundary wins
+  contracts: [B5, P1, P3]
+  setup:
+    records: {RET1: {received: true}}
+    grants: {G1: {expires_at: 5}}
+  steps:
+    - step: 4
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 5
+      execute: {actor: A, token: T1}
+      expect:
+        phase_order: [grant_G1_expired, duty_engine, execute]
+        revision_before_execute: R+
+        execute_result: refused_stale_revision
+        transaction_changes: none
+  variants:
+    - id: T24b
+      title: A token's own expiry, with the grant still live
+      mode: replace
+      setup:
+        records: {RET1: {received: true}}
+        token_lifetime: 2
+      steps:
+        - step: 4
+          propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+          expect: {disposition: PERMIT, token: T1, token_expires_at: 6}
+        - step: 6
+          execute: {actor: A, token: T1}
+          expect:
+            revision_before_execute: R+     # live-token expiry advances the revision (v0.3.1 Q7)
+            execute_result: refused_token_expired
+            transaction_changes: none
+        - step: 6
+          propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+          expect: {fresh_evaluation: true, disposition: PERMIT, token: T2}
+
+- id: T25
+  title: Two tokens issued at one revision. Committing one voids the other
+  contracts: [B5, P1, P3]
+  setup:
+    records:
+      RET1: {received: true}
+      CL2:  {kind: claim, claimant: K2, order: ORD2, basis: nondelivery, amount: 250}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL2, amount: 250, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT, token: T2, same_revision_as: T1}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {committed: [{record: REF1, kind: refund, claim: CL1}], revision: R+}
+    - step: 3
+      execute: {actor: A, token: T2}
+      expect: {execute_result: refused_stale_revision, transaction_changes: none, token_state: {T2: void}}
+    - step: 4
+      propose: {actor: A, tool: issue_refund, args: {claim: CL2, amount: 250, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT, token: T3, fresh_evaluation: true}
+    - step: 4
+      execute: {actor: A, token: T3}
+      expect: {committed: [{record: REF2, kind: refund, claim: CL2, amount: 250}]}
+
+- id: T26
+  title: Issuing a token and logging it do not invalidate it
+  contracts: [B5, revision_convention]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1, revision: R=}
+    - step: 2
+      execute: {actor: A, token: T1}
+      expect:
+        validation_compares: pre_transaction_revision
+        committed: [{record: REF1, kind: refund, claim: CL1, amount: 120}]
+        revision: R+
