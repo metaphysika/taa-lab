@@ -1,5 +1,8 @@
 # TAA gateway prior-art note v0 — draft for review
 
+[DESCRIPTIVE] Continued by [v1: 2026 agents and learning from interventions](TAA_GATEWAY_PRIOR_ART_v1.md).
+This historical foundational review is retained; v1 narrows its provisional comparisons.
+
 [DESCRIPTIVE] Prepared by Sol on 21 October 2026 from `origin/main` commit
 `57253f9303969c199db5b5c5c91c2a6fc0812187`. This is a bounded literature and
 documentation review, not a systematic survey, implementation, benchmark,
