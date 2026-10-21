@@ -104,6 +104,101 @@ but whether its implementation covers third-party duties surviving refusal and
 revocation remains unverified. This gap prevents an exhaustive claim about that
 candidate difference; it does not justify treating it as absent prior art.
 
+## 2a. Paper 2's cited authorization precedents — addendum
+
+[DESCRIPTIVE] Added 21 October 2026 after independently retrieving all three
+primary full texts below. The bibliography of the committed
+[Paper 2 preprint](../TAA-Paper-2-preprint-v1.0.docx) was also inspected: its
+Guo, Ibrahim/Li and Zhu/Wang entries match these titles and identifiers.
+Verification is targeted full-text reading, not reproduction, code review or
+independent confirmation of reported experiments. The direct design comparison
+uses Chris's supplied gateway requirements; the linked Claude design was not
+readable through the available tools when this addendum was prepared.
+
+### Zhu and Wang: revocation, support and quiescence
+
+[DESCRIPTIVE] Genliang Zhu and Chu Wang,
+[*Authorization Revocation for Long-Running AI Agents: Root-Scoped Quiescence
+under Delegation and Asynchronous Execution*, 2609.21284v1](https://arxiv.org/html/2609.21284v1).
+Read sections 1–5, 6.1/6.5–6.6, 7–8 and 10; mathematical definitions and stated
+assumptions inspected, proofs not independently reconstructed. Minimal sufficient
+root-epoch support sets distinguish conjunction from alternatives. A durable root
+cut stops new issuance; provider-local fences govern already-authorized effects.
+An atomic independent rebind preserves the exact operation/envelope; descendants
+need their own coverage. Missing closure evidence remains indeterminate.
+The reference implementation has a hash-linked durable ledger and a provider-free
+test suite with an independent checker. Its certificate establishes neither
+business completion nor rollback; the assurance depends on complete mediation,
+support provenance, endpoint coverage and authentic observations.
+
+[INTERPRETATION] This is especially close prior art for support-sensitive
+revocation and event evidence, complementing TraceGrant's broader task contract.
+The gateway comparison must distinguish the following properties:
+
+| Design requirement supplied by Chris | Direct comparison / unresolved test |
+|---|---|
+| Rule-computed support sets bound to record versions | [INTERPRETATION] The paper's root-support calculus already supplies a strong comparator for conjunctions, alternatives and selected authority. Root epochs and grant digests are not automatically the gateway's domain-record versions. [OPEN QUESTION] Which trusted rules derive complete supports from corrected task facts, rather than merely assume complete provenance? |
+| Revocation versus lapse after corrected evidence | [INTERPRETATION] Retiring an authority root and losing factual support are different transitions. [OPEN QUESTION] Specify whether a lapsed gateway warrant needs fresh derivation, and ensure new favorable facts cannot resurrect an explicitly revoked grant. Compare this with exact independent reauthorization, not with an indiscriminate descendant kill. |
+| Re-evaluation at execution after change | [INTERPRETATION] A local invalidation decision cannot alone certify the cessation of queued, delegated or provider-side work. [OPEN QUESTION] If such work enters gateway scope, what mediates its final effect boundary and what evidence accounts for work committed before the fence? A synchronous demonstration should not claim distributed quiescence. |
+| A prohibition lifted only by its own rule using new versions of its own records | [INTERPRETATION] Authority-support replacement does not establish that normative restriction. [OPEN QUESTION] Test unrelated-record changes, different-rule permissions and independent grounds of prohibition separately; a new authorization witness must not silently discharge another rule's prohibition. |
+| Duties survive refusal/revocation | [INTERPRETATION] Closing retired authority is not fulfilling a claimant's service/report/repair duty. [OPEN QUESTION] Preserve and evaluate duty discharge separately from revocation success; do not interpret quiescence as completion. |
+
+### Guo et al.: SARA and the separation of influence from authority
+
+[DESCRIPTIVE] Xiaokun Guo et al.,
+[*When Tool Outputs Become Commands: Separating Action Induction from Runtime
+Authorization in Tool-Augmented LLM Agents*, 2608.27146v1](https://arxiv.org/html/2608.27146v1).
+Read threat model section 2, architecture section 4, evaluation/ablations section
+5 and limitations section 6. SARA treats the trusted user request as its task
+authorization root. It retains action-inducing provenance separately from audited
+successful execution evidence, then checks goal, chain and argument support.
+No-History-Promotion prevents repetition in legitimate history alone from
+laundering an external action origin into authority. Model-based guard components
+perform semantic analysis. Evaluation reports attack success, benign/attacked
+utility and inference overhead on AgentDojo/AgentDyn; utility can decline, and
+execution failures can make low attack success misleading. Authorization state
+is task-scoped and cleared at termination or explicit reset.
+
+[INTERPRETATION] **Overlap:** live action authorization, explicit positive support
+for dynamic arguments and preservation of provenance across steps. This is a
+stronger comparison than treating all observation-derived arguments as forbidden.
+**Boundary:** its semantic support checks are not evidence that trusted rules
+compute complete, version-indexed gateway support sets. The reading does not
+establish the gateway's prohibition-owning rule, persistent claimant/owner duty
+ledger or accepted transfer semantics.
+
+[OPEN QUESTION] Can a conventional provenance gate preserve legitimate dynamic
+work while resisting authority laundering as well as the proposed gateway?
+Match evidence access and guard-call budgets; measure blocked lawful work as
+well as harmful execution. Do not claim that recording provenance itself is new.
+
+### Ibrahim and Li: composed delegation and contextual scope
+
+[DESCRIPTIVE] Amjad Ibrahim and Yong Li,
+[*Overlaying Governance: A Compositional Authorization Framework for Delegation
+and Scope in Agentic AI*, 2606.03518v1](https://arxiv.org/html/2606.03518v1).
+Read sections 2–5, including overlay construction, ACE enforcement, soundness
+conditions and evaluation methodology. The ReBAC overlay derives agent access
+from human permission, delegation chains and session/resource scope, with guards
+such as expiry. Corollary 5.4 addresses removal/guard invalidation when no valid
+witness remains. OpenFGA experiments use synthetic domain/overlay workloads;
+the overlay mixes checks and writes while the domain baseline is check-only.
+These are authorization-engine performance experiments, not observed ethical
+judgment by autonomous agents or a deployed end-to-end safety guarantee.
+
+[INTERPRETATION] **Overlap:** rule-derived, composed authority and current
+conditions directly anticipate parts of live warrants and composed grants.
+**Boundary:** access derivation does not by itself implement a duty owed to a
+claimant, receipt-backed discharge, a correction ledger or the five-stage
+normative ordering. Tuple/guard invalidation is also not proof that already
+queued external effects have stopped; Zhu/Wang addresses that separate problem.
+
+[OPEN QUESTION] Can conventional relational composition plus a duty/temporal
+layer implement the proposed behavior at comparable configuration cost? Test
+conjunctive grants, independent alternative support and revocation without
+granting extra authority through composition. None of these comparisons is a
+novelty claim or authorization to build or run the gateway.
+
 ## 3. Commercial intent-based authorization — vendor claims only
 
 [DESCRIPTIVE / VENDOR CLAIM] Verification is limited to reading each official
@@ -122,7 +217,7 @@ Availability and coverage are vendor statements as of the access date.
 | Candidate | Assessment after reading | Narrow question worth testing |
 |---|---|---|
 | Order legitimacy | [INTERPRETATION] Survives as a scope question against TraceGrant's trusted-request model, not a general literature difference. External policy engines already deny user-requested actions; ToolSafe and AgentDoG also consider harmful user requests. | [OPEN QUESTION] Can explicit authority, permitted means and affected-party rules reject an authenticated but impermissible order while preserving its lawful remainder, better than an equally informed conventional policy? |
-| Mid-task evidence correction and revocation | [INTERPRETATION] Does not survive generically: TraceGrant has evolving observations; IGAC and acquired-resource authorization explicitly cover freshness/revocation. | [OPEN QUESTION] Does TAA's proposed rule-computed support invalidate exactly the indirectly affected warrants after a corrected fact, including alternative valid support and authority transfer, without excess denial? Compare equivalent freshness machinery. |
+| Mid-task evidence correction and revocation | [INTERPRETATION] Does not survive generically: TraceGrant has evolving observations; IGAC and acquired-resource authorization cover freshness/revocation. The Paper 2 addendum adds root-support-sensitive revocation/quiescence and ReBAC guard invalidation. | [OPEN QUESTION] Does TAA's proposed rule-computed support invalidate exactly the indirectly affected warrants after a corrected fact, including alternative valid support and authority transfer, without excess denial? Compare equivalent freshness machinery and distinguish lapse, explicit revocation and effect closure. |
 | Third-party duties surviving refusal | [INTERPRETATION] Remains a specific semantics/lifecycle question against TraceGrant, not a difference from normative systems generally. Privacy obligations, commitments and TIOL reparations are substantial overlap. | [OPEN QUESTION] Does a claimant-indexed reporting/repair duty remain live after refusal or grant revocation, and discharge only on verified performance or accepted handoff? Can conventional commitment/temporal rules implement the same behavior? TIOL full-text verification is outstanding. |
 | Two-sided measurement | [INTERPRETATION] Does not survive as a broad difference. TraceGrant measures utility, and IGAC, C-Trace, SARC and other monitors explicitly address unnecessary blocking/false positives. | [OPEN QUESTION] Does a prospectively fixed battery separately measure wrongful effects, unnecessary refusal, omitted duties, lawful completion and protocol failure with planned denominators and unknown-outcome bounds? That is an evaluation commitment, not an architectural novelty. |
 
