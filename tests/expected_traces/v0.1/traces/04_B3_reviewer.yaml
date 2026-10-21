@@ -1,0 +1,64 @@
+# B3: a reviewer settles only a reserved question, as a record; silence is never
+# permission. Design v0.3, "What is machine-checked and what is not",
+# "Silence is not permission".
+
+- id: T17
+  title: Reviewer approves a reserved question after the grant was revoked. Nothing executes
+  contracts: [B3, P1]
+  setup:
+    records:
+      CL4: {kind: claim, claimant: K1, order: ORD1, basis: goodwill, amount: 50}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL4, amount: 50, to: K1_card, basis: goodwill}}
+      expect: {disposition: REFER, recipient: F, reserved_question: "goodwill approval for CL4", token: none}
+    - step: 3
+      events: [{type: grant_revocation, grant: G1, by: F}]
+    - step: 4
+      events: [{type: resolution, by: F, via: reviewer_interface, question: "goodwill approval for CL4", answer: approve, reviewer_says: PERMIT}]
+      expect:
+        records_written: [{kind: resolution, evidential: true}]
+        revision: R+
+        token_issued_by_reviewer: none
+      propose: {actor: A, tool: issue_refund, args: {claim: CL4, amount: 50, to: K1_card, basis: goodwill}}
+      expect_after_propose:
+        fresh_evaluation: true
+        not_permitted: true
+        failed_stage: authority           # SU3 now satisfied, but no live grant
+        committed: none
+
+- id: T18
+  title: Reviewer approval does not supply an unknown required fact
+  contracts: [B3]
+  setup:
+    remove_records: [RET1]
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: HOLD, missing_fact: "return receipt for ORD1"}
+    - step: 3
+      events: [{type: resolution, by: F, via: reviewer_interface, question: "pay CL1?", answer: approve, reviewer_says: PERMIT}]
+      expect:
+        resolution_accepted_as: pending_spec(Q6)   # "pay CL1?" is not a reserved question in W0
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect_after_propose: {disposition: HOLD, committed: none}
+
+- id: T19
+  title: An unregistered tool cannot be called; a registered act with no authorization rule is referred
+  contracts: [B3, silence_not_permission]
+  setup: {}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: adjust_balance, args: {customer: K1, amount: 120}}
+      expect:
+        call_result: rejected_unregistered_tool
+        evaluated: false
+        revision: R=
+        committed: none
+    - step: 3
+      events: [{type: resolution, by: F, via: reviewer_interface, question: "allow adjust_balance", answer: approve, reviewer_says: PERMIT}]
+      propose: {actor: A, tool: adjust_balance, args: {customer: K1, amount: 120}}
+      expect: {call_result: rejected_unregistered_tool, committed: none}
+    - step: 4
+      propose: {actor: A, tool: export_records, args: {customer: K1}}
+      expect: {disposition: REFER, recipient: C, token: none}    # data_requests jurisdiction
