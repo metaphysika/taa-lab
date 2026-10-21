@@ -12,9 +12,12 @@
 [v0](TAA_GATEWAY_PRIOR_ART_v0.md), which remains the reference for truth
 maintenance, conventional authorization, commitments, MCP gateways, faithfulness
 and activation interventions. The comparison target remains the proposed
-gateway described there, not an implemented or approved architecture. The
-subsequently supplied complete *TAA Gateway Core Design v0.1* is reconciled in
-the [code inventory, section 5](TAA_GATEWAY_CODE_INVENTORY_v0.md#5-reconciliation-with-the-complete-design).
+gateway as specified, not demonstrated comparative performance. The controlling
+*TAA Gateway Core Design v0.3* is reconciled in the
+[code inventory, section 5](TAA_GATEWAY_CODE_INVENTORY_v0.md#5-controlling-gap-matrix-gateway-v03).
+It replaces initial selective invalidation with a global revision barrier and
+separates TraceGrant-faithful and strongest conventional comparators. These are
+design updates; source-paper findings and verification depths are unchanged.
 This note supersedes v0's provisional assessment where newer sources narrow it.
 
 [DESCRIPTIVE] Labels retain v0's meanings: DESCRIPTIVE reports inspected source
@@ -141,9 +144,9 @@ The gateway comparison must distinguish the following properties:
 | Design requirement supplied by Chris | Direct comparison / unresolved test |
 |---|---|
 | Rule-computed support sets bound to record versions | [INTERPRETATION] The paper's root-support calculus already supplies a strong comparator for conjunctions, alternatives and selected authority. Root epochs and grant digests are not automatically the gateway's domain-record versions. [OPEN QUESTION] Which trusted rules derive complete supports from corrected task facts, rather than merely assume complete provenance? |
-| Revocation versus lapse after corrected evidence | [DESCRIPTIVE] The complete draft re-runs all five stages on record/grant changes, retaining a live warrant if another sufficient support set or live covering grant passes; lapsed warrants lose executable tokens. [INTERPRETATION] Retiring an authority root and losing factual support remain different transitions. [OPEN QUESTION] Specify witness/token replacement and fresh derivation after lapse; new favorable facts cannot resurrect a revoked grant. Compare exact independent reauthorization, not an indiscriminate descendant kill. |
+| Revocation versus invalidation after corrected evidence | [DESCRIPTIVE] v0.3 voids every outstanding token on a relevant change and requires a complete fresh evaluation and justification before replacement. Consumed or withdrawn witnesses never reactivate. [INTERPRETATION] Retiring an authority root and losing factual support remain different transitions. [OPEN QUESTION] Compare exact independent reauthorization; a new witness must not resurrect a revoked grant. Global invalidation is the initial conservative baseline, not a claim of selective quiescence. |
 | Re-evaluation at execution after change | [INTERPRETATION] A local invalidation decision cannot alone certify the cessation of queued, delegated or provider-side work. [OPEN QUESTION] If such work enters gateway scope, what mediates its final effect boundary and what evidence accounts for work committed before the fence? A synchronous demonstration should not claim distributed quiescence. |
-| A prohibition lifted only by its own rule using new versions of its own records | [INTERPRETATION] Authority-support replacement does not establish that normative restriction. [OPEN QUESTION] Test unrelated-record changes, different-rule permissions and independent grounds of prohibition separately; a new authorization witness must not silently discharge another rule's prohibition. |
+| Prohibition within an evaluation; fresh evaluation after change | [DESCRIPTIVE] v0.3 supersedes the original own-record-only reconsideration rule: any relevant change permits a new complete evaluation, without dictating its result. [INTERPRETATION] An alternative authority witness cannot override a violated prohibition in that evaluation. [OPEN QUESTION] Test that an unrelated cap change invalidates old tokens, permits replacement for still-lawful acts and leaves an unchanged prohibition prohibited. |
 | Duties survive refusal/revocation | [INTERPRETATION] Closing retired authority is not fulfilling a claimant's service/report/repair duty. [OPEN QUESTION] Preserve and evaluate duty discharge separately from revocation success; do not interpret quiescence as completion. |
 
 ### Guo et al.: SARA and the separation of influence from authority
@@ -220,7 +223,7 @@ Availability and coverage are vendor statements as of the access date.
 | Candidate | Assessment after reading | Narrow question worth testing |
 |---|---|---|
 | Order legitimacy | [INTERPRETATION] Survives as a scope question against TraceGrant's trusted-request model, not a general literature difference. External policy engines already deny user-requested actions; ToolSafe and AgentDoG also consider harmful user requests. | [OPEN QUESTION] Can explicit authority, permitted means and affected-party rules reject an authenticated but impermissible order while preserving its lawful remainder, better than an equally informed conventional policy? |
-| Mid-task evidence correction and revocation | [INTERPRETATION] Does not survive generically: TraceGrant has evolving observations; IGAC and acquired-resource authorization cover freshness/revocation. The Paper 2 addendum adds root-support-sensitive revocation/quiescence and ReBAC guard invalidation. | [OPEN QUESTION] Does TAA's proposed rule-computed support invalidate exactly the indirectly affected warrants after a corrected fact, including alternative valid support and authority transfer, without excess denial? Compare equivalent freshness machinery and distinguish lapse, explicit revocation and effect closure. |
+| Mid-task evidence correction and revocation | [INTERPRETATION] Does not survive generically: TraceGrant has evolving observations; IGAC and acquired-resource authorization cover freshness/revocation. The Paper 2 addendum adds root-support-sensitive revocation/quiescence and ReBAC guard invalidation. | [OPEN QUESTION] Does v0.3's global revision cover every relevant mutation, including absent facts becoming present, ancestry, expiry and cumulative limits, followed by a complete unmixed justification? Any future selective optimization must be checked against this baseline. Compare equivalent freshness and distinguish invalidation, explicit revocation and effect closure. |
 | Third-party duties surviving refusal | [INTERPRETATION] Remains a specific semantics/lifecycle question against TraceGrant, not a difference from normative systems generally. Privacy obligations, commitments and TIOL reparations are substantial overlap. | [OPEN QUESTION] Does a claimant-indexed reporting/repair duty remain live after refusal or grant revocation, and discharge only on verified performance or accepted handoff? Can conventional commitment/temporal rules implement the same behavior? TIOL full-text verification is outstanding. |
 | Two-sided measurement | [INTERPRETATION] Does not survive as a broad difference. TraceGrant measures utility, and IGAC, C-Trace, SARC and other monitors explicitly address unnecessary blocking/false positives. | [OPEN QUESTION] Does a prospectively fixed battery separately measure wrongful effects, unnecessary refusal, omitted duties, lawful completion and protocol failure with planned denominators and unknown-outcome bounds? That is an evaluation commitment, not an architectural novelty. |
 
@@ -233,15 +236,16 @@ completion-gate comparator before making broader comparative claims. TraceGrant
 is a richer conventional runtime than static permissions; do not rename one as
 the other or silently rewrite the existing hypothesis.
 
-[DESCRIPTIVE] The complete gateway draft now specifies this stronger comparator:
-call-time policy over current records **plus** a TraceGrant-style task contract,
-evidence binding, single-use certificates, receipts, a final-answer gate and
-waivable task-step obligations. It requires equal current data/tools/roster and
-review of comparator strength before step 3. [INTERPRETATION] This addresses
-the comparator recommendation; the draft's four advertised differences remain
-test questions, not established exclusions from conventional systems. The
-draft's H3 approval checkbox is source content, not a new authorization to
-implement or run the comparison.
+[DESCRIPTIVE] v0.3 separates two questions. A **TraceGrant-faithful** arm includes
+only verified published behavior and an implementation matrix identifying
+published, unspecified and locally adapted features. A **strongest conventional**
+arm independently implements the same normative requirements, evidence and
+persistent state as TAA. Its representation difference and the single proposed
+advantage must be declared before evaluation. Matching safety is a success for
+both; omitted protections cannot create a TAA advantage. H3 endpoints, match
+tolerances and the selected comparison still need pre-registration. The design
+source does not authorize launching experiments; Chris has separately authorized
+only the inventory and build stages 2–3 at this point.
 
 [OPEN QUESTION] The approved design should pre-register the comparator's contract
 compiler, obligation/waiver rules, current-state checks and trusted evidence,
