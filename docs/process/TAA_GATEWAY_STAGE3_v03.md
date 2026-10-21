@@ -68,7 +68,7 @@ assurance. Agent assertions have a separate non-evidential record namespace.
   unchanged prohibitions remain prohibited. Consumed witnesses never reactivate.
 - [DESCRIPTIVE] Orders are associated by trusted sender/recipient/tool/scope,
   independently of claimed references. Prohibited ordered acts create one
-  report duty per order. Routing checks jurisdiction, issuer conflicts,
+  report duty per ordered act, deduplicated by order, actor and exact act. Routing checks jurisdiction, issuer conflicts,
   disclosure authorization and priority, with deadlines/fallback and no arbitrary
   recipient. A sent report remains unresolved until the selected recipient's
   authenticated acknowledgment; failed routing stays visible.
@@ -129,7 +129,7 @@ remain possible because Sol wrote both components, even with import separation.
 PYTHONDONTWRITEBYTECODE=1 python -m unittest tests.test_gateway_reference tests.test_gateway_foundation -v
 ```
 
-[DESCRIPTIVE] 58 component tests pass (33 reference, 25 foundation). Reference
+[DESCRIPTIVE] 59 component tests pass (34 reference, 25 foundation). Reference
 tests assert the named B1–B5 contracts, absence/UNKNOWN, parent revocation,
 cumulative limits, proof binding/reopening, ownership acceptance, reporting and
 purity/determinism. A static import boundary check admits only standard-library

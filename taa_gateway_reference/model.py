@@ -6,6 +6,7 @@ This model does not generate, save or bless independent expected traces.
 """
 from copy import deepcopy
 from dataclasses import dataclass, field
+import hashlib
 import json
 
 SATISFIED, VIOLATED, UNKNOWN = "satisfied", "violated", "unknown"
@@ -167,6 +168,8 @@ def _revision(state, reason):
 
 def _put(state, record_id, kind, fields, writer, evidential):
     versions = state["records"].setdefault(record_id, [])
+    if versions and versions[-1]["kind"] != kind:
+        raise InvalidTransition("a source cannot replace another record kind")
     versions.append({"id": record_id, "kind": kind, "fields": deepcopy(fields),
                      "version": len(versions) + 1, "writer": writer, "evidential": evidential})
 
@@ -459,14 +462,19 @@ def _propose(state, spec, event):
         return "repeat", {"decision": deepcopy(prior["decision"])}
     verdict = decision(state, spec, event.actor, tool, arguments)
     revision = state["revision"]
-    state["decisions"].append({"revision": revision, "actor": event.actor, "tool": tool,
+    state["decisions"].append({"revision": revision, "actor": event.actor, "tool": tool, "proposal": deepcopy(event.data),
                                "arguments": deepcopy(arguments), "decision": deepcopy(verdict)})
     state["history"].append({"event": "decision", "revision": revision, **deepcopy(verdict)})
     if verdict["disposition"] == "PROHIBIT":
         changed = False
         for order in _matching_orders(state, event.actor, tool, arguments):
-            changed |= _report(state, spec, "order:" + order["id"], arguments.get("case_id", "unknown"),
-                               order["sender"], order["matter"], order.get("disclosure", []))
+            key = hashlib.sha256(json.dumps([order["id"], event.actor, tool, arguments], sort_keys=True).encode()).hexdigest()
+            created = _report(state, spec, "ordered-act:" + key, order.get("case_id", arguments.get("case_id", "unknown")),
+                              order["sender"], order["matter"], order.get("disclosure", []))
+            if created:
+                duty = state["duties"]["report:ordered-act:" + key]
+                duty.update(origin_order=order["id"], attempted_act={"actor": event.actor, "tool": tool, "arguments": deepcopy(arguments)})
+            changed |= created
         if changed:
             _revision(state, "ordered_refusal_duty")
         return "PROHIBIT", {"decision": verdict}

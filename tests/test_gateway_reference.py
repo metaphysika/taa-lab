@@ -73,6 +73,9 @@ class ReferenceTests(unittest.TestCase):
         self.spec = policy(duties=True)
         return self.apply("record", "claims", {"id": "C", "kind": "claim", "fields": {**ARGS, "owed": True}})
 
+    def ordered_report(self):
+        return next(d for d in self.state["duties"].values() if d.get("origin_order") == "bad")
+
     def test_unknown_never_counts_as_no_prohibition(self):
         expression = {"eq": [{"fact": ["missing", "allowed"]}, {"literal": True}]}
         self.assertEqual(rule_result(expression, self.state, {}), UNKNOWN)
@@ -291,7 +294,7 @@ class ReferenceTests(unittest.TestCase):
                    "arguments": {"claim_id": "C"}, "matter": "refunds", "disclosure": ["private"]})
         self.apply("record", "carrier", {"id": "return", "kind": "return", "fields": {"received": False}})
         self.propose()
-        report_id = "report:order:bad"
+        report_id = self.ordered_report()["id"]
         args = {"duty_id": report_id, "recipient": "officer"}
         token = self.propose("report", actor="gateway", arguments=args).detail["token"]
         self.execute(token, actor="gateway", arguments=args)
@@ -309,10 +312,10 @@ class ReferenceTests(unittest.TestCase):
         self.apply("record", "carrier", {"id": "return", "kind": "return", "fields": {"received": False}})
         self.propose()
         self.apply("tick", "clock", {"step": 2})
-        self.assertEqual(self.state["duties"]["report:order:bad"]["recipient"], "fallback-officer")
+        self.assertEqual(self.ordered_report()["recipient"], "fallback-officer")
         self.apply("configuration", "configuration", {"parties": {}})
-        self.assertIsNone(self.state["duties"]["report:order:bad"]["recipient"])
-        self.assertEqual(self.state["duties"]["report:order:bad"]["resolution"], "unresolved")
+        self.assertIsNone(self.ordered_report()["recipient"])
+        self.assertEqual(self.ordered_report()["resolution"], "unresolved")
 
     def test_equal_python_values_do_not_match_different_json_types(self):
         self.assertEqual(rule_result({"eq": [{"literal": True}, {"literal": 1}]}, self.state, {}), VIOLATED)
@@ -333,11 +336,20 @@ class ReferenceTests(unittest.TestCase):
         self.apply("record", "claims", {"id": "C", "kind": "claim", "fields": {**ARGS, "owed": True}})
         self.assertEqual(set(self.state["duties"]), {"dependent:C", "owed:C"})
 
+    def test_distinct_wrongful_acts_under_one_order_are_not_collapsed(self):
+        self.apply("order", "lead", {"id": "bad", "recipient": "agent", "tool": "refund",
+                   "arguments": {"claim_id": "C"}, "matter": "refunds", "disclosure": ["private"]})
+        self.apply("record", "carrier", {"id": "return", "kind": "return", "fields": {"received": False}})
+        self.propose()
+        self.propose(arguments=dict(ARGS, amount_minor=500))
+        self.propose()
+        self.assertEqual(len([d for d in self.state["duties"].values() if d.get("origin_order") == "bad"]), 2)
+
 
 class ReferenceIndependenceTests(unittest.TestCase):
     def test_reference_has_no_core_or_model_client_imports(self):
         directory = Path(__file__).parents[1] / "taa_gateway_reference"
-        allowed = {"copy", "dataclasses", "json"}
+        allowed = {"copy", "dataclasses", "json", "hashlib"}
         for path in directory.glob("*.py"):
             tree = ast.parse(path.read_text())
             for node in ast.walk(tree):
