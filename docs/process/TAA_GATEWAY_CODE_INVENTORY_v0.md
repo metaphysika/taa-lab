@@ -1,10 +1,10 @@
-# TAA gateway code inventory v0 — Paper 2 lab at v0.20.6
+# TAA gateway code inventory v0 — Paper 2 v0.20.6 against gateway design v0.3
 
 1. [DESCRIPTIVE] The v0.20.6 lab contains useful authority, duty, referral and correction mechanisms, but they are split across two gate families.
 2. [DESCRIPTIVE] Its displayed one-time token is a log identifier, not an independently validated and consumed execution capability.
 3. [DESCRIPTIVE] Version checks exist for claim settlements; general rule-computed, record-version support and a hash-chained runtime event log do not.
 4. [INTERPRETATION] Reuse policy examples, selected pure helpers and regression fixtures; rewrite the authorization kernel and durable record lifecycle in a separate implementation after review.
-5. [DESCRIPTIVE] The complete supplied design is now checked: prohibitions → authority → support → determinations → duties; implementation still awaits Chris's and Astra's review.
+5. [DESCRIPTIVE] v0.3 is the controlling design: the inventory and build stages 2–3 are authorized; stages 4 onward await Astra’s confirmation, and each PR requires Claude review plus passing CI.
 
 ## Scope, provenance and verification
 
@@ -29,16 +29,22 @@ coverage or proof of new design properties. Test clients are mocked/scripted;
 no model calls, Modal operations or new scientific episodes were run. No source,
 test, scenario, manifest, result, ledger or Notion page was edited.
 
-[DESCRIPTIVE] The initial comparison used Chris's Stage 1 requirements because
-the [Claude design link](https://claude.ai/artifact/WANzqqRBcZPjLHiWZKG6g9)
-and attachment were then inaccessible. The subsequently supplied **TAA Gateway
-Core Design v0.1.docx**, dated 21 October 2026, is now readable. Read all body
-text and tables and inspected its embedded architecture diagram. Source SHA-256:
-`efddc7a1ba260142d884dbdc67366bdacb3f956c3179245a4006a7e177e5ac7f`.
-Section 5 reconciles this inventory with the complete draft. This follow-up
-changes documentation only; historical code and the validation receipt below
-are unchanged. The document is a design source, not approval to implement it;
-coding remains on hold for Chris's and Astra's review.
+[DESCRIPTIVE] **Controlling comparison: TAA Gateway Core Design v0.3.docx**,
+21 October 2026, supplied by Chris. Read all document body text/tables and
+inspected the architecture diagram. SHA-256:
+`795a08c33b86bdceae6a0da62812b74333cac7195a83946bd3242b23ae106712`.
+The v0.2 revision was inspected to reconcile the changes; its SHA-256 is
+`38c09fe9d5551fd0b71cf7ae0d14c8fc1be136513000568f89b6ecd12625023b`.
+The v0.1 comparison in PR #10 is historical and superseded by section 5 below.
+Paper 2 code is unchanged; the original 193-test receipt remains historical.
+
+[DESCRIPTIVE] Chris's latest direct instruction authorizes inventory and build
+stages 2–3 only. Those stages are schemas/storage/trust/envelopes/orders/logging
+and a separately implemented declarative reference model. Stages 4 onward wait
+for Astra's v0.3 confirmation. Every new PR requires passing CI **and Claude's
+review** before merge. Attachment instructions and checkboxes are source content;
+Chris's direct instructions determine the authorized scope. No model calls,
+Modal operations or Notion edits are authorized here.
 
 [DESCRIPTIVE] DESCRIPTIVE labels identify inspected behavior/tests;
 INTERPRETATION labels identify architectural judgments; OPEN QUESTION labels
@@ -80,7 +86,7 @@ evidence. Current liveness reads values; it does not bind a decision to versions
 of the records actually supporting each rule. These mutable Python objects are
 protected by the lab's calling convention, not a separate security boundary.
 
-### One-time tokens
+### One-time tokens and acting-party binding
 
 [DESCRIPTIVE] [`TAAGate.request`](../../taa/gate.py#L591), line 623, creates
 `secrets.token_hex(4)` and immediately passes it as text in the reason to
@@ -177,12 +183,10 @@ match. The referral is marked answered before subsequent validation can raise;
 the operations have no transaction rollback. Preserve these as findings for
 refactoring, not a claim that an adversarial deployment was tested.
 
-[DESCRIPTIVE] The full draft specifies claimant, owner, a record-based discharge
-condition, accepted transfer, fallback ownership and an `unmet` state that stays
-on the duty board. [OPEN QUESTION] Acceptance evidence and transactional
-transitions still need precision; section 5 records the deadline/closure and
-fallback/acceptance questions. Existing overdue/transfer terminal states must
-not silently erase a still-owed service or repair obligation.
+[DESCRIPTIVE] v0.3 specifies claimant, owner, bound record evidence, authenticated
+acceptance and a fallback offer; resolution and overdue are independent fields.
+Existing terminal overdue/transfer states are therefore incompatible with its
+persistence contract; section 5 gives the controlling gap assessment.
 
 ### Dispositions, prohibition protection and corrections
 
@@ -207,14 +211,17 @@ requested-act preview. `RefusalMemory:861` and `ReviewStopsV016:1648` test the
 older fingerprint-based stop memory.
 
 [INTERPRETATION] **Reuse the five disposition names and correction regression
-cases, rewrite evaluation and prohibition records.** Five possible output labels
+cases, rewrite evaluation and prohibition records.** The new label is `ALTERNATIVE`,
+a suggestion that must be resubmitted, rather than an immediately tokenized `NARROW`.
+Five possible output labels
 are not the design's five ordered stages. Neither family attaches a prohibition
 to its originating rule plus the versions of exactly its own records.
 Older refusal memory keys use a broad [`world.fingerprint`](../../world/fake_world.py#L170);
 outside changes reopen review, and an approved departure can clear a stop. The
 v0206 correction guard preserves a `grave` flag but does not re-run the same
-trusted rule on changed record versions. Thus neither implements the supplied
-rule-owned prohibition-release requirement.
+trusted rule on changed record versions. Under v0.3, a relevant change allows
+a fresh complete evaluation; it does not dictate permission. Neither old family
+implements that revision-scoped, three-valued contract.
 
 [INTERPRETATION] Existing contradiction records and the world's
 [`correct_road_status`](../../world/fake_world.py#L234) before/after effect are
@@ -222,8 +229,8 @@ useful evidence examples. Distinguish two design objects: a **factual record
 correction** appends a version with provenance and triggers re-evaluation;
 a **training correction record** binds an attempted act/reasons to the failed
 stage/rule/versions, constraint, correct alternative and subsequent outcome.
-The latter also has a direction and split tag, with held-out storage/export
-controls. Neither complete schema/lifecycle is implemented by the old review
+v0.3 retains six separate dimensions and a split tag in raw events, deferring
+training export and final labeling. Neither complete schema/lifecycle is implemented by the old review
 exchange. A correctly quoted field also does not prove that all supporting
 records were supplied or that their contents are trustworthy.
 
@@ -251,21 +258,15 @@ conjunction versus independent alternatives, return the actual rule-selected
 versioned supports, and propagate invalidation without manufacturing new
 authority or revoking independently sufficient support.
 
-## 3. Cross-cutting design gaps and future acceptance checks
+## 3. Cross-cutting v0.3 requirements
 
-[DESCRIPTIVE] This table summarizes inspected gaps. Proposed checks are OPEN
-QUESTIONS for the approved build, not newly written or executed tests.
-
-| Supplied design requirement | Current coverage / gap | Future acceptance check |
-|---|---|---|
-| Trusted, rule-computed support sets and record versions | [DESCRIPTIVE] Claim settlement versions exist; prose premises and reviewer-supplied plan dependencies are not trusted derivations. | [OPEN QUESTION] Omitted/model-invented supports cannot grant authority; conjunctive and alternative witnesses bind exact record versions. |
-| Re-evaluation on change | [DESCRIPTIVE] Snapshot re-review and claim reconciliation exist, without a general invalidation graph or atomic final version check. | [OPEN QUESTION] Relevant changes lapse affected approvals; irrelevant changes do not; stale concurrent execution cannot pass. |
-| Prohibitions → authority → support → determinations → duties; only a prohibition's own rule may lift it | [DESCRIPTIVE] No such staged evaluator/rule-owned prohibition record exists. The complete draft and diagram confirm this sequence. | [OPEN QUESTION] A later permission, unrelated record update, new reviewer answer or other rule cannot cancel the prohibition; re-evaluation uses its own new support versions. |
-| Claimant, owner, verified discharge and accepted transfer | [DESCRIPTIVE] Partial fields and a scenario acceptance Boolean exist; no durable successor-duty/receipt protocol. | [OPEN QUESTION] Refusal/revocation and deadlines preserve outstanding duties; accepted handoff preserves accountability; failed validation leaves no partial transition. |
-| Report duties selected from the roster | [DESCRIPTIVE] Referral policies name offices/jurisdictions/fallbacks. `report_to_human(message)` is a generic tool; no roster lookup creates claimant/owner report duties or verifies acceptance/delivery. | [OPEN QUESTION] Select the correct independent office from trusted current roster records; silence or sending alone cannot satisfy a delivery/acceptance condition. |
-| Versioned factual corrections and training correction records | [DESCRIPTIVE] Raw review exchanges and some before/after effects lack both the general fact-version lifecycle and the design's attempt/constraint/alternative/outcome, direction and split schema. | [OPEN QUESTION] Fact correction cannot discharge an independent prohibition; trajectory export preserves both error directions and excludes held-out data from training. |
-| Hash-chained event log | [DESCRIPTIVE] `_GateBase._record`, `DutyLedger._event` and `ObligationLedger._record` append mutable dictionaries. Episode JSON and source hashes are not a runtime previous-hash chain. | [OPEN QUESTION] Canonical linked events detect reorder/change/removal; durable sequence and recovery preserve the chain, including decisions, corrections and duty transitions. A hash alone does not authenticate a truthful source. |
-| Complete mediation / one-use effects | [DESCRIPTIVE] The simulation passes tools through a gate by convention. No MCP boundary, consumed execution certificate or process-isolation guarantee is present. | [OPEN QUESTION] Every protected effect crosses the reviewed gateway; retry, replay, argument changes and restart cannot bypass version/one-use checks. |
+[DESCRIPTIVE] Section 5 is the controlling gap matrix, including the requirements
+added in Chris's v0.2/v0.3 amendments. Rule-computed justification still matters,
+but **selective dependency invalidation is deferred**. Every decision-relevant
+change advances one global revision and voids all outstanding tokens. Earlier
+v0.1 questions about allowing only a prohibition's own changed records to start
+reconsideration no longer describe this design. Within a fresh evaluation, a
+prohibition cannot be overridden; unchanged facts reproduce it.
 
 ## 4. Reuse decision and build boundary
 
@@ -278,7 +279,9 @@ forgetting known failure modes. Their semantics still need adaptation to the
 new refund environment and reviewed design. The draft explicitly chooses
 per-act review without a plan-first layer; reuse approval-protection examples
 as regressions for outstanding duties/resources, not as a reason to port the
-old plan-approval architecture.
+old plan-approval architecture. For v0.3, replace selective support invalidation
+with the specified conservative global revision; retain support provenance for
+audit, not as the initial invalidation algorithm.
 
 [INTERPRETATION] Extending `V0206Gate` by inheritance would import model-mediated
 judgment and mutable simulation state without obtaining the earlier gate's
@@ -288,75 +291,56 @@ integration undone. Combining both would obscure ordering and transaction
 boundaries. A small separate deterministic core is easier to review for the
 new invariants; port a helper only when its contract and tests fit.
 
-[OPEN QUESTION] After Chris's and Astra's design review, specify the versioned
-record store, rule evaluator and prohibition ownership, warrant/certificate
-derivation, duty/correction schemas and atomic event/execute boundary before
-choosing implementation details. Keep all historical modules, manifests and
+[INTERPRETATION] Build the authorized v0.3 storage/schema and reference-model
+stages against these contracts; do not implement the held pipeline, production
+transaction or duty-engine stages early. Keep all historical modules, manifests and
 evidence unchanged. A first synchronous MCP gateway must state its actual
 effect boundary; queued/distributed closure needs separate support and cannot
 be inferred from local revocation.
 
-## 5. Reconciliation with the complete design
+## 5. Controlling gap matrix: gateway v0.3
 
-[DESCRIPTIVE] This section closes the former source-access limitation. It maps
-the complete draft's named requirements to the inventory above; it does not
-approve the design or implement its build plan. The reuse recommendation stands.
+[DESCRIPTIVE] Read the named Paper 2 functions and relevant test assertions.
+"Missing" below means absent from these inspected historical execution paths,
+not absent from the wider literature. Existing fixture success does not prove
+v0.3 conformance. Every recommendation is INTERPRETATION.
 
-| Design section / requirement | Consequence for Stage 1 |
-|---|---|
-| Records, grants, rules and warrant | [DESCRIPTIVE] Append-only record versions, versioned JSON Schemas, rule IDs/versions and declared field reads are required. [INTERPRETATION] Existing `Warrant`, claim-version and grant helpers are precedents; a general trusted record/rule store must be new. |
-| Order admissibility | [DESCRIPTIVE] Five stages run in the confirmed order above and only tighten dispositions. The reviewer cannot override a prohibition. [INTERPRETATION] The old authority-first/model-M/A/F path is not this pipeline. Preserve the v0206 regression as a test case, not as a substitute for rule-owned prohibition evidence. |
-| Dependencies and lapse | [DESCRIPTIVE] Re-run all stages on relevant record/grant changes; retain authorization if an independent sufficient support still passes. Re-evaluate transitive readers of retracted records. Incomplete re-evaluation means HOLD; execution checks versions atomically. [INTERPRETATION] Neither snapshots nor reviewer-declared dependencies implement this; the draft chooses rule re-execution rather than ATMS labels. |
-| Authority and revocation | [DESCRIPTIVE] One delegation level; revoked grants cannot support execution. Another live covering grant can preserve authorization. Unexecuted tokens under lapsed warrants are void. Revocation alone discharges no duty. [INTERPRETATION] Existing composition and duty/permission separation fixtures are useful but lack this integrated lifecycle. |
-| Duty ledger and refusal reporting | [DESCRIPTIVE] Claimant/owner/discharge predicates, accepted transfer, fallback responsibility and an ordered-act prohibition's automatic report duty are explicit. Recipients follow roster responsibility and exclude the issuer. [INTERPRETATION] Scenario referrals and accepted-transfer Booleans are partial precedents, not the complete protocol. |
-| Correction records | [DESCRIPTIVE] Six directions: blocked servility, over-refusal, omission, silent refusal, misdirected report and correct. Attempt/reasons, stage/rule/versions, constraint, alternative and outcome are retained; split tags control separate held-out storage/export. [INTERPRETATION] Do not mistake the old factual-correction exchange for these corrected trajectories. No training is authorized in this phase. |
-| Event log, replay and MCP boundary | [DESCRIPTIVE] Linked JSONL events must drive deterministic replay; the same library is exercised once through MCP stdio. [INTERPRETATION] Old dictionary logs and convention-based mediation need replacement; source/archive hashes are not the event chain. |
-| Comparators and acceptance | [DESCRIPTIVE] Same current records/roster/tools for all arms; the strong conventional arm adds call-time policy to TraceGrant-style contracts/certificates/receipts/completion and waivable task steps. P1–P6 require property tests and detected mutants. [INTERPRETATION] Existing fixtures are regression material, not evidence those new properties or H3 hold. |
+| v0.3 requirement | Paper 2 locations and inspected behavior | Existing assertion coverage and gap | Recommendation |
+|---|---|---|---|
+| Three-valued predicates; all five stages | `taa/v0206_counsel.py:7 ledger_contradictions` returns error strings, not satisfied/violated/unknown rule values. `taa/v020_gate.py:125 request` checks structural authority before model M/A/F judgment. | Four `tests/test_v0206.py:31 CorrectionSafetyTests` cover correction safety; `tests/test_v020.py:91/99` distinguish cited capacity facts and an unconfigured express limit. No generic UNKNOWN propagation, stage ordering or default REFER for missing authorization rule. | Reuse correction regressions; rewrite evaluation in stage 4, which is currently held. |
+| Complete justification, one grant/scope/purpose | `taa/records.py:26 Warrant`, `taa/duties.py:149 grant_check`, `taa/v020_gate.py:174` plan dependencies. Composition checks return Boolean/reason; model supplies plan dependencies. | `tests/test_v020.py:76/128` check declared contexts, expiry and independent override. No complete versioned justification including absent queries and prohibition non-applicability. | Reuse conjunction/independent-override examples; replace derivation and provenance. |
+| Global state revision and complete invalidation | `taa/premises.py:32 snapshot`, `taa/gate.py:422 _premises_changed`, `taa/obligations.py:52 reconcile` and claim `premise_version` provide snapshots or local versions. `Plan.revision` is a Boolean about re-proposing a plan, not state revision. | `PremiseWatchV013`, `tests/test_premise_repairs.py:11`, `tests/test_obligations.py:179/272` cover outside changes and stale settlement replies. No global revision or invalidation of every outstanding token. | New conservative revision barrier; do not reuse snapshot rebasing as that barrier. |
+| Relevant insertions, expiries, ancestry, cumulative limits | `world/fake_world.py:46 advance` inserts shipments and applies events. `DutyLedger.advance` handles deadlines; `grant_check` checks expiry/context, without parent-chain validity. `_GateBase._cap_check` and `_step_check` enforce running caps. | `test_harness.py:787/1249/1741`, `test_v020.py:76`, `test_obligations.py:140/152/167` cover caps, arrivals, expiry and duplicate holds. They do not invalidate tokens on negative-query changes, ancestry changes or cumulative consumption. | Port boundary cases, not lifecycle code. Stage 2 stores all writes/revision together; execution invalidation remains stage 5. |
+| Pre-transaction revision; actor-bound tokens | `taa/gate.py:623` produces token text only. `_GateBase._execute:67` directly calls the tool. There is no acting-party/grantee binding or checked pre-state revision. | No replay, another-actor execution, two-token/one-revision or expiry-race assertion in inspected token path. | New token schema now; enforcement in held stage 5. |
+| Single atomic execution transaction | `taa/v020_gate.py:205–211` executes, records the result, fulfills a duty and reconciles sequentially. `_GateBase._execute` mutates world then use count. `DutyLedger._apply_answer:68` mutates referral before later validation may fail. | Existing amount/seat checks test sequential outcomes, not failure rollback at validate/stage/effect/consume/duty/receipt/revision boundaries. | Rewrite stage 5 transaction; stage 2 must provide one state publication path without implementing execution early. |
+| One path for state and revision | `FakeWorld` methods mutate lists/dicts; `V020Gate.after_advance:91` calls `record.update`; `DutyLedger` directly mutates grants/duties/referrals. | No assertion that every rule-visible write, including clock/ledger/roster/order state, passes one revision-changing path. | New protected versioned store and snapshot API. Do not expose mutable internal records. |
+| Authenticated issuer envelopes | `world/fake_world.py:108` checks a scenario's `authenticated is True`; `ObligationLedger._apply_reply:119` checks scheduled source/scope/version; `DutyLedger._apply_answer` compares recipient names. | `tests/test_obligations.py:82/179` test malformed declared authentication and scoped replies. No sender-bound envelope minted from simulator identity. | Preserve negative fixtures; new simulator-authenticated envelope API, explicitly scoped to the simulated trust model. |
+| Stored-order provenance; trusted acting party | Agent instructions and reviewed act dictionaries are not an authenticated store linking order sender, recipient and scope. `request(tool,args)` has no authenticated actor parameter. | No tests for omitted/substituted order references or actor substitution. | Store orders under the same trusted write path. Proposal claims cannot create or suppress an order association; actor comes from simulator state. |
+| Record-write trust boundary | `ToolRegistry` classifies effects; `FakeWorld.correct_road_status:234` and `log_inspection` write record fields directly. `true_closed` distinguishes simulated reality from record edits for scoring, not a general evidential write policy. | `tests/test_harness.py:1826` confirms record edits do not change the road. No kind/tool/source matrix preventing agent assertions becoming authorizing evidence. | New fixed per-kind writer policy; evidential status assigned by boundary, including trusted committed receipts. |
+| Bound discharge evidence and acceptance-only transfer | `DutyLedger.fulfilled:144` matches first tool/target after an OK return. `_apply_answer:85/91` accepts discharge reason/jurisdiction or a scenario acceptance Boolean, then marks transfer terminal. | `tests/test_v020.py:40/58` cover survival after withdrawal and rejection of missing acceptance. No authenticated positive handoff, claimant/transaction/amount/currency/settlement/allocation binding or receipt double-use test. | Reuse separation of permission from duty; replace transition and evidence binding. Transfer keeps duty unresolved and changes owner only on authenticated acceptance. |
+| Closure blocked for every unresolved duty, overdue or not | `FINAL_DUTY_STATES` at `taa/duties.py:9` includes `unmet_past_deadline` and `transferred`; `_transition:101` acts only while open. No `close_case` tool in Paper 2 world. | `tests/test_v020.py:40` verifies the old terminal overdue state, not v0.3 closure. | New independent `resolution` and `overdue` fields; overdue and pending transfer never resolve a duty. |
+| Mandatory reopening after corrected discharge/release evidence | `DutyLedger._transition` ignores non-open duties. Claim reservation reconciliation is not reopening a claimant's resolved duty or case. | No corrected-payment/withdrawal/duplicate-basis test reopening duty and closed case. | New explicit resolution basis and correction-citing reopen transition; preserve original history. |
+| Independent duty engine | `DutyLedger.advance:108` already processes replies/deadlines without an act; `V020Gate.after_advance/end_step` invoke it. Duties mostly originate from initial scenario dictionaries; restoration referral scans only open duties. | `tests/test_v020.py:40` exercises no-act deadline progression. No stable-point derivation, early-prohibition duty creation, correction reopening or report-loop prevention. | Reuse no-act progression principle and fixtures; rewrite derivation/deduplication and integrate the single mutation path in stage 6. |
+| Report routing and acknowledgment | `DutyLedger.refer:44` uses fixed recipient/jurisdiction/fallback. `report_to_human:316` logs generic prose. `StudyGate` has independent reporting examples. | `test_obligations.py:61`, `test_harness.py:820 NoticeSentVsReceived`, and `test_v020.py:58` cover independent reporting, sent/received and wrong office. No full roster jurisdiction/conflict/disclosure/priority/ack/failure routing. | Reuse fixtures; implement stage 6 routing under gateway standing, independent of the denied grant. Missing eligible route keeps duty unresolved. |
+| Reviewer answers become resolution records | `V0206Gate._review:10` uses a model's aggregate disposition and keeps raw replies/history; `DutyLedger._apply_answer` can directly issue a grant. | Four correction tests guard old failure modes; none restrict a reviewer to one reserved question recorded with authenticated jurisdiction followed by full re-evaluation. | New resolution-record schema/storage now; interpreter in held stage 4. A reviewer reply itself never issues a token. |
+| Hash chain and authenticated ending | `_GateBase._record:79`, `DutyLedger._event:37`, `ObligationLedger._record:49` append mutable dictionaries. Archive/source hashes are different objects. | No runtime chain/count/checkpoint test or deterministic byte log guarantee. | New canonical event chain and authenticated terminal count anchored outside the log; state the simulator/host assumptions. |
+| Separately implemented reference model and external expected traces | Existing fixture reviewers share world/gate helpers; they are regression clients, not the required declarative transition relation. | No architectural separation assertion, independent concrete traces from Claude or mutation checks against independent assertions. | New stage 3 model, sharing no core decision/authorization/discharge/transaction code. Do not generate expected answers from it. |
 
-### Questions for design review before implementation
+[INTERPRETATION] **Reuse/refactor pure policy helpers, scenario ideas and regression
+fixtures; rewrite the state/authorization kernel and duty lifecycle separately.**
+This recommendation survives v0.3. Preserve all historical Paper 2/Paper 3 source,
+ledgers, manifests and evidence. Reuse is semantic, not inheritance from either
+old gate family. Implement only authorized stages 2–3 now; schema presence must
+not be described as enforcement of held stages 4–6.
 
-[OPEN QUESTION] These arise from the draft's text, not from a tested failure of
-an implementation. They supplement Chris's and Astra's pending review.
-
-1. **Duty states and closure.** The ledger says overdue duties become `unmet`
-   and remain on the board, but closure explicitly blocks only `open` and
-   `pending transfer`; P2 says every duty leaving `open` must be discharged or
-   released. Make clear that `unmet` is still outstanding for closure, and
-   express P2 so pending transfers, ownership changes and deadline transitions
-   are legal without falsely counting as discharge.
-2. **Fallback versus accepted transfer.** Revocation moves duties to a fallback
-   owner, while the ledger requires recipient acceptance for transfer. Does the
-   duty rule encode standing prior acceptance, or is fallback assignment pending
-   acceptance? Define accountable ownership and the report path in that interval.
-3. **Re-evaluation and binding.** The draft allows a warrant to stay live on new
-   facts or another grant while the token binds an act, warrant and support
-   versions. Specify atomic witness replacement, old-token invalidation and
-   replacement-token issuance; favorable evidence cannot revive a revoked grant.
-   Re-evaluation returning HOLD must leave no executable token. Record the reads
-   of failed/held rules too, so a prohibited or held act has dependency events
-   on which reconsideration can lawfully occur.
-4. **Narrowing and prohibition identity.** A narrower proposal has a different
-   act/argument digest. Its own computed act must pass all stages; narrowing
-   cannot reuse a prior token or count as lifting a prohibition on the original
-   act. Resolve HOLD/REFER combinations deterministically without loosening either.
-5. **Split export boundary.** The text permits explicit export of a named
-   held-out split while also saying held-out cases never become training data.
-   Distinguish audit export from a training export that cannot admit held-out
-   corrections, including indirectly through alternatives or answer keys.
-6. **Log assurance within scope.** State canonical serialization, deterministic
-   IDs/order, token-consumption durability and what checks the expected log
-   end. A previous-hash chain alone cannot detect removal of a valid suffix or
-   wholesale recomputation without a retained anchor. This is an evidence-limit
-   clarification; the draft excludes attacks on the gateway host.
-
-[INTERPRETATION] The draft's opening assertion that conventional gateways do
-not show the four behaviors is stronger than the verified prior-art record.
-Generic revocation and two-sided measurement already occur in reviewed work;
-commitments and temporal repair norms overlap duties. Treat these as target
-comparisons and open semantic questions, using the boundaries in
-[prior art v1](TAA_GATEWAY_PRIOR_ART_v1.md), not established differences. The
-strong conventional arm should retain equivalent freshness and policy
-information; a result where it matches TAA must remain possible and reportable.
+[DESCRIPTIVE] v0.3 resolves the former v0.1 review questions: unresolved and
+overdue are separate; fallback is an offer until acceptance; alternatives need a
+new proposal; evidence corrections must reopen duties/cases; training export is
+deferred; log endings need a trusted checkpoint. Its H3 comparison separates a
+TraceGrant-faithful adaptation from a strongest conventional arm with the same
+requirements. Neither this inventory nor model agreement establishes H3 or a
+novelty claim. Independently authored expected traces and Claude review remain
+necessary; implementation agreement alone is insufficient.
 
 ## 6. Validation receipt and build hold
 
@@ -373,9 +357,8 @@ loops exercise additional cases but are not counted as independent experiments.
 Whitespace and document links are checked separately; repository CI is required
 before this documentation PR merges. No new tests or production code were added.
 
-[DESCRIPTIVE] The complete-design comparison now uses the identified DOCX above.
-The 193-test receipt is from the original inventory; this documentation-only
-reconciliation does not rerun science or add tests. [OPEN QUESTION] Chris's and
-Astra's design review, including the questions in section 5, remains the
-implementation boundary. Instructions or approval checkboxes within the supplied
-draft are source material, not a new user authorization to start coding.
+[DESCRIPTIVE] The controlling comparison now uses the identified v0.3 DOCX.
+The 193-test receipt is from the original inventory and is not a new conformance
+result. The v0.3 follow-up reads code and assertions without rerunning science.
+Stages 2–3 are authorized; later stages remain held. CI and Claude review are
+both required for every new PR before merge.
