@@ -9,6 +9,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Gateway schema dependency (offline tests, no model clients)
+        run: python -m pip install -r requirements-gateway.txt
       - name: Study D sampler static guards (no GPU or credentials)
         run: python scripts/check_study_d_sampler_v02422.py
       - name: Study D exact science serving contract (no GPU or credentials)

@@ -1,0 +1,1039 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:taa:gateway:objects:0.3.0",
+  "title": "TAA gateway v0.3 versioned object contracts",
+  "$defs": {
+    "rule_result": {
+      "enum": [
+        "satisfied",
+        "violated",
+        "unknown"
+      ]
+    },
+    "record": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fields": {
+          "type": "object"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "written_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "written_under_warrant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidential": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "kind",
+        "fields",
+        "version",
+        "written_by",
+        "written_under_warrant",
+        "evidential"
+      ],
+      "additionalProperties": false
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authenticated_sender": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 1
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message_kind": {
+          "enum": [
+            "order",
+            "message",
+            "resolution",
+            "acceptance",
+            "acknowledgment"
+          ]
+        },
+        "content": {
+          "type": "object"
+        },
+        "authentication_tag": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "message_id",
+        "authenticated_sender",
+        "recipient",
+        "step",
+        "message_kind",
+        "content",
+        "authentication_tag"
+      ],
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arguments": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "stored_order": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope": {
+          "$ref": "#/$defs/envelope"
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "envelope",
+        "scope"
+      ],
+      "additionalProperties": false
+    },
+    "party": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdictions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "may_receive": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "name",
+        "role",
+        "jurisdictions",
+        "conflicts",
+        "may_receive"
+      ],
+      "additionalProperties": false
+    },
+    "purpose": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "principal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "excluded_proxies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "principal",
+        "statement",
+        "excluded_proxies"
+      ],
+      "additionalProperties": false
+    },
+    "grant": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_grant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grantor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "grantee": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "resource_scope": {
+          "type": "object"
+        },
+        "limits": {
+          "type": "object"
+        },
+        "purpose_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "live_conditions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "expires_at_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "live",
+            "revoked",
+            "withdrawn"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "parent_grant",
+        "grantor",
+        "grantee",
+        "action_types",
+        "resource_scope",
+        "limits",
+        "purpose_id",
+        "live_conditions",
+        "expires_at_step",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kind": {
+          "enum": [
+            "prohibition",
+            "determination",
+            "support",
+            "duty"
+          ]
+        },
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "predicate": {
+          "type": "object"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "version",
+        "kind",
+        "reads",
+        "predicate",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "proposal": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arguments": {
+          "type": "object"
+        },
+        "acting_party": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "claimed_purpose": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "claimed_grant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "claimed_reasons": {
+          "type": "array",
+          "items": {}
+        },
+        "raw": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments",
+        "acting_party",
+        "order_reference",
+        "claimed_purpose",
+        "claimed_grant",
+        "claimed_reasons",
+        "raw"
+      ],
+      "additionalProperties": false
+    },
+    "act": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "operation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "state_changes": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affected_parties": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "benefit_route": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "schema_version",
+        "operation",
+        "assertions",
+        "state_changes",
+        "affected_parties",
+        "benefit_route"
+      ],
+      "additionalProperties": false
+    },
+    "query": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {}
+      },
+      "required": [
+        "record_id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "rule_fact": {
+      "type": "object",
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rule_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "result": {
+          "$ref": "#/$defs/rule_result"
+        },
+        "queries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/query"
+          }
+        }
+      },
+      "required": [
+        "rule_id",
+        "rule_version",
+        "result",
+        "queries"
+      ],
+      "additionalProperties": false
+    },
+    "justification": {
+      "type": "object",
+      "properties": {
+        "grant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "object"
+        },
+        "rule_facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rule_fact"
+          }
+        }
+      },
+      "required": [
+        "grant_id",
+        "purpose_id",
+        "scope",
+        "rule_facts"
+      ],
+      "additionalProperties": false
+    },
+    "warrant": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "act_description_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "justification": {
+          "$ref": "#/$defs/justification"
+        },
+        "state_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disposition": {
+          "enum": [
+            "PERMIT",
+            "ALTERNATIVE",
+            "HOLD",
+            "REFER",
+            "PROHIBIT"
+          ]
+        },
+        "status": {
+          "enum": [
+            "live",
+            "consumed",
+            "void",
+            "withdrawn"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "act_description_hash",
+        "justification",
+        "state_revision",
+        "disposition",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "token": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "warrant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acting_party": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exact_argument_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "state_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_step": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "warrant_id",
+        "acting_party",
+        "exact_argument_digest",
+        "state_revision",
+        "expires_at_step"
+      ],
+      "additionalProperties": false
+    },
+    "record_reference": {
+      "type": "object",
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "record_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "record_id",
+        "record_version"
+      ],
+      "additionalProperties": false
+    },
+    "duty": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claimant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "type": "object"
+        },
+        "owner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "offered_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "origin": {
+          "type": "object"
+        },
+        "discharge_condition": {
+          "type": "object",
+          "properties": {
+            "evidence_kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "bindings": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "evidence_kind",
+            "bindings"
+          ],
+          "additionalProperties": false
+        },
+        "deadline_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interim_rule": {
+          "type": "object"
+        },
+        "fallback_owner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolution": {
+          "enum": [
+            "unresolved",
+            "discharged",
+            "released"
+          ]
+        },
+        "overdue": {
+          "type": "boolean"
+        },
+        "resolution_basis": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/record_reference"
+              }
+            }
+          ]
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "case_id",
+        "claimant",
+        "content",
+        "owner",
+        "offered_to",
+        "origin",
+        "discharge_condition",
+        "deadline_step",
+        "interim_rule",
+        "fallback_owner",
+        "resolution",
+        "overdue",
+        "resolution_basis",
+        "history"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "discharged",
+                  "released"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "resolution_basis": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/record_reference"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "resolution": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdiction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer": {
+          "type": "object"
+        },
+        "envelope": {
+          "$ref": "#/$defs/envelope"
+        },
+        "basis": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/record_reference"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "question_id",
+        "jurisdiction",
+        "answer",
+        "envelope",
+        "basis"
+      ],
+      "additionalProperties": false
+    },
+    "receipt": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "warrant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "token_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acting_party": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pre_transaction_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "committed_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effect": {
+          "type": "object"
+        },
+        "record_versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/record_reference"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "warrant_id",
+        "token_id",
+        "acting_party",
+        "pre_transaction_revision",
+        "committed_revision",
+        "effect",
+        "record_versions"
+      ],
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload": {
+          "type": "object"
+        },
+        "previous_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "episode_id",
+        "sequence",
+        "step",
+        "type",
+        "payload",
+        "previous_hash",
+        "hash"
+      ],
+      "additionalProperties": false
+    },
+    "checkpoint": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "head_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "algorithm": {
+          "const": "HMAC-SHA256"
+        },
+        "authentication_tag": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "episode_id",
+        "event_count",
+        "head_hash",
+        "algorithm",
+        "authentication_tag"
+      ],
+      "additionalProperties": false
+    },
+    "write_policy": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0"
+        },
+        "writers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tool": {
+                "type": "string",
+                "minLength": 1
+              },
+              "channel": {
+                "enum": [
+                  "agent",
+                  "external",
+                  "gateway",
+                  "reviewer"
+                ]
+              },
+              "principals": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              },
+              "evidential": {
+                "type": "boolean"
+              },
+              "id_prefix": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "kind",
+              "tool",
+              "channel",
+              "principals",
+              "evidential",
+              "id_prefix"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "writers"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
