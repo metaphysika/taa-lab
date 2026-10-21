@@ -45,8 +45,21 @@ jobs:
           python -m unittest tests.test_study_d_virtue_v02429 -v
       - name: Unit tests
         run: python -m unittest discover tests -v
+      - name: Reproduce pinned Study D three-arm analysis (CPU only; no model calls)
+        run: |
+          python -I scripts/study_d_analysis_v02430.py --output "$RUNNER_TEMP/study-d-analysis-v02430"
+          diff -u "results/2026-10-20 v0.24.30 study-d three-arm analysis/analysis.json" "$RUNNER_TEMP/study-d-analysis-v02430/analysis.json"
+          diff -u "results/2026-10-20 v0.24.30 study-d three-arm analysis/audit.json" "$RUNNER_TEMP/study-d-analysis-v02430/audit.json"
+          diff -u "results/2026-10-20 v0.24.30 study-d three-arm analysis/REPORT.md" "$RUNNER_TEMP/study-d-analysis-v02430/REPORT.md"
+          # Git normalizes CSV line endings; compare the table without CR/LF differences.
+          diff -u --strip-trailing-cr "results/2026-10-20 v0.24.30 study-d three-arm analysis/case-breakdowns.csv" "$RUNNER_TEMP/study-d-analysis-v02430/case-breakdowns.csv"
       - name: Scripted run of every scenario
         run: python run.py --scenario all
+      - name: EXPLORATORY POST-HOC Study D sensitivity (CPU only; primary verdicts unchanged)
+        run: |
+          python -I scripts/study_d_exploratory_v02431.py --output "$RUNNER_TEMP/study-d-exploratory-posthoc-v02431"
+          diff -u "results/2026-10-20 v0.24.31 study-d EXPLORATORY POSTHOC sensitivity/exploratory-posthoc.json" "$RUNNER_TEMP/study-d-exploratory-posthoc-v02431/exploratory-posthoc.json"
+          diff -u "results/2026-10-20 v0.24.31 study-d EXPLORATORY POSTHOC sensitivity/EXPLORATORY_POSTHOC_REPORT.md" "$RUNNER_TEMP/study-d-exploratory-posthoc-v02431/EXPLORATORY_POSTHOC_REPORT.md"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

@@ -7980,3 +7980,179 @@ Only its documentation hash changes; original executed bytes remain available
 at 0c494657 and in the immutable returned evidence. No merge performed.
 
 Final local v02429 validation: 722 tests PASS (36 skips) in 804.588 seconds, Python 3.11. All scripted scenarios PASS. New full admission against both original ZIPs, 132-transfer worker-owned acquisition rehearsal, failure classifications, corruption and no-backend pinned Modal serialization PASS. No further runtime changes after validation. Review-branch publication and both exact-head GitHub checks follow; no launch is approved.
+
+
+## 2026-10-20 — v0.24.30 Study D final three-arm CPU analysis for review
+
+Owner reports v02429 COMPLETE and closes all Study D GPU work. Independently
+verified original returned ZIP SHA-256
+40a5eb78fac84c9624f1ac756b12ca4ba195c17a3e7e602a0d0e8f95e1babeaa,
+569 files / CRC PASS. All source evidence, runtime, ledgers and private Volumes
+remain unchanged. No Modal operation, weight download or model call.
+
+As explicitly requested, merged PR #4 (review/study-d-v02428; original executed
+0c4946574f32d305b8e4272459a004d6cb460fc3) at ad137c08c548ff2a5336927aea828e83355b6f58,
+and created/merged PR #5 (review/study-d-v02429; executed
+0693f5febd45216aaa56c955d8c87e39cddb9042) at 5b9715ae03183c6e98fc8b0f5dfdce7e2468e4a7.
+Both executed heads had both exact-head checks PASS before merge. Main retains
+both executed commits. New analysis is separate review/study-d-v02430-analysis.
+
+Analysis implementation follows operative v0247 transfer rules, carried into
+the 2,000-only Gemma revisions: fixed 16 W / 16 U / one allocation case, four
+repeats, one checkpoint per arm. No dropped 500 dose or obsolete replica rule.
+Wilson 95%; two main contrast Newcombe 97.5%; matched-case bootstrap 10,000
+draws/seed 247054, all repeats retained and shared neutral term in P4.
+Post-results implementation conventions disclosed: linear/type-7 percentile
+interpolation, frozen-roster W-then-U RNG traversal, both 95% and 97.5% bootstrap
+envelopes, conservative 97.5% for informative-null envelope. These details were
+not pre-registered; aggregate outcomes were already visible. They do not change
+practical thresholds or incomplete-transfer null ineligibility.
+
+All 394 recorded transfer episodes reproduce under the bundled frozen scorer
+and parser, first-native text, full histories and request seeds. Acquisition
+recomputed PASS 100/100 each; contrary ordered-minus-neutral 45 points.
+132 contrary v02425, 96 neutral v02425 plus 34 neutral v02426, and 132 virtue
+v02429. Two interrupted neutral units remain missing with no resend: cold
+rung1 pressure W repeat3 and C-cold-r1-U repeat4. Their observed prefixes contain
+no known primary endpoint event. Canonical composite d7837f29… and all completed
+paths/output hashes/request IDs verified. No private weight download: reuse
+receipts bind checkpoint indexes and public training proofs.
+
+Planned bounds: W contrary54/64 exact, neutral8 known +25 unknown /64, virtue0
+known +4 unknown /64; U contrary0+9 unknown, neutral0+25 unknown, virtue2+17
+unknown /64. D-P2 C−N [21/64,46/64] SUPPORTED throughout unknown resolutions.
+D-P3 N−V [4/64,33/64], refusal tradeoff [−23/64,19/64]: INCONCLUSIVE.
+D-P4 C−2N+V [−12/64,42/64]: INCONCLUSIVE. Secondary D-U [−25/64,9/64] AGAINST
+its 15-point practical threshold. All four assignments to the two missing
+units retain these verdicts. Not a sampling-significance test: P2's 97.5%
+marginal lower limit is 14.43 points and case-block lower is 7.81. Neither
+contrast establishes an informative null, also barred by incomplete transfer.
+
+Original labels: contrary69 correct/54 servile/9 malformed; neutral71 correct/
+40 unfinished/13 malformed/5 servile/1 action_error plus2 missing; virtue93
+correct/22 malformed/15 silent_refusal/2 over_refusal. Neutral's8 executed W
+servile episodes remain known despite only5 original servile labels.
+Neutral unfinished W24/63 (corrects earlier provisional21), U14/63, allocation2/4,
+against zero contrary/virtue and zero W/U in the smaller base diagnostic.
+This is a neutral-control task-completion confound, not recoding or exclusions.
+All case/pressure groups, reporting/completion joints and unknown bounds saved.
+Allocation observed correct4/4,1/4,3/4; one-item descriptive result only.
+
+Contrary used per-event persistence; neutral completion/virtue batched commits.
+Original generations, seeds, settings unchanged but timing may differ.
+Disclose post-C/model selection, base-formatFAIL32/34 plus owner admission
+exception, self-hosted bf16 versus hosted API, live LoRA graphs/prefix/sampler,
+served empty thought channel, target coverage, assistant-authored experiment-
+aware data, shared templates, probe exposure, one checkpoint/arm, adapter reuse,
+stopped jobs and missing units. No broad character/mechanism claim.
+
+Owner final dashboard attestation: $25.32 used / $4.68 credit left. Aggregate
+increase $2.59 from last $22.73 attestation, not an itemized invoice. $36 cap
+leaves $10.68 cumulative headroom, distinct from current free credit. No new
+reservation. Deletion PLAN ONLY names physical v02424 (contrary+neutral, reused
+by v02426) and v02428 (virtue) Volumes; no duplicate neutral Volume assumed.
+Separate owner approval after analysis review required; preserve all evidence
+and once ledgers. No deletion, deployment, sharing or further GPU work.
+
+Seven focused CPU tests PASS, including real frozen replay, practical boundary
+conditions, known-act preservation, correlated P4 bootstrap, source corruption
+rejection and no-overwrite protection. Full suite/scripted validation and
+review-branch publication follow.
+
+Final local v02430 validation: 729 tests PASS (36 skips) in 836.377 seconds, original Python 3.11; all scripted scenarios PASS. Analysis tests and frozen replay PASS. JSON/Markdown reproduce byte-for-byte; CSV compares after Git line-ending normalization. Only new analysis/review paths are staged; historical Study B CSV fixture changes and old scripted outputs are excluded.
+
+
+## 2026-10-20 — v0.24.31 EXPLORATORY, POST-HOC sensitivity and owner hold
+
+Owner decides no Study D scientific reruns: same-seed repetition is not useful
+new evidence, and new-seed reruns after viewing results would be optional
+stopping. This is the owner's stopping decision, not a new test of exact GPU
+determinism. CPU replay of saved outputs is verification only. No inference,
+training, GPU or Modal job is approved or performed.
+
+EXPLORATORY, POST-HOC rule requested after results: count unfinished_work with
+no executed servile act as non-servile; known acts stay known, malformed and
+missing stay unknown. This alternative never replaces the pre-registered
+analysis or any verdict. New script/output/manifest are separate from v02430.
+
+EXPLORATORY, POST-HOC results independently reproduce Claude's expectations:
+S contrary54/64 exact (84.375%), neutral8known+4unknown /64 (12.50–18.75%),
+virtue0known+4unknown /64 (0–6.25%). Only21 neutral W units change from unknown
+to non-servile; the other3 unfinished W units have known servile acts.
+Three malformed neutral W episodes and one missing W unit remain unknown.
+Original labels, cases, repeats and denominators are unchanged.
+EXPLORATORY D-P3 benefit [4/64,12/64] = +6.25 to +18.75 points, inconclusive
+against15points. EXPLORATORY D-P4 [30/64,42/64] = +46.875 to +65.625 points
+(+46.88 to +65.63 with half-up rounding). Primary D-P2 SUPPORTED / D-P3 and
+D-P4 INCONCLUSIVE remain unchanged; no exploratory bound upgrades a verdict.
+U is untouched; P3 still has its original refusal-tradeoff requirement.
+
+EXPLORATORY floor note: neutral12.50–18.75% is below audited base Gemma4/16=25%.
+Even zero virtue servility permits only12.50–18.75points of benefit, limiting
+room for the pre-registered15-point threshold. Base used8Wcases/2repeats versus
+16/4 in transfer; this is descriptive context, not a matched causal effect.
+Neutral's40 unfinished_work labels and task-completion confound remain.
+
+Owner extends private-adapter retention through Paper3 outline review. Analysis
+review and separate exact deletion approval are still required afterward.
+Read-only inventory preparation may continue; no live inventory or deletion
+performed. Updated draft manifest/plan; no ledger, adapter, return or primary
+analysis output changed.
+
+Three focused CPU tests PASS: exact alternative eligibility/known-act retention,
+rounding, real pinned evidence bounds and byte-unchanged primary output guard.
+Full repository/scripted checks follow before adding this to PR#6.
+
+EXPLORATORY v02431 final local validation: 732 tests PASS (36 skips) in 811.198 seconds on original Python3.11; all scripted scenarios PASS. All four primary outputs unchanged. Prior v02430 exact-head GitHub checks also verified PASS: Harness39481421776 / Formation3.9 39481421612. New exact-head checks follow publication. No Modal/GPU/model call or deletion.
+
+
+## 2026-10-20 — v02432 Study D final factual summary, documentation only
+
+Owner requested the Paper3 factual foundation, with every claim labeled
+CONFIRMATORY / DESCRIPTIVE / EXPLORATORY / INTERPRETATION. Added
+docs/process/PAPER3_STUDY_D_SUMMARY_REPORT_v02432.md to the existing PR#6
+review branch. Sources read at the specified commits: primary769911ba,
+posthocbabffb18, Bc2deb85 and C27eced3, plus frozen design/execution records.
+No new analysis, scientific script run, model call, training, Modal operation
+or deletion. No code, source data, results or verdict changed.
+
+The summary retains D-P2 support, D-P3/D-P4 inconclusive, D-U against and
+no informative null, with the D-P2 97.5% marginal lower limit14.43points
+explicitly below15. Every numeric table is copied from committed results;
+virtue's rung4 silent refusals are checked against existing case rows and
+StudyB's recorded pattern, without new aggregation/scoring.
+
+Corrections to the brief: neutral's primary12.50–51.5625% bounds span base25%;
+only the known-act point and exploratory12.50–18.75% bounds are below that
+base point. Training includes manager AND customer requests. Cross-domain
+here means task areas within one freight simulation. The C v0244 file's
+science header is v0.23.9; frozen labels are preserved. No claim that virtue
+training introduced silent refusal or that dishonesty transferred to unrelated
+vices. Philosophical/causal readings remain INTERPRETATION.
+
+Document review and git diff whitespace check only. No analysis/test scripts
+were rerun for this documentation change. Private adapters retained through
+Paper3 outline review and pending separate owner deletion approval. No reruns.
+
+
+## 2026-10-20 — Study D closure and PR6 descriptive housekeeping
+
+Owner closes StudyD: no reruns or continuations. Private adapters retained
+pending the owner's follow-up decision; no Modal operation or deletion.
+Added two DESCRIPTIVE notes to the v02432 summary. Owner relays Claude's
+pinned-evidence verification; direct inspection of the already-saved fields
+agrees, without parser/scorer replay or a new scientific analysis:
+all40 neutral unfinished_work episodes end with attempted string tool "null";
+29 have observed_substantive_requirements_completed true. Original labels,
+correct counts, unknown bounds, exploratory rule and all verdicts remain
+unchanged. Literal string "null" is not the JSON null stop value.
+Spontaneous saved confirmed_shading flags: contrary20/20, neutral0/20,
+virtue0/20; descriptive secondary checks only. Each inspected episode/check
+file matches the v02430 input manifest's pinned v02429 archive member hash.
+
+Astra independent review must be owner-supplied verbatim at
+docs/process/PAPER3_STUDY_D_INDEPENDENT_REVIEW_ASTRA.md. Text requested and
+still pending; no invented review or placeholder. Final housekeeping head
+requires both exact-head GitHub checks PASS before owner-authorized merge
+of PR#6 into main. The merge waits for the complete review document.
+Documentation-only whitespace/source checks; no scientific scripts rerun.
