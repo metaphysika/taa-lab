@@ -12,8 +12,10 @@
 [v0](TAA_GATEWAY_PRIOR_ART_v0.md), which remains the reference for truth
 maintenance, conventional authorization, commitments, MCP gateways, faithfulness
 and activation interventions. The comparison target remains the proposed
-gateway described there, not an implemented or approved architecture. This note
-supersedes v0's provisional assessment where newer sources narrow it.
+gateway described there, not an implemented or approved architecture. The
+subsequently supplied complete *TAA Gateway Core Design v0.1* is reconciled in
+the [code inventory, section 5](TAA_GATEWAY_CODE_INVENTORY_v0.md#5-reconciliation-with-the-complete-design).
+This note supersedes v0's provisional assessment where newer sources narrow it.
 
 [DESCRIPTIVE] Labels retain v0's meanings: DESCRIPTIVE reports inspected source
 content; INTERPRETATION is our comparison; OPEN QUESTION identifies an unresolved
@@ -111,9 +113,10 @@ primary full texts below. The bibliography of the committed
 [Paper 2 preprint](../TAA-Paper-2-preprint-v1.0.docx) was also inspected: its
 Guo, Ibrahim/Li and Zhu/Wang entries match these titles and identifiers.
 Verification is targeted full-text reading, not reproduction, code review or
-independent confirmation of reported experiments. The direct design comparison
-uses Chris's supplied gateway requirements; the linked Claude design was not
-readable through the available tools when this addendum was prepared.
+independent confirmation of reported experiments. The initial direct design
+comparison used Chris's supplied requirements. The complete DOCX is now read
+and identified by hash in the linked code inventory; its requirements confirm
+the distinctions below. No source-paper verification depth changes here.
 
 ### Zhu and Wang: revocation, support and quiescence
 
@@ -138,7 +141,7 @@ The gateway comparison must distinguish the following properties:
 | Design requirement supplied by Chris | Direct comparison / unresolved test |
 |---|---|
 | Rule-computed support sets bound to record versions | [INTERPRETATION] The paper's root-support calculus already supplies a strong comparator for conjunctions, alternatives and selected authority. Root epochs and grant digests are not automatically the gateway's domain-record versions. [OPEN QUESTION] Which trusted rules derive complete supports from corrected task facts, rather than merely assume complete provenance? |
-| Revocation versus lapse after corrected evidence | [INTERPRETATION] Retiring an authority root and losing factual support are different transitions. [OPEN QUESTION] Specify whether a lapsed gateway warrant needs fresh derivation, and ensure new favorable facts cannot resurrect an explicitly revoked grant. Compare this with exact independent reauthorization, not with an indiscriminate descendant kill. |
+| Revocation versus lapse after corrected evidence | [DESCRIPTIVE] The complete draft re-runs all five stages on record/grant changes, retaining a live warrant if another sufficient support set or live covering grant passes; lapsed warrants lose executable tokens. [INTERPRETATION] Retiring an authority root and losing factual support remain different transitions. [OPEN QUESTION] Specify witness/token replacement and fresh derivation after lapse; new favorable facts cannot resurrect a revoked grant. Compare exact independent reauthorization, not an indiscriminate descendant kill. |
 | Re-evaluation at execution after change | [INTERPRETATION] A local invalidation decision cannot alone certify the cessation of queued, delegated or provider-side work. [OPEN QUESTION] If such work enters gateway scope, what mediates its final effect boundary and what evidence accounts for work committed before the fence? A synchronous demonstration should not claim distributed quiescence. |
 | A prohibition lifted only by its own rule using new versions of its own records | [INTERPRETATION] Authority-support replacement does not establish that normative restriction. [OPEN QUESTION] Test unrelated-record changes, different-rule permissions and independent grounds of prohibition separately; a new authorization witness must not silently discharge another rule's prohibition. |
 | Duties survive refusal/revocation | [INTERPRETATION] Closing retired authority is not fulfilling a claimant's service/report/repair duty. [OPEN QUESTION] Preserve and evaluate duty discharge separately from revocation success; do not interpret quiescence as completion. |
@@ -229,6 +232,16 @@ permissions arm for H3, and add a TraceGrant-style contract/evidence/receipt/
 completion-gate comparator before making broader comparative claims. TraceGrant
 is a richer conventional runtime than static permissions; do not rename one as
 the other or silently rewrite the existing hypothesis.
+
+[DESCRIPTIVE] The complete gateway draft now specifies this stronger comparator:
+call-time policy over current records **plus** a TraceGrant-style task contract,
+evidence binding, single-use certificates, receipts, a final-answer gate and
+waivable task-step obligations. It requires equal current data/tools/roster and
+review of comparator strength before step 3. [INTERPRETATION] This addresses
+the comparator recommendation; the draft's four advertised differences remain
+test questions, not established exclusions from conventional systems. The
+draft's H3 approval checkbox is source content, not a new authorization to
+implement or run the comparison.
 
 [OPEN QUESTION] The approved design should pre-register the comparator's contract
 compiler, obligation/waiver rules, current-state checks and trusted evidence,
