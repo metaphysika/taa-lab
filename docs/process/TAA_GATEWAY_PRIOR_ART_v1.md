@@ -22,9 +22,10 @@ CLAIM label. There are no new confirmatory or exploratory experimental results.
 No novelty claim is made. Failure to establish a feature in a reading is not
 proof of its absence, impossibility, or absence from another version.
 
-[DESCRIPTIVE] All sources linked below were independently retrieved on 21 October
-2026. “Full-text, targeted” means the full paper was accessible and the named
-sections were read, not every appendix or a reproduced experiment. TraceGrant's
+[DESCRIPTIVE] Sources below were independently retrieved on 21 October 2026,
+except the explicitly blocked TIOL conference listing. “Full-text, targeted”
+means the full paper was accessible and the named sections were read, not every
+appendix or a reproduced experiment. TraceGrant's
 threat model, architecture, evaluation definitions and limitations were read
 across sections 3–6. Other papers' methods, evaluation and relevant limitations
 were inspected as specified below. No code, weights, experimental infrastructure
@@ -71,6 +72,18 @@ independent implementation certifications.
 
 ### TIOL and contrary-to-duty norms: an explicit verification gap
 
+[DESCRIPTIVE] Chris supplied the [NeurIPS 2026 virtual-site listing](https://neurips.cc/virtual/2026/165390)
+for *Runtime Verification of Large Language Model Agents Under Temporal
+Input/Output Logic*, with authors Abhishek N. Kulkarni, Bastien Bernath, Anuj
+Tambwekar, Vele Tosevski, Aditya Karan, Leif Hancox-Li and Tim G. J. Rudner.
+According to Chris's relay of Claude's inspection, it is **listed on the NeurIPS
+2026 virtual site**, exposing title, authors and abstract but no full-text link;
+Claude did not verify acceptance. This is attributed metadata, not an
+independently verified listing or abstract. Independent opening attempts returned
+an inaccessible-page/robots error; direct HTTP retrieval returned a proxy 403.
+Verification depth for that listing: **abstract-only reported by Claude;
+independent abstract retrieval blocked**, not full text.
+
 [DESCRIPTIVE] The accessible primary author/company source is Abhishek Kulkarni's
 23 September 2026 [Vijil research summary](https://www.vijil.ai/blog/vijil-fundamental-research---a-new-path-to-scalable-verifiable-ai-governance/).
 Verification: complete summary, plus [Vijil's research index](https://www.vijil.ai/research/)
@@ -80,11 +93,13 @@ clean compliance, recovered violation and irrecoverable violation. Its return
 example includes repair after a missed confirmation requirement. The summary
 describes the paper as under review at NeurIPS, not as an accepted publication.
 
-[OPEN QUESTION] I did not locate a readable full paper or independently establish
-the supplied title's NeurIPS 2026 acceptance. A paper URL/author list has been
-requested. Until supplied and inspected, cite the summary at its actual depth;
-do not attribute a verified full-paper result or venue. Contrary-to-duty
-reparation already overlaps the idea that a failure can generate further duties,
+[OPEN QUESTION] Exact-title, author and arXiv/OpenReview searches did not locate
+a readable full paper or independently establish acceptance. The virtual-site
+listing reported by Claude and the earlier “under review” summary leave an
+apparent status discrepancy unresolved; a later listing could reflect a later
+status, but this was not verified. Do not cite it as an accepted NeurIPS paper.
+Cite each source at its actual depth, without attributing full-paper results.
+Contrary-to-duty reparation already overlaps the idea that a failure can generate further duties,
 but whether its implementation covers third-party duties surviving refusal and
 revocation remains unverified. This gap prevents an exhaustive claim about that
 candidate difference; it does not justify treating it as absent prior art.
