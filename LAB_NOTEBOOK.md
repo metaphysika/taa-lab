@@ -8053,3 +8053,10 @@ arms, not H3 evidence. Four-controller/weak-arm integration and named ablation
 boundaries await Claude clarification; MCP/replay is last. Q14–Q16 stay draft and
 conservative. No model calls, Modal operations, spending, Notion edits, evidence
 removal or public release. Merge only after Claude review and all green CI.
+
+
+## 2026-10-22 — C1/C4 offline implementation, review pending
+
+Claude's comparator rulings are retained verbatim in `docs/process/TAA_COMPARATOR_HARNESS_RULINGS.md` (SHA-256 `956b086805628901cb248518d394ac9164d5dc2bf197c0b8f6c58e57fd73088d`). C1 removes only prohibition evaluation under an explicit trusted construction option. C4 binds fixture labels to source proposal origins before controller expansion, not native issuance order. Twelve new component tests pass; ignored-switch and issuance-ordinal mutations are detected. See `docs/process/TAA_GATEWAY_C1_C4_v0.md` for scope and verification. C2 is deferred; C3/oracle/floor/static operations and cross-arm scoring are not started. Frozen fixtures and TraceGrant contracts remain unchanged. No model calls, Modal, spend or release. Merge requires green CI and Claude review.
+
+Local checks: full discovery completed 942 tests (36 skipped), zero failures/errors, 1,543.266 seconds. Discovery collected before the final two absence controls/missing-token diagnostic; all final 12 focused controls reran successfully afterward. Scripted all-scenarios and normal frozen/regression acceptance pass with no discrepancies or incomplete checks; all three hidden-state guards remain active. Compact evidence: `docs/process/evidence/gateway-c1-c4/validation.json`.

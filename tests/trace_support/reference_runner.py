@@ -9,6 +9,7 @@ from itertools import groupby
 
 from taa_gateway_reference import refunds as model
 from tests.trace_support.bundle import cases, world
+from worlds.refunds.token_bindings import prepare
 from tests.trace_support.state_observations import (Observer, consumed, dispatches, effects, executed, issued, record_writes, equal, latest_records)
 
 
@@ -83,7 +84,10 @@ def observe(key, expected, s, result, ctx, final=False):
         p = ctx["proposal"]
         return sum(t["status"] == "live" and t["actor"] == p["actor"] and t["tool"] == p["tool"] and equal(t["args"], p["args"]) for t in s["tokens"].values())
     if key == "same_revision_as":
-        return expected if s["tokens"][observe("token", None, s, result, ctx)]["revision"] == s["tokens"][expected]["revision"] else "different"
+        actual = observe("token", None, s, result, ctx)
+        if not isinstance(actual, str) or actual not in s["tokens"] or expected not in s["tokens"]:
+            return "missing token"
+        return expected if s["tokens"][actual]["revision"] == s["tokens"][expected]["revision"] else "different"
     if key == "revision":
         base = ctx["pre_action"]["revision"] if ctx["has_action"] else ctx["before"]["revision"]
         return "R+" if s["revision"] > base else "R="
@@ -196,12 +200,14 @@ def observe(key, expected, s, result, ctx, final=False):
     raise IncompleteCoverage("unimplemented assertion " + key)
 
 
-def run(case, backend=None):
+def run(case, backend=None, token_bindings=None):
+    if token_bindings is None:
+        case, token_bindings = prepare(case)
     backend = backend or model
     checks = []
     unsupported = getattr(backend, "UnsupportedCapability", ())
     try:
-        return _run(case, backend, checks)
+        return _run(case, backend, checks, token_bindings)
     except unsupported as error:
         completed = {row["assertion"] for row in checks if row.get("origin") == "source"}
         entries = [(f"steps[{index}]@{entry['step']}", entry.get("expect", {}))
@@ -216,14 +222,13 @@ def run(case, backend=None):
         return checks
 
 
-def _run(case, backend, checks):
+def _run(case, backend, checks, token_bindings):
     t = case["trace"]
     s = backend.start(world(), t.get("setup"), defer_first_step=True)
     initial = deepcopy(s)
     observer = Observer(s)
     stable = True
     last_proposal_revision = s["revision"]
-    last_proposal_token = None
 
     def audit(label, before, after, description, **kwargs):
         for row in observer.audit(label, before, after, description, **kwargs):
@@ -234,7 +239,7 @@ def _run(case, backend, checks):
         copied = deepcopy(s)
         backend.reconcile(copied)
         stable &= copied == s
-        ctx.update(stable=stable, observer=observer)
+        ctx.update(stable=stable, observer=observer, token_bindings=token_bindings)
         check_expectations(case, f"steps[{index}]@{entry['step']}", entry.get("expect", {}), s, description, ctx, checks, backend=backend)
 
     for step, grouped in groupby(enumerate(t["steps"]), key=lambda pair: pair[1]["step"]):
@@ -283,40 +288,41 @@ def _run(case, backend, checks):
                     ctx["proposal"] = p
                     s, result = backend.propose(s, p["actor"], p["tool"], p["args"], p.get("order_reference"))
                     last_proposal_revision = s["revision"]
-                    last_proposal_token = result.get("token")
+                    token_bindings.record(entry, result.get("token"))
                     audit(f"steps[{index}]@{step}.proposal", prior, s, result, agent=True)
                 else:
                     x = deepcopy(entry["execute"])
-                    if "token_from" in x:
-                        if x.pop("token_from") != "last_proposal" or "token" in x:
-                            raise ValueError("invalid dynamic token reference")
-                        # Resolve from an observation, never from an answer key.
-                        # Audits below see the actual requested token identity.
-                        x["token"] = last_proposal_token
+                    # Audits see the actual handle bound to the source proposal.
+                    x["token"] = token_bindings.execution(x)
+                    x.pop("token_from", None)
                     if x.get("inject_fault", "").startswith("${"):
                         x["inject_fault"] = case["parameters"][x["inject_fault"][2:-1]]
                     ctx["execute"] = x
                     s, result = backend.execute(s, x["actor"], x.get("token"), x.get("inject_fault"))
                     audit(f"steps[{index}]@{step}.execution", prior, s, result, agent=True, execute=x)
                 verify(index, entry, ctx, result)
-    ctx.update(stable=stable, initial=initial, observer=observer)
+    ctx.update(stable=stable, initial=initial, observer=observer, token_bindings=token_bindings)
     check_expectations(case, "final", t.get("final", {}), s, {}, ctx, checks, final=True, backend=backend)
     return checks
 
 
 def check_expectations(case, location, expected, state, result, ctx, checks, final=False, backend=None):
     for key, value in expected.items():
+        resolved = value
         try:
             if backend is not None and hasattr(backend, "incomplete_assertion"):
                 reason = backend.incomplete_assertion(key, state)
                 if reason:
                     raise IncompleteCoverage(reason)
-            observed = observe(key, value, state, result, ctx, final)
-            status = "pass" if contains(observed, value, field=key) else "discrepancy"
+            resolved = ctx['token_bindings'].expectation(key, value)
+            observed = observe(key, resolved, state, result, ctx, final)
+            status = "pass" if contains(observed, resolved, field=key) else "discrepancy"
         except IncompleteCoverage as error:
             observed, status = str(error), "incomplete"
         checks.append({"trace": case["id"], "assertion": location + "." + key,
                        "expectation": value, "observed": observed, "status": status, "origin": "source"})
+        if resolved != value:
+            checks[-1]['resolved_expectation'] = resolved
 
 
 def all_results(backend=None):

@@ -12,6 +12,7 @@ from tests.trace_support.bundle import world
 from worlds.refunds.catalog import catalog, inputs_only, provenance
 from comparators.tracegrant import TraceGrant, contract, digest
 from comparators.world import World
+from worlds.refunds.token_bindings import prepare
 
 # Artificial simulator key, not a credential or claim about external custody.
 SIMULATOR_KEY = b'POEC-offline-simulator-certificate-key'
@@ -29,11 +30,12 @@ def admit_active(gateway, service):
 
 def episode(case, controller_name):
     controller = CONTROLLERS[controller_name]()
-    program = controller.program(case if controller_name == 'correct' else inputs_only(case))
+    source, bindings = prepare(case)
+    program = controller.program(source if controller_name == 'correct' else inputs_only(source))
     definition = world()
     service = World(definition, program['trace'].get('setup'))
     gateway = TraceGrant(contract(case['id']), certificate_key=SIMULATOR_KEY)
-    observations, certificates, last = [], {}, None
+    observations = []
     # Match the common runner: all same-step events, then proposals, executions.
     # No POEC duty reconciliation phase exists; there is no TAA ledger here.
     for step, group in groupby(program['trace']['steps'], key=lambda e: e['step']):
@@ -51,15 +53,13 @@ def episode(case, controller_name):
                 result = {'decision': 'WITHHELD'}
             else:
                 result = gateway.decide(p['actor'], p['tool'], p['args'])
-            last = result.get('certificate')
-            if last:
-                certificates['T' + last['id'][2:]] = last
+            bindings.record(entry, result.get('certificate'))
             observations.append({'step': step, 'kind': 'proposal', 'input': deepcopy(p), 'result': deepcopy(result)})
         for entry in entries:
             if 'execute' not in entry:
                 continue
             e = entry['execute']
-            cert = last if e.get('token_from') == 'last_proposal' else certificates.get(e.get('token'))
+            cert = bindings.execution(e)
             before = service.snapshot()
             result = gateway.dispatch(cert, e['actor'], cert['tool'], cert['arguments'], service) if cert else {'dispatch': 'refused', 'reason': 'no observed certificate'}
             # The token_from input never falls back to an earlier certificate.

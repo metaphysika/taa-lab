@@ -22,7 +22,7 @@ def inputs_only(case):
     """Pass only simulator inputs to controllers other than the key follower."""
     result = {"id": case["id"], "trace": {"setup": deepcopy(case["trace"].get("setup", {})), "steps": []}}
     for entry in case["trace"]["steps"]:
-        result["trace"]["steps"].append({k: deepcopy(v) for k, v in entry.items() if k in ("step", "events", "propose", "execute")})
+        result["trace"]["steps"].append({k: deepcopy(v) for k, v in entry.items() if k in ("step", "events", "propose", "execute", "proposal_origin")})
     return result
 
 

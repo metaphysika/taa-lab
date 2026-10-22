@@ -149,12 +149,14 @@ def metrics(records, state):
 
 
 def episode(case, controller_name, baseline_contexts=None):
+    from worlds.refunds.token_bindings import prepare
+    source, bindings = prepare(case)
     controller = CONTROLLERS[controller_name]()
-    program = controller.program(case if controller_name == "correct" else inputs_only(case))
+    program = controller.program(source if controller_name == "correct" else inputs_only(source))
     if controller_name != "correct":
         program["id"] = case["id"] + "@" + controller_name
     backend = RecordingBackend(controller)
-    assertions = reference_runner.run(program, backend=backend)
+    assertions = reference_runner.run(program, backend=backend, token_bindings=bindings)
     failures = [r for r in assertions if r["status"] != "pass"]
     if baseline_contexts is None:
         if controller_name != "correct":

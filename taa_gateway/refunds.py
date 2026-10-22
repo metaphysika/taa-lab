@@ -309,7 +309,9 @@ def rule_definitions():
 
 
 class RefundWorld:
-    def __init__(self, definition, key, *, native=None, events=(), setup=None):
+    def __init__(self, definition, key, *, native=None, events=(), setup=None, ablation=None):
+        if ablation not in (None, "without_admissibility"):
+            raise ValueError("unknown offline ablation")
         self.definition = copy_json(definition)
         self.auth, self.log = SimulatorAuthority(key), EventLog("production-refunds", key)
         self.log.restore_open_for_simulator(events)
@@ -355,7 +357,8 @@ class RefundWorld:
         actions = list(definition["grants"]["G1"]["actions"])
         self.grants = RefundGrantPolicy({"refund_authority": actions, "root": ["grant_refund_authority"], "interim": ["message_party"]},
                           "party:company", interim_principal="party:company", interim_purpose="purpose:P1")
-        self.pipeline = Pipeline(self.store, self.orders, self.tools, self.grants, rule_definitions(), reserved_questions={
+        self.pipeline = Pipeline(self.store, self.orders, self.tools, self.grants, rule_definitions(),
+                                 include_prohibitions=ablation != "without_admissibility", reserved_questions={
             "goodwill_approval": {"role": "F", "jurisdiction": "claim_decisions"}})
         self.engine = DutyEngine(self, PREFIX)
         self.runtime = Runtime(self.store, self.auth, self.gateway, self.pipeline, self.tools,
