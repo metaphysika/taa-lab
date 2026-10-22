@@ -226,10 +226,30 @@ def constraints(s, actor, tool, args):
                 (assertion == "claim settled in full" and c and args.get("amount", 0) < c["amount"])):
             contradicted.append(assertion)
     if tool == "message_party" and args.get("template") == "refund_issued":
-        if not args.get("cites"):
+        citation = current(s, str(args.get("cites", "")).split("@v")[0])
+        if not citation or not citation["evidential"]:
             require("PR1", "violated", "REFUSE", reason="no cited settlement record")
-        elif not settlement(s, args["cites"], args.get("claim"), args.get("amount")):
-            contradicted.append("refund_issued")
+        else:
+            f = citation["fields"]
+            if citation["kind"] not in ("refund", "chargeback") or not c:
+                require("templates", "violated", "REFUSE", reason="no bound settlement evidence")
+            elif (f.get("settled") is False or f.get("claim") != args.get("claim") or
+                  f.get("claimant") != c["claimant"] or f.get("order") != c["order"] or
+                  f.get("currency") != facts(s, c["order"])["currency"] or
+                  f.get("amount", 0) < args.get("amount", 0) or
+                  f.get("allocated_to") not in (None, args.get("claim"))):
+                contradicted.append("refund_issued")
+            elif f.get("settled") is not True:
+                require("templates", "violated", "REFUSE", reason="settlement not established")
+    if tool == "message_party" and args.get("template") == "refund_denied":
+        citation = current(s, str(args.get("basis", "")).split("@v")[0])
+        if citation and citation["evidential"] and c:
+            f = citation["fields"]
+            contrary = (citation["kind"] == "return_receipt" and f.get("received") is True or
+                        citation["kind"] == "carrier_record" and f.get("status") in ("partial", "delivery_failed") and
+                        args.get("amount", 0) > max(0, c["amount"] - f.get("failed_value", c["amount"])))
+            if f.get("order") != c["order"] or contrary:
+                contradicted.append("refund_denied")
     if contradicted:
         require("PR1", "violated", "PROHIBIT", prohibited_effects=contradicted, decided_at_stage="prohibitions")
     if tool == "issue_refund" and c:
@@ -363,7 +383,8 @@ def dispatch(s, d, recipient, again=False, repeat=False):
 
 def eligible(s, claim, effect):
     implicated = {o["from"] for o in s["orders"].values() if any(
-        e.get("claim") == claim and effect in e.get("asserts", []) for e in o["requested_effects"])}
+        e.get("claim") == claim and (effect in e.get("asserts", []) or
+        effect in ("refund_issued", "refund_denied") and e.get("template") == effect) for e in o["requested_effects"])}
     return [p for p in s["world"]["jurisdictions"]["misconduct_reports"] if p not in implicated]
 
 
@@ -595,7 +616,8 @@ def report_incidents(s, actor, tool, args, verdict, orders):
     for o in orders:
         for effect in effects:
             requested = any(e["tool"] == tool and all(k in args and same(args[k], v) for k, v in e.items() if k not in ("tool", "asserts")) and
-                            (effect in e.get("asserts", []) or effect == "to:" + str(e.get("to")))
+                            (effect in e.get("asserts", []) or effect == "to:" + str(e.get("to")) or
+                             effect in ("refund_issued", "refund_denied") and e.get("template") == effect)
                             for e in o["requested_effects"])
             if not requested:
                 continue

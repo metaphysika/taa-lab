@@ -36,6 +36,16 @@ jobs:
           persist-credentials: false
       - name: Q11/Q12 regressions detect their pre-change defects
         run: python -I scripts/check_gateway_q11_q12.py --implementation-root gateway-pre-q11-q12 --expect-baseline --report "$RUNNER_TEMP/gateway-q11-q12-baseline.json"
+      - name: Q13 citation absence and contradiction controls
+        run: python -I scripts/check_gateway_q13.py --report "$RUNNER_TEMP/gateway-q13-fixed.json"
+      - name: Checkout pre-Q13 implementation for sensitivity
+        uses: actions/checkout@v4
+        with:
+          ref: 8083100944399d371c396535ec1e414267e217ba
+          path: gateway-pre-q13
+          persist-credentials: false
+      - name: Q13 controls expose the pre-change defects
+        run: python -I scripts/check_gateway_q13.py --implementation-root gateway-pre-q13 --expect-baseline --report "$RUNNER_TEMP/gateway-q13-baseline.json"
       - name: Checkout the unchanged pre-fix baseline for causal regression evidence
         uses: actions/checkout@v4
         with:
@@ -65,4 +75,6 @@ jobs:
             ${{ runner.temp }}/gateway-properties.attempts.jsonl
             ${{ runner.temp }}/gateway-q11-q12-fixed.json
             ${{ runner.temp }}/gateway-q11-q12-baseline.json
+            ${{ runner.temp }}/gateway-q13-fixed.json
+            ${{ runner.temp }}/gateway-q13-baseline.json
           if-no-files-found: error
