@@ -180,12 +180,32 @@ def observe(key, expected, s, result, ctx, final=False):
     raise IncompleteCoverage("unimplemented assertion " + key)
 
 
-def run(case):
+def run(case, backend=None):
+    backend = backend or model
+    checks = []
+    unsupported = getattr(backend, "UnsupportedCapability", ())
+    try:
+        return _run(case, backend, checks)
+    except unsupported as error:
+        completed = {row["assertion"] for row in checks if row.get("origin") == "source"}
+        entries = [(f"steps[{index}]@{entry['step']}", entry.get("expect", {}))
+                   for index, entry in enumerate(case["trace"]["steps"])]
+        entries.append(("final", case["trace"].get("final", {})))
+        for location, expected in entries:
+            for key, value in expected.items():
+                label = location + "." + key
+                if label not in completed:
+                    checks.append({"trace": case["id"], "assertion": label, "expectation": value,
+                                   "observed": str(error), "status": "incomplete", "origin": "source"})
+        return checks
+
+
+def _run(case, backend, checks):
     t = case["trace"]
-    s = model.start(world(), t.get("setup"), defer_first_step=True)
+    s = backend.start(world(), t.get("setup"), defer_first_step=True)
     initial = deepcopy(s)
     observer = Observer(s)
-    checks, stable = [], True
+    stable = True
     last_proposal_revision = s["revision"]
 
     def audit(label, before, after, description, **kwargs):
@@ -195,15 +215,15 @@ def run(case):
     def verify(index, entry, ctx, description):
         nonlocal stable
         copied = deepcopy(s)
-        model.reconcile(copied)
+        backend.reconcile(copied)
         stable &= copied == s
         ctx.update(stable=stable, observer=observer)
-        check_expectations(case, f"steps[{index}]@{entry['step']}", entry.get("expect", {}), s, description, ctx, checks)
+        check_expectations(case, f"steps[{index}]@{entry['step']}", entry.get("expect", {}), s, description, ctx, checks, backend=backend)
 
     for step, grouped in groupby(enumerate(t["steps"]), key=lambda pair: pair[1]["step"]):
         entries = list(grouped)
         if step > s["step"] + 1:
-            s = model.advance(s, step - 1)
+            s = backend.advance(s, step - 1)
             rewritten = observer.capture(s)
             checks.append({"trace": case["id"], "assertion": f"before_step[{step}].immutable_record_versions",
                            "expectation": [], "observed": rewritten,
@@ -221,7 +241,7 @@ def run(case):
                 observations[index] = {"before": prior, "result": {}}
             observations[index]["after"] = after
             observations[index]["result"].update(description)
-        s, phase_description = model.enter_step(s, step, events, event_observer=observe_event)
+        s, phase_description = backend.enter_step(s, step, events, event_observer=observe_event)
         audit(f"step[{step}].phases1-2", before, s, {"state_delta": phase_description["state_delta"]})
         # Every event-entry expectation sees the common state AFTER phase 2;
         # entry-specific writes/token creation come from that entry's actual diff.
@@ -244,7 +264,7 @@ def run(case):
                 if phase == "propose":
                     p = entry["propose"]
                     ctx["proposal"] = p
-                    s, result = model.propose(s, p["actor"], p["tool"], p["args"], p.get("order_reference"))
+                    s, result = backend.propose(s, p["actor"], p["tool"], p["args"], p.get("order_reference"))
                     last_proposal_revision = s["revision"]
                     audit(f"steps[{index}]@{step}.proposal", prior, s, result, agent=True)
                 else:
@@ -252,17 +272,21 @@ def run(case):
                     if x.get("inject_fault", "").startswith("${"):
                         x["inject_fault"] = case["parameters"][x["inject_fault"][2:-1]]
                     ctx["execute"] = x
-                    s, result = model.execute(s, x["actor"], x.get("token"), x.get("inject_fault"))
+                    s, result = backend.execute(s, x["actor"], x.get("token"), x.get("inject_fault"))
                     audit(f"steps[{index}]@{step}.execution", prior, s, result, agent=True, execute=x)
                 verify(index, entry, ctx, result)
     ctx.update(stable=stable, initial=initial, observer=observer)
-    check_expectations(case, "final", t.get("final", {}), s, {}, ctx, checks, final=True)
+    check_expectations(case, "final", t.get("final", {}), s, {}, ctx, checks, final=True, backend=backend)
     return checks
 
 
-def check_expectations(case, location, expected, state, result, ctx, checks, final=False):
+def check_expectations(case, location, expected, state, result, ctx, checks, final=False, backend=None):
     for key, value in expected.items():
         try:
+            if backend is not None and hasattr(backend, "incomplete_assertion"):
+                reason = backend.incomplete_assertion(key, state)
+                if reason:
+                    raise IncompleteCoverage(reason)
             observed = observe(key, value, state, result, ctx, final)
             status = "pass" if contains(observed, value, field=key) else "discrepancy"
         except IncompleteCoverage as error:
@@ -271,14 +295,15 @@ def check_expectations(case, location, expected, state, result, ctx, checks, fin
                        "expectation": value, "observed": observed, "status": status, "origin": "source"})
 
 
-def all_results():
+def all_results(backend=None):
     results = []
     for case in cases():
         try:
-            results.extend(run(case))
+            results.extend(run(case, backend=backend))
         except Exception as error:
             results.append({"trace": case["id"], "assertion": "runner", "expectation": "complete trace execution",
-                            "observed": type(error).__name__ + ": " + str(error), "status": "incomplete"})
+                            "observed": type(error).__name__ + ": " + str(error),
+                            "status": "discrepancy" if backend is not None else "incomplete"})
     return results
 
 
@@ -287,10 +312,15 @@ def main():
     from pathlib import Path
     p = argparse.ArgumentParser()
     p.add_argument("--report", type=Path, required=True)
+    p.add_argument("--backend", choices=("reference", "production"), default="reference")
     a = p.parse_args()
-    results = all_results()
+    backend = None
+    if a.backend == "production":
+        from tests.trace_support import production_backend
+        backend = production_backend
+    results = all_results(backend)
     a.report.parent.mkdir(parents=True, exist_ok=True)
-    a.report.write_text(json.dumps({"backend": "independent-reference", "assertions": results}, indent=2) + "\n")
+    a.report.write_text(json.dumps({"backend": a.backend, "assertions": results}, indent=2) + "\n")
     failed = [r for r in results if r["status"] != "pass"]
     summary = {"scenarios": len(cases()), "assertions": len(results),
                "source_assertions": sum(r.get("origin") == "source" for r in results),

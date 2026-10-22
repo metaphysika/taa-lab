@@ -1,7 +1,8 @@
-"""Versioned state publication and fixed evidential write boundary (stage 2).
+"""Single locked publication path for records and runtime transactions.
 
-No token issuance, authorization pipeline or protected-effect executor exists
-here. The generic batch publication primitive is not the stage 5 transaction.
+Gateway callbacks are trusted simulator code. Agents have no gateway session,
+store handle or callback registration interface. Rollback never erases evidence:
+it restores uncommitted state and logs a failed attempt outside the transaction.
 """
 from dataclasses import dataclass
 from threading import RLock
@@ -36,16 +37,21 @@ class RecordStore:
         self.__policy = copy_json(write_policy)
         self.__authority = authority
         self.__log = event_log
-        self.__state = {"revision": 0, "step": 0, "records": {}}
+        self.__state = {"revision": 0, "step": 0, "records": {}, "tokens": {}, "warrants": {},
+                        "receipts": [], "decisions": [], "notices": [], "allocations": {},
+                        "cases": {}, "reports": {}, "duty_records": {}}
         self.__lock = RLock()
+        self.__mutating = False
 
     @property
     def revision(self):
-        return self.__state["revision"]
+        with self.__lock:
+            return self.__state["revision"]
 
     @property
     def step(self):
-        return self.__state["step"]
+        with self.__lock:
+            return self.__state["step"]
 
     def snapshot(self):
         with self.__lock:
@@ -68,77 +74,195 @@ class RecordStore:
             raise ValueError("no unique trusted write policy for this kind/tool/source")
         return actor, matches[0]
 
-    def publish(self, session, tool, writes=(), *, step=None, expected_revision=None):
-        """The only state mutation path. One accepted batch advances once.
-
-        All state is conservatively relevant. Logs, envelope minting and reads
-        do not advance it. Future token/cache storage must respect this distinction.
-        """
+    def _mutate(self, callback, *, execution=False):
+        """One private mutation path. No unlocked partial state or partial log."""
         with self.__lock:
-            writes = tuple(writes)
-            actor, channel = self.__authority.identity(session, tool)
-            if expected_revision is not None and (type(expected_revision) is not int or
-                                                   expected_revision != self.revision):
-                raise ValueError("stale state publication")
-            if step is not None and (type(step) is not int or step < self.step or
-                                     channel != "gateway" or tool != "advance_clock"):
-                raise ValueError("only the simulator clock can advance monotonically")
-            staged = self.snapshot()
-            next_step = self.step if step is None else step
+            if self.__mutating:
+                raise ValueError("nested state mutation is forbidden")
+            prior = self.__state
+            self.__state = copy_json(prior)
+            self.__mutating = True
             events = []
+            try:
+                callback(self.__state, events)
+                self._check_publication(prior, events, execution)
+                canonical(self.__state)
+                self.__log.append_many(events)
+            except BaseException:
+                self.__state = prior
+                raise
+            finally:
+                self.__mutating = False
+            return self.snapshot()
+
+    def _check_publication(self, prior, events, execution):
+        state = self.__state
+        if state["step"] < prior["step"] or state["revision"] < prior["revision"]:
+            raise ValueError("state clock/revision cannot regress")
+        for key in ("records", "duty_records"):
+            for rid, history in prior[key].items():
+                if rid not in state[key] or canonical(state[key][rid][:len(history)]) != canonical(history):
+                    raise ValueError("published record versions are immutable")
+        if canonical(state["receipts"][:len(prior["receipts"])]) != canonical(prior["receipts"]):
+            raise ValueError("published receipts are immutable")
+        for tid, old in prior["tokens"].items():
+            if tid not in state["tokens"] or any(canonical(old[k]) != canonical(state["tokens"][tid].get(k))
+                    for k in ("certificate", "tool", "args", "plan_hash", "basis_hash")):
+                raise ValueError("issued token bindings are immutable")
+        for wid, old in prior["warrants"].items():
+            if wid not in state["warrants"] or canonical({k: v for k, v in old.items() if k != "status"}) != canonical(
+                    {k: v for k, v in state["warrants"][wid].items() if k != "status"}):
+                raise ValueError("issued warrant basis is immutable")
+        metadata = {"step", "revision", "tokens", "warrants", "decisions"}
+        relevant = any(canonical(prior.get(k)) != canonical(state.get(k)) for k in prior.keys() | state.keys() if k not in metadata)
+        relevant |= any(old["status"] == "live" and state["tokens"][tid]["status"] != "live" for tid, old in prior["tokens"].items())
+        if relevant and state["revision"] == prior["revision"]:
+            self.advance_revision(state, events)
+        for tid, row in state["tokens"].items():
+            if row["status"] == "live" and row["certificate"]["state_revision"] != state["revision"]:
+                row["status"], row["void_reason"] = "void", "revision"
+                state["warrants"][row["certificate"]["warrant_id"]]["status"] = "void"
+                events.append((state["step"], "token_voided", {"token": tid, "revision": state["revision"]}))
+        consumed = [tid for tid, row in state["tokens"].items() if row["status"] == "consumed" and
+                    (tid not in prior["tokens"] or prior["tokens"][tid]["status"] != "consumed")]
+        receipts = state["receipts"][len(prior["receipts"]):]
+        if execution and (len(consumed) != 1 or len(receipts) != 1):
+            raise ValueError("execution consumes exactly one token and writes exactly one receipt")
+        if consumed != [receipt["token_id"] for receipt in receipts]:
+            raise ValueError("receipt/consumption mismatch")
+        for receipt in receipts:
+            validate("receipt", receipt)
+            cert = state["tokens"][receipt["token_id"]]["certificate"]
+            if (receipt["pre_transaction_revision"] != prior["revision"] or receipt["committed_revision"] != state["revision"] or
+                    receipt["acting_party"] != cert["acting_party"] or receipt["warrant_id"] != cert["warrant_id"]):
+                raise ValueError("receipt is not bound to this transaction")
+
+    def advance_revision(self, state, events, count=1):
+        """Trusted transaction helper; the working state must be the live one."""
+        if not self.__mutating or state is not self.__state or type(count) is not int or count < 1:
+            raise ValueError("not the locked working state")
+        state["revision"] += count
+        for tid, row in state["tokens"].items():
+            if row["status"] == "live":
+                row["status"] = "void"
+                row["void_reason"] = "revision"
+                state["warrants"][row["certificate"]["warrant_id"]]["status"] = "void"
+                events.append((state["step"], "token_voided", {"token": tid, "revision": state["revision"]}))
+
+    def append_write(self, state, events, session, tool, write):
+        if not self.__mutating or state is not self.__state:
+            raise ValueError("not the locked working state")
+        writer, permission = self._permission(session, tool, write.kind)
+        if not isinstance(write.record_id, str) or not write.record_id.startswith(permission["id_prefix"]):
+            raise ValueError("record identity lies outside its trusted kind namespace")
+        if write.kind in ("stored_order", "party", "purpose", "grant", "rule", "duty", "resolution", "receipt"):
+            validate(write.kind, write.fields)
+            if write.fields["id"] != write.record_id:
+                raise ValueError("typed record identity mismatch")
+        history = state["records"].setdefault(write.record_id, [])
+        if history and history[-1]["kind"] != write.kind:
+            raise ValueError("a record cannot change kind")
+        if not history and not permission["create"]:
+            raise ValueError("source cannot create this kind")
+        if history:
+            old = history[-1]["fields"]
+            changed = {key for key in old.keys() | write.fields.keys() if key not in old or key not in write.fields or
+                       canonical(old[key]) != canonical(write.fields[key])}
+            if changed - set(permission["correct_fields"]):
+                raise ValueError("source cannot correct these fields")
+        record = {"schema_version": SCHEMA_VERSION, "id": write.record_id, "kind": write.kind,
+                  "fields": copy_json(write.fields), "version": len(history) + 1, "written_by": writer,
+                  "written_under_warrant": write.under_warrant, "evidential": permission["evidential"]}
+        validate("record", record)
+        history.append(record)
+        events.append((state["step"], "record_version", {"record": record}))
+        return record
+
+    def gateway_mutation(self, session, tool, callback):
+        _, channel = self.__authority.identity(session, tool)
+        if channel != "gateway":
+            raise ValueError("only the simulator owns transaction operations")
+        return self._mutate(callback, execution=tool == "execute_transaction")
+
+    def publish(self, session, tool, writes=(), *, step=None, expected_revision=None):
+        writes = tuple(writes)
+        if tool == "execute_transaction":
+            raise ValueError("protected effects require the atomic executor")
+        _, channel = self.__authority.identity(session, tool)
+        def change(state, events):
+            if expected_revision is not None and (type(expected_revision) is not int or expected_revision != state["revision"]):
+                raise ValueError("stale state publication")
+            old_step = state["step"]
+            if step is not None and (type(step) is not int or step < old_step or channel != "gateway" or tool != "advance_clock"):
+                raise ValueError("only the simulator clock can advance monotonically")
+            next_step = old_step if step is None else step
+            boundaries = self._boundaries(old_step, next_step)
+            state["step"] = next_step
+            ledger_boundaries = self._ledger_clock(state, events, old_step, next_step)
             for write in writes:
-                writer, permission = self._permission(session, tool, write.kind)
-                evidential, prefix = permission["evidential"], permission["id_prefix"]
-                if not isinstance(write.record_id, str) or not write.record_id.startswith(prefix):
-                    raise ValueError("record identity lies outside its trusted kind namespace")
-                if write.kind in ("stored_order", "party", "purpose", "grant", "rule",
-                                   "duty", "resolution", "receipt"):
-                    validate(write.kind, write.fields)
-                    if write.fields["id"] != write.record_id:
-                        raise ValueError("typed record identity mismatch")
-                history = staged["records"].setdefault(write.record_id, [])
-                if history and history[-1]["kind"] != write.kind:
-                    raise ValueError("a record cannot change kind")
-                if not history and not permission["create"]:
-                    raise ValueError("source cannot create this kind")
-                if history:
-                    old = history[-1]["fields"]
-                    changed = {key for key in old.keys() | write.fields.keys()
-                               if key not in old or key not in write.fields or
-                               canonical(old[key]) != canonical(write.fields[key])}
-                    if changed - set(permission["correct_fields"]):
-                        raise ValueError("source cannot correct these fields")
-                record = {"schema_version": SCHEMA_VERSION, "id": write.record_id,
-                          "kind": write.kind, "fields": copy_json(write.fields),
-                          "version": len(history) + 1, "written_by": writer,
-                          "written_under_warrant": write.under_warrant, "evidential": evidential}
-                validate("record", record)
-                history.append(record)
-                events.append((next_step, "record_version", {"record": record,
-                               "revision_before": self.revision, "revision_after": self.revision + 1}))
-            if not events and next_step == self.step:
-                return self.snapshot()
-            if next_step != self.step:
-                events.append((next_step, "clock_change", {"from": self.step, "to": next_step,
-                               "revision_before": self.revision, "revision_after": self.revision + 1}))
-            staged["step"] = next_step
-            # Q10: the raw counter is not decision relevant. The trusted
-            # clock reports only boundaries derivable from current state.
-            boundaries = self._boundaries(self.step, next_step)
-            staged["revision"] = self.revision + bool(writes) + len(boundaries)
-            for event in events:
-                event[2]["revision_after"] = staged["revision"]
+                self.append_write(state, events, session, tool, write)
+            if next_step != old_step:
+                events.append((next_step, "clock_change", {"from": old_step, "to": next_step}))
+            expired = [tid for tid, row in state["tokens"].items() if row["status"] == "live" and
+                       old_step < row["certificate"]["expires_at_step"] <= next_step]
+            if writes or boundaries or expired or ledger_boundaries:
+                self.advance_revision(state, events, int(bool(writes)) + len(boundaries) + int(bool(expired)) + ledger_boundaries)
+                for tid in expired:
+                    state["tokens"][tid]["void_reason"] = "expired"
             for boundary in boundaries:
                 events.append((next_step, "clock_boundary", boundary))
-            # append_many validates the complete batch before changing the log.
-            # No callbacks or effect execution occur between append and publish.
-            self.__log.append_many(events)
-            self.__state = staged
-            return self.snapshot()
+        return self._mutate(change)
+
+    def append_duty(self, state, events, duty, writer, under_warrant=None):
+        if not self.__mutating or state is not self.__state:
+            raise ValueError("not the locked working state")
+        validate("duty", duty)
+        history = state["duty_records"].setdefault(duty["id"], [])
+        history.append({"schema_version": SCHEMA_VERSION, "id": duty["id"], "kind": "duty", "fields": copy_json(duty),
+                        "version": len(history) + 1, "evidential": True, "written_by": writer,
+                        "written_under_warrant": under_warrant})
+        events.append((state["step"], "duty_transition", {"duty": history[-1]}))
+
+    def _ledger_clock(self, state, events, old_step, next_step):
+        """Clock primitives only; independent duty derivation/routing is stage 6."""
+        changed = 0
+        for versions in list(state["duty_records"].values()):
+            duty = copy_json(versions[-1]["fields"])
+            if duty["resolution"] != "unresolved":
+                continue
+            transitions = []
+            if not duty["overdue"] and old_step < duty["deadline_step"] <= next_step:
+                duty["overdue"] = True
+                transitions.append({"type": "overdue", "at": duty["deadline_step"]})
+            at = duty.get("offer_deadline_step")
+            if duty["offered_to"] is not None and type(at) is int and old_step < at <= next_step:
+                lost = duty["interim_rule"].get("authority_lost", False)
+                if lost:
+                    duty["owner"] = None
+                duty["offered_to"], duty["offer_deadline_step"] = None, None
+                transitions.append({"type": "unowned" if lost else "offer_lapsed", "at": at})
+            if transitions:
+                duty["history"].extend(transitions)
+                self.append_duty(state, events, duty, "gateway_clock")
+                changed += len(transitions)
+        return changed
+
+    def restore_for_simulator(self, session, snapshot):
+        """Trusted offline adapter reconstruction, never available to an agent."""
+        _, channel = self.__authority.identity(session, "restore")
+        if channel != "gateway":
+            raise ValueError("only the simulator can restore a trace checkpoint")
+        with self.__lock:
+            if self.__mutating:
+                raise ValueError("cannot restore during a transaction")
+            if self.__state["revision"] != 0 or self.__state["step"] != 0 or self.__state["records"] or self.__state["tokens"]:
+                raise ValueError("restore requires a new empty simulator store")
+            self.__state = copy_json(snapshot)
 
     def audit(self, kind, payload):
         """Append observational/rejected input only; this path cannot write state."""
-        self.__log.append(self.step, kind, payload)
+        with self.__lock:
+            self.__log.append(self.step, kind, payload)
 
     def _boundaries(self, old_step, new_step):
         crossed = []

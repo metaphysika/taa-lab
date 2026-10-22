@@ -25,11 +25,14 @@ class Outcome:
     question: object = None
     alternative: object = None
     prohibited_elements: tuple = ()
+    referral: object = None
 
     def __post_init__(self):
         validate("rule_result", self.result)
         if self.question is not None and self.result != "unknown":
             raise ValueError("only an unknown result can reserve a question")
+        if self.referral is not None and (self.result != "unknown" or self.question is not None):
+            raise ValueError("a counsel referral is distinct from a reserved question")
         if self.alternative is not None:
             validate("scope", self.alternative)
         copy_json(list(self.prohibited_elements))
@@ -67,6 +70,10 @@ class EvidenceView:
     """
     def __init__(self, snapshot, reads):
         self.__records = copy_json(snapshot["records"])
+        for rid, versions in snapshot.get("duty_records", {}).items():
+            if rid in self.__records:
+                raise ValueError("duty/world identity collision")
+            self.__records[rid] = copy_json(versions)
         if any(rid.startswith("@") for rid in self.__records):
             raise ValueError("@ is reserved for query identities")
         self.__reads = frozenset(reads)
@@ -117,6 +124,8 @@ def evaluate_rule(rule, context, snapshot, reserved_questions):
         disposition = "PROHIBIT" if rule.kind == "prohibition" else "REFUSE"
     elif outcome.result == "unknown":
         disposition = "HOLD"
+        if outcome.referral is not None:
+            referral, disposition = copy_json(outcome.referral), "REFER"
         if outcome.question is not None:
             if outcome.question not in reserved_questions:
                 raise ValueError("a rule named an undeclared reserved question")
