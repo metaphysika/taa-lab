@@ -2,7 +2,7 @@
 [DESCRIPTIVE] W0 identifiers are preserved literally in the independent refund reference model.
 [DESCRIPTIVE] Foundation contracts normalize requested effects but do not yet instantiate a production W0 gateway.
 [DESCRIPTIVE] Reference execution checks 54 scenarios and 534 assertion blocks without skips.
-[OPEN QUESTION] Claude must review this mapping and the alignment PR before merge or stage 4 continuation.
+[DESCRIPTIVE] Claude conditionally approved this mapping/alignment with the four specified updates; green CI and unchanged predicted counts govern merge.
 
 # W0 mapping for review
 

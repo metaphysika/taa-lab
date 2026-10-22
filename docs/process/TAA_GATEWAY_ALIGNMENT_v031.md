@@ -2,11 +2,11 @@
 [DESCRIPTIVE] Foundation contracts and the independent reference semantics now incorporate Clarifications v0.3.1.
 [DESCRIPTIVE] Claude's unchanged v0.2.2 bundle verifies and its validator reports 49 traces and variants checked, 0 errors.
 [DESCRIPTIVE] Local validation passes 78 tests and all 534 assertion blocks across 54 executable reference scenarios, with no incomplete coverage.
-[OPEN QUESTION] This alignment and its W0 mapping await Claude review and CI; production stage 4 work remains outside this PR.
+[DESCRIPTIVE] Claude conditionally approved the alignment and mapping with these four updates; green CI is the remaining merge gate. Production stage 4 stays outside this PR.
 
 # v0.3.1 alignment and validation
 
-[DESCRIPTIVE] Controlling source is Design v0.3 plus `tests/expected_traces/v0.2.2/SPEC_CLARIFICATIONS_v0.3.1.md`. Zip SHA-256: `48ee6504ab3a0e278c8bd1725f4586463057c2671ce3ccdbeb32acf3db78856e`. Every manifest entry and extracted byte matches the supplied zip. Superseded v0.1 and v0.2.1, with their original zips, manifests and hashes, remain under `tests/expected_traces/archive/`; PR #14 was closed as superseded. Historical ingestion discrepancies remain preserved.
+[DESCRIPTIVE] Controlling source is Design v0.3 plus `tests/expected_traces/v0.2.2/SPEC_CLARIFICATIONS_v0.3.1.md`. Zip SHA-256: `9a4b20191c54aa4ff7d1ae4be6517f44aa1ddb9b67aaa00acdafabf34c5751b8`. Every manifest entry and extracted byte matches the supplied zip. Superseded v0.1 and v0.2.1, with their original zips, manifests and hashes, remain under `tests/expected_traces/archive/`; PR #14 was closed as superseded. Historical ingestion discrepancies remain preserved.
 
 | Amendment | Alignment |
 |---|---|
@@ -31,6 +31,6 @@
 
 [DESCRIPTIVE] No empirical claims, model calls, Modal operations, Notion edits, adapter downloads, scientific reruns or changes to PR #6. Passing reference traces is bounded engineering evidence, not independent empirical validation or proof of H3. Core trace execution and Astra's independent spot review remain future acceptance work.
 
-[OPEN QUESTION] Claude must review the full current alignment diff and [mapping](TAA_EXPECTED_TRACE_MAPPING_v022.md). Chris explicitly requires both Claude review and green CI before merge; the earlier approvals cover only PRs #11–#13.
+[DESCRIPTIVE] The [mapping](TAA_EXPECTED_TRACE_MAPPING_v022.md) records the tightened matcher. Chris relayed Claude's approval of b38c4b78, extended conditionally to the four specified updates only; any reference-model change or different scenario/assertion count must return to Claude before merge.
 
 [DESCRIPTIVE] Claude approved head b38c4b78 conditional on the four changes supplied by Chris: frozen v0.2.2 adoption/archive, stricter documented list matching with extra-effect negative control, author-acknowledged T30 under-listing, and mapping/count updates. No reference-model code changed. Both the prior and tightened matchers reproduce 54 executable scenarios and 534 assertion blocks with zero discrepancies or incomplete assertions. Merge is authorized only after green CI and those exact conditions; otherwise the delta returns to Claude.
