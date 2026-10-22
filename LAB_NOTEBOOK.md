@@ -7980,3 +7980,13 @@ Only its documentation hash changes; original executed bytes remain available
 at 0c494657 and in the immutable returned evidence. No merge performed.
 
 Final local v02429 validation: 722 tests PASS (36 skips) in 804.588 seconds, Python 3.11. All scripted scenarios PASS. New full admission against both original ZIPs, 132-transfer worker-owned acquisition rehearsal, failure classifications, corruption and no-backend pinned Modal serialization PASS. No further runtime changes after validation. Review-branch publication and both exact-head GitHub checks follow; no launch is approved.
+
+## 2026-10-22 — Gateway v0.3.1 stage 5, offline engineering review
+
+[DESCRIPTIVE] Chris relayed Claude approval of PR #17 at 37c43f8c; all workflows/jobs passed, then merge 3d5fa3d7 completed. Separate stage 5 branch implements actor/revision-bound one-use tokens, fresh execution rechecks, one locked mutation path and actual partial-state fault rollback. Rejected-call audits, explicit IR1 and largest permissible alternatives have tests. See `docs/process/TAA_GATEWAY_STAGE5_v031.md` and its production mapping supplement.
+
+[DESCRIPTIVE] 167 focused tests pass. Frozen reference: 54 scenarios / 2,238 checks / 0 discrepancies / 0 incomplete. Reference regressions: 8 / 265 / 0 / 0. Core frozen: 54 / 1,988 / 0 / 154 incomplete. Core regressions: 8 / 226 / 0 / 36 incomplete. All three native hidden-state mutations trigger state audits; two full regression guards remain incomplete with their duty/report source assertions. The pre-fix baseline still reproduces nine regression discrepancies and exits successfully under its guard. Source validator: 49 definitions/variants, 0 errors; frozen bytes unchanged.
+
+[LIMITATION] This is bounded simulator engineering evidence. No expected outcome was changed or generated from the reference. Duty derivation, reporting and other stage 6 coverage remain incomplete and block complete acceptance. No model calls, Modal operations, spending, Notion edits, evidence deletion or public release. Merge awaits Claude review of the stage 5 PR and green CI; it would not be launch approval.
+
+[DESCRIPTIVE] Final broader checks: Python 3.11.17 (matching CI) runs 889 tests, 36 skips, no failures/errors, 973.822 seconds; all scripted scenarios pass. Initial Python 3.12.14 broad run had two pre-existing formation-continuation exact-float errors, reproduced on unchanged main3d5; the same four controls pass on main under 3.11. No formation code, spending evidence or expected values were changed. Both runs remain evidence; details and log hashes are in the stage 5 review report/validation summary.

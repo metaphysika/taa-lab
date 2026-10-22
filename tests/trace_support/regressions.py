@@ -17,9 +17,11 @@ def cases():
             for t in yaml.safe_load((ROOT / 'astra_spot_check.yaml').read_text())]
 
 
-def mutated(function, kind):
+def mutated(function, kind, backend=None):
     def wrapper(*args, **kwargs):
         state, result = function(*args, **kwargs)
+        if backend is not None and hasattr(backend, 'inject_hidden_state'):
+            return backend.inject_hidden_state(state, result, kind, args)
         if kind == 'extra_settled_refund' and result.get('execute_result') == 'committed':
             state['records']['HIDDEN'] = [{'kind': 'refund', 'writer': 'executor', 'version': 1,
                 'evidential': True, 'fields': {'claim': 'CL1', 'claimant': 'K1', 'order': 'ORD1',
@@ -35,21 +37,23 @@ def mutated(function, kind):
     return wrapper
 
 
-def run_suite(runner):
+def run_suite(runner, backend=None):
     controls = json.loads((ROOT / 'mutations.json').read_text())
     ordinary, negative = [], []
     for c in cases():
         spec = controls.get(c['id'])
         if spec:
-            with patch.object(runner.model, spec['method'], mutated(getattr(runner.model, spec['method']), spec['mutation'])):
-                observations = runner.run(c)
+            implementation = backend or runner.model
+            with patch.object(implementation, spec['method'], mutated(getattr(implementation, spec['method']), spec['mutation'], backend)):
+                observations = runner.run(c, backend=backend) if backend else runner.run(c)
             failed = [r for r in observations if r['status'] == 'discrepancy']
             incomplete = [r for r in observations if r['status'] == 'incomplete']
             detected = bool(failed) and not incomplete
             negative.append({'trace': c['id'], 'assertion': 'hidden_state_is_detected',
                              'expectation': True, 'observed': detected,
-                             'status': 'pass' if detected else 'discrepancy', 'raw_observations': observations})
+                             'status': 'incomplete' if backend is not None and incomplete else 'pass' if detected else 'discrepancy',
+                             'raw_observations': observations})
         else:
-            ordinary.extend(runner.run(c))
+            ordinary.extend(runner.run(c, backend=backend) if backend else runner.run(c))
     return {'assertions': ordinary + negative, 'negative_controls': negative,
             'scenarios': len(cases())}

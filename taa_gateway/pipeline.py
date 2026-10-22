@@ -26,16 +26,20 @@ class Pipeline:
         if len({r.id for r in self.__rules}) != len(self.__rules):
             raise ValueError("rule identities must be unique")
         reserved_ids = {tool.authorization_rule for tool in tools} | {
-            "registered-effect-description", "authorization-rule-missing", "stored-order-context"}
+            "registered-effect-description", "authorization-rule-missing", "stored-order-context", "staged-effect"}
         if any(rule.id in reserved_ids or rule.id.startswith("per-refund-cap:") for rule in self.__rules):
             raise ValueError("rule identity collides with a built-in check")
         self.__questions = copy_json(reserved_questions or {})
         self.__cache = {}
 
     def evaluate(self, session, raw):
-        normalized = self.__orders.proposal(session, raw)["proposal"]
-        # Validation precedes description, rules, grant lookup and cache access.
-        self.__tools.get(normalized["tool"], normalized["arguments"])
+        try:
+            normalized = self.__orders.proposal(session, raw)["proposal"]
+            # Validation precedes description, rules, grant lookup and cache access.
+            self.__tools.get(normalized["tool"], normalized["arguments"])
+        except (ValueError, ValidationError) as error:
+            self.__store.audit("rejected_proposal", {"raw": copy_json(raw), "reason": str(error)})
+            raise
         snapshot = self.__store.snapshot()
         identity = {"actor": normalized["acting_party"], "tool": normalized["tool"],
                     "arguments": normalized["arguments"], "revision": snapshot["revision"]}
@@ -50,6 +54,11 @@ class Pipeline:
         self.__store.audit("pipeline_decision", {"proposal": normalized, "decision": result})
         self.__cache[key] = copy_json(result)
         return copy_json(result)
+
+    def assess_snapshot(self, snapshot, actor, tool, arguments):
+        """Trusted executor recheck. Never an agent-supplied authorization result."""
+        return self._assess(snapshot, {"actor": actor, "tool": tool,
+                                      "arguments": copy_json(arguments), "revision": snapshot["revision"]})
 
     def _assess(self, snapshot, identity, *, fixed_grant=None, allow_alternative=True):
         tool = self.__tools.get(identity["tool"], identity["arguments"])
@@ -68,6 +77,7 @@ class Pipeline:
         else:
             candidates, discovery = self.__grants.candidates(snapshot)
             candidates = [(rid, grant) for rid, grant in candidates if grant["grantee"] == identity["actor"]]
+            candidates += self.__grants.interim_candidates(snapshot, identity["actor"], tool, resources)
             if not candidates:
                 candidates = [(None, None)]
         paths = []
@@ -100,6 +110,7 @@ class Pipeline:
             if (allow_alternative and grant is not None and failures and
                     all(c["stage"] in ("support", "determination") and c["result"] == "violated"
                         for c in failures)):
+                passing_alternatives = []
                 for check in failures:
                     suggested = check.get("alternative")
                     if not suggested:
@@ -117,10 +128,15 @@ class Pipeline:
                         # A malformed suggestion is never a route to permission.
                         continue
                     if reassessed["disposition"] == "PERMIT":
-                        alternative = copy_json(suggested)
-                        for failed in failures:
-                            failed["disposition"] = "ALTERNATIVE"
-                        break
+                        passing_alternatives.append((suggested, alt_tool.amount_argument))
+                if passing_alternatives:
+                    # Refunds: largest passing amount. Other acts and equal
+                    # amounts: canonical JSON ascending, independent of rule ID.
+                    alternative = copy_json(min(passing_alternatives, key=lambda pair: (
+                        -pair[0]["arguments"][pair[1]] if pair[1] else 0,
+                        canonical(pair[0])))[0])
+                    for failed in failures:
+                        failed["disposition"] = "ALTERNATIVE"
             aggregate, stages = "PERMIT", []
             for stage in STAGES:
                 members = [c for c in checks if c["stage"] == stage]
@@ -141,7 +157,18 @@ class Pipeline:
                           "checks": checks, "stages": stages, "alternative": alternative})
         # An admissible path must be complete by itself. No result/check is
         # borrowed from another grant, even if that would improve the decision.
-        chosen = max(paths, key=lambda path: DISPOSITIONS.index(path["disposition"]))
+        best = max(DISPOSITIONS.index(path["disposition"]) for path in paths)
+        eligible = [path for path in paths if DISPOSITIONS.index(path["disposition"]) == best]
+        def selection_key(path):
+            suggestion = path["alternative"]
+            amount = 0
+            if suggestion:
+                selected_tool = self.__tools.get(suggestion["tool"], suggestion["arguments"])
+                if selected_tool.amount_argument:
+                    amount = suggestion["arguments"][selected_tool.amount_argument]
+            grant_id = path["justification"]["grant_id"] if path["justification"] else ""
+            return (-amount, canonical(suggestion), grant_id)
+        chosen = min(eligible, key=selection_key)
         order_view = EvidenceView(snapshot, ("stored_order",))
         associated, attributed = [], []
         for _, order in order_view.records("stored_order"):

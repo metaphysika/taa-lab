@@ -48,3 +48,23 @@ Source: `tests/expected_traces/v0.2.2/world_W0.yaml`, Design v0.3 plus bundled C
 [DESCRIPTIVE] Only T33 step 4 contains two event entries in the frozen bundle. It still passes; the driver enters that step once with both events. Packed and split warehouse-correction regressions produce identical phase-2 state. The three hidden-state mutation controls alter actual state without altering expectations or supplying fake returned effects.
 
 [DESCRIPTIVE] The new regressions are labeled “Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by Claude.” They are separate from the frozen bundle and are not independent acceptance fixtures. Review evidence and counts are in [the spot-check fix report](TAA_GATEWAY_SPOT_REVIEW_FIX_v0.md).
+
+## Stage 5 production binding (for Claude review)
+
+[DESCRIPTIVE] The earlier foundation-only status above is historical. `taa_gateway/refunds.py` now imports W0 data into the core; `tests/trace_support/production_backend.py` translates inputs and actual native state for the same runner. No expected outcomes or reference decisions are imported into either module.
+
+| W0 name | Native production name |
+|---|---|
+| A, company; P1; G0/G1/G1b | `party:A`, `party:company`; `purpose:P1`; `grant:G0` etc. |
+| ORD1, PAY1, CL1, RET1, DEL2 | `sale:ORD1`, `payment:PAY1`, `claim:CL1`, `return:RET1`, `carrier:DEL2` |
+| REF1, CB1, WD1, NOTE1, DUPD1 | `refund:REF1`, `chargeback:CB1`, `withdrawal:WD1`, `note:NOTE1`, `resolution:DUPD1` |
+| ORDR1 and variants | `order:ORDR1` (authenticated stored request, distinct from commercial `sale:ORD1`) |
+| PR1, PR2, SU1–SU3, DT2 | identical registered rule IDs; generic per-refund-cap checks project as DT1 |
+| AU1 / IR1 | complete ordinary grant validation / `IR1:<duty-id>` derived authority path, never inserted as a revived grant |
+| tool names, dispositions, argument/effect values | unchanged source vocabulary; core proposals use `arguments`, adapter maps source `args` |
+| T1, T2; receipts | native token map keys unchanged, certificates bind actor/revision/digest/expiry; receipt sequence `receipt:1` etc. |
+| duty IDs | native versioned `duty_records` retain literal duty IDs; full derivation/routing is incomplete until stage 6 |
+
+[DESCRIPTIVE] Native namespaces avoid collisions and preserve every stored version. Commercial relation fields retain abstract claim/order/customer IDs where the W0 rules use them. The projection preserves all native collections as `native` as well as exposing source-vocabulary collections; native-only authority/duty histories are pinned by the independent observer too. Notices and allocation/case changes are observed as state effects even when they add no commercial record. Receipt projections come from actual native receipts, not the execution reply.
+
+[DESCRIPTIVE] Step packaging and list matching are exactly the shared runner conventions above. The stage 5 backend explicitly marks its missing phase-2 duty engine and related assertions incomplete. It never substitutes a no-op reconciliation for passing duty-engine coverage. See [stage 5 validation](TAA_GATEWAY_STAGE5_v031.md) for the incomplete counts, IR1 limits, deterministic largest-alternative selection, and real transaction-boundary faults.

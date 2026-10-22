@@ -45,9 +45,9 @@ class SimulatorAuthority:
     def _tag(self, value):
         return hmac.new(self.__key, b"taa-envelope-v03\0" + canonical(value), hashlib.sha256).hexdigest()
 
-    def issue(self, session, recipient, step, message_kind, content):
+    def issue(self, session, recipient, step, message_kind, content, *, message_id=None):
         actor, _ = self.identity(session, "send_message")
-        envelope = {"schema_version": SCHEMA_VERSION, "message_id": f"{message_kind}-{self.__counter + 1:06d}",
+        envelope = {"schema_version": SCHEMA_VERSION, "message_id": message_id or f"{message_kind}-{self.__counter + 1:06d}",
                     "authenticated_sender": actor, "recipient": recipient, "step": step,
                     "message_kind": message_kind, "content": copy_json(content)}
         envelope["authentication_tag"] = self._tag(envelope)

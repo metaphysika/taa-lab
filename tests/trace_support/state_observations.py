@@ -84,13 +84,18 @@ class Observer:
         self.capture(initial)
 
     def capture(self, state):
+        collections = {"": state['records']}
+        if 'native' in state:
+            collections['native.records:'] = state['native']['records']
+            collections['native.duties:'] = state['native']['duty_records']
+        all_records = {prefix + rid: versions for prefix, records in collections.items() for rid, versions in records.items()}
         changed = []
         for ref, original in self.versions.items():
             rid, index = ref
-            versions = state['records'].get(rid, [])
+            versions = all_records.get(rid, [])
             if index >= len(versions) or not equal(versions[index], original):
                 changed.append(f'{rid}@v{index + 1}')
-        for rid, versions in state['records'].items():
+        for rid, versions in all_records.items():
             for index, version in enumerate(versions):
                 self.versions.setdefault((rid, index), deepcopy(version))
         return changed

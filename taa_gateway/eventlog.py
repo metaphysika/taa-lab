@@ -56,6 +56,17 @@ class EventLog:
         with self._lock:
             return copy_json(self.__events)
 
+    def restore_open_for_simulator(self, events):
+        """Trusted trace reconstruction; verify every supplied chain element."""
+        if self.__events or self.closed:
+            raise ValueError("restore requires an empty open log")
+        events = list(events)
+        staged = EventLog(self.episode_id, self.__key)
+        staged.append_many([(e["step"], e["type"], e["payload"]) for e in events])
+        if canonical(staged.events()) != canonical(events):
+            raise ValueError("open log chain mismatch")
+        self.__events = staged.events()
+
     def seal(self):
         with self._lock:
             if self.__checkpoint is None:

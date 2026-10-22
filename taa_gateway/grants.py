@@ -27,6 +27,10 @@ class GrantPolicy:
                 raise ValueError("grant record identity mismatch")
         return grants, view.queries()
 
+    def interim_candidates(self, snapshot, actor, tool, resources):
+        """Specialized world policies may provide a complete rule-based path."""
+        return []
+
     def check(self, snapshot, grant, actor, tool, resources):
         view = EvidenceView(snapshot, ("grant", "purpose", "party") + self.__condition_kinds)
         roster = {}

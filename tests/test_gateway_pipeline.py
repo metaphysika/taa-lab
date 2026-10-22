@@ -67,7 +67,8 @@ class PipelineTests(unittest.TestCase):
                     "correct_fields": ["delivered", "status", "limits", "action_types", "resource_scope",
                                        "purpose_id", "parent_grant", "grantee", "grantor", "live_conditions", "jurisdictions", "answer"]}
                    for kind, prefix in kinds.items()]
-        self.store = RecordStore(self.auth, self.log, {"schema_version": V, "writers": writers})
+        self.policy = {"schema_version": V, "writers": writers}
+        self.store = RecordStore(self.auth, self.log, self.policy)
         self.orders = StoredOrders(self.store, self.auth, self.admin)
         self.purpose = {"schema_version": V, "id": "purpose-fair", "principal": "party-company",
                         "statement": "resolve claims fairly", "excluded_proxies": ["closed cases"]}
