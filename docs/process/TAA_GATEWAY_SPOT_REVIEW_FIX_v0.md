@@ -32,7 +32,7 @@ Source: Astra's 2026-10-21 independent spot check of PR #15 head `0632c626`, sup
 | Regressions on baseline | 8 | 57 | 0 | 3 | 60 | 9 | 0 |
 | Regressions after fix | 8 | 57 | 205 | 3 | 265 | 0 | 0 |
 
-[DESCRIPTIVE] 89 focused foundation, reference, runner and regression tests pass. The frozen zip/manifest/extracted bytes verify unchanged. The author's validator reports **49 traces and variants checked, 0 errors** for the frozen bundle, and **8 traces and variants checked, 0 errors** when applied to the separate regression inputs with W0. `git diff --check` passes.
+[DESCRIPTIVE] 90 focused foundation, reference, runner and regression tests pass. The frozen zip/manifest/extracted bytes verify unchanged. The author's validator reports **49 traces and variants checked, 0 errors** for the frozen bundle, and **8 traces and variants checked, 0 errors** when applied to the separate regression inputs with W0. `git diff --check` passes.
 
 [DESCRIPTIVE] The three negative scenarios are intentionally poisoned runs. The table counts a guard as passing only when the poison is detected with discrepancies and no incomplete coverage. Their raw observations are not falsely called clean:
 

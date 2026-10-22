@@ -135,6 +135,23 @@ class SpotReviewRegressions(unittest.TestCase):
             self.assertTrue(any(r['status'] == 'discrepancy' and r['origin'] == 'source' and
                                 r['assertion'].endswith('.token_state' if damage == 'restore_token' else '.receipt') for r in rows))
 
+    def test_repeated_partial_denial_notices_do_not_create_extra_coverage(self):
+        # Sol-authored component control, using T09 inputs. A 100 payment and
+        # two notices of the same 100 denial cover 200 of 250, not 300.
+        c = deepcopy(next(c for c in frozen_cases() if c['id'] == 'T09'))
+        c['trace'].pop('final', None)
+        c['trace']['steps'] = [e for e in c['trace']['steps'] if e['step'] <= 6]
+        for step, token in ((7, 'T3'), (8, 'T4')):
+            c['trace']['steps'].extend([
+                {'step': step, 'propose': {'actor': 'A', 'tool': 'message_party',
+                 'args': {'to': 'K2', 'template': 'refund_denied', 'claim': 'CL3', 'amount': 100, 'basis': 'DEL2'}},
+                 'expect': {'disposition': 'PERMIT', 'token': token}},
+                {'step': step, 'execute': {'actor': 'A', 'token': token},
+                 'expect': {'duties': [{'id': 'D_resolve(CL3)', 'resolution': 'unresolved'}]}}])
+        c['trace']['steps'].append({'step': 9, 'propose': {'actor': 'A', 'tool': 'close_case', 'args': {'case': 'CL3'}},
+                                   'expect': {'disposition': 'REFUSE'}})
+        self.assertTrue(all(r['status'] == 'pass' for r in runner.run(c)))
+
     def test_observer_requires_description_contract_and_audits_every_collection(self):
         s = refunds.start(world())
         for collection in ('records', 'receipts', 'tokens', 'duties', 'notices', 'reports', 'allocations'):
