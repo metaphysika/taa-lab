@@ -8004,3 +8004,25 @@ Final local v02429 validation: 722 tests PASS (36 skips) in 804.588 seconds, Pyt
 [LIMITATION] All cases are development/engineering material. No empirical H3 validation, model calls, Modal operations, spending, evidence deletion, Notion edits, adapters or public release. Stage 6 PR merge requires Claude's review and green CI; it is not launch approval. Review report: docs/process/TAA_GATEWAY_STAGE6_v031.md.
 
 [DESCRIPTIVE] Final stage 6 broader checks: Python 3.11.17 runs 907 tests, 36 skips, zero errors/failures in 1,012.065 seconds; all scripted scenarios pass. Core source hashes match the strict zero-incomplete report. Code stayed frozen during this full run. Reports/logs are retained; provenance is in evidence/gateway-stage6/validation.json. Publication now opens a separate review PR; no stage 6 merge or launch is approved.
+## 2026-10-22 — Independent conventional SQL prerequisite (review branch)
+
+[DESCRIPTIVE] The comparator protocol was committed at 4338a7c8 before running
+its component tests. The independent standard-library SQL kernel has 21 passing
+tests and detects all six isolated mutation controls. Its actual partial SQL
+rollback is exercised at seven transaction boundaries. Initial failed mutation
+harness runs are preserved; one exposed omitted staged rows in the snapshot,
+now included. No frozen outcome changed. See TAA_CONVENTIONAL_KERNEL_v0.md.
+
+[DESCRIPTIVE] Repository discovery: Python 3.11.17, 938 tests, 36 skips, zero
+failures/errors, 1474.016 seconds; all historical scripted scenarios pass. The
+current component's 21 tests and six mutations passed separately after final
+snapshot/guard/logging hardening. Existing native code stayed unchanged. The
+original exec session detached after a transport reset; the completed OK
+summary and process termination were observed, not a recovered native exit
+status. Full hashes and this qualification are in conventional-kernel evidence.
+
+[LIMITATION] W0 constraints/duties/reports and a common-runner adapter are not yet
+implemented for this arm: full frozen/regression/adversarial acceptance is
+incomplete, not zero-discrepancy. This is a prerequisite component, not H3
+validation. Claude review and green CI remain required. No model calls, Modal
+operations, spending, Notion edits, evidence deletion or public release.
