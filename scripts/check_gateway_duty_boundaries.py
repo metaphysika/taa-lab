@@ -14,10 +14,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 CASES = [
     ("accept_action_deadline_removed", "test_apply_action_acceptance_excludes_exact_offer_deadline",
-     'duty["offered_to"] != actor or state["step"] >= duty["offer_deadline_step"]',
-     'duty["offered_to"] != actor'),
+     'offer is None or state["step"] >= offer["expires"]',
+     'offer is None'),
     ("accept_message_deadline_inclusive", "test_receive_acceptance_excludes_exact_offer_deadline",
-     'state["step"] < d["offer_deadline_step"]', 'state["step"] <= d["offer_deadline_step"]'),
+     'state["step"] < offer_to(d, actor)["expires"]', 'state["step"] <= offer_to(d, actor)["expires"]'),
     ("reopening_overdue_late", "test_reopening_marks_overdue_at_or_after_due_step_in_same_call",
      'duty["overdue"] |= state["step"] >= duty["deadline_step"]',
      'duty["overdue"] |= state["step"] > duty["deadline_step"]'),

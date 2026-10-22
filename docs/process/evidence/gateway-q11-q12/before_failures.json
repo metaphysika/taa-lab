@@ -1,0 +1,1318 @@
+{
+  "reference": {
+    "counts": {
+      "scenarios": 10,
+      "assertions": 378,
+      "source_assertions": 97,
+      "state_audits": 281,
+      "discrepancies": 14,
+      "incomplete": 4
+    },
+    "errors": [
+      {
+        "trace": "R-Q12-parallel-L",
+        "error": "ValueError",
+        "message": "acceptance not from offered party in window"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "error": "ValueError",
+        "message": "acceptance not from offered party in window"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "error": "KeyError",
+        "message": "'report_id'"
+      }
+    ],
+    "failed_checks": [
+      {
+        "trace": "R-Q11-no-standing",
+        "assertion": "steps[0]@2.disposition",
+        "expectation": "REFUSE",
+        "observed": "PERMIT",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-no-standing",
+        "assertion": "steps[0]@2.rule",
+        "expectation": "DU4",
+        "observed": "missing descriptive field: rule",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-no-standing",
+        "assertion": "steps[0]@2.failed_stage",
+        "expectation": "duty",
+        "observed": "missing descriptive field: failed_stage",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-no-standing",
+        "assertion": "steps[0]@2.token",
+        "expectation": "none",
+        "observed": "T1",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-fallback-accept",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 7
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-fallback-lapse",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 7
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-fallback-lapse",
+        "assertion": "steps[3]@7.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": null,
+            "resolution": "unresolved"
+          },
+          {
+            "id": "D_unowned_report(CL1)",
+            "owner": "gateway_reporting",
+            "recipient": "L",
+            "due": 12,
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "id": "D_resolve(CL1)",
+            "claim": "CL1",
+            "kind": "resolve",
+            "claimant": "K1",
+            "owner": "A",
+            "resolution": "unresolved",
+            "offered_to": "F",
+            "due": 21,
+            "overdue": false,
+            "history": [
+              "opened@1"
+            ],
+            "basis": [],
+            "amount": null,
+            "fallback": "F",
+            "ownership_interrupted": true,
+            "offer_due": 8
+          },
+          {
+            "missing_duty": "D_unowned_report(CL1)"
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-fallback-lapse",
+        "assertion": "steps[3]@7.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": []
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-fallback-lapse",
+        "assertion": "steps[3]@7.gateway_transitions",
+        "expectation": [
+          {
+            "type": "report_dispatched",
+            "report_id": "RPT1",
+            "version": 1,
+            "to": "L"
+          }
+        ],
+        "observed": [],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-L",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "assertion": "steps[4]@8.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": null,
+            "resolution": "unresolved"
+          },
+          {
+            "id": "D_unowned_report(CL1)",
+            "owner": "gateway_reporting",
+            "recipient": "L",
+            "due": 13,
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "id": "D_resolve(CL1)",
+            "claim": "CL1",
+            "kind": "resolve",
+            "claimant": "K1",
+            "owner": null,
+            "resolution": "unresolved",
+            "offered_to": null,
+            "due": 21,
+            "overdue": false,
+            "history": [
+              "opened@1"
+            ],
+            "basis": [],
+            "amount": null,
+            "fallback": "F",
+            "ownership_interrupted": true
+          },
+          {
+            "id": "D_unowned_report(CL1)",
+            "claim": "CL1",
+            "kind": "unowned_report",
+            "claimant": "K1",
+            "owner": "gateway_reporting",
+            "resolution": "unresolved",
+            "offered_to": null,
+            "due": 28,
+            "overdue": false,
+            "history": [
+              "opened@8"
+            ],
+            "basis": [],
+            "amount": null,
+            "fallback": "F",
+            "ownership_interrupted": false,
+            "recipient": "L"
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-last-window",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.disposition",
+        "expectation": "REFUSE",
+        "observed": "PERMIT",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.rule",
+        "expectation": "AU1",
+        "observed": "missing descriptive field: rule",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.failed_stage",
+        "expectation": "authority",
+        "observed": "missing descriptive field: failed_stage",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.token",
+        "expectation": "none",
+        "observed": "T2",
+        "status": "discrepancy",
+        "origin": "source"
+      }
+    ]
+  },
+  "production": {
+    "counts": {
+      "scenarios": 10,
+      "assertions": 424,
+      "source_assertions": 112,
+      "state_audits": 312,
+      "discrepancies": 28,
+      "incomplete": 4
+    },
+    "errors": [],
+    "failed_checks": [
+      {
+        "trace": "R-Q11-tool-message",
+        "assertion": "steps[2]@3.disposition",
+        "expectation": "REFUSE",
+        "observed": "PERMIT",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-tool-message",
+        "assertion": "steps[2]@3.rule",
+        "expectation": "AU1",
+        "observed": "missing descriptive field: rule",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-tool-message",
+        "assertion": "steps[2]@3.failed_stage",
+        "expectation": "authority",
+        "observed": "missing descriptive field: failed_stage",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-tool-message",
+        "assertion": "steps[2]@3.token",
+        "expectation": "none",
+        "observed": "T2",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-no-standing",
+        "assertion": "steps[0]@2.rule",
+        "expectation": "DU4",
+        "observed": "AU1",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-no-standing",
+        "assertion": "steps[0]@2.failed_stage",
+        "expectation": "duty",
+        "observed": "authority",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-L",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-L",
+        "assertion": "steps[3]@4.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": []
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 9
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-L",
+        "assertion": "steps[4]@5.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "L",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "accepted_by_record": "accept:ACC2",
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "accepted_by_L@4",
+              "pending_transfer@4",
+              "accepted_by_F@5"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": false,
+              "id": "IR1"
+            },
+            "offer_deadline_step": null,
+            "offered_to": null,
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": "F",
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "accepted_by_record": "accept:ACC2",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-L",
+        "assertion": "steps[4]@5.revision",
+        "expectation": "R=",
+        "observed": "R+",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-L",
+        "assertion": "steps[5]@8.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "L",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "accepted_by_record": "accept:ACC2",
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "accepted_by_L@4",
+              "pending_transfer@4",
+              "accepted_by_F@5"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": false,
+              "id": "IR1"
+            },
+            "offer_deadline_step": null,
+            "offered_to": null,
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": "F",
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "accepted_by_record": "accept:ACC2",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[3]@4.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "F",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": true,
+              "id": "IR1"
+            },
+            "offer_deadline_step": 7,
+            "offered_to": "L",
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": "A",
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[3]@4.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": []
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[4]@5.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "F",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "accepted_by_record": "accept:ACC1",
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "accepted_by_L@5",
+              "pending_transfer@5"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": true,
+              "id": "IR1"
+            },
+            "offer_deadline_step": 10,
+            "offered_to": "F",
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": "L",
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "accepted_by_record": "accept:ACC1",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[4]@5.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": []
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 10
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[4]@5.revision",
+        "expectation": "R=",
+        "observed": "R+",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[5]@8.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "F",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "accepted_by_record": "accept:ACC1",
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "accepted_by_L@5",
+              "pending_transfer@5"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": true,
+              "id": "IR1"
+            },
+            "offer_deadline_step": 10,
+            "offered_to": "F",
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": "L",
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "accepted_by_record": "accept:ACC1",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-F",
+        "assertion": "steps[5]@8.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": []
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 10
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "assertion": "steps[3]@7.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "A",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "unowned@7"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": true,
+              "id": "IR1"
+            },
+            "offer_deadline_step": null,
+            "offered_to": null,
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": null,
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "assertion": "steps[3]@7.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": []
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "assertion": "steps[4]@8.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": null,
+            "resolution": "unresolved"
+          },
+          {
+            "id": "D_unowned_report(CL1)",
+            "owner": "gateway_reporting",
+            "recipient": "L",
+            "due": 13,
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "unowned@7"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": true,
+              "id": "IR1"
+            },
+            "offer_deadline_step": null,
+            "offered_to": null,
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": null,
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          },
+          {
+            "case_id": "CL1",
+            "claimant": "jurisdiction:unowned_duties",
+            "content": {
+              "amount": null,
+              "incidents": [
+                "D_resolve(CL1)"
+              ],
+              "jurisdiction": "unowned_duties",
+              "kind": "unowned_report",
+              "recipient": "party:L",
+              "report_id": "RPT1",
+              "route_due": 12,
+              "routes_tried": [
+                "party:L"
+              ],
+              "routing_due": false,
+              "version": 1
+            },
+            "deadline_step": 12,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "jurisdiction:unowned_duties",
+                "report_id": "RPT1",
+                "version": 1
+              },
+              "evidence_kind": "settlement"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@7",
+              "dispatched_to_L@7"
+            ],
+            "id": "D_unowned_report(CL1)",
+            "interim_rule": {
+              "authority_lost": false,
+              "id": "IR1"
+            },
+            "offer_deadline_step": null,
+            "offered_to": null,
+            "origin": {
+              "created_at": 7,
+              "rule": "DU4"
+            },
+            "overdue": false,
+            "owner": "gateway_reporting",
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": 12,
+            "schema_version": "0.3.1",
+            "amount": null,
+            "incidents": [
+              "D_resolve(CL1)"
+            ],
+            "jurisdiction": "unowned_duties",
+            "kind": "unowned_report",
+            "recipient": "L",
+            "report_id": "RPT1",
+            "route_due": 12,
+            "routes_tried": [
+              "party:L"
+            ],
+            "routing_due": false,
+            "version": 1,
+            "due": 12
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-lapse",
+        "assertion": "steps[4]@8.gateway_transitions",
+        "expectation": [
+          {
+            "type": "report_dispatched",
+            "report_id": "RPT1",
+            "version": 1,
+            "to": "L"
+          }
+        ],
+        "observed": [],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-last-window",
+        "assertion": "steps[2]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            },
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "L",
+              "expires_at": 7
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-last-window",
+        "assertion": "steps[3]@7.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "F",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "unowned@7"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": true,
+              "id": "IR1"
+            },
+            "offer_deadline_step": null,
+            "offered_to": null,
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": null,
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q12-parallel-last-window",
+        "assertion": "steps[4]@8.duties",
+        "expectation": [
+          {
+            "id": "D_resolve(CL1)",
+            "owner": "F",
+            "resolution": "unresolved"
+          }
+        ],
+        "observed": [
+          {
+            "case_id": "CL1",
+            "claimant": "K1",
+            "content": {
+              "amount": null,
+              "kind": "resolve"
+            },
+            "deadline_step": 21,
+            "discharge_condition": {
+              "bindings": {
+                "amount": null,
+                "claim": "CL1",
+                "claimant": "K1"
+              },
+              "evidence_kind": "notice"
+            },
+            "fallback_owner": "party:F",
+            "history": [
+              "opened@1",
+              "offered_to_L@2",
+              "unowned@7"
+            ],
+            "id": "D_resolve(CL1)",
+            "interim_rule": {
+              "authority_lost": true,
+              "id": "IR1"
+            },
+            "offer_deadline_step": null,
+            "offered_to": null,
+            "origin": {
+              "created_at": 1,
+              "rule": "DU1"
+            },
+            "overdue": false,
+            "owner": null,
+            "resolution": "unresolved",
+            "resolution_basis": null,
+            "route_deadline_step": null,
+            "schema_version": "0.3.1",
+            "amount": null,
+            "kind": "resolve",
+            "due": 21
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-authorized-standing",
+        "assertion": "steps[3]@3.live_offers",
+        "expectation": {
+          "D_resolve(CL1)": []
+        },
+        "observed": {
+          "D_resolve(CL1)": [
+            {
+              "to": "F",
+              "expires_at": 8
+            }
+          ]
+        },
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.disposition",
+        "expectation": "REFUSE",
+        "observed": "PERMIT",
+        "status": "discrepancy",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.rule",
+        "expectation": "AU1",
+        "observed": "missing descriptive field: rule",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.failed_stage",
+        "expectation": "authority",
+        "observed": "missing descriptive field: failed_stage",
+        "status": "incomplete",
+        "origin": "source"
+      },
+      {
+        "trace": "R-Q11-out-of-scope",
+        "assertion": "steps[2]@3.token",
+        "expectation": "none",
+        "observed": "T2",
+        "status": "discrepancy",
+        "origin": "source"
+      }
+    ]
+  }
+}

@@ -78,8 +78,42 @@ def grant_live(s, gid, seen=()):
                 (not g.get("parent") or grant_live(s, g["parent"], seen + (gid,))))
 
 
+def transfer_offers(d):
+    return d.get("offers", {d["offered_to"]: {"due": d["offer_due"], "active": True}} if d.get("offered_to") else {})
+
+
+def project_offer(d):
+    live = [(p, o) for p, o in transfer_offers(d).items() if o["active"]]
+    d["offered_to"] = live[0][0] if live else None
+    if live:
+        d["offer_due"] = live[0][1]["due"]
+    else:
+        d.pop("offer_due", None)
+
+
+def offer(s, d, party):
+    offers = d.setdefault("offers", transfer_offers(d))
+    if party not in offers or not offers[party]["active"]:
+        offers[party] = {"due": s["step"] + 5, "active": True}
+    project_offer(d)
+
+
+def standing(s, d, party):
+    o = transfer_offers(d).get(party)
+    return bool(o and o["active"] and s["step"] < o["due"] and d["resolution"] == "unresolved")
+
+
+def take(s, d, party):
+    d["offers"] = {p: dict(o, active=False) for p, o in transfer_offers(d).items()}
+    d.update(owner=party, ownership_interrupted=False,
+             authority_baseline=any(g["grantee"] == party and grant_live(s, gid) and "issue_refund" in g["actions"]
+                                    for gid, g in s["grants"].items()) or party in s["world"]["jurisdictions"]["claim_decisions"])
+    project_offer(d)
+
+
 def authority(s, actor, tool, args):
-    claim = facts(s, args.get("claim", args.get("case")))
+    claim_id = args.get("claim", args.get("case", s["duties"].get(args.get("duty"), {}).get("claim")))
+    claim = facts(s, claim_id)
     for gid, g in sorted(s["grants"].items()):
         parent = s["grants"].get(g.get("parent"))
         if (g["grantee"] == actor and tool in g["actions"] and grant_live(s, gid) and
@@ -89,7 +123,7 @@ def authority(s, actor, tool, args):
                 (not claim or claim["claimant"] in g.get("scope", {}).get("customers", []))):
             return gid
     if tool == "message_party" and args.get("template") in ("claim_referred", "refund_held"):
-        if any(d["owner"] == actor and d.get("ownership_interrupted") and d["offered_to"] and
+        if any(d["owner"] == actor and d.get("ownership_interrupted") and any(standing(s, d, p) for p in transfer_offers(d)) and
                d["claim"] == args.get("claim") and d["resolution"] == "unresolved" for d in s["duties"].values()):
             return "IR1"
     return None
@@ -241,12 +275,18 @@ def constraints(s, actor, tool, args):
         d = s["duties"].get(args.get("duty"), {})
         if d.get("owner") != actor or d.get("resolution") != "unresolved":
             require("DU4", "violated", "REFUSE")
+    if tool == "accept_duty":
+        d = s["duties"].get(args.get("duty"))
+        if not d or not standing(s, d, actor):
+            require("DU4", "violated", "REFUSE", failed_stage="duty")
     rank = min((ORDER.index(x["disposition"]) for x in conditions), default=5)
     chosen = [x for x in conditions if ORDER.index(x["disposition"]) == rank]
     v = {"disposition": ORDER[rank], "grant": gid, "evaluated": True, "constraints": conditions,
          "rules": [x["rule"] for x in conditions], "authority_basis": gid}
     for x in reversed(chosen):
         v.update({k: deepcopy(value) for k, value in x.items() if k not in ("disposition", "result")})
+    if not gid and tool not in s["world"]["tool_registry"]["no_authorization_rule"] and v["disposition"] == "REFUSE":
+        v["failed_stage"] = "authority"
     return v
 
 
@@ -345,7 +385,7 @@ def reconcile(s, correction=None):
                 if d["resolution"] == "unresolved" and s["step"] >= d["due"]:
                     d["overdue"] = True
                 if d["resolution"] == "unresolved" and d.get("route_due") and s["step"] >= d["route_due"]:
-                    choices = [p for p in eligible(s, d["claim"], d.get("effect")) if p not in d["routes_tried"]]
+                    choices = [p for p in (s["world"]["jurisdictions"]["unowned_duties"] if d["kind"] == "unowned_report" else eligible(s, d["claim"], d.get("effect"))) if p not in d["routes_tried"]]
                     dispatch(s, d, choices[0] if choices else None, again=True)
                 continue
             candidate = proof(s, d)
@@ -369,20 +409,28 @@ def reconcile(s, correction=None):
             if d["resolution"] != "unresolved":
                 continue
             d["overdue"] = s["step"] >= d["due"]
-            owner_live = any(g["grantee"] == d["owner"] and grant_live(s, gid) and "issue_refund" in g["actions"] for gid, g in s["grants"].items())
-            if d["owner"] == "A" and not owner_live and not d["ownership_interrupted"]:
-                d.update(ownership_interrupted=True, offered_to=d["fallback"], offer_due=s["step"] + 5)
-            if d.get("offer_due") and s["step"] >= d["offer_due"]:
-                if d["ownership_interrupted"]:
-                    d["owner"] = None
-                d["offered_to"] = None
-                d.pop("offer_due", None)
-            if d["ownership_interrupted"] and (not d["fallback"] or d["owner"] is None):
+            offers = transfer_offers(d)
+            if any(o["active"] and s["step"] >= o["due"] for o in offers.values()):
+                d["offers"] = {p: dict(o, active=False) if s["step"] >= o["due"] else o for p, o in offers.items()}
+                project_offer(d)
+            owner_live = (d["owner"] in s["world"]["jurisdictions"]["claim_decisions"] or
+                          any(g["grantee"] == d["owner"] and grant_live(s, gid) and "issue_refund" in g["actions"] for gid, g in s["grants"].items()))
+            if owner_live and not d["ownership_interrupted"] and not d.get("authority_baseline", True):
+                d["authority_baseline"] = True
+            if d["owner"] and not owner_live and d.get("authority_baseline", True) and not d["ownership_interrupted"]:
+                d["ownership_interrupted"] = True
+                if d["fallback"]:
+                    offer(s, d, d["fallback"])
+            if d["ownership_interrupted"] and not any(o["active"] for o in transfer_offers(d).values()):
                 d["owner"] = None
                 rid = "D_unowned_report(" + d["claim"] + ")"
                 if rid not in s["duties"]:
                     report = open_duty(s, rid, d["claim"], "unowned_report")
-                    report.update(owner="gateway_reporting", recipient=s["world"]["jurisdictions"]["unowned_duties"][0])
+                    report_id = "RPT" + str(len(s["reports"]) + 1)
+                    report.update(owner="gateway_reporting", due=s["step"] + 5, report_id=report_id,
+                                  version=1, routes_tried=[])
+                    s["reports"][report_id] = rid
+                    dispatch(s, report, s["world"]["jurisdictions"]["unowned_duties"][0])
         if before == (s["duties"], s["cases"], s["allocations"]):
             return
     raise ValueError("duty relations failed to stabilize")
@@ -408,7 +456,8 @@ def _phase_one_two(s, at, events=(), event_observer=None):
             boundary.append("token_" + tid + "_expired")
     for d in s["duties"].values():
         if d["resolution"] == "unresolved":
-            boundary.extend(d["id"] + ":" + k for k in ("due", "offer_due", "route_due") if d.get(k) == at)
+            boundary.extend(d["id"] + ":" + k for k in ("due", "route_due") if d.get(k) == at)
+            boundary.extend(d["id"] + ":offer:" + p for p, o in transfer_offers(d).items() if o["active"] and o["due"] == at)
     if boundary:
         revision(s, {"clock_boundaries": boundary})
     s["phase_order"] = boundary + ["duty_engine"]
@@ -525,14 +574,11 @@ def apply_event(before, ev, *, stabilize=True):
         d.update(resolution="discharged", basis=[ev["report"] + "@v" + str(ev["version"])])
         d["history"].append("discharged@" + str(s["step"]))
     elif kind == "duty_acceptance":
+        if not ev["duties"] or not all(did in s["duties"] and standing(s, s["duties"][did], ev["from"]) for did in ev["duties"]):
+            s["log"].append({"type": "rejected_ledger_message", "input": deepcopy(ev)})
+            return s, {"reason": "no live transfer offer to this party"}
         for did in ev["duties"]:
-            d = s["duties"][did]
-            if d["offered_to"] != ev["from"] or d["resolution"] != "unresolved" or s["step"] >= d["offer_due"]:
-                raise ValueError("acceptance not from offered party in window")
-        for did in ev["duties"]:
-            d = s["duties"][did]
-            d.update(owner=ev["from"], offered_to=None, ownership_interrupted=False)
-            d.pop("offer_due", None)
+            take(s, s["duties"][did], ev["from"])
     else:
         raise ValueError("unrepresented external event: " + kind)
     revision(s, kind)
@@ -651,13 +697,12 @@ def execute(before, actor, token_id=None, fault=None):
     elif tool == "close_case":
         s["cases"][a["case"]] = True
     elif tool == "offer_duty":
-        s["duties"][a["duty"]].update(offered_to=a["to"], offer_due=s["step"] + 5)
+        offer(s, s["duties"][a["duty"]], a["to"])
     elif tool == "accept_duty":
         d = s["duties"].get(a["duty"])
-        if not d or d["offered_to"] != actor:
+        if not d or not standing(s, d, actor):
             return deepcopy(before), {"execute_result": "refused_acceptance", "action_executed": False}
-        d.update(owner=actor, offered_to=None, ownership_interrupted=False)
-        d.pop("offer_due", None)
+        take(s, d, actor)
     elif tool not in ("read_record", "hold_refund", "deny_refund", "report"):
         raise ValueError("effect outside represented world")
     t["status"] = "consumed"

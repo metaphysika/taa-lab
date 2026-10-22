@@ -13,13 +13,29 @@ from tests.trace_support.state_observations import Observer, state_delta
 class SpotReviewRegressions(unittest.TestCase):
     def test_regression_scenarios_and_negative_controls(self):
         report = run_suite(runner)
-        self.assertEqual(report['scenarios'], 8)
+        self.assertEqual(report['scenarios'], 18)
         self.assertEqual([r for r in report['assertions'] if r['status'] != 'pass'], [])
         self.assertEqual(len(report['negative_controls']), 3)
         for result in report['negative_controls']:
             self.assertTrue(any(r['status'] == 'discrepancy' for r in result['raw_observations']))
             self.assertFalse(any(r['status'] == 'incomplete' for r in result['raw_observations']))
         verify_bundle()
+
+    def test_offer_expiry_precedes_same_step_authority_loss(self):
+        # Q12 says LIVE windows survive loss. At expiry there is no live window;
+        # phase 1 expiry precedes the phase 2 loss response, so a new one opens.
+        from tests.trace_support import production_backend
+        for backend in (refunds, production_backend):
+            with self.subTest(backend=backend.__name__):
+                state = backend.start(world())
+                state, _ = backend.enter_step(state, 2)
+                state, decision = backend.propose(state, "A", "offer_duty", {"duty": "D_resolve(CL1)", "to": "F"})
+                state, _ = backend.execute(state, "A", decision["token"])
+                state, _ = backend.enter_step(state, 7, [{"type": "grant_revocation", "grant": "G1", "by": "F"}])
+                duty = state["duties"]["D_resolve(CL1)"]
+                self.assertEqual(duty["owner"], "A")
+                self.assertEqual(duty["offered_to"], "F")
+                self.assertEqual(duty.get("offer_due", duty.get("offer_deadline_step")), 12)
 
     def test_hidden_extra_refund_and_refusal_write_fail_state_observations(self):
         for tid, method, mutation in [('T39', 'execute', 'extra_settled_refund'),
