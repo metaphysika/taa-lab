@@ -32,7 +32,7 @@ def _format(result):
     ids = ["DT1" if c["id"].startswith("per-refund-cap:") else c["id"] for c in bad]
     answer["rules"] = list(dict.fromkeys(ids))
     if ids:
-        rule = "DT2" if "DT2" in ids and answer["disposition"] != "PROHIBIT" else ids[0]
+        rule = ids[0]
         answer["rule"] = rule
         relevant = next(c for c in bad if ("DT1" if c["id"].startswith("per-refund-cap:") else c["id"]) == rule)
         answer["failed_stage"] = relevant["stage"]
