@@ -1,0 +1,205 @@
+{
+  "claim": "DESCRIPTIVE: bounded offline W0 engineering checks; not empirical H3 validation",
+  "base_commit": "59e48fcf5bcf6da5ae99cb0523f602187bb7e71a",
+  "merge_gate": "Claude review of this delta and all green CI",
+  "frozen": {
+    "production": {
+      "scenarios": 54,
+      "checks": 2285,
+      "source_assertions": 534,
+      "state_audits": 1751,
+      "detection_guards": 0,
+      "discrepancies": 0,
+      "incomplete": 0
+    },
+    "reference": {
+      "scenarios": 54,
+      "checks": 2238,
+      "source_assertions": 534,
+      "state_audits": 1704,
+      "discrepancies": 0,
+      "incomplete": 0
+    }
+  },
+  "regressions": {
+    "production": {
+      "scenarios": 18,
+      "checks": 696,
+      "source_assertions": 169,
+      "state_audits": 524,
+      "detection_guards": 3,
+      "discrepancies": 0,
+      "incomplete": 0
+    },
+    "reference": {
+      "scenarios": 18,
+      "assertions": 676,
+      "source_assertions": 169,
+      "state_audits": 504,
+      "detection_guards": 3,
+      "discrepancies": 0,
+      "incomplete": 0
+    }
+  },
+  "q11_q12_after": {
+    "reference": {
+      "scenarios": 10,
+      "assertions": 411,
+      "source_assertions": 112,
+      "state_audits": 299,
+      "discrepancies": 0,
+      "incomplete": 0
+    },
+    "production": {
+      "scenarios": 10,
+      "assertions": 424,
+      "source_assertions": 112,
+      "state_audits": 312,
+      "discrepancies": 0,
+      "incomplete": 0
+    }
+  },
+  "q11_q12_before": {
+    "reference": {
+      "counts": {
+        "scenarios": 10,
+        "assertions": 378,
+        "source_assertions": 97,
+        "state_audits": 281,
+        "discrepancies": 14,
+        "incomplete": 4
+      },
+      "failing_scenarios": [
+        "R-Q11-no-standing",
+        "R-Q11-out-of-scope",
+        "R-Q12-fallback-accept",
+        "R-Q12-fallback-lapse",
+        "R-Q12-parallel-F",
+        "R-Q12-parallel-L",
+        "R-Q12-parallel-lapse",
+        "R-Q12-parallel-last-window"
+      ],
+      "errors": [
+        {
+          "trace": "R-Q12-parallel-L",
+          "error": "ValueError",
+          "message": "acceptance not from offered party in window"
+        },
+        {
+          "trace": "R-Q12-parallel-F",
+          "error": "ValueError",
+          "message": "acceptance not from offered party in window"
+        },
+        {
+          "trace": "R-Q12-parallel-lapse",
+          "error": "KeyError",
+          "message": "'report_id'"
+        }
+      ],
+      "targeted_defects_reproduced": true
+    },
+    "production": {
+      "counts": {
+        "scenarios": 10,
+        "assertions": 424,
+        "source_assertions": 112,
+        "state_audits": 312,
+        "discrepancies": 28,
+        "incomplete": 4
+      },
+      "failing_scenarios": [
+        "R-Q11-authorized-standing",
+        "R-Q11-no-standing",
+        "R-Q11-out-of-scope",
+        "R-Q11-tool-message",
+        "R-Q12-parallel-F",
+        "R-Q12-parallel-L",
+        "R-Q12-parallel-lapse",
+        "R-Q12-parallel-last-window"
+      ],
+      "errors": [],
+      "targeted_defects_reproduced": true
+    }
+  },
+  "hidden_state_detection": {
+    "R-B1-extra-refund": true,
+    "R-B1-refused-write": true,
+    "R-B1-rewritten-version": true
+  },
+  "boundary_mutations_all_detected": true,
+  "focused_tests": {
+    "full_run": 188,
+    "after_same_step_addition_affected_subset": 47,
+    "distinct_total": 189,
+    "note": "47-test final subset includes the new same-step control, exercised against both backends; CI runs all 189 together."
+  },
+  "author_validator": {
+    "definitions_and_variants": 49,
+    "errors": 0
+  },
+  "frozen_zip_sha256": "9a4b20191c54aa4ff7d1ae4be6517f44aa1ddb9b67aaa00acdafabf34c5751b8",
+  "source_hashes": {
+    "taa_gateway/__init__.py": "a23d7fab243cbf211c199e73faa28a458df7a7fc85af87757688836107c8f77c",
+    "taa_gateway/act.py": "4e2940e68772044979896e5270c8f3e18014867b890992bada2c043edfd65a7c",
+    "taa_gateway/duties.py": "54f8ac0facd1830035c786175e7788a6a369a1161863b6b66a8ea9dae458dde2",
+    "taa_gateway/envelopes.py": "e53b79f94da58a7b75bf0df0ac1f355afdb6b75dac43e9137480541fd48f350b",
+    "taa_gateway/eventlog.py": "80638a1e67b4a5941fe247701669eb1520989cbe6ca3cc342f101156c6fb9472",
+    "taa_gateway/executor.py": "aec326ee36ec4cc4516d9b3ae373cec8ea9516df51f10131ae6411f424fa547c",
+    "taa_gateway/grants.py": "d994649f63e2d8e7e18b88dab1e4e86e2d3bab8d03c2eda266ad4875e9d33259",
+    "taa_gateway/interim.py": "c820e1e9549e7fd3296dbf72b7c2474f1b5480d4772aa8a3ba8b24f44567238f",
+    "taa_gateway/offers.py": "2c5154d05783befce2e075e4941342daceca2df9279899c542f42ab46d9bd7fc",
+    "taa_gateway/orders.py": "646313706f6618b5828aa79f2cdf0f167df7b4bd4ad1b8678f23d85be9785364",
+    "taa_gateway/pipeline.py": "d2f2a2260a2b08501ded2111b8737758b264132fb4dd57c2ee266b4d342fe93d",
+    "taa_gateway/records.py": "dc4a25c126dd46a66a647605fa7c0ce7ce4d250d17795109eaf98723bbdd1613",
+    "taa_gateway/refunds.py": "589c140c9e3c9668b8f32a12ddc6fa5d7d0e7b5eb112fea8190f8ca04170464d",
+    "taa_gateway/resolutions.py": "9550642d858dbeddadd307ae04740d0ee0105dd0375c568ce287d5040c4a48bb",
+    "taa_gateway/rules.py": "9452a515891a27c3a99aab6744791edb3dd624a1c95b087c70a52dbf1ea5b759",
+    "taa_gateway/schema/__init__.py": "4ac5ae741c9542077863891db2c4e6891bd5f3591c774debfec1403e2ab73362",
+    "taa_gateway/schema/objects.json": "222460e276d13b8cce9b5af5a7c4340308f9aa168b4c2e8c3be60466d65017a8",
+    "taa_gateway/serialization.py": "bc33fe0eb8df2d56840e85f9a853e494f7319c0f80c2f23b3097fd780f280923",
+    "taa_gateway_reference/__init__.py": "108479bafa88e736b184bef42a254363d527e0ce341121e773e3479b688ab132",
+    "taa_gateway_reference/model.py": "4ecd30cbc4fe055d04226d54af84b31ec943123908b3ec1c7aa149c477707cb3",
+    "taa_gateway_reference/refunds.py": "56ade992134055e163742eb1d228a5088b4e96ae90882d335efe8e40a945a559",
+    "tests/regression_scenarios/astra_spot_check.yaml": "024974b8a501bf264e318ca8d1cb5ca471ee6c9653b56d081620f3298cad92e8",
+    "tests/regression_scenarios/mutations.json": "4829a23be4bd6b580ec18f539192e9686e469d18a074cbd7f0f0ad04aad1ccab",
+    "tests/regression_scenarios/q11_q12.yaml": "2ca56d1d6a275adf4f7680015b7d906356dc2033a9779a8229a4dbbd50dea78c",
+    "tests/trace_support/__init__.py": "bd37cb17c83f666a55538fce1d0c6a37d432811efa5db8a6554f0a634d75f163",
+    "tests/trace_support/bundle.py": "ef2ead05ba32991fc94fdd30db3b2a9bce55ba2362252f7fcd88466cc5c119ad",
+    "tests/trace_support/production_backend.py": "fb3bb153cb602e34fdccbfbce56a060f36df5f18d3f1e95b32b4085bc15501e6",
+    "tests/trace_support/reference_runner.py": "01193cbae23fcdaf498a0ea82257811d6bf0e239243797231269c2cda321c0b5",
+    "tests/trace_support/regressions.py": "82387330b0bbc9984048e55669eb810f7ca1770d15103e7c2bef438187bb2688",
+    "tests/trace_support/state_observations.py": "3c80d137279f7c83e91962c563f052fab53c2e8d3147148d1d162694ffd406e5"
+  },
+  "retained_report_hashes": {
+    "q1112-production-final.json": "d5a0e1c826aa899e1426023b74e0b05aae03dcf536b943824abd2954ac05a208",
+    "q1112-reference-final.json": "e67a52e1f4dc96fc3db5fd985dc815a7909f3bfb5e5470a4738c6382d536a2c3",
+    "q1112-reference-reg-final.json": "568e2350052b834c6c04d54e5c14c1881535171d3667ea3761510f744a0676d9",
+    "q1112-before.json": "585bf51fa36708df6f16a0c0143480bf5345b80f95a49ce23c62e25ecb1e658e",
+    "q1112-q-only-final.json": "391938a0c308ba0f726bbc7d2c87c83af850b985c7c307465afa00f2d4a844de",
+    "q1112-boundaries-final.json": "8776c3fa5f4222d6766f3f15a03193dfbcec3f1b53b7057618d3bd90c30e40c0",
+    "q1112-components-final.log": "d8119b75aad0ae347aa0aac537f9a1ce9c56b1ce05f8bddb132e7dc020d3d3a0",
+    "q1112-reference-components-final.log": "e5430ad53f1447012d3003c1c020993cd4cf3edc7810a6b20650f3eb18887e9e",
+    "q1112-original-guard.json": "493c9738e2f45fc0d94867405add7ab9881c69da19e2756d6977cb80a013898f"
+  },
+  "pre_change_source_hashes": {
+    "taa_gateway/__init__.py": "a23d7fab243cbf211c199e73faa28a458df7a7fc85af87757688836107c8f77c",
+    "taa_gateway/act.py": "4e2940e68772044979896e5270c8f3e18014867b890992bada2c043edfd65a7c",
+    "taa_gateway/duties.py": "c4e9687c2e0caad97112b1354055b7164141d00184e25dc53e3eb208dc6fb9e4",
+    "taa_gateway/envelopes.py": "e53b79f94da58a7b75bf0df0ac1f355afdb6b75dac43e9137480541fd48f350b",
+    "taa_gateway/eventlog.py": "80638a1e67b4a5941fe247701669eb1520989cbe6ca3cc342f101156c6fb9472",
+    "taa_gateway/executor.py": "aec326ee36ec4cc4516d9b3ae373cec8ea9516df51f10131ae6411f424fa547c",
+    "taa_gateway/grants.py": "d994649f63e2d8e7e18b88dab1e4e86e2d3bab8d03c2eda266ad4875e9d33259",
+    "taa_gateway/interim.py": "16550d9068045e17e306254ff0ea37522f96d17ffece036612361a1299c1f11c",
+    "taa_gateway/orders.py": "646313706f6618b5828aa79f2cdf0f167df7b4bd4ad1b8678f23d85be9785364",
+    "taa_gateway/pipeline.py": "d2f2a2260a2b08501ded2111b8737758b264132fb4dd57c2ee266b4d342fe93d",
+    "taa_gateway/records.py": "7547fc35e6b5a4404da50e7ce09239aba7b265fee199748f8ed73ca2cb4f3b6e",
+    "taa_gateway/refunds.py": "18686d1f9fc1b4c725abc8e23378c99faa07de9aeffeac1c4aad573b5ef0d650",
+    "taa_gateway/resolutions.py": "9550642d858dbeddadd307ae04740d0ee0105dd0375c568ce287d5040c4a48bb",
+    "taa_gateway/rules.py": "9452a515891a27c3a99aab6744791edb3dd624a1c95b087c70a52dbf1ea5b759",
+    "taa_gateway/schema/__init__.py": "4ac5ae741c9542077863891db2c4e6891bd5f3591c774debfec1403e2ab73362",
+    "taa_gateway/serialization.py": "bc33fe0eb8df2d56840e85f9a853e494f7319c0f80c2f23b3097fd780f280923",
+    "taa_gateway_reference/__init__.py": "108479bafa88e736b184bef42a254363d527e0ce341121e773e3479b688ab132",
+    "taa_gateway_reference/model.py": "4ecd30cbc4fe055d04226d54af84b31ec943123908b3ec1c7aa149c477707cb3",
+    "taa_gateway_reference/refunds.py": "4a22709ccd6ed49eed2cc47229b4628cdbcd6217b45e8858f104e4cfa105432a"
+  }
+}

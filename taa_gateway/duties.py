@@ -6,6 +6,7 @@ anything. Its transaction hook uses the executor's already locked working state.
 from taa_gateway import SCHEMA_VERSION as V
 from taa_gateway.records import Write
 from taa_gateway.serialization import canonical, copy_json
+from taa_gateway.offers import entries, offer_to, add, accept
 
 
 def short(value):
@@ -267,17 +268,21 @@ class DutyEngine:
         if row is None:
             return
         alive = self.has_authority(state, duty["owner"], dict(row["fields"], id=duty["case_id"]))
-        if duty["offered_to"] is not None:
-            if duty["interim_rule"].get("authority_lost") != (not alive):
-                duty["interim_rule"]["authority_lost"] = not alive
+        baseline = duty["interim_rule"].get("authority_baseline", True)
+        if duty["interim_rule"].get("authority_lost"):
+            return  # This loss has already opened its fallback offer.
+        if alive:
+            if not baseline:
+                duty["interim_rule"]["authority_baseline"] = True
                 self.save(state, events, duty)
             return
-        if alive:
-            return
+        if not baseline:
+            return  # Accepted ownership alone does not imply refund authority.
         duty["interim_rule"]["authority_lost"] = True
-        duty["offered_to"] = duty["fallback_owner"]
-        duty["offer_deadline_step"] = state["step"] + 5 if duty["offered_to"] else None
-        if duty["offered_to"] is None:
+        fallback = duty["fallback_owner"]
+        if fallback:
+            add(duty, fallback, state["step"] + 5)
+        elif not any(o["status"] == "live" for o in entries(duty)):
             duty["owner"] = None
         self.event(duty, "pending_transfer" if duty["offered_to"] else "unowned", state["step"])
         self.save(state, events, duty)
@@ -420,14 +425,15 @@ class DutyEngine:
             recipient = self.prefix["party"] + action["to"]
             if duty["owner"] != actor or self.row(state, "party", recipient) is None:
                 raise ValueError("offer outside owner/recipient standing")
-            duty.update(offered_to=recipient, offer_deadline_step=state["step"] + 5)
+            add(duty, recipient, state["step"] + 5)
             duty["interim_rule"]["authority_lost"] = False
             self.event(duty, "offered_to_" + short(recipient), state["step"])
         elif action["operation"] == "accept_duty":
-            if duty["offered_to"] != actor or state["step"] >= duty["offer_deadline_step"]:
+            offer = offer_to(duty, actor)
+            if offer is None or state["step"] >= offer["expires"]:
                 raise ValueError("no live offer to this actor")
-            duty.update(owner=actor, offered_to=None, offer_deadline_step=None)
-            duty["interim_rule"]["authority_lost"] = False
+            claim = self.row(state, "claim", duty["case_id"])
+            accept(duty, actor, self.has_authority(state, actor, dict(claim["fields"], id=duty["case_id"])))
             self.event(duty, "accepted_by_" + short(actor), state["step"])
         else:
             raise ValueError("unknown duty action")
@@ -454,13 +460,13 @@ class DutyEngine:
                     return
             elif envelope["message_kind"] == "acceptance":
                 duties = [self.ledger(state).get(did) for did in content.get("duties", [])]
-                if duties and all(d and d["resolution"] == "unresolved" and d["offered_to"] == actor and
-                                  state["step"] < d["offer_deadline_step"] for d in duties):
+                if duties and all(d and d["resolution"] == "unresolved" and offer_to(d, actor) is not None and
+                                  state["step"] < offer_to(d, actor)["expires"] for d in duties):
                     rid = self.prefix["acceptance"] + "ACC" + str(len(self.rows(state, "acceptance")) + 1)
                     self.store.append_write(state, events, self.world.gateway, "receive_notice", Write(rid, "acceptance", {"envelope": envelope}))
                     for duty in duties:
-                        duty.update(owner=actor, offered_to=None, offer_deadline_step=None)
-                        duty["interim_rule"]["authority_lost"] = False
+                        claim = self.row(state, "claim", duty["case_id"])
+                        accept(duty, actor, self.has_authority(state, actor, dict(claim["fields"], id=duty["case_id"])))
                         duty["content"]["accepted_by_record"] = rid
                         self.event(duty, "accepted_by_" + short(actor), state["step"])
                         self.save(state, events, duty)

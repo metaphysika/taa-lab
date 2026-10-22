@@ -47,4 +47,42 @@
 
 [INTERPRETATION / OPEN QUESTION] **Recipient eligibility on report repeats.** Repeats keep the current recipient without rechecking eligibility. If that recipient has since become implicated in the same wrongdoing, redirection is unspecified. No W0 trace exercises this case. Claude's v0.3.2 revision must specify whether and when to redirect, including the effect on existing deadlines.
 
+[INTERPRETATION / OPEN QUESTION] **Acceptance without discharge authority.** A party may accept a duty without authority to discharge it (`R-Q12-parallel-L`: L accepts `D_resolve(CL1)` without refund or messaging authority). The implementation does not treat that as authority loss, so no fallback offer opens. Claude's v0.3.2 revision should decide whether offers are limited to parties able to discharge, or whether such an acceptance triggers the fallback. This note makes no code or expected-outcome change.
+
 [DESCRIPTIVE] Chris relayed Claude's approval of PR #16 at `89491921`: independently reproduced 54 frozen scenarios, 2,238 checks (534 source assertions and 1,704 state audits), zero discrepancies/incomplete; eight regression scenarios, 265 checks, zero discrepancies; pre-fix `9ddf84a4` fails nine regression checks including all three hidden-state controls, and the baseline guard exits successfully. The independent runner state-delta comparison remains mandatory: it computes its own delta and never trusts the model's `state_delta` description. The only subsequent change before merge is this requested documentation addition; all CI must pass.
+
+
+## Claude's Clarifications v0.3.1 addendum (2026-10-22), verbatim
+
+The following Q11/Q12 text was relayed by Chris from Claude. It amends the
+implementation target; the frozen v0.2.2 bundle remains byte-for-byte unchanged.
+
+Q11. An offer gives standing to accept, not tool authority. accept_duty is a registered act: AU1 requires a live grant to the acting party covering accept_duty within scope, and IR1 does not cover it. The tool path needs both authority (AU1) and standing (a live, unexpired offer of that duty to the actor, DU4). Missing authority → AU1 violated, REFUSE at the authority stage; missing standing → DU4 violated, REFUSE. A party without such a grant accepts through the authenticated duty_acceptance message, checked only against the live offer (as in T05). In W0, F's accept_duty tool call is refused under AU1; F's acceptance message succeeds while the offer is live.
+→ Production: remove the ACCEPT authority path. The reference already matches.
+
+Q12. Losing authority never extends or shortens a running offer window.
+- A live offer to the fallback owner becomes the fallback offer and keeps its original expiry. If unaccepted at expiry, the duty becomes unowned and the unowned-duty report opens; it does not revert to the owner.
+- A live offer to someone else keeps its own expiry; at the loss, a fallback offer to the fallback owner opens with the normal 5-step window. The first valid acceptance takes the duty and closes the other offer. The duty becomes unowned only when no offer remains live and none was accepted.
+- With no live offer, the fallback offer opens at the loss with the normal window.
+Your example: offer to F at step 2 expiring at 7, authority lost at step 3 → expiry stays 7; F may accept through step 6; at step 7 the duty becomes unowned and the unowned report opens.
+→ Reference: change from 8 to 7. Production already keeps 7; confirm it also implements the other two bullets.
+
+### Q11/Q12 implementation mapping (DESCRIPTIVE)
+
+Production stores independent transfer windows in `duty.content.transfer_offers`;
+reference stores its own party-indexed `offers` relation. The legacy single-offer
+fields project the first live offer. Acceptance closes every competing window.
+A party may accept ownership through a message without acquiring tool authority;
+its absent refund grant alone is not a subsequent loss of previously held authority.
+The accepted owner's authority baseline records that distinction.
+Production setup now seeds additional declared grants as well as amendments to
+W0 grants, so the grantee controls exercise actual scoped authority. Unowned reports
+are dispatched with their own five-step acknowledgment/routing window.
+
+`live_offers` in the common runner reads actual duty state, including all offers,
+independently of the returned description. It is an exact, ordered list per duty.
+The runner still computes its own full state delta and checks returned descriptions.
+The reference implements offer selection and reconciliation independently of core.
+The new Sol-authored scenarios are outside the frozen bundle. Their attribution
+records Claude's review of the stated expectations; this implementation delta still
+requires Claude's PR review before merge.

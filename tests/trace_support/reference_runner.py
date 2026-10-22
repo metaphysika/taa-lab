@@ -44,6 +44,22 @@ def contains(actual, expected, field=None):
 
 
 def observe(key, expected, s, result, ctx, final=False):
+    if key == "live_offers":
+        found = {}
+        for did in expected:
+            if did not in s["duties"]:
+                found[did] = {"missing_duty": did}
+                continue
+            d = s["duties"][did]
+            if "transfer_offers" in d.get("content", {}):
+                found[did] = [{"to": o["to"].removeprefix("party:"), "expires_at": o["expires"]}
+                              for o in d["content"]["transfer_offers"] if o["status"] == "live"]
+            elif "offers" in d:
+                found[did] = [{"to": p, "expires_at": o["due"]} for p, o in d["offers"].items() if o["active"]]
+            else:
+                deadline = d.get("offer_due", d.get("offer_deadline_step"))
+                found[did] = [{"to": d["offered_to"], "expires_at": deadline}] if d.get("offered_to") else []
+        return found
     if key == "duties":
         duties = deepcopy(s["duties"])
         for d in duties.values():
