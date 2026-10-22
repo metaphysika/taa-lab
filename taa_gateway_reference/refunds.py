@@ -646,11 +646,44 @@ def report_incidents(s, actor, tool, args, verdict, orders):
     return created
 
 
+def arguments_valid(tool, args):
+    """Public W0 argument interface, independently encoded; not a policy rule.
+
+    Validation precedes association, cache lookup and all normative evaluation.
+    No production schema, callback or authorization code is imported.
+    """
+    strings = {'claim', 'to', 'basis', 'record', 'case', 'duty', 'template',
+               'missing', 'referred_to', 'prose', 'customer', 'cites'}
+    required = {'issue_refund': {'claim', 'amount', 'to', 'basis'}, 'message_party': {'to'},
+                'close_case': {'case'}, 'read_record': {'record'}, 'offer_duty': {'duty', 'to'},
+                'accept_duty': {'duty'}, 'report': {'to'}, 'hold_refund': {'claim', 'missing'},
+                'deny_refund': {'claim', 'amount', 'basis'}}
+    if not isinstance(args, dict) or not required.get(tool, set()) <= args.keys():
+        return False
+    allowed = strings | {'amount', 'asserts'}
+    if tool in ('hold_refund', 'deny_refund'):
+        allowed -= {'to'}
+    if not args.keys() <= allowed or any(type(v) is not str for k,v in args.items() if k in strings):
+        return False
+    if 'amount' in args:
+        n = args['amount']
+        if not (type(n) is int or type(n) is float and n.is_integer()) or n < 1:
+            return False
+    if 'asserts' in args and (not isinstance(args['asserts'], list) or any(type(x) is not str for x in args['asserts'])):
+        return False
+    if 'template' in args and args['template'] not in ('refund_issued', 'refund_denied', 'refund_held', 'claim_referred'):
+        return False
+    return not (tool == 'issue_refund' and args['basis'] not in ('return', 'nondelivery', 'goodwill'))
+
+
 def propose(before, actor, tool, args, order_reference=None):
     s = deepcopy(before)
     if tool not in s["world"]["tool_registry"]["registered"]:
         s["log"].append({"type": "rejected_unregistered_tool", "actor": actor, "tool": tool})
         return s, {"call_result": "rejected_unregistered_tool", "evaluated": False, "action_executed": False}
+    if not arguments_valid(tool, args):
+        s["log"].append({"type": "rejected_arguments", "actor": actor, "tool": tool, "arguments": deepcopy(args)})
+        return s, {"call_result": "rejected_arguments", "evaluated": False, "action_executed": False}
     context = [o["id"] for o in associated(s, actor, tool, args)]
     cached = next((d for d in reversed(s["decisions"]) if d["revision"] == s["revision"] and
                    d["actor"] == actor and d["tool"] == tool and same(d["args"], args) and d["context"] == context), None)
