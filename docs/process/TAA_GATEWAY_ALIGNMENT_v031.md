@@ -47,6 +47,8 @@
 
 [INTERPRETATION / OPEN QUESTION] **Recipient eligibility on report repeats.** Repeats keep the current recipient without rechecking eligibility. If that recipient has since become implicated in the same wrongdoing, redirection is unspecified. No W0 trace exercises this case. Claude's v0.3.2 revision must specify whether and when to redirect, including the effect on existing deadlines.
 
+[INTERPRETATION / OPEN QUESTION] **Acceptance without discharge authority.** A party may accept a duty without authority to discharge it (`R-Q12-parallel-L`: L accepts `D_resolve(CL1)` without refund or messaging authority). The implementation does not treat that as authority loss, so no fallback offer opens. Claude's v0.3.2 revision should decide whether offers are limited to parties able to discharge, or whether such an acceptance triggers the fallback. This note makes no code or expected-outcome change.
+
 [DESCRIPTIVE] Chris relayed Claude's approval of PR #16 at `89491921`: independently reproduced 54 frozen scenarios, 2,238 checks (534 source assertions and 1,704 state audits), zero discrepancies/incomplete; eight regression scenarios, 265 checks, zero discrepancies; pre-fix `9ddf84a4` fails nine regression checks including all three hidden-state controls, and the baseline guard exits successfully. The independent runner state-delta comparison remains mandatory: it computes its own delta and never trusts the model's `state_delta` description. The only subsequent change before merge is this requested documentation addition; all CI must pass.
 
 
