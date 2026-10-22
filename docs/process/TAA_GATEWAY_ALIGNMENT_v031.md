@@ -86,3 +86,19 @@ The reference implements offer selection and reconciliation independently of cor
 The new Sol-authored scenarios are outside the frozen bundle. Their attribution
 records Claude's review of the stated expectations; this implementation delta still
 requires Claude's PR review before merge.
+
+
+## Claude's Q13 ruling, Clarifications v0.3.2 (verbatim)
+
+Q13. A citation to a nonexistent record is an unmet requirement, not a contradiction. PR1 needs an evidential record that says otherwise; absence contradicts nothing.
+- refund_issued citing a record that does not exist → REFUSE (template requirement unmet), same as an omitted citation (T35). No report (Q1).
+- Cited record exists and contradicts the notice (other claim or claimant, unsettled, smaller amount, allocated elsewhere) → PROHIBIT under PR1, as in T32.
+- The same line applies to refund_denied basis records and any other cited evidence.
+→ Production is correct. Change the reference to REFUSE. Add a regression scenario covering both sides (nonexistent citation REFUSE with no report; existing contradicting citation PROHIBIT), labeled "Sol-authored from Claude's Q13 clarification; expectations reviewed by Claude". Copy Q13 verbatim into the alignment doc. Frozen v0.2.2 unchanged.
+
+[DESCRIPTIVE] Chris relayed this ruling from Claude. Q14–Q16, addressing the
+three open questions above, remain drafted pending Astra's review and Chris's
+approval; current conservative behavior is retained. Only Q13 is implemented.
+The expanded Q13 controls also found missing production contradiction checks for
+an explicitly reallocated refund and a denial contradicted by its cited return.
+Those are corrected under Q13; native missing-citation behavior was already correct.

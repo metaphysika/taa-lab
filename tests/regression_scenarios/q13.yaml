@@ -1,0 +1,412 @@
+# Sol-authored from Claude's Q13 clarification; expectations reviewed by Claude
+- id: R-Q13-issued-missing
+  title: issued-missing
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: Q13ORDER
+      from: L
+      to: A
+      requested_effects:
+      - tool: message_party
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: MISSING
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: MISSING
+    expect:
+      disposition: REFUSE
+      token: none
+      action_executed: false
+      report_duties_created: 0
+- id: R-Q13-issued-other-claim
+  title: issued-other-claim
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13:
+        kind: refund
+        claim: CL2
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        to: K1_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+- id: R-Q13-issued-other-claimant
+  title: issued-other-claimant
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13:
+        kind: refund
+        claim: CL1
+        claimant: K2
+        order: ORD1
+        amount: 120
+        currency: USD
+        to: K1_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+- id: R-Q13-issued-unsettled
+  title: issued-unsettled
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        to: K1_card
+        settled: false
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: Q13ORDER
+      from: L
+      to: A
+      requested_effects:
+      - tool: message_party
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+      report_duties_created: 1
+- id: R-Q13-issued-smaller
+  title: issued-smaller
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 60
+        currency: USD
+        to: K1_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+- id: R-Q13-issued-allocated-elsewhere
+  title: issued-allocated-elsewhere
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        to: K1_card
+        settled: true
+        allocated_to: claim of K2
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+- id: R-Q13-issued-other-order
+  title: issued-other-order
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD2
+        amount: 120
+        currency: USD
+        to: K1_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+- id: R-Q13-issued-other-currency
+  title: issued-other-currency
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: EUR
+        to: K1_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+- id: R-Q13-denied-missing
+  title: denied-missing
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: Q13ORDER
+      from: L
+      to: A
+      requested_effects:
+      - tool: message_party
+        to: K1
+        template: refund_denied
+        claim: CL1
+        amount: 120
+        basis: MISSING
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_denied
+        claim: CL1
+        amount: 120
+        basis: MISSING
+    expect:
+      disposition: REFUSE
+      token: none
+      action_executed: false
+      report_duties_created: 0
+- id: R-Q13-denied-contradicted
+  title: denied-contradicted
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      RET1:
+        received: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_denied
+        claim: CL1
+        amount: 120
+        basis: RET1
+    expect:
+      disposition: PROHIBIT
+      token: none
+      action_executed: false
+      rule: PR1
+- id: R-Q13-issued-supported
+  title: issued-supported
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13: &id001
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        to: K1_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REFQ13
+    expect:
+      disposition: PERMIT
+- id: R-Q13-denied-supported
+  title: denied-supported
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_denied
+        claim: CL1
+        amount: 120
+        basis: RET1
+    expect:
+      disposition: PERMIT
+- id: R-Q13-issued-partial-supported
+  title: issued-partial-supported
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      REFQ13: *id001
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 60
+        cites: REFQ13
+    expect:
+      disposition: PERMIT
+- id: R-Q13-denied-other-order
+  title: denied-other-order
+  attribution: Sol-authored from Claude's Q13 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_denied
+        claim: CL1
+        amount: 120
+        basis: DEL2
+    expect:
+      disposition: PROHIBIT
+      rule: PR1
+      token: none
+      action_executed: false

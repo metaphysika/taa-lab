@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT))
 from tests.trace_support import reference_runner as runner, production_backend, regressions
 for package in (taa_gateway, model):
     assert Path(package.__file__).resolve().is_relative_to(implementation)
-inputs = [c for c in regressions.cases() if c['id'].startswith('R-Q')]
+inputs = [c for c in regressions.cases() if c['id'].startswith(('R-Q11-', 'R-Q12-'))]
 required = {
     'reference': {'R-Q11-no-standing', 'R-Q11-out-of-scope', 'R-Q12-fallback-accept',
                   'R-Q12-fallback-lapse', 'R-Q12-parallel-L', 'R-Q12-parallel-F',

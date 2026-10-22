@@ -58,9 +58,21 @@ def assertions(ctx, view):
                       if (row := record(view, args["cites"], kind)) is not None), None)
         if cited and claim and order and (cited.get("settled") is False or cited.get("claim") != args["claim"] or
                 cited.get("claimant") != claim["claimant"] or cited.get("order") != claim["order"] or
-                cited.get("currency") != order["currency"] or cited.get("amount", 0) < args.get("amount", 0)):
+                cited.get("currency") != order["currency"] or cited.get("amount", 0) < args.get("amount", 0) or
+                cited.get("allocated_to") not in (None, args["claim"])):
             return Outcome("violated", "settlement assertion contradicts evidence",
                            prohibited_elements=({"arguments": {"template": "refund_issued"}},))
+    if args.get("template") == "refund_denied" and args.get("basis"):
+        claim, _ = claim_context(args, view)
+        cited = next((row for kind in ("return_receipt", "carrier_record")
+                      if (row := record(view, args["basis"], kind)) is not None), None)
+        if cited and claim:
+            contradicts = (cited.get("order") != claim["order"] or cited.get("received") is True or
+                           cited.get("status") in ("delivery_failed", "partial") and
+                           args.get("amount", 0) > max(0, claim["amount"] - cited.get("failed_value", claim["amount"])))
+            if contradicts:
+                return Outcome("violated", "denial assertion contradicts evidence",
+                               prohibited_elements=({"arguments": {"template": "refund_denied"}},))
     for assertion in args.get("asserts", []):
         claim_id = args.get("claim", "CL1")
         claim = record(view, claim_id, "claim")

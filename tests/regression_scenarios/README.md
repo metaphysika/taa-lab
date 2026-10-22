@@ -33,3 +33,19 @@ pre-change scenario to fail in its designated backend. Existing correct cases
 remain positive controls. Old unhandled exceptions, incomplete descriptions and
 unreached assertions are reported honestly; they are not passing validation.
 The original eight-case `9ddf84a4` spot-check baseline remains separately pinned.
+
+## Q13 citation regressions
+
+Sol-authored from Claude's Q13 clarification; expectations reviewed by Claude.
+
+`q13.yaml` adds fourteen scenarios: missing issued/denied citations, existing
+settlements for the wrong claim, claimant, order or currency, unsettled/insufficient
+settlements, explicit allocation elsewhere, contradicted denial, and lawful
+issued/denied/partial notices. Missing citations in ordered requests produce no
+report; an ordered false settlement notice produces its report duty.
+
+Run `python -I scripts/check_gateway_q13.py --report /tmp/q13.json`.
+The sensitivity run uses `--implementation-root PATH_TO_80831009 --expect-baseline`;
+required failures are named by backend, and already-correct cases remain controls.
+No expected result is generated from the reference. All 32 regressions, including
+the original eight and the ten Q11/Q12 scenarios, remain in permanent acceptance.
