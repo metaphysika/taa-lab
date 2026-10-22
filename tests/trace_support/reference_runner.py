@@ -223,6 +223,7 @@ def _run(case, backend, checks):
     observer = Observer(s)
     stable = True
     last_proposal_revision = s["revision"]
+    last_proposal_token = None
 
     def audit(label, before, after, description, **kwargs):
         for row in observer.audit(label, before, after, description, **kwargs):
@@ -282,9 +283,16 @@ def _run(case, backend, checks):
                     ctx["proposal"] = p
                     s, result = backend.propose(s, p["actor"], p["tool"], p["args"], p.get("order_reference"))
                     last_proposal_revision = s["revision"]
+                    last_proposal_token = result.get("token")
                     audit(f"steps[{index}]@{step}.proposal", prior, s, result, agent=True)
                 else:
                     x = deepcopy(entry["execute"])
+                    if "token_from" in x:
+                        if x.pop("token_from") != "last_proposal" or "token" in x:
+                            raise ValueError("invalid dynamic token reference")
+                        # Resolve from an observation, never from an answer key.
+                        # Audits below see the actual requested token identity.
+                        x["token"] = last_proposal_token
                     if x.get("inject_fault", "").startswith("${"):
                         x["inject_fault"] = case["parameters"][x["inject_fault"][2:-1]]
                     ctx["execute"] = x
