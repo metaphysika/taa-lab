@@ -51,7 +51,7 @@ def revision(s, reason):
     s["log"].append({"type": "revision", "reason": reason, "revision": s["revision"], "step": s["step"]})
 
 
-def start(world, setup=None):
+def start(world, setup=None, *, defer_first_step=False):
     setup = setup or {}
     s = {"world": deepcopy(world), "revision": 0, "step": 0, "records": {}, "orders": {},
          "grants": deepcopy(world["grants"]), "duties": {}, "cases": {}, "tokens": {},
@@ -68,7 +68,7 @@ def start(world, setup=None):
         put(s, rid, fields, writer)
     for gid, changes in setup.get("grants", {}).items():
         s["grants"].setdefault(gid, {}).update(deepcopy(changes))
-    return advance(s, 1)
+    return s if defer_first_step else advance(s, 1)
 
 
 def grant_live(s, gid, seen=()):
@@ -286,25 +286,36 @@ def proof(s, d):
                 if settlement(s, rid, d["claim"], d["amount"]) and s["allocations"].get(rid, d["id"]) == d["id"]:
                     return {"resolution": "discharged", "by": rid, "basis": [rid]}
     if d["kind"] == "resolve":
-        valid = []
+        # Notices acknowledge coverage; repetition cannot create new coverage.
+        payments, denials = {}, {}
         for n in s["notices"]:
             a = n["args"]
             if a.get("claim") != d["claim"] or a.get("to") != d["claimant"]:
                 continue
-            if a.get("template") == "refund_issued" and settlement(s, a.get("cites"), d["claim"], a.get("amount")):
-                valid.append((a["amount"], a["cites"]))
+            rid = a.get("cites")
+            if a.get("template") == "refund_issued":
+                f = facts(s, rid)
+                paid = f.get("amount")
+                if (type(paid) is int and type(a.get("amount")) is int and 0 < a["amount"] <= paid and
+                        settlement(s, rid, d["claim"], paid)):
+                    payments[rid] = max(payments.get(rid, 0), min(a["amount"], paid))
             elif a.get("template") == "refund_denied" and denial_basis(s, a):
-                valid.append((a["amount"], a["basis"].split("@v")[0]))
-        if sum(amount for amount, _ in valid) >= facts(s, d["claim"])["amount"]:
-            return {"resolution": "discharged", "basis": sorted({rid for _, rid in valid})}
+                rid = a["basis"].split("@v")[0]
+                denials[rid] = max(denials.get(rid, 0), a["amount"])
+        # Denial bases describe the same unsupported remainder, not disjoint
+        # payments; two records of that remainder cannot double its coverage.
+        denied = max(denials.values(), default=0)
+        if sum(payments.values()) + denied >= facts(s, d["claim"])["amount"]:
+            return {"resolution": "discharged", "basis": sorted(set(payments) | set(denials))}
     candidates = resolution_proofs(s, d)
     return candidates[0] if candidates else None
 
 
-def dispatch(s, d, recipient, again=False):
+def dispatch(s, d, recipient, again=False, repeat=False):
     d["recipient"] = d["claimant"] = recipient
-    d["routes_tried"].append(recipient)
-    d["route_due"] = s["step"] + 5 if recipient else None
+    if not repeat:
+        d["routes_tried"].append(recipient)
+        d["route_due"] = s["step"] + 5 if recipient else None
     if recipient:
         d["history"].append(("redispatched_to_" if again else "dispatched_to_") + recipient + "@" + str(s["step"]))
         s["log"].append({"type": "report_dispatched", "report_id": d["report_id"], "version": d["version"], "to": recipient, "step": s["step"]})
@@ -377,12 +388,15 @@ def reconcile(s, correction=None):
     raise ValueError("duty relations failed to stabilize")
 
 
-def _phase_one_two(s, at, events=()):
+def _phase_one_two(s, at, events=(), event_observer=None):
     s["step"] = at
     detail = {}
     # External events and boundaries precede duty reconciliation at this step.
-    for ev in events:
+    for index, ev in enumerate(events):
+        prior = deepcopy(s) if event_observer else None
         s, answer = apply_event(s, ev, stabilize=False)
+        if event_observer:
+            event_observer(index, prior, deepcopy(s), deepcopy(answer))
         detail.update(answer)
     boundary = []
     for gid, g in s["grants"].items():
@@ -414,21 +428,24 @@ def advance(before, step):
     return s
 
 
-def enter_step(before, step, events=()):
+def enter_step(before, step, events=(), *, event_observer=None):
     if step < before["step"]:
         raise ValueError("clock must advance monotonically")
     s = advance(before, max(before["step"], step - 1))
     if step == before["step"]:
         detail = {}
-        for ev in events:
+        for index, ev in enumerate(events):
+            prior = deepcopy(s) if event_observer else None
             s, d = apply_event(s, ev, stabilize=False)
+            if event_observer:
+                event_observer(index, prior, deepcopy(s), deepcopy(d))
             detail.update(d)
         old = deepcopy((s["duties"], s["cases"], s["allocations"]))
         reconcile(s, s.pop("pending_correction", None))
         if old != (s["duties"], s["cases"], s["allocations"]):
             revision(s, "duty_engine")
         return s, detail
-    return _phase_one_two(s, step, events)
+    return _phase_one_two(s, step, events, event_observer)
 
 
 def apply_event(before, ev, *, stabilize=True):
@@ -544,8 +561,7 @@ def report_incidents(s, actor, tool, args, verdict, orders):
             if active:
                 active["incidents"].append(o["id"])
                 active["version"] += 1
-                recipients = eligible(s, args.get("claim"), effect)
-                dispatch(s, active, active["recipient"] if active["recipient"] in recipients else recipients[0] if recipients else None)
+                dispatch(s, active, active["recipient"], repeat=True)
             else:
                 did = ("D_report_supplement(" if prior else "D_report(") + o["id"] + ")"
                 d = open_duty(s, did, args.get("claim"), "report")
@@ -573,7 +589,7 @@ def propose(before, actor, tool, args, order_reference=None):
     if cached and (not cached["result"].get("token") or s["tokens"][cached["result"]["token"]]["status"] == "live"):
         cached["repeats"] += 1
         result = deepcopy(cached["result"])
-        result.update(recorded_decision_returned=True, repeat_count=cached["repeats"], report_duties_created=0, duties_created=[], gateway_transitions=[])
+        result.update(recorded_decision_returned=True, fresh_evaluation=False, repeat_count=cached["repeats"], report_duties_created=0, duties_created=[], gateway_transitions=[])
         return s, result
     v = constraints(s, actor, tool, args)
     orders = associated(s, actor, tool, args)
@@ -652,3 +668,23 @@ def execute(before, actor, token_id=None, fault=None):
     s["phase_order"].append("execute")
     return s, {"execute_result": "committed", "action_executed": True, "committed": committed,
                "receipt": "present", "validation_compares": "pre_transaction_revision"}
+
+
+# Description only: the independent runner computes its own complete delta from
+# observed states. This wrapper neither decides policy nor supplies the oracle.
+def _describe_transition(function):
+    def described(before, *args, **kwargs):
+        after, answer = function(before, *args, **kwargs)
+        answer["state_delta"] = {
+            k: {"before_present": k in before, "after_present": k in after,
+                "before": deepcopy(before.get(k)), "after": deepcopy(after.get(k))}
+            for k in sorted(set(before) | set(after))
+            if (k in before) != (k in after) or not same(before.get(k), after.get(k))}
+        return after, answer
+    return described
+
+
+apply_event = _describe_transition(apply_event)
+enter_step = _describe_transition(enter_step)
+propose = _describe_transition(propose)
+execute = _describe_transition(execute)
