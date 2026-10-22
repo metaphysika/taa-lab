@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install -r requirements-gateway.txt
+      - run: python -m pip install -r requirements-gateway-properties.txt
       - name: Independently supplied trace structure and manifest
         run: |
           cd tests/expected_traces/v0.2.2
@@ -57,6 +57,8 @@ jobs:
           python -I scripts/check_gateway_spot_review.py --implementation-root gateway-pre-fix-baseline --expect-baseline --report "$RUNNER_TEMP/gateway-spot-review-baseline.json"
           cd gateway-pre-fix-baseline
           python -m tests.trace_support.reference_runner --report "$RUNNER_TEMP/gateway-frozen-baseline.json"
+      - name: P1-P6 generated checks and mutants (strict; open model/spec gaps fail)
+        run: python -I scripts/check_gateway_properties.py --report "$RUNNER_TEMP/gateway-properties.json"
       - name: Preserve observed assertions and discrepancies
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,6 +71,8 @@ jobs:
             ${{ runner.temp }}/gateway-frozen-baseline.json
             ${{ runner.temp }}/gateway-stage6-production.json
             ${{ runner.temp }}/gateway-duty-boundary-mutations.json
+            ${{ runner.temp }}/gateway-properties.json
+            ${{ runner.temp }}/gateway-properties.attempts.jsonl
             ${{ runner.temp }}/gateway-q11-q12-fixed.json
             ${{ runner.temp }}/gateway-q11-q12-baseline.json
             ${{ runner.temp }}/gateway-q13-fixed.json
