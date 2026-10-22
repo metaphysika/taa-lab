@@ -26,6 +26,16 @@ jobs:
         run: python -I scripts/check_gateway_spot_review.py --report "$RUNNER_TEMP/gateway-spot-review-fixed.json"
       - name: Production frozen W0 and regressions (zero discrepancies AND zero incomplete)
         run: python -I scripts/check_gateway_stage5.py --require-complete --report "$RUNNER_TEMP/gateway-stage6-production.json"
+      - name: Q11/Q12 regressions pass independently against both backends
+        run: python -I scripts/check_gateway_q11_q12.py --report "$RUNNER_TEMP/gateway-q11-q12-fixed.json"
+      - name: Checkout the exact pre-Q11/Q12 implementation
+        uses: actions/checkout@v4
+        with:
+          ref: 59e48fcf5bcf6da5ae99cb0523f602187bb7e71a
+          path: gateway-pre-q11-q12
+          persist-credentials: false
+      - name: Q11/Q12 regressions detect their pre-change defects
+        run: python -I scripts/check_gateway_q11_q12.py --implementation-root gateway-pre-q11-q12 --expect-baseline --report "$RUNNER_TEMP/gateway-q11-q12-baseline.json"
       - name: Checkout the unchanged pre-fix baseline for causal regression evidence
         uses: actions/checkout@v4
         with:
@@ -53,4 +63,6 @@ jobs:
             ${{ runner.temp }}/gateway-duty-boundary-mutations.json
             ${{ runner.temp }}/gateway-properties.json
             ${{ runner.temp }}/gateway-properties.attempts.jsonl
+            ${{ runner.temp }}/gateway-q11-q12-fixed.json
+            ${{ runner.temp }}/gateway-q11-q12-baseline.json
           if-no-files-found: error

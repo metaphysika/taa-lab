@@ -18,7 +18,7 @@ from tests.trace_support import reference_runner as runner
 spec = importlib.util.spec_from_file_location('spot_regressions', ROOT / 'tests/trace_support/regressions.py')
 suite = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(suite)
-r = suite.run_suite(runner)
+r = suite.run_suite(runner, include_clarifications=not a.expect_baseline)
 r['implementation_root'] = str(a.implementation_root.resolve())
 r['implementation_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=a.implementation_root, text=True).strip()
 r['implementation_source_hashes'] = {

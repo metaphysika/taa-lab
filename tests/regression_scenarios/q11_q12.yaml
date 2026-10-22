@@ -1,0 +1,629 @@
+# Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed by Claude
+- id: R-Q11-tool-message
+  title: 11-tool-message
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: F
+      tool: accept_duty
+      args:
+        duty: D_resolve(CL1)
+    expect:
+      disposition: REFUSE
+      rule: AU1
+      failed_stage: authority
+      token: none
+      action_executed: false
+  - step: 4
+    events:
+    - type: duty_acceptance
+      from: F
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+- id: R-Q11-no-standing
+  title: 11-no-standing
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB: &id001
+        parent: G0
+        grantor: F
+        grantee: B
+        actions: &id002
+        - accept_duty
+        scope:
+          customers:
+          - K1
+        limits: &id003 {}
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: B
+      tool: accept_duty
+      args:
+        duty: D_resolve(CL1)
+    expect:
+      disposition: REFUSE
+      rule: DU4
+      failed_stage: duty
+      token: none
+      action_executed: false
+- id: R-Q12-fallback-accept
+  title: 12-fallback-accept
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 7
+  - step: 6
+    events:
+    - type: duty_acceptance
+      from: F
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      revision: R=
+- id: R-Q12-fallback-lapse
+  title: 12-fallback-lapse
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 7
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: null
+        resolution: unresolved
+      - id: D_unowned_report(CL1)
+        owner: gateway_reporting
+        recipient: L
+        due: 12
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      gateway_transitions:
+      - type: report_dispatched
+        report_id: RPT1
+        version: 1
+        to: L
+- id: R-Q12-parallel-L
+  title: 12-parallel-L
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: L
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+        - to: F
+          expires_at: 8
+  - step: 4
+    events:
+    - type: duty_acceptance
+      from: L
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: L
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+  - step: 5
+    events:
+    - type: duty_acceptance
+      from: F
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: L
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      revision: R=
+  - step: 8
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: L
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      revision: R=
+- id: R-Q12-parallel-F
+  title: 12-parallel-F
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: L
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+        - to: F
+          expires_at: 8
+  - step: 4
+    events:
+    - type: duty_acceptance
+      from: F
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+  - step: 5
+    events:
+    - type: duty_acceptance
+      from: L
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      revision: R=
+  - step: 8
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      revision: R=
+- id: R-Q12-parallel-lapse
+  title: 12-parallel-lapse
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: L
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+        - to: F
+          expires_at: 8
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 8
+  - step: 8
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: null
+        resolution: unresolved
+      - id: D_unowned_report(CL1)
+        owner: gateway_reporting
+        recipient: L
+        due: 13
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      gateway_transitions:
+      - type: report_dispatched
+        report_id: RPT1
+        version: 1
+        to: L
+- id: R-Q12-parallel-last-window
+  title: 12-parallel-last-window
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: L
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+        - to: F
+          expires_at: 8
+  - step: 7
+    events:
+    - type: duty_acceptance
+      from: F
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+  - step: 8
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      revision: R=
+- id: R-Q11-authorized-standing
+  title: 11-authorized-standing
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB: *id001
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: B
+      tool: accept_duty
+      args:
+        duty: D_resolve(CL1)
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: B
+      token: T2
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: B
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      execute_result: committed
+- id: R-Q11-out-of-scope
+  title: 11-out-of-scope
+  attribution: Sol-authored from Claude's Q11/Q12 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions: *id002
+        scope:
+          customers:
+          - K2
+        limits: *id003
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: B
+      tool: accept_duty
+      args:
+        duty: D_resolve(CL1)
+    expect:
+      disposition: REFUSE
+      rule: AU1
+      failed_stage: authority
+      token: none

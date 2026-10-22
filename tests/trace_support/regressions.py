@@ -12,9 +12,12 @@ import yaml
 ROOT = Path(__file__).parents[1] / 'regression_scenarios'
 
 
-def cases():
-    return [{"id": t["id"], "trace": t, "parameters": {}, "source": str(ROOT / 'astra_spot_check.yaml')}
-            for t in yaml.safe_load((ROOT / 'astra_spot_check.yaml').read_text())]
+def cases(*, include_clarifications=True):
+    paths = [ROOT / 'astra_spot_check.yaml']
+    if include_clarifications:
+        paths.append(ROOT / 'q11_q12.yaml')
+    return [{"id": t["id"], "trace": t, "parameters": {}, "source": str(path)}
+            for path in paths for t in yaml.safe_load(path.read_text())]
 
 
 def mutated(function, kind, backend=None):
@@ -37,10 +40,10 @@ def mutated(function, kind, backend=None):
     return wrapper
 
 
-def run_suite(runner, backend=None):
+def run_suite(runner, backend=None, *, include_clarifications=True):
     controls = json.loads((ROOT / 'mutations.json').read_text())
     ordinary, negative = [], []
-    for c in cases():
+    for c in cases(include_clarifications=include_clarifications):
         spec = controls.get(c['id'])
         if spec:
             implementation = backend or runner.model
@@ -56,4 +59,4 @@ def run_suite(runner, backend=None):
         else:
             ordinary.extend(runner.run(c, backend=backend) if backend else runner.run(c))
     return {'assertions': ordinary + negative, 'negative_controls': negative,
-            'scenarios': len(cases())}
+            'scenarios': len(cases(include_clarifications=include_clarifications))}

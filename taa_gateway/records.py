@@ -4,6 +4,7 @@ Gateway callbacks are trusted simulator code. Agents have no gateway session,
 store handle or callback registration interface. Rollback never erases evidence:
 it restores uncommitted state and logs a failed attempt outside the transaction.
 """
+from taa_gateway.offers import entries, project
 from dataclasses import dataclass
 from threading import RLock
 
@@ -234,13 +235,18 @@ class RecordStore:
             if not duty["overdue"] and old_step < duty["deadline_step"] <= next_step:
                 duty["overdue"] = True
                 transitions.append({"type": "overdue", "at": duty["deadline_step"]})
-            at = duty.get("offer_deadline_step")
-            if duty["offered_to"] is not None and type(at) is int and old_step < at <= next_step:
+            offers = entries(duty)
+            expired = [o for o in offers if o["status"] == "live" and old_step < o["expires"] <= next_step]
+            if expired:
+                duty["content"]["transfer_offers"] = offers
+                for offer in expired:
+                    offer["status"] = "expired"
                 lost = duty["interim_rule"].get("authority_lost", False)
-                if lost:
+                unowned = lost and not any(o["status"] == "live" for o in offers)
+                if unowned:
                     duty["owner"] = None
-                duty["offered_to"], duty["offer_deadline_step"] = None, None
-                transitions.append({"type": "unowned" if lost else "offer_lapsed", "at": at})
+                project(duty)
+                transitions.extend({"type": "unowned" if unowned else "offer_lapsed", "at": o["expires"]} for o in expired)
             route = duty.get("route_deadline_step")
             if type(route) is int and old_step < route <= next_step and not duty["content"].get("routing_due"):
                 duty["content"]["routing_due"] = True
@@ -277,7 +283,8 @@ class RecordStore:
             if kind in ("grant", "token") and fields.get("status", "live") == "live":
                 deadlines.append(fields.get("expires_at_step"))
             if kind == "duty" and fields.get("resolution") == "unresolved":
-                deadlines.extend(fields.get(k) for k in ("deadline_step", "offer_deadline_step", "route_deadline_step"))
+                deadlines.extend(fields.get(k) for k in ("deadline_step", "route_deadline_step"))
+                deadlines.extend(o["expires"] for o in entries(fields) if o["status"] == "live")
             for at in deadlines:
                 if type(at) is int and old_step < at <= new_step:
                     crossed.append({"id": record["id"], "at": at})

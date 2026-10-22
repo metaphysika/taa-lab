@@ -67,7 +67,7 @@ def executed(before, after):
 def dispatches(before, after):
     found = []
     for did, d in after['duties'].items():
-        if d.get('kind') != 'report' or not d.get('recipient'):
+        if d.get('kind') not in ('report', 'unowned_report') or not d.get('recipient'):
             continue
         old = before['duties'].get(did)
         if old is None or old.get('version') != d['version'] or old.get('recipient') != d['recipient']:
