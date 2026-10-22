@@ -76,6 +76,47 @@ def dispatches(before, after):
     return found
 
 
+def sql_relations(state):
+    """Non-normative decoding of actual relational checkpoint rows."""
+    relations = {}
+    for name, rows in state['relational_checkpoint']['relations'].items():
+        histories = {}
+        for rid, version, serialized in rows:
+            history = histories.setdefault(rid, [])
+            if type(version) is not int or version != len(history) + 1:
+                raise ValueError('non-contiguous SQL version sequence')
+            history.append(json.loads(serialized))
+        relations[name] = histories
+    return relations
+
+
+def sql_projection(state):
+    """Independently check observations against SQL rows, not adapter outputs.
+
+    Only published serialization mappings live here; no policy, authorization,
+    discharge or transaction predicates. This supplements the same state audits.
+    """
+    history = sql_relations(state)
+    current = {name: {rid: rows[-1] for rid, rows in histories.items()} for name, histories in history.items()}
+    expected = {name: current[name] for name in ('duties', 'reports', 'grants', 'orders', 'allocations')}
+    expected['records'] = {rid: [dict(row, version=index + 1) for index, row in enumerate(rows)] for rid, rows in history['records'].items()}
+    expected['cases'] = {rid: row['closed'] for rid, row in current['cases'].items()}
+    expected['notices'] = [row for rid, row in sorted(current['notices'].items(), key=lambda x: (len(x[0]), x[0]))]
+    expected['tokens'] = {'T' + rid[1:]: {'actor': row['actor'], 'tool': row['tool'], 'args': row['args'],
+                          'revision': row['epoch'], 'expires': row['expires'], 'status': row['status']}
+                          for rid, row in current['handles'].items()}
+    expected['receipts'] = [{'token': 'T' + rid[1:], 'actor': row['actor'], 'pre_transaction_revision': row['pre_transaction_epoch'],
+        'committed': [{'record': effect['id'], 'kind': effect['payload']['kind'], **effect['payload']['fields']}
+                      for effect in row['effects'] if effect['relation'] == 'records']}
+        for rid, row in sorted(current['receipts'].items(), key=lambda x: int(x[0][1:]))]
+    expected['decisions'] = [row for rid, row in sorted(current['decisions'].items(), key=lambda x: int(x[0][1:]))]
+    expected['world'] = current['configuration']['world']
+    expected['setup'] = current['configuration']['setup']
+    expected['revision'] = state['relational_checkpoint']['epoch']
+    expected['step'] = state['relational_checkpoint']['step']
+    return expected
+
+
 class Observer:
     def __init__(self, initial):
         self.versions = {}
@@ -88,6 +129,9 @@ class Observer:
         if 'native' in state:
             collections['native.records:'] = state['native']['records']
             collections['native.duties:'] = state['native']['duty_records']
+        if 'relational_checkpoint' in state:
+            for name, rows in sql_relations(state).items():
+                collections['sql.' + name + ':'] = rows
         all_records = {prefix + rid: versions for prefix, records in collections.items() for rid, versions in records.items()}
         changed = []
         for ref, original in self.versions.items():
@@ -110,6 +154,9 @@ class Observer:
                            'observed': 'verified' if matches else reported,
                            'status': 'pass' if matches else 'discrepancy', 'origin': 'state-audit'})
         check('immutable_record_versions', [], self.capture(after))
+        if 'relational_checkpoint' in after:
+            for key, actual_rows in sql_projection(after).items():
+                check('sql_projection.' + key, actual_rows, after[key])
         # Every state collection, including all record versions, is included.
         # Absence of this adapter contract is incomplete, not a fabricated zero.
         if 'state_delta' not in result:

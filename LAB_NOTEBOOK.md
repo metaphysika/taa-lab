@@ -8026,3 +8026,30 @@ implemented for this arm: full frozen/regression/adversarial acceptance is
 incomplete, not zero-discrepancy. This is a prerequisite component, not H3
 validation. Claude review and green CI remain required. No model calls, Modal
 operations, spending, Notion edits, evidence deletion or public release.
+
+## 2026-10-22 — Independent conventional W0 SQL arm (review branch)
+
+[DESCRIPTIVE] Flat current-state constraints and a separately written persistent
+obligation/report engine now run through the same source runner as TAA and the
+reference. Declared representation/matching protocol predates outcomes. No
+core/reference enforcement imports. All 89 scenarios: 782 ordinary source
+assertions, 10,952 independent state audits, three hidden-state guards, zero
+discrepancies/incomplete. Coverage metadata rejects a deliberately omitted source
+block. First four offer-order discrepancies and initial runtime hashes are
+preserved; creation sequence fixes canonical-JSON order without changing deadlines.
+
+[DESCRIPTIVE] An added service-frame control fails before hardening (report
+substituted financial template, expected REFUSE but PERMIT); exact implied-effect
+frames now reject it. Current 64 components pass, including identical authenticated
+script/log bytes. Kernel 21-test/six-mutant gate passes separately. Broad discovery
+ran 979 tests, 36 skips, zero failures/errors, exit0 in 1825.408 seconds; it
+collected the earlier 62 component tests, before the final frame and determinism
+additions. Current components and hardened W0 gate pass separately. Native code
+unchanged; CI repeats exact head. All scripted scenarios pass; 29 generated native
+property programs are retained and pass. See TAA_CONVENTIONAL_W0_v0.md and evidence.
+
+[LIMITATION] Matching finite W0 development cases is success for both strongest
+arms, not H3 evidence. Four-controller/weak-arm integration and named ablation
+boundaries await Claude clarification; MCP/replay is last. Q14–Q16 stay draft and
+conservative. No model calls, Modal operations, spending, Notion edits, evidence
+removal or public release. Merge only after Claude review and all green CI.
