@@ -24,6 +24,7 @@ from taa_gateway_reference import refunds as model
 # Package paths remain pinned to implementation; tests and observations are current.
 sys.path.insert(0, str(ROOT))
 from tests.trace_support import reference_runner as runner, production_backend, regressions
+from worlds.refunds.token_bindings import prepare
 for package in (taa_gateway, model):
     assert Path(package.__file__).resolve().is_relative_to(implementation)
 inputs = [c for c in regressions.cases() if c['id'].startswith('R-Q13-')]
@@ -42,8 +43,9 @@ for name, backend in [('reference', None), ('production', production_backend)]:
     rows, errors = [], []
     for case in inputs:
         checks = []
+        prepared, token_bindings = prepare(case)
         try:
-            runner._run(case, backend or runner.model, checks)
+            runner._run(prepared, backend or runner.model, checks, token_bindings)
         except (ValueError, KeyError, TypeError) as error:
             if not a.expect_baseline:
                 raise
