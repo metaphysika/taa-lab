@@ -14,7 +14,7 @@ class ProductionRunnerTests(unittest.TestCase):
         rows = runner.run(case, backend=backend)
         self.assertFalse([row for row in rows if row["status"] == "discrepancy"])
         incomplete = [row for row in rows if row["status"] == "incomplete"]
-        self.assertEqual([row["assertion"] for row in incomplete], ["steps[1]@3.duties"])
+        self.assertEqual(incomplete, [])
         self.assertTrue(any(row["origin"] == "state-audit" and row["assertion"].endswith("state_delta") for row in rows))
 
     def test_all_three_hidden_native_mutations_trigger_state_audit_discrepancies(self):
@@ -30,12 +30,12 @@ class ProductionRunnerTests(unittest.TestCase):
                 self.assertTrue([row for row in rows if row["origin"] == "state-audit" and row["status"] == "discrepancy"])
                 self.assertFalse([row for row in rows if row["origin"] == "state-audit" and row["status"] == "incomplete"])
 
-    def test_no_pending_duty_assertion_is_counted_as_passing(self):
+    def test_independent_duty_engine_finishes_the_no_proposal_trace(self):
         case = next(c for c in cases() if c["id"] == "T27")
         rows = runner.run(case, backend=backend)
-        pending = [row for row in rows if row["origin"] == "source"]
-        self.assertTrue(pending)
-        self.assertTrue(all(row["status"] == "incomplete" for row in pending))
+        source = [row for row in rows if row["origin"] == "source"]
+        self.assertTrue(source)
+        self.assertTrue(all(row["status"] == "pass" for row in rows))
 
     def test_reviewer_rejection_reason_comes_from_actual_audit_entry(self):
         case = next(c for c in cases() if c["id"] == "T33")

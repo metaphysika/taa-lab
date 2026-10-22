@@ -39,3 +39,24 @@ class StoredResolutions:
         if self.__store.read(resolution["id"]) is not None:
             raise ValueError("answer already stored")
         return self.__store.publish(self.__inbox, "receive_resolution", [Write(resolution["id"], "resolution", resolution)])
+
+    def correct(self, envelope, record_id):
+        envelope = self.__authority.verify(envelope)
+        current = self.__store.read(record_id)
+        content = envelope["content"]
+        question = self.__questions.get(content.get("question_id"))
+        valid = (envelope["message_kind"] == "resolution" and content.get("correction_of") == record_id and
+                 envelope["recipient"] == self.__authority.identity(self.__inbox, "receive_resolution")[0] and
+                 envelope["step"] <= self.__store.step and
+                 current and current["kind"] == "resolution" and question and
+                 content.get("question_id") == current["fields"]["question_id"] and
+                 content.get("jurisdiction") == question["jurisdiction"] and
+                 envelope["authenticated_sender"] in question["reviewers"] and
+                 isinstance(content.get("answer"), dict) and
+                 content["answer"].get("about") == current["fields"]["answer"].get("about"))
+        if not valid:
+            self.__store.audit("rejected_resolution", {"envelope": envelope, "reason": "unreserved or wrong jurisdiction"})
+            return self.__store.snapshot()
+        fields = copy_json(current["fields"])
+        fields["answer"] = dict(content["answer"], correction_envelope=envelope)
+        return self.__store.publish(self.__inbox, "correct_resolution", [Write(record_id, "resolution", fields)])

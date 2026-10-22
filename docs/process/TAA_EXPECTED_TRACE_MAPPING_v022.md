@@ -68,3 +68,20 @@ Source: `tests/expected_traces/v0.2.2/world_W0.yaml`, Design v0.3 plus bundled C
 [DESCRIPTIVE] Native namespaces avoid collisions and preserve every stored version. Commercial relation fields retain abstract claim/order/customer IDs where the W0 rules use them. The projection preserves all native collections as `native` as well as exposing source-vocabulary collections; native-only authority/duty histories are pinned by the independent observer too. Notices and allocation/case changes are observed as state effects even when they add no commercial record. Receipt projections come from actual native receipts, not the execution reply.
 
 [DESCRIPTIVE] Step packaging and list matching are exactly the shared runner conventions above. The stage 5 backend explicitly marks its missing phase-2 duty engine and related assertions incomplete. It never substitutes a no-op reconciliation for passing duty-engine coverage. See [stage 5 validation](TAA_GATEWAY_STAGE5_v031.md) for the incomplete counts, IR1 limits, deterministic largest-alternative selection, and real transaction-boundary faults.
+
+## Stage 6 production binding (supersedes the partial-coverage status above)
+
+| W0 concept | Native binding |
+|---|---|
+| DU1–DU6, D_resolve/D_refund/report/unowned/supplement IDs | `DutyEngine` with literal generated duty IDs; append-only `duty_records`, schema fields plus typed metadata in `content` |
+| due/overdue/history/basis/by/by_rule/evidence | Native deadline/flag/history objects and record references; projection exposes source vocabulary and ordered history tags |
+| RPT1 etc. | Append-only native `reports[RPT1]` and `report:RPT1` record versions; payload from logged order/decision, not a model reply |
+| Report acknowledgment | Authenticated `acknowledgment` envelope, native `ack:ACKn`; exact current id/version/recipient |
+| Duty acceptance | Authenticated `acceptance` envelope, native `accept:ACCn`, or an actor-bound offer-authorized execution token |
+| IR1 | Existing narrow claimant-message authority, now derived from actual independently created pending-transfer duties; no adapter incompleteness heuristic |
+| Corrected reviewer answer | Signed `resolution` envelope with `correction_of`, exact reserved question/jurisdiction/subject/recipient; only the answer field changes |
+| Offer/accept/closure | Real pipeline duty checks and staged native effects; window starts at commit, closure checks every unresolved duty |
+
+[DESCRIPTIVE] All native gateway metadata records and all their versions remain in the exported `native` checkpoint and version ledger. The flat committed-business-record vocabulary excludes report/acknowledgment/acceptance metadata, because those are authorized gateway transitions rather than the proposed business act. Business notices, allocations, case changes, receipts and token consumption still come from actual state; full delta comparison includes every native collection.
+
+[DESCRIPTIVE] There are no remaining stage 6 assertion skips. The reference's 54/2,238 and 8/265 counts are unchanged; the core reports 54/2,285 and 8/272 checks, zero discrepancies and zero incomplete, including all three mutation guards. See [stage 6 evidence and limits](TAA_GATEWAY_STAGE6_v031.md). The two v0.3.2 questions stay explicitly conservative; no expected outcome or rule-selection preference was added to fit this mapping.
