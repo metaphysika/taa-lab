@@ -11,7 +11,7 @@ import json
 
 SATISFIED, VIOLATED, UNKNOWN = "satisfied", "violated", "unknown"
 _ABSENT = object()
-_SEVERITY = {"PERMIT": 0, "ALTERNATIVE": 1, "HOLD": 2, "REFER": 2, "PROHIBIT": 3}
+_SEVERITY = {"PERMIT": 0, "ALTERNATIVE": 1, "HOLD": 2, "REFER": 3, "REFUSE": 4, "PROHIBIT": 5}
 
 
 class InvalidTransition(ValueError):
@@ -43,6 +43,7 @@ class Spec:
     report_owner: str = "gateway"
     report_deadline_steps: int = 2
     agent_actors: tuple = ("agent",)
+    correction_rights: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -151,7 +152,7 @@ def _queries(expression, state):
 
 
 def _tighten(current, candidate):
-    # Equal-ranked HOLD/REFER retain the first stage's result deterministically.
+    # Strict v0.3.1 Q1 precedence, independent of declaration order.
     return candidate if _SEVERITY[candidate] > _SEVERITY[current] else current
 
 
@@ -257,8 +258,8 @@ def _report(state, spec, identity, case_id, issuer, matter, disclosure):
         "offered_to": None, "basis": [], "history": [], "issuer": issuer,
         "matter": matter, "disclosure": list(disclosure), "recipient": recipient,
         "routes_tried": [recipient] if recipient else [], "route_deadline": state["step"] + spec.report_deadline_steps,
-        "condition": {"kind": "report_ack", "bindings": {"report_id": duty_id, "recipient": recipient, "acknowledged": True}},
-        "sent": False,
+        "condition": {"kind": "report_ack", "bindings": {"report_id": duty_id, "report_version": 1, "recipient": recipient, "acknowledged": True}},
+        "sent": True, "report_version": 1, "incidents": [],
         "release_conditions": []}
     return True
 
@@ -319,7 +320,7 @@ def _duty_pass(state, spec, correction=None):
                 state["allocations"] = {key: value for key, value in state["allocations"].items() if value != duty_id}
                 state["cases"].setdefault(duty["case_id"], {})["closed"] = False
                 changed = True
-        overdue = duty["overdue"] or (duty["resolution"] == "unresolved" and state["step"] > duty["deadline"])
+        overdue = duty["overdue"] or (duty["resolution"] == "unresolved" and state["step"] >= duty["deadline"])
         if duty["overdue"] != overdue:
             duty["overdue"] = overdue
             changed = True
@@ -337,6 +338,11 @@ def _duty_pass(state, spec, correction=None):
             changed = True
         if duty.get("ownership_interrupted") and duty.get("offered_to") and state["step"] >= duty["offer_deadline"]:
             duty["owner"], duty["offered_to"] = None, None
+            changed = True
+        if (not duty.get("ownership_interrupted") and duty.get("offered_to") and
+                state["step"] >= duty.get("offer_deadline", float("inf"))):
+            duty["offered_to"] = None
+            duty.pop("offer_deadline", None)
             changed = True
         if duty.get("ownership_interrupted") and duty["owner"] is None and duty.get("kind") != "report":
             changed |= _report(state, spec, "unowned:" + duty_id, duty["case_id"],
@@ -370,8 +376,11 @@ def _duty_pass(state, spec, correction=None):
                 proof_condition = (dict(duty["condition"], standing=[duty["recipient"]])
                                    if duty.get("kind") == "report" else duty["condition"])
                 candidates.append((record, proof_condition, "discharged"))
-            for condition in duty["release_conditions"]:
-                if (_binding_matches(record, condition) and
+            for condition in duty["release_conditions"] if record["kind"] == "release_determination" else ():
+                evidence = _now(state, record["fields"].get("evidence_id"))
+                if (record["fields"].get("substantive_basis") and evidence and evidence["evidential"] and
+                        evidence["version"] == record["fields"].get("evidence_version") and
+                        _binding_matches(record, condition) and
                         record["writer"] in condition.get("standing", [duty["claimant"]])):
                     binding = dict(condition, standing=condition.get("standing", [duty["claimant"]]))
                     candidates.append((record, binding, "released"))
@@ -380,6 +389,10 @@ def _duty_pass(state, spec, correction=None):
             duty["resolution"] = resolution
             duty["basis"] = [{"record_id": record["id"], "record_version": record["version"],
                               "condition": deepcopy(condition)}]
+            if resolution == "released":
+                evidence = _now(state, record["fields"]["evidence_id"])
+                duty["basis"].append({"record_id": evidence["id"], "record_version": evidence["version"],
+                                      "condition": {"kind": evidence["kind"], "bindings": deepcopy(evidence["fields"])}})
             duty["history"].append({"event": resolution, "basis": deepcopy(duty["basis"])})
             allocation = record["fields"].get("allocation_id")
             if allocation and resolution == "discharged":
@@ -402,8 +415,8 @@ def _stabilize(state, spec, correction=None):
 def decision(state, spec, actor, tool, arguments):
     """Evaluate separate declarative policy; returns a decision, never a token."""
     if tool not in state["tools"]:
-        return {"disposition": "REFER", "reasons": ["unregistered_tool"], "grant": None, "rule_results": []}
-    disposition, reasons, results = "PERMIT", [], []
+        return {"disposition": "REJECT", "evaluated": False, "reasons": ["unregistered_tool"], "grant": None, "rule_results": []}
+    disposition, reasons, results, alternative = "PERMIT", [], [], None
     rules = [rule for rule in state["rules"] if tool in rule.tools]
     for stage in ("prohibition", "authority", "support", "determination", "duty"):
         if stage == "authority":
@@ -415,7 +428,7 @@ def decision(state, spec, actor, tool, arguments):
             amount = amount if type(amount) is int else 0
             chosen = min(grants, key=lambda g: (_limit(state, g) < amount, g["id"])) if grants else None
             if chosen is None:
-                disposition = _tighten(disposition, "HOLD" if any(result == UNKNOWN for _, result in candidates) else "REFER")
+                disposition = _tighten(disposition, "HOLD" if any(result == UNKNOWN for _, result in candidates) else "REFUSE" if declarations else "REFER")
                 reasons.append("no_complete_live_authority")
         for rule in [r for r in rules if r.stage == stage]:
             result = rule_result(rule.expression, state, arguments)
@@ -423,7 +436,7 @@ def decision(state, spec, actor, tool, arguments):
                             "queries": _queries(rule.expression, state)})
             if result != SATISFIED:
                 disposition = _tighten(disposition, "HOLD" if result == UNKNOWN else
-                                       "PROHIBIT" if stage == "prohibition" else "REFER" if stage == "authority" else "HOLD")
+                                       "PROHIBIT" if stage == "prohibition" else "REFUSE")
                 reasons.append(rule.id)
         if stage == "determination" and state["tools"][tool].get("effect") == "refund":
             claim = state["entitlements"].get(arguments.get("claim_id"))
@@ -431,35 +444,44 @@ def decision(state, spec, actor, tool, arguments):
             if (not claim or type(amount) is not int or amount <= 0 or
                     arguments.get("currency") != claim["currency"] or
                     arguments.get("claimant") != claim["claimant"]):
-                disposition = _tighten(disposition, "HOLD")
+                disposition = _tighten(disposition, "REFUSE")
                 reasons.append("refund_binding_unknown_or_invalid")
             elif amount + state["totals"].get(claim["order_id"], 0) > claim["amount_minor"] or (
                     chosen is not None and amount > _limit(state, chosen)):
-                disposition = _tighten(disposition, "ALTERNATIVE")
+                room = max(0, min(claim["amount_minor"] - state["totals"].get(claim["order_id"], 0),
+                                  _limit(state, chosen) if chosen else claim["amount_minor"]))
+                alternative = {"tool": tool, "arguments": dict(arguments, amount_minor=room)} if room else None
+                disposition = _tighten(disposition, "ALTERNATIVE" if room else "REFUSE")
                 reasons.append("cumulative_or_grant_limit")
         if stage == "duty" and state["tools"][tool].get("effect") == "close":
             if any(d["case_id"] == arguments.get("case_id") and d["resolution"] == "unresolved"
                    for d in state["duties"].values()):
-                disposition = _tighten(disposition, "HOLD")
+                disposition = _tighten(disposition, "REFUSE")
                 reasons.append("unresolved_duty")
     return {"disposition": disposition, "reasons": reasons, "grant": chosen["id"] if chosen else None,
-            "rule_results": results}
+            "rule_results": results, "alternative": alternative}
 
 
 def _matching_orders(state, actor, tool, arguments):
-    return [order for _, order in sorted(state["orders"].items()) if
-            order["recipient"] == actor and order["tool"] == tool and
-            all(key in arguments and _same(arguments[key], value) for key, value in order["arguments"].items())]
+    return [order for _, order in sorted(state["orders"].items()) if order["recipient"] == actor and any(
+        effect["tool"] == tool and all(key in arguments and _same(arguments[key], value)
+        for key, value in effect["arguments"].items()) for effect in order["requested_effects"])]
 
 
 def _propose(state, spec, event):
     tool, arguments = event.data["tool"], event.data["arguments"]
-    if type(event.data.get("ttl", 1)) is not int or event.data.get("ttl", 1) <= 0:
+    if type(event.data.get("ttl", 10)) is not int or event.data.get("ttl", 10) <= 0:
         raise InvalidTransition("token lifetime must be positive integral steps")
     prior = next((d for d in reversed(state["decisions"]) if d["revision"] == state["revision"] and
                   d["actor"] == event.actor and d["tool"] == tool and _same(d["arguments"], arguments)), None)
     if prior:
-        return "repeat", {"decision": deepcopy(prior["decision"])}
+        detail = {"decision": deepcopy(prior["decision"])}
+        live = next((tid for tid, t in state["tokens"].items() if t["status"] == "live" and
+                     t["revision"] == state["revision"] and t["actor"] == event.actor and
+                     t["tool"] == tool and _same(t["arguments"], arguments)), None)
+        if live:
+            detail["token"] = live
+        return "repeat", detail
     verdict = decision(state, spec, event.actor, tool, arguments)
     revision = state["revision"]
     state["decisions"].append({"revision": revision, "actor": event.actor, "tool": tool, "proposal": deepcopy(event.data),
@@ -467,16 +489,38 @@ def _propose(state, spec, event):
     state["history"].append({"event": "decision", "revision": revision, **deepcopy(verdict)})
     if verdict["disposition"] == "PROHIBIT":
         changed = False
+        violated = [r["id"] for r in verdict["rule_results"] if r["result"] == VIOLATED]
         for order in _matching_orders(state, event.actor, tool, arguments):
-            key = hashlib.sha256(json.dumps([order["id"], event.actor, tool, arguments], sort_keys=True).encode()).hexdigest()
-            created = _report(state, spec, "ordered-act:" + key, order.get("case_id", arguments.get("case_id", "unknown")),
-                              order["sender"], order["matter"], order.get("disclosure", []))
-            if created:
-                duty = state["duties"]["report:ordered-act:" + key]
-                duty.update(origin_order=order["id"], attempted_act={"actor": event.actor, "tool": tool, "arguments": deepcopy(arguments)})
-            changed |= created
+            for effect in order["requested_effects"]:
+                # Generic rule effects are declared by the order, not inferred from context.
+                for prohibited in sorted(set(effect["prohibited_effects"]) & set(violated)):
+                    key = hashlib.sha256(json.dumps([order["sender"], arguments.get("claim_id"), prohibited], sort_keys=True).encode()).hexdigest()
+                    base_id = "ordered-act:" + key
+                    prior = [d for d in state["duties"].values() if d.get("report_matter") == base_id]
+                    if any(order["id"] in d["incidents"] for d in prior):
+                        continue
+                    active = next((d for d in prior if d["resolution"] == "unresolved"), None)
+                    if active:
+                        active["incidents"].append(order["id"])
+                        active["report_version"] += 1
+                        active["condition"]["bindings"]["report_version"] = active["report_version"]
+                        active["sent"] = True
+                        changed = True
+                    else:
+                        identity = base_id + (":supplement:" + order["id"] if prior else "")
+                        created = _report(state, spec, identity, order.get("case_id", arguments.get("case_id", "unknown")),
+                                          order["sender"], order["matter"], order.get("disclosure", []))
+                        if created:
+                            duty = state["duties"]["report:" + identity]
+                            duty.update(origin_order=order["id"], report_matter=base_id, incidents=[order["id"]],
+                                        attempted_act={"actor": event.actor, "tool": tool, "arguments": deepcopy(arguments)})
+                            if prior:
+                                duty["links_to"] = prior[-1]["id"]
+                        changed |= created
         if changed:
             _revision(state, "ordered_refusal_duty")
+        # Cache the completed decision at its post-report revision (Q4/Q9).
+        state["decisions"][-1]["revision"] = state["revision"]
         return "PROHIBIT", {"decision": verdict}
     if verdict["disposition"] != "PERMIT":
         return verdict["disposition"], {"decision": verdict}
@@ -496,7 +540,7 @@ def _propose(state, spec, event):
     state["tokens"][token_id] = {"status": "live", "warrant": warrant_id, "revision": revision,
                                 "actor": event.actor, "tool": tool, "arguments": deepcopy(arguments),
                                 "grant": grant["id"], "purpose": grant["purpose"],
-                                "expires": min(grant["expires"], state["step"] + event.data.get("ttl", 1))}
+                                "expires": min(grant["expires"], state["step"] + event.data.get("ttl", 10))}
     return "PERMIT", {"decision": verdict, "token": token_id}
 
 
@@ -538,6 +582,7 @@ def _execute(state, spec, event):
         if duty["owner"] != event.actor or duty["resolution"] != "unresolved":
             raise InvalidTransition("only an unresolved duty's owner can offer it")
         duty["offered_to"] = args["recipient"]
+        duty["offer_deadline"] = state["step"] + duty.get("response_steps", 5)
     elif operation == "accept":
         _accept(state, event.actor, args["duty_id"])
     elif operation == "report":
@@ -579,12 +624,26 @@ def transition(before, event, spec):
             outcome, detail = _propose(state, spec, event)
             return Result(state, outcome, detail)
         if event.kind == "execute":
+            token = state["tokens"].get(event.data.get("token"))
+            if token and token["actor"] != event.actor:
+                state["history"].append({"event": "wrong_actor", "actor": event.actor, "token": event.data["token"]})
+                return Result(state, "rejected", {"reason": "wrong actor"})
             outcome, detail = _execute(state, spec, event)
             return Result(state, outcome, detail)
         if event.kind == "record":
             kind = event.data["kind"]
-            if event.actor in spec.agent_actors or event.actor not in spec.fact_sources.get(kind, ()):
+            old = _now(state, event.data["id"])
+            if event.actor in spec.agent_actors:
                 raise InvalidTransition("record source is not independently authoritative")
+            if old:
+                rights = spec.correction_rights.get(kind, {}).get(event.actor, ())
+                changed = {k for k in old["fields"].keys() | event.data["fields"].keys()
+                           if not _same(old["fields"].get(k), event.data["fields"].get(k)) or
+                           (k in old["fields"]) != (k in event.data["fields"])}
+                if changed - set(rights):
+                    raise InvalidTransition("source lacks field correction rights")
+            elif event.actor not in spec.fact_sources.get(kind, ()):
+                raise InvalidTransition("record source cannot create kind")
             _put(state, event.data["id"], kind, event.data["fields"], event.actor, True)
         elif event.kind == "assertion":
             if event.actor not in spec.agent_actors:
@@ -613,6 +672,9 @@ def transition(before, event, spec):
             order = deepcopy(event.data)
             if order["id"] in state["orders"]:
                 raise InvalidTransition("duplicate order identity")
+            if not order.get("requested_effects") or any(not {"tool", "arguments", "prohibited_effects"} <= set(e)
+                                                        for e in order["requested_effects"]):
+                raise InvalidTransition("stored order needs structured requested effects")
             order["sender"] = event.actor
             state["orders"][order["id"]] = order
         elif event.kind == "resolution":
@@ -620,7 +682,8 @@ def transition(before, event, spec):
             if (not question or event.actor not in question["reviewers"] or
                     event.data["jurisdiction"] != question["jurisdiction"] or
                     type(event.data["answer"]) is not bool):
-                raise InvalidTransition("answer is not a scoped reserved-question resolution")
+                state["history"].append({"event": "rejected_resolution", "input": deepcopy(event.data), "actor": event.actor})
+                return Result(state, "rejected", {"reason": "answer is not a scoped reserved-question resolution"})
             state["resolutions"][event.data["question_id"]] = "resolution:" + event.data["question_id"]
             _put(state, "resolution:" + event.data["question_id"], "resolution",
                  event.data, event.actor, True)
@@ -635,7 +698,15 @@ def transition(before, event, spec):
             state.update(deepcopy(event.data))
         else:
             raise InvalidTransition("unknown model transition")
-        _revision(state, event.kind)
+        if event.kind != "tick" or event.data.get("due_records"):
+            _revision(state, event.kind)
+        elif any(before["step"] < g["expires"] <= state["step"] and g["status"] == "live"
+                 for g in state["grants"].values()) or any(
+                 before["step"] < t["expires"] <= state["step"] and t["status"] == "live"
+                 for t in state["tokens"].values()) or any(
+                 d["resolution"] == "unresolved" and any(before["step"] < d.get(k, float("inf")) <= state["step"]
+                 for k in ("deadline", "offer_deadline", "route_deadline")) for d in state["duties"].values()):
+            _revision(state, "clock_boundary")
         if _stabilize(state, spec, correction=event.data.get("id")):
             _revision(state, "automatic_duty_changes")
         return Result(state, "accepted")

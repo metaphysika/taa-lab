@@ -8,7 +8,7 @@ from threading import RLock
 
 from taa_gateway import SCHEMA_VERSION
 from taa_gateway.schema import validate
-from taa_gateway.serialization import copy_json
+from taa_gateway.serialization import canonical, copy_json
 
 
 @dataclass(frozen=True)
@@ -66,7 +66,7 @@ class RecordStore:
                    p["tool"] == tool and p["channel"] == channel and actor in p["principals"]]
         if len(matches) != 1:
             raise ValueError("no unique trusted write policy for this kind/tool/source")
-        return actor, matches[0]["evidential"], matches[0]["id_prefix"]
+        return actor, matches[0]
 
     def publish(self, session, tool, writes=(), *, step=None, expected_revision=None):
         """The only state mutation path. One accepted batch advances once.
@@ -75,6 +75,7 @@ class RecordStore:
         do not advance it. Future token/cache storage must respect this distinction.
         """
         with self.__lock:
+            writes = tuple(writes)
             actor, channel = self.__authority.identity(session, tool)
             if expected_revision is not None and (type(expected_revision) is not int or
                                                    expected_revision != self.revision):
@@ -86,7 +87,8 @@ class RecordStore:
             next_step = self.step if step is None else step
             events = []
             for write in writes:
-                writer, evidential, prefix = self._permission(session, tool, write.kind)
+                writer, permission = self._permission(session, tool, write.kind)
+                evidential, prefix = permission["evidential"], permission["id_prefix"]
                 if not isinstance(write.record_id, str) or not write.record_id.startswith(prefix):
                     raise ValueError("record identity lies outside its trusted kind namespace")
                 if write.kind in ("stored_order", "party", "purpose", "grant", "rule",
@@ -97,6 +99,15 @@ class RecordStore:
                 history = staged["records"].setdefault(write.record_id, [])
                 if history and history[-1]["kind"] != write.kind:
                     raise ValueError("a record cannot change kind")
+                if not history and not permission["create"]:
+                    raise ValueError("source cannot create this kind")
+                if history:
+                    old = history[-1]["fields"]
+                    changed = {key for key in old.keys() | write.fields.keys()
+                               if key not in old or key not in write.fields or
+                               canonical(old[key]) != canonical(write.fields[key])}
+                    if changed - set(permission["correct_fields"]):
+                        raise ValueError("source cannot correct these fields")
                 record = {"schema_version": SCHEMA_VERSION, "id": write.record_id,
                           "kind": write.kind, "fields": copy_json(write.fields),
                           "version": len(history) + 1, "written_by": writer,
@@ -111,9 +122,35 @@ class RecordStore:
                 events.append((next_step, "clock_change", {"from": self.step, "to": next_step,
                                "revision_before": self.revision, "revision_after": self.revision + 1}))
             staged["step"] = next_step
-            staged["revision"] = self.revision + 1
+            # Q10: the raw counter is not decision relevant. The trusted
+            # clock reports only boundaries derivable from current state.
+            boundaries = self._boundaries(self.step, next_step)
+            staged["revision"] = self.revision + bool(writes) + len(boundaries)
+            for event in events:
+                event[2]["revision_after"] = staged["revision"]
+            for boundary in boundaries:
+                events.append((next_step, "clock_boundary", boundary))
             # append_many validates the complete batch before changing the log.
             # No callbacks or effect execution occur between append and publish.
             self.__log.append_many(events)
             self.__state = staged
             return self.snapshot()
+
+    def audit(self, kind, payload):
+        """Append observational/rejected input only; this path cannot write state."""
+        self.__log.append(self.step, kind, payload)
+
+    def _boundaries(self, old_step, new_step):
+        crossed = []
+        for history in self.__state["records"].values():
+            record = history[-1]
+            fields, kind = record["fields"], record["kind"]
+            deadlines = []
+            if kind in ("grant", "token") and fields.get("status", "live") == "live":
+                deadlines.append(fields.get("expires_at_step"))
+            if kind == "duty" and fields.get("resolution") == "unresolved":
+                deadlines.extend(fields.get(k) for k in ("deadline_step", "offer_deadline_step", "route_deadline_step"))
+            for at in deadlines:
+                if type(at) is int and old_step < at <= new_step:
+                    crossed.append({"id": record["id"], "at": at})
+        return crossed

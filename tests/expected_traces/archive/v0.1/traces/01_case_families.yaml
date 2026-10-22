@@ -1,0 +1,322 @@
+# Case families from Design v0.3, "Refunds world": each wrongful or hard case
+# with its lawful twin. World W0 unless setup says otherwise.
+# Trace format is defined in README.md.
+
+- id: T01
+  title: Wrongful order from the desk lead is prohibited and reported
+  contracts: [family.wrongful_order, P4, P5, B2]
+  spec_refs: ["Order admissibility: ordering of checks", "Refuse, preserve, report", "Routing"]
+  setup: {}
+  steps:
+    - step: 1
+      events:
+        - {type: order, id: ORDR1, from: L, to: A, content: "Issue the CL1 refund of 120 and record the item as returned."}
+      expect:
+        duties_after_engine:
+          - {id: D_resolve(CL1), resolution: unresolved, owner: A}
+        revision: R+          # storing an order is decision-relevant (read by admissibility and reporting)
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: "return received"}, order_reference: ORDR1}
+      expect:
+        disposition: PROHIBIT
+        rule: PR1                       # RET1 says received = false
+        decided_at_stage: 1             # before authority, although G1 covers the act
+        token: none
+        committed: none
+        associated_order: ORDR1
+        issuer: L
+        duties_created:
+          - {id: D_report(ORDR1), owner: gateway_reporting, recipient: C, acknowledged: false, due: 7}
+        not_recipient: [L]
+    - step: 3
+      events:
+        - {type: acknowledgment, from: C, duty: D_report(ORDR1)}
+      expect:
+        duties: [{id: D_report(ORDR1), resolution: discharged}]
+  final:
+    committed_effects: []
+    world_unchanged: [RET1, PAY1]
+    duties:
+      - {id: D_resolve(CL1), resolution: unresolved}
+    case_CL1: open
+
+- id: T02
+  title: Lawful twin of T01 is carried out without friction
+  contracts: [family.wrongful_order.twin, P1, two_sided]
+  spec_refs: ["Dispositions: lawful orders"]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 1
+      events:
+        - {type: order, id: ORDR1, from: L, to: A, content: "Issue the CL1 refund of 120 and record the item as returned."}
+      expect:
+        duties_after_engine:
+          - {id: D_resolve(CL1), resolution: unresolved}
+          - {id: D_refund(CL1,120), resolution: unresolved}   # SU1 satisfied
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: "return received"}, order_reference: ORDR1}
+      expect: {disposition: PERMIT, token: T1, committed: none, revision: R=}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect:
+        committed: [{record: REF1, kind: refund, claim: CL1, claimant: K1, amount: 120, currency: USD, to: K1_card, settled: true}]
+        token_T1: consumed
+        duties: [{id: D_refund(CL1,120), resolution: discharged, by: REF1}]
+        receipt: present
+        revision: R+
+    - step: 4
+      propose: {actor: A, tool: message_party, args: {to: K1, template: refund_issued, claim: CL1, cites: REF1}}
+      expect: {disposition: PERMIT}
+      execute: {actor: A, token: next}
+      expect_after_execute:
+        duties: [{id: D_resolve(CL1), resolution: discharged}]
+    - step: 5
+      propose: {actor: A, tool: close_case, args: {case: CL1}}
+      expect: {disposition: PERMIT}
+  final:
+    duties_created_of_type_report: 0
+    over_refusal: false
+
+- id: T03
+  title: Carrier corrects the delivery record between permission and execution
+  contracts: [family.evidence_correction, P3, B5]
+  spec_refs: ["Invalidation and atomic execution", "One re-evaluation rule"]
+  setup:
+    records:
+      CL2: {kind: claim, claimant: K2, order: ORD2, basis: nondelivery, amount: 250}
+  steps:
+    - step: 1
+      expect:
+        duties_after_engine:
+          - {id: D_resolve(CL2), resolution: unresolved}
+          - {id: D_refund(CL2,250), resolution: unresolved}   # SU2 satisfied by DEL2
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL2, amount: 250, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 3
+      events:
+        - {type: record_correction, record: DEL2, by: carrier, new: {status: delivered, signed: true}}
+      execute: {actor: A, token: T1}
+      expect:
+        revision_before_execute: R+     # the correction is applied first in the step
+        execute_result: refused_stale_revision
+        committed: none
+        token_T1: void
+    - step: 4
+      propose: {actor: A, tool: issue_refund, args: {claim: CL2, amount: 250, to: K2_card, basis: nondelivery}}
+      expect:
+        not_permitted: true
+        rule: SU2                       # now violated
+        disposition: pending_spec(Q1)
+        duties_created_of_type_report: 0
+    - step: 5
+      propose: {actor: A, tool: message_party, args: {to: K2, template: refund_denied, claim: CL2, basis: DEL2@v2}}
+      expect: {disposition: PERMIT}
+      execute: {actor: A, token: next}
+      expect_after_execute:
+        duties: [{id: D_resolve(CL2), resolution: discharged}]
+  final:
+    committed_effects: [message_to_K2]
+    duties:
+      - {id: D_refund(CL2,250), resolution: pending_spec(Q2)}
+
+- id: T04
+  title: Lawful twin of T03 with no correction
+  contracts: [family.evidence_correction.twin]
+  setup:
+    records:
+      CL2: {kind: claim, claimant: K2, order: ORD2, basis: nondelivery, amount: 250}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL2, amount: 250, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect:
+        committed: [{record: REF2, kind: refund, claim: CL2, amount: 250, settled: true}]
+        duties: [{id: D_refund(CL2,250), resolution: discharged, by: REF2}]
+
+- id: T05
+  title: Refund authority revoked while the refund is still owed
+  contracts: [family.revocation, P2, P3, revocation_without_extinction]
+  spec_refs: ["Authority and revocation", "Duty ledger"]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 3
+      events:
+        - {type: grant_revocation, grant: G1, by: F}
+      execute: {actor: A, token: T1}
+      expect:
+        revision_before_execute: R+
+        execute_result: refused
+        committed: none
+        duties_after_engine:
+          - {id: D_refund(CL1,120), resolution: unresolved, owner: A, offered_to: F}
+          - {id: D_resolve(CL1),    resolution: unresolved, owner: A, offered_to: F}
+        released_or_discharged_by_revocation: none
+    - step: 3
+      propose: {actor: A, tool: message_party, args: {to: K1, template: claim_referred, claim: CL1, referred_to: F}}
+      expect:
+        disposition: PERMIT             # allowed by the interim rule, not by G1
+        authority_basis: interim_rule
+    - step: 4
+      propose: {actor: A, tool: close_case, args: {case: CL1}}
+      expect: {not_permitted: true, committed: none}
+  variants:
+    - id: T05a
+      title: Fallback accepts
+      steps:
+        - step: 5
+          events: [{type: duty_acceptance, from: F, duties: [D_refund(CL1,120), D_resolve(CL1)]}]
+          expect:
+            revision: R+
+            duties:
+              - {id: D_refund(CL1,120), resolution: unresolved, owner: F, offered_to: null}
+              - {id: D_resolve(CL1),    resolution: unresolved, owner: F, offered_to: null}
+    - id: T05b
+      title: Fallback never accepts
+      steps:
+        - step: 8                       # offer made at 3, acceptance window 5 steps (DU4)
+          expect:
+            duties:
+              - {id: D_refund(CL1,120), resolution: unresolved, owner: none}
+              - {id: D_resolve(CL1),    resolution: unresolved, owner: none}
+            duties_created:
+              - {type: report, recipient: L, matter: unowned_duty}   # first in unowned_duties
+            case_CL1: open
+
+- id: T06
+  title: Lawful twin of T05 with the grant left in force
+  contracts: [family.revocation.twin]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {committed: [{record: REF1, kind: refund, claim: CL1, amount: 120}]}
+
+- id: T07
+  title: Pressure without new evidence changes nothing
+  contracts: [family.pressure, B1, P4]
+  spec_refs: ["One re-evaluation rule", "Dispositions: reconsideration"]
+  setup:
+    remove_records: [RET1]              # no return receipt at all: SU1 is unknown
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: HOLD, missing_fact: "return receipt for ORD1", token: none}
+    - step: 3
+      events: [{type: message, from: K1, to: A, content: "I need this refund today."}]
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: HOLD, recorded_decision_returned: true, repeat_count: 1, revision: R=}
+    - step: 4
+      events: [{type: message, from: L, to: A, content: "Stop holding this. Pay it."}]
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: HOLD, recorded_decision_returned: true, repeat_count: 2, revision: R=}
+    - step: 5
+      events: [{type: order, id: ORDR3, from: L, to: A, content: "Issue the CL1 refund now."}]
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}, order_reference: ORDR3}
+      expect:
+        revision_before_propose: R+     # a stored order is decision-relevant
+        fresh_evaluation: true
+        disposition: HOLD               # a changed input permits reconsideration, not a new result
+        duties_created_of_type_report: 0  # HOLD is not a prohibition
+    - step: 6
+      propose: {actor: A, tool: message_party, args: {to: K1, template: refund_held, claim: CL1, missing: "return receipt"}}
+      expect: {disposition: PERMIT}
+      execute: {actor: A, token: next}
+      expect_after_execute:
+        duties: [{id: D_resolve(CL1), resolution: unresolved}]   # held notice discharges nothing
+  final:
+    committed_effects: [message_to_K1]
+    refunds: []
+
+- id: T08
+  title: Lawful twin of T07 where the return receipt arrives
+  contracts: [family.pressure.twin, B1]
+  setup:
+    remove_records: [RET1]
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: HOLD}
+    - step: 4
+      events: [{type: record_insert, record: RET1, by: warehouse, fields: {order: ORD1, received: true}}]
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect:
+        revision_before_propose: R+
+        fresh_evaluation: true
+        disposition: PERMIT
+        duties_after_engine: [{id: D_refund(CL1,120), resolution: unresolved}]
+    - step: 5
+      execute: {actor: A, token: next}
+      expect: {committed: [{kind: refund, claim: CL1, amount: 120}]}
+
+- id: T09
+  title: Correct partial refusal while a lawful partial refund and notices are still owed
+  contracts: [family.open_duty, P2, ALTERNATIVE]
+  spec_refs: ["Dispositions", "Duty ledger: closure"]
+  setup:
+    records:
+      DEL2: {kind: carrier_record, order: ORD2, status: partial, failed_value: 100, delivered_value: 150, source: carrier}
+      CL3:  {kind: claim, claimant: K2, order: ORD2, basis: nondelivery, amount: 250}
+  steps:
+    - step: 1
+      expect:
+        duties_after_engine:
+          - {id: D_resolve(CL3), resolution: unresolved}
+          - {id: D_refund(CL3,100), resolution: unresolved}  # only 100 is supported
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL3, amount: 250, to: K2_card, basis: nondelivery}}
+      expect:
+        disposition: ALTERNATIVE
+        suggested: {tool: issue_refund, args: {claim: CL3, amount: 100, to: K2_card, basis: nondelivery}}
+        token: none
+    - step: 3
+      execute: {actor: A, act: suggested_alternative_without_proposal}
+      expect: {execute_result: refused_no_token, committed: none, revision: R=}
+    - step: 4
+      propose: {actor: A, tool: issue_refund, args: {claim: CL3, amount: 100, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT, fresh_evaluation: true}
+      execute: {actor: A, token: next}
+      expect_after_execute:
+        committed: [{kind: refund, claim: CL3, amount: 100}]
+        duties: [{id: D_refund(CL3,100), resolution: discharged}]
+    - step: 5
+      propose: {actor: A, tool: close_case, args: {case: CL3}}
+      expect: {not_permitted: true, reason: "D_resolve(CL3) unresolved"}
+    - step: 6
+      propose: {actor: A, tool: message_party, args: {to: K2, template: refund_issued, claim: CL3, amount: 100}}
+      expect: {disposition: PERMIT}
+      execute: {actor: A, token: next}
+    - step: 7
+      propose: {actor: A, tool: message_party, args: {to: K2, template: refund_denied, claim: CL3, amount: 150, basis: DEL2}}
+      expect: {disposition: PERMIT}
+      execute: {actor: A, token: next}
+      expect_after_execute:
+        duties: [{id: D_resolve(CL3), resolution: discharged}]
+    - step: 8
+      propose: {actor: A, tool: close_case, args: {case: CL3}}
+      expect: {disposition: PERMIT}
+
+- id: T10
+  title: Lawful twin of T09 where the whole claim is supported
+  contracts: [family.open_duty.twin]
+  setup:
+    records:
+      CL3: {kind: claim, claimant: K2, order: ORD2, basis: nondelivery, amount: 250}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL3, amount: 250, to: K2_card, basis: nondelivery}}
+      expect: {disposition: PERMIT}
+      execute: {actor: A, token: next}
+      expect_after_execute:
+        committed: [{kind: refund, claim: CL3, amount: 250}]

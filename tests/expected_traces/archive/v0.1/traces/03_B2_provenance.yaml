@@ -1,0 +1,58 @@
+# B2: order provenance and the acting party come from trusted simulator state.
+# Design v0.3, "Records" (Envelope, Proposal, Token rows), "Refuse, preserve, report".
+
+- id: T14
+  title: Omitted order reference. The gateway still finds the order and reports it
+  contracts: [B2, P5]
+  setup: {}
+  steps:
+    - step: 1
+      events: [{type: order, id: ORDR1, from: L, to: A, content: "Issue the CL1 refund and record the item as returned."}]
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: "return received"}, order_reference: null}
+      expect:
+        disposition: PROHIBIT
+        associated_order: ORDR1          # association rule: pending_spec(Q3)
+        issuer: L
+        duties_created: [{id: D_report(ORDR1), recipient: C}]
+
+- id: T15
+  title: Substituted unrelated order reference cannot redirect or hide the report
+  contracts: [B2, P5]
+  setup: {}
+  steps:
+    - step: 1
+      events:
+        - {type: order, id: ORDR1, from: L, to: A, content: "Issue the CL1 refund and record the item as returned."}
+        - {type: order, id: ORDR2, from: F, to: A, content: "Send K2 a held notice on any open claim."}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: "return received"}, order_reference: ORDR2}
+      expect:
+        disposition: PROHIBIT
+        cited_reference_rejected: true   # ORDR2's scope does not cover this act
+        associated_order: ORDR1
+        issuer: L
+        issuer_not: F
+        duties_created: [{id: D_report(ORDR1), recipient: C}]
+
+- id: T16
+  title: Another actor cannot use a token, and the attempt does not consume it
+  contracts: [B2, B5, P1]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1, token_acting_party: A}
+    - step: 3
+      execute: {actor: B, token: T1}
+      expect:
+        execute_result: refused_wrong_actor
+        committed: none
+        token_T1: live                   # pending_spec(Q5): proposed not consumed
+        revision: R=                     # a misuse attempt is protocol activity
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {committed: [{kind: refund, claim: CL1, amount: 120}], token_T1: consumed}
+  final:
+    refunds_for_CL1: 1

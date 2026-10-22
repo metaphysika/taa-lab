@@ -36,6 +36,7 @@ class FoundationTests(unittest.TestCase):
             {"kind": "resolution", "tool": "receive_resolution", "channel": "gateway",
              "principals": ["gateway"], "evidential": True}]}
         for policy in self.policy["writers"]:
+            policy.update(create=True, correct_fields=["delivered"])
             policy["id_prefix"] = {"stored_order": "order-"}.get(policy["kind"], policy["kind"] + "-")
         self.store = RecordStore(self.auth, self.log, self.policy)
         self.orders = StoredOrders(self.store, self.auth, self.gateway)
@@ -45,7 +46,7 @@ class FoundationTests(unittest.TestCase):
 
     def order(self, recipient="agent", claim="C1"):
         return self.auth.issue(self.lead, recipient, 0, "order", {
-            "text": "Issue the refund", "scope": {"tool": "issue_refund", "arguments": {"claim_id": claim}}})
+            "text": "Issue the refund", "requested_effects": [{"tool": "issue_refund", "arguments": {"claim_id": claim}, "asserts": []}]})
 
     def proposal(self, **claims):
         return self.orders.proposal(self.agent, {"tool": "issue_refund",
@@ -62,7 +63,7 @@ class FoundationTests(unittest.TestCase):
         self.assertIsNone(self.store.read("delivery-1"))
         self.store.publish(self.external, "carrier_update", [self.delivery()])
         self.store.publish(self.gateway, "advance_clock", step=1)
-        self.assertEqual((self.store.revision, self.store.step), (2, 1))
+        self.assertEqual((self.store.revision, self.store.step), (1, 1))
         self.assertEqual(self.log.events()[-1]["type"], "clock_change")
 
     def test_batch_advances_once_and_invalid_batch_changes_nothing(self):
@@ -159,7 +160,7 @@ class FoundationTests(unittest.TestCase):
             self.orders.receive(future)
 
     def test_resolution_written_as_record_never_permission(self):
-        inbox = StoredResolutions(self.store, self.auth, self.gateway)
+        inbox = StoredResolutions(self.store, self.auth, self.gateway, {"Q1": {"jurisdiction": "refund review", "reviewers": ["lead"]}})
         envelope = self.auth.issue(self.lead, "gateway", 0, "resolution", {
             "question_id": "Q1", "jurisdiction": "refund review", "answer": {"finding": "PERMIT"}, "basis": []})
         inbox.receive(envelope)

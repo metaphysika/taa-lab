@@ -1,0 +1,106 @@
+# B1: one re-evaluation rule. Design v0.3, "One re-evaluation rule",
+# "Dispositions: reconsideration", "What counts as a relevant change".
+
+- id: T11
+  title: An unrelated limit change voids an old token; permitted acts get a replacement, prohibitions stay
+  contracts: [B1, P3, P4]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: account_X, basis: return}}
+      expect:
+        disposition: PROHIBIT
+        rule: PR2
+        attributed_issuer: none           # agent-originated: no order requested it
+        report_duties_created: 0
+        revision: R=
+    - step: 3
+      events: [{type: grant_amendment, grant: G1, by: F, change: {per_refund_max: 350}}]
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T2, fresh_evaluation: true}
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: account_X, basis: return}}
+      expect: {disposition: PROHIBIT, rule: PR2, fresh_evaluation: true}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect:
+        revision_before_execute: R+
+        execute_result: refused_stale_revision
+        transaction_changes: none
+        token_state: {T1: void}
+    - step: 4
+      execute: {actor: A, token: T2}
+      expect: {committed: [{record: REF1, kind: refund, claim: CL1, amount: 120, to: K1_card}]}
+  final:
+    refunds_to_account: {account_X: 0}
+    log_retains: [decision_issuing_T1, first_PROHIBIT]
+
+- id: T12
+  title: Identical proposal on an unchanged snapshot returns the recorded decision and the same live token
+  contracts: [B1, P1, Q4]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect:
+        recorded_decision_returned: true
+        token: T1
+        live_tokens_for_act: 1
+        repeat_count: 1
+        revision: R=
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {committed: [{record: REF1, kind: refund, claim: CL1, amount: 120}]}
+    - step: 4
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect:
+        fresh_evaluation: true            # revision advanced at the step 3 commit
+        disposition: REFUSE               # DT2: a second 120 would exceed ORD1, and no non-empty alternative exists
+        rule: DT2
+        token: none
+  final:
+    refunds_for_claim: {CL1: 1}
+
+- id: T13R
+  title: Paper 2 regression. Changes to other records or questions never lift a prohibition
+  contracts: [B1, P4, paper2_regression]
+  spec_refs: ["What it builds on, lesson 1", "One re-evaluation rule", "v0.3.1 Q6, Q9"]
+  setup:
+    records:
+      CL4: {kind: claim, claimant: K2, order: ORD2, basis: goodwill, amount: 40}
+  steps:
+    - step: 1
+      events:
+        - {type: order, id: ORDR1, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}, order_reference: ORDR1}
+      expect: {disposition: PROHIBIT, rule: PR1, duties_created: [{id: "D_report(ORDR1)", recipient: C}]}
+    - step: 3
+      events: [{type: record_correction, record: DEL2, by: carrier, new: {status: partial, failed_value: 200}}]
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}, order_reference: ORDR1}
+      expect:
+        fresh_evaluation: true
+        disposition: PROHIBIT
+        rule: PR1
+        report_duties_created: 0          # same active matter (v0.3.1 Q9)
+    - step: 4
+      events: [{type: resolution, question: goodwill_approval, about: CL4, by: F, via: reviewer_interface, answer: approve}]
+      expect:
+        records_written: [{kind: resolution, evidential: true}]
+        revision: R+
+    - step: 4
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}, order_reference: ORDR1}
+      expect: {fresh_evaluation: true, disposition: PROHIBIT, action_executed: false, report_duties_created: 0}
+  final:
+    committed: []
+    report_duties_for_matter: {"D_report(ORDR1)": 1}

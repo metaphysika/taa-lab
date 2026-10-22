@@ -18,7 +18,7 @@ def policy(duties=False):
                                 "kind": "refund", "deadline": 2, "under_grant": "G", "fallback_owner": "fallback",
                                 "condition": {"kind": "settlement", "bindings": {"claim_id": "$claim_id",
                                   "claimant": "$claimant", "amount_minor": "$amount_minor", "currency": "$currency", "settled": True}},
-                                "release_conditions": [{"kind": "withdrawal", "bindings": {
+                                "release_conditions": [{"kind": "release_determination", "bindings": {
                                   "claim_id": "$claim_id", "claimant": "$claimant", "withdrawn": True}, "standing": ["customer"]}]}},) if duties else ()
     return Spec(tools=tools,
                 rules=(Rule("truthful-return", "prohibition", ("refund",),
@@ -27,7 +27,8 @@ def policy(duties=False):
                 standing={"lead": tuple(tools), "finance": ("report",)},
                 fact_sources={"return": ("carrier",), "claim": ("claims",),
                               "settlement": ("payments",), "withdrawal": ("customer", "ombuds"),
-                              "report_ack": ("officer", "fallback-officer")},
+                              "report_ack": ("officer", "fallback-officer"), "release_determination": ("customer",)},
+                correction_rights={"return": {"carrier": ["received"]}, "settlement": {"payments": list(ARGS) + ["settled", "order_id", "transaction_id", "allocation_id"]}, "withdrawal": {"customer": ["withdrawn"]}, "release_determination": {"customer": ["withdrawn"]}},
                 questions={"Q": {"reviewers": ["reviewer"], "jurisdiction": "refunds"}},
                 duty_rules=duty_rules, report_priority=("lead", "conflicted", "officer", "fallback-officer"))
 
@@ -130,7 +131,7 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(self.state, before)
 
     def test_expiry_processed_before_execution(self):
-        token = self.propose().detail["token"]
+        token = self.propose(ttl=1).detail["token"]
         self.apply("tick", "clock", {"step": 1})
         self.assertEqual(self.execute(token).outcome, "rejected")
 
@@ -139,7 +140,7 @@ class ReferenceTests(unittest.TestCase):
         self.execute(token)
         self.apply("revoke", "lead", {"id": "G"})
         self.apply("grant", "lead", grant())
-        self.assertEqual(self.propose().outcome, "ALTERNATIVE")
+        self.assertEqual(self.propose().outcome, "REFUSE")
         self.assertEqual(self.state["totals"]["O"], 1000)
 
     def test_parent_revocation_invalidates_child(self):
@@ -150,7 +151,7 @@ class ReferenceTests(unittest.TestCase):
         token = self.propose().detail["token"]
         self.apply("revoke", "lead", {"id": "ROOT"})
         self.assertEqual(self.execute(token).outcome, "rejected")
-        self.assertEqual(self.propose().outcome, "REFER")
+        self.assertEqual(self.propose().outcome, "REFUSE")
 
     def test_authority_can_use_a_complete_alternative_grant(self):
         self.apply("grant", "lead", grant("A-small", limit=1))
@@ -169,8 +170,8 @@ class ReferenceTests(unittest.TestCase):
     def test_reviewer_cannot_supply_missing_grant_unknown_evidence_or_tool(self):
         self.apply("resolution", "reviewer", {"question_id": "Q", "jurisdiction": "refunds", "answer": True})
         self.apply("revoke", "lead", {"id": "G"})
-        self.assertEqual(self.propose().outcome, "REFER")
-        self.assertEqual(self.propose("unregistered").outcome, "REFER")
+        self.assertEqual(self.propose().outcome, "REFUSE")
+        self.assertEqual(self.propose("unregistered").outcome, "REJECT")
         self.apply("grant", "lead", grant())
         self.apply("configuration", "configuration", {"rules": [Rule("missing", "support", ("refund",), {"fact": ["absent", "value"]})]})
         self.assertEqual(self.propose().outcome, "HOLD")
@@ -179,13 +180,15 @@ class ReferenceTests(unittest.TestCase):
         before = deepcopy(self.state)
         self.assertEqual(self.apply("resolution", "agent", {"question_id": "Q", "jurisdiction": "refunds", "answer": True}).outcome, "rejected")
         self.assertEqual(self.apply("resolution", "reviewer", {"question_id": "Q", "jurisdiction": "other", "answer": True}).outcome, "rejected")
-        self.assertEqual(self.state, before)
+        self.assertEqual(self.state["revision"], before["revision"])
+        self.assertEqual(self.state["records"], before["records"])
+        self.assertEqual(len(self.state["history"]), len(before["history"]) + 2)
 
     def test_claimed_actor_and_order_reference_do_not_control_reports(self):
         self.apply("order", "lead", {"id": "O1", "recipient": "agent", "tool": "refund",
-                   "arguments": {"claim_id": "C"}, "matter": "refunds", "disclosure": ["private"]})
+                   "requested_effects": [{"tool": "refund", "arguments": {"claim_id": "C"}, "prohibited_effects": ["truthful-return"]}], "matter": "refunds", "disclosure": ["private"]})
         self.apply("order", "lead", {"id": "other", "recipient": "agent", "tool": "refund",
-                   "arguments": {"claim_id": "unrelated"}, "matter": "refunds", "disclosure": ["private"]})
+                   "requested_effects": [{"tool": "refund", "arguments": {"claim_id": "unrelated"}, "prohibited_effects": ["truthful-return"]}], "matter": "refunds", "disclosure": ["private"]})
         self.apply("record", "carrier", {"id": "return", "kind": "return", "fields": {"received": False}})
         self.propose(acting_party="lead", order_reference="other")
         reports = [d for d in self.state["duties"].values() if d["kind"] == "report"]
@@ -199,7 +202,7 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(self.state["duties"]["owed:C"]["resolution"], "unresolved")
         self.apply("tick", "clock", {"step": 3})
         self.assertTrue(self.state["duties"]["owed:C"]["overdue"])
-        self.assertEqual(self.propose("close", arguments={"case_id": "case"}).outcome, "HOLD")
+        self.assertEqual(self.propose("close", arguments={"case_id": "case"}).outcome, "REFUSE")
 
     def test_refund_receipt_is_bound_to_duty_and_corrected_evidence_reopens_case(self):
         self.add_duty()
@@ -222,10 +225,12 @@ class ReferenceTests(unittest.TestCase):
         self.add_duty()
         withdrawal = {"claim_id": "C", "claimant": "customer", "withdrawn": True}
         self.apply("record", "customer", {"id": "withdraw", "kind": "withdrawal", "fields": withdrawal})
+        self.assertEqual(self.state["duties"]["owed:C"]["resolution"], "unresolved")
+        self.apply("record", "customer", {"id": "release", "kind": "release_determination", "fields": dict(withdrawal, substantive_basis="claimant withdrew", evidence_id="withdraw", evidence_version=1)})
         self.assertEqual(self.state["duties"]["owed:C"]["resolution"], "released")
         token = self.propose("close", arguments={"case_id": "case"}).detail["token"]
         self.execute(token, arguments={"case_id": "case"})
-        self.apply("record", "customer", {"id": "withdraw", "kind": "withdrawal", "fields": dict(withdrawal, withdrawn=False)})
+        self.apply("record", "customer", {"id": "release", "kind": "release_determination", "fields": dict(withdrawal, substantive_basis="claimant withdrew", evidence_id="withdraw", evidence_version=1, withdrawn=False)})
         self.assertEqual(self.state["duties"]["owed:C"]["resolution"], "unresolved")
         self.assertFalse(self.state["cases"]["case"]["closed"])
 
@@ -262,7 +267,7 @@ class ReferenceTests(unittest.TestCase):
         self.apply("tick", "clock", {"step": 1})
         self.assertIsNone(self.state["duties"]["owed:C"]["owner"])
         self.assertIn("report:unowned:owed:C", self.state["duties"])
-        self.assertEqual(self.propose("close", arguments={"case_id": "case"}).outcome, "REFER")
+        self.assertEqual(self.propose("close", arguments={"case_id": "case"}).outcome, "REFUSE")
 
     def test_resolution_record_invalidates_outstanding_token(self):
         token = self.propose().detail["token"]
@@ -291,7 +296,7 @@ class ReferenceTests(unittest.TestCase):
     def test_report_is_not_discharged_by_send_or_wrong_ack(self):
         self.apply("grant", "finance", dict(grant("REPORT", grantee="gateway", grantor="finance"), tools=["report"]))
         self.apply("order", "lead", {"id": "bad", "recipient": "agent", "tool": "refund",
-                   "arguments": {"claim_id": "C"}, "matter": "refunds", "disclosure": ["private"]})
+                   "requested_effects": [{"tool": "refund", "arguments": {"claim_id": "C"}, "prohibited_effects": ["truthful-return"]}], "matter": "refunds", "disclosure": ["private"]})
         self.apply("record", "carrier", {"id": "return", "kind": "return", "fields": {"received": False}})
         self.propose()
         report_id = self.ordered_report()["id"]
@@ -300,15 +305,15 @@ class ReferenceTests(unittest.TestCase):
         self.execute(token, actor="gateway", arguments=args)
         self.assertEqual(self.state["duties"][report_id]["resolution"], "unresolved")
         self.apply("record", "fallback-officer", {"id": "wrong-ack", "kind": "report_ack", "fields": {
-            "report_id": report_id, "recipient": "officer", "acknowledged": True}})
+            "report_id": report_id, "recipient": "officer", "report_version": 1, "acknowledged": True}})
         self.assertEqual(self.state["duties"][report_id]["resolution"], "unresolved")
         self.apply("record", "officer", {"id": "ack", "kind": "report_ack", "fields": {
-            "report_id": report_id, "recipient": "officer", "acknowledged": True}})
+            "report_id": report_id, "recipient": "officer", "report_version": 1, "acknowledged": True}})
         self.assertEqual(self.state["duties"][report_id]["resolution"], "discharged")
 
     def test_report_fallback_and_no_eligible_route_remain_visible(self):
         self.apply("order", "lead", {"id": "bad", "recipient": "agent", "tool": "refund",
-                   "arguments": {"claim_id": "C"}, "matter": "refunds", "disclosure": ["private"]})
+                   "requested_effects": [{"tool": "refund", "arguments": {"claim_id": "C"}, "prohibited_effects": ["truthful-return"]}], "matter": "refunds", "disclosure": ["private"]})
         self.apply("record", "carrier", {"id": "return", "kind": "return", "fields": {"received": False}})
         self.propose()
         self.apply("tick", "clock", {"step": 2})
@@ -325,7 +330,7 @@ class ReferenceTests(unittest.TestCase):
         self.apply("tick", "clock", {"step": 3, "due_records": [{"id": "C", "kind": "claim", "source": "claims",
                    "fields": {**ARGS, "owed": True}}]})
         self.assertTrue(self.state["duties"]["owed:C"]["overdue"])
-        self.assertEqual(self.propose("close", arguments={"case_id": "case"}).outcome, "HOLD")
+        self.assertEqual(self.propose("close", arguments={"case_id": "case"}).outcome, "REFUSE")
 
     def test_duty_declarations_reach_a_fixed_point_independent_of_declaration_order(self):
         self.spec = policy(duties=True)
@@ -336,14 +341,14 @@ class ReferenceTests(unittest.TestCase):
         self.apply("record", "claims", {"id": "C", "kind": "claim", "fields": {**ARGS, "owed": True}})
         self.assertEqual(set(self.state["duties"]), {"dependent:C", "owed:C"})
 
-    def test_distinct_wrongful_acts_under_one_order_are_not_collapsed(self):
+    def test_same_issuer_claim_and_prohibited_effect_are_one_matter(self):
         self.apply("order", "lead", {"id": "bad", "recipient": "agent", "tool": "refund",
-                   "arguments": {"claim_id": "C"}, "matter": "refunds", "disclosure": ["private"]})
+                   "requested_effects": [{"tool": "refund", "arguments": {"claim_id": "C"}, "prohibited_effects": ["truthful-return"]}], "matter": "refunds", "disclosure": ["private"]})
         self.apply("record", "carrier", {"id": "return", "kind": "return", "fields": {"received": False}})
         self.propose()
         self.propose(arguments=dict(ARGS, amount_minor=500))
         self.propose()
-        self.assertEqual(len([d for d in self.state["duties"].values() if d.get("origin_order") == "bad"]), 2)
+        self.assertEqual(len([d for d in self.state["duties"].values() if d.get("origin_order") == "bad"]), 1)
 
 
 class ReferenceIndependenceTests(unittest.TestCase):
