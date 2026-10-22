@@ -99,7 +99,7 @@ class RecordStore:
         state = self.__state
         if state["step"] < prior["step"] or state["revision"] < prior["revision"]:
             raise ValueError("state clock/revision cannot regress")
-        for key in ("records", "duty_records"):
+        for key in ("records", "duty_records", "reports"):
             for rid, history in prior[key].items():
                 if rid not in state[key] or canonical(state[key][rid][:len(history)]) != canonical(history):
                     raise ValueError("published record versions are immutable")
@@ -241,6 +241,10 @@ class RecordStore:
                     duty["owner"] = None
                 duty["offered_to"], duty["offer_deadline_step"] = None, None
                 transitions.append({"type": "unowned" if lost else "offer_lapsed", "at": at})
+            route = duty.get("route_deadline_step")
+            if type(route) is int and old_step < route <= next_step and not duty["content"].get("routing_due"):
+                duty["content"]["routing_due"] = True
+                transitions.append({"type": "routing_due", "at": route})
             if transitions:
                 duty["history"].extend(transitions)
                 self.append_duty(state, events, duty, "gateway_clock")

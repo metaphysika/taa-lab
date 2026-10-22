@@ -59,7 +59,8 @@ def _format(result):
 
 def _project(context, previous=None):
     state = context.store.snapshot()
-    records = {abstract_id(rid): copy_json(versions) for rid, versions in state["records"].items()}
+    records = {abstract_id(rid): copy_json(versions) for rid, versions in state["records"].items()
+               if versions[-1]["kind"] not in ("report", "acknowledgment", "acceptance")}
     tokens = {tid: dict(actor=abstract_id(row["certificate"]["acting_party"]), tool=row["tool"], args=row["args"],
                        revision=row["certificate"]["state_revision"], expires=row["certificate"]["expires_at_step"], status=row["status"])
               for tid, row in state["tokens"].items()}
@@ -77,9 +78,15 @@ def _project(context, previous=None):
     receipts = [{"token": r["token_id"], "actor": abstract_id(r["acting_party"]), "pre_transaction_revision": r["pre_transaction_revision"],
                  "committed": [dict(effect, record=abstract_id(effect["record"])) for effect in r["effect"]["committed"]]}
                 for r in state["receipts"]]
-    duties = {did: dict(copy_json(h[-1]["fields"]), owner=abstract_id(h[-1]["fields"]["owner"]) if h[-1]["fields"]["owner"] else None,
-                        due=h[-1]["fields"]["deadline_step"], kind=h[-1]["fields"]["content"].get("kind"))
-              for did, h in state["duty_records"].items()}
+    duties = {}
+    for did, history in state["duty_records"].items():
+        d = copy_json(history[-1]["fields"])
+        projected = dict(d, **d["content"])
+        projected.update(due=d["deadline_step"], history=[f"{e['type']}@{e['at']}" for e in d["history"]])
+        for field in ("owner", "offered_to", "recipient", "issuer"):
+            if field in projected and projected[field] is not None:
+                projected[field] = abstract_id(projected[field])
+        duties[did] = projected
     log = [{"type": e["type"], "native_event": e,
             **({"result": _format(e["payload"]["result"])} if e["type"] in ("decision", "recorded_decision") else {})}
            for e in context.log.events()]
@@ -103,8 +110,6 @@ def _describe(before, after, result):
 
 def start(world, setup=None, *, defer_first_step=False):
     setup = setup or {}
-    if any(row.get("kind") == "resolution" for row in setup.get("records", {}).values()):
-        raise UnsupportedCapability("stage 6: seeded duplicate/release resolution lifecycle")
     context = RefundWorld(world, KEY, setup=setup)
     state = _project(context, {"setup": setup})
     if not defer_first_step:
@@ -123,8 +128,12 @@ def apply_event(before, event, stabilize=True):
     context, result = _context(before), {}
     typ = event["type"]
     if typ in ("acknowledgment", "duty_acceptance"):
-        raise UnsupportedCapability("stage 6: " + typ)
-    if typ == "order":
+        content = {k: event[k] for k in ("report", "version", "duties") if k in event}
+        envelope = context.auth.issue(context.sessions[event["from"]], "gateway_reporting", before["step"],
+                                     "acceptance" if typ == "duty_acceptance" else typ, content,
+                                     message_id=typ + ":" + str(len(context.log.events()) + 1))
+        result.update(context.engine.receive(envelope))
+    elif typ == "order":
         effects = [{"tool": effect["tool"], "arguments": {k: v for k, v in effect.items() if k not in ("tool", "asserts")},
                     "asserts": effect.get("asserts", [])} for effect in event["requested_effects"]]
         envelope = context.auth.issue(context.sessions[event["from"]], native_id(event["to"], "party"), before["step"],
@@ -139,7 +148,16 @@ def apply_event(before, event, stabilize=True):
             rid, current = _find(context, event["record"])
             kind, fields = current["kind"], copy_json(current["fields"])
             if kind == "resolution":
-                raise UnsupportedCapability("stage 6: corrected discharge/release resolution")
+                if set(event["new"]) != {"answer"} or event["by"] != "reviewer_interface":
+                    raise ValueError("correction outside reviewer answer rights")
+                content = {"question_id": fields["question_id"], "jurisdiction": fields["jurisdiction"], "correction_of": rid,
+                           "answer": dict(fields["answer"], decision=event["new"]["answer"])}
+                envelope = context.auth.issue(context.sessions[event["on_behalf_of"]], "gateway", before["step"],
+                           "resolution", content, message_id="correction:" + str(len(context.log.events()) + 1))
+                context.resolutions.correct(envelope, rid)
+                after = _project(context, before)
+                return _describe(before, after, {"records_written": [{"kind": "resolution", "evidential": True}]
+                         if after["revision"] != before["revision"] else []})
             fields.update(event["new"])
         context.store.publish(context.sources[event["by"]], "external_record", [Write(rid, kind, fields)])
     elif typ in ("grant_revocation", "grant_amendment", "grant_issue"):
@@ -197,7 +215,10 @@ def enter_step(before, step, events=(), *, event_observer=None):
         state, description = apply_event(state, event, stabilize=False)
         if event_observer:
             event_observer(number, prior, state, description)
-    state["phase_order"].append("duty_engine_unimplemented")
+    context = _context(state)
+    context.engine.reconcile()
+    state = _project(context, state)
+    state["phase_order"].append("duty_engine")
     return _describe(before, state, {})
 
 
@@ -209,15 +230,12 @@ def advance(before, step):
 
 
 def reconcile(state):
-    # No fake ledger transitions. Source stability assertions are incomplete.
-    return None
+    context = _context(state)
+    context.engine.reconcile()
+    state.update(_project(context, state))
 
 
 def propose(before, actor, tool, args, order_reference=None):
-    if tool in ("close_case", "offer_duty", "accept_duty", "hold_refund", "deny_refund"):
-        raise UnsupportedCapability("stage 6: duty-dependent " + tool)
-    if tool == "message_party" and any(g["status"] != "live" for gid, g in before["grants"].items() if gid != "G0") and not before["duties"]:
-        raise UnsupportedCapability("stage 6: derive pending transfer before IR1 can apply")
     context = _context(before)
     result = context.runtime.propose(context.sessions[actor], {"tool": tool, "arguments": args,
         "order_reference": native_id(order_reference, "stored_order") if order_reference else None})
@@ -232,16 +250,7 @@ def execute(before, actor, token_id=None, fault=None):
     return _describe(before, _project(context, before), _format(result))
 
 
-DUTY_ASSERTIONS = {"duties", "duties_created", "gateway_transitions", "not_recipient", "report_duties_created",
-                   "reports_naming", "report_duties_for_matter", "arbitrary_recipient_chosen", "reopening_cites",
-                   "released_or_discharged_by_revocation", "transfer_completed", "duty_engine_reaches_stable_state_each_step", "phase_order"}
-
-
 def incomplete_assertion(key, state):
-    if key in DUTY_ASSERTIONS:
-        return "stage 6: independent duty engine / reporting not implemented"
-    if key == "revision" and state["step"] >= 21:
-        return "stage 6: claim-duty deadline boundary not yet derived"
     return None
 
 

@@ -25,11 +25,12 @@ class EffectPlan:
     allocations: object = None
     cases: object = None
     duties: tuple = ()
+    duty_actions: tuple = ()
 
     def json(self):
         return copy_json({"writes": [{"record": w.record_id, "kind": w.kind, "fields": w.fields} for w in self.writes],
                           "notices": list(self.notices), "allocations": self.allocations or {},
-                          "cases": self.cases or {}, "duties": list(self.duties)})
+                          "cases": self.cases or {}, "duties": list(self.duties), "duty_actions": list(self.duty_actions)})
 
 
 class ExecutionRefused(ValueError):
@@ -42,13 +43,14 @@ class InjectedFault(RuntimeError):
 
 
 class Runtime:
-    def __init__(self, store, authority, gateway_session, pipeline, tools, *, token_lifetime=10):
+    def __init__(self, store, authority, gateway_session, pipeline, tools, *, token_lifetime=10, duty_engine=None):
         actor, channel = authority.identity(gateway_session, "capabilities")
         authority.identity(gateway_session, "execute_transaction")
         if channel != "gateway" or type(token_lifetime) is not int or token_lifetime < 1:
             raise ValueError("trusted gateway and positive token lifetime required")
         self.store, self.authority, self.gateway, self.pipeline = store, authority, gateway_session, pipeline
         self.tools, self.lifetime, self.writer = ToolRegistry(tools), token_lifetime, actor
+        self.duty_engine = duty_engine
 
     def _plan(self, snapshot, name, args):
         tool = self.tools.get(name, args)
@@ -81,6 +83,9 @@ class Runtime:
                     events.append((state["step"], "recorded_decision", {"result": copy_json(answer), "raw": raw}))
                     return
             answer.update(decision, fresh_evaluation=True, recorded_decision_returned=False, repeat_count=0)
+            if self.duty_engine is not None and state["step"] >= 1 and self.duty_engine.report_from_log(state, events):
+                self.store.advance_revision(state, events)
+                key = digest({"actor": actor, "tool": raw["tool"], "args": raw["arguments"], "revision": state["revision"]})
             if decision["disposition"] == "PERMIT":
                 plan, reads = self._plan(state, raw["tool"], raw["arguments"])
                 tid, wid = "T" + str(len(state["tokens"]) + 1), "W" + str(len(state["warrants"]) + 1)
@@ -170,11 +175,20 @@ class Runtime:
             at("during_token_consumption")
             for duty in plan["duties"]:
                 self.append_duty(state, events, duty, cert["warrant_id"])
+            for action in plan["duty_actions"]:
+                if self.duty_engine is None:
+                    raise ExecutionRefused("refused_unimplemented_duty_action")
+                self.duty_engine.apply_action(state, events, action, actor, cert["warrant_id"])
+            if self.duty_engine is not None:
+                self.duty_engine.reconcile_mutation(state, events)
             at("during_duty_update")
             receipt = {"schema_version": V, "id": "receipt:" + str(len(state["receipts"]) + 1),
                        "warrant_id": cert["warrant_id"], "token_id": token_id, "acting_party": actor,
                        "pre_transaction_revision": state["revision"], "committed_revision": state["revision"] + 1,
-                       "effect": dict(plan, committed=committed), "record_versions": versions}
+                       "effect": dict(plan, committed=committed,
+                                      duty_state=copy_json(state["duty_records"]),
+                                      allocations_committed=copy_json(state["allocations"]),
+                                      cases_committed=copy_json(state["cases"])), "record_versions": versions}
             validate("receipt", receipt)
             state["receipts"].append(receipt)
             at("during_receipt_write")

@@ -41,12 +41,15 @@ def source_locations(inputs):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--require-complete", action="store_true",
+                        help="Stage 6 acceptance: fail on ANY remaining incomplete check")
     args = parser.parse_args()
     verify_bundle()
     frozen = reference_runner.all_results(backend=production_backend)
     regression = regressions.run_suite(reference_runner, backend=production_backend)
     controls = regression["negative_controls"]
-    report = {"scope": "partial stage 5 engineering gate; NOT complete production acceptance",
+    report = {"scope": ("complete frozen W0 engineering coverage; NOT empirical H3 validation" if args.require_complete else
+                        "partial stage 5 engineering gate; NOT complete production acceptance"),
               "implementation_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "source_hashes": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                                 for base in ("taa_gateway", "tests/trace_support", "tests/regression_scenarios")
@@ -79,13 +82,16 @@ def main():
                     errors.append("unexpected incomplete: " + repr(key))
     if len(controls) != 3 or not all(report["hidden_state_audit_detection"].values()):
         errors.append("all three actual hidden-state mutations must trigger independent state-audit discrepancies")
+    if args.require_complete and observed_gaps:
+        errors.append("full production coverage requires zero incomplete checks, including raw controls")
     report["observed_incomplete_locations"] = sorted(observed_gaps)
     report["gate_errors"] = errors
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({name: report[name]["counts"] for name in ("frozen", "regressions")}))
     print(json.dumps({"hidden_state_audit_detection": report["hidden_state_audit_detection"], "gate_errors": errors}))
-    print("PARTIAL STAGE 5 ONLY. Every remaining incomplete check is listed in the report; full acceptance is not green.")
+    print("FULL FROZEN W0 GATE: zero incomplete required; bounded engineering evidence only." if args.require_complete else
+          "PARTIAL STAGE 5 ONLY. Every remaining incomplete check is listed in the report; full acceptance is not green.")
     return bool(errors)
 
 

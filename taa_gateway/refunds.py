@@ -9,6 +9,7 @@ from dataclasses import replace
 from taa_gateway import SCHEMA_VERSION as V
 from taa_gateway.act import Tool
 from taa_gateway.envelopes import SimulatorAuthority
+from taa_gateway.duties import DutyEngine
 from taa_gateway.eventlog import EventLog
 from taa_gateway.executor import EffectPlan, Runtime
 from taa_gateway.interim import RefundGrantPolicy
@@ -22,7 +23,8 @@ from taa_gateway.serialization import copy_json
 PREFIX = {"order": "sale:", "payment": "payment:", "claim": "claim:", "return_receipt": "return:",
           "carrier_record": "carrier:", "refund": "refund:", "chargeback": "chargeback:",
           "withdrawal": "withdrawal:", "resolution": "resolution:", "agent_note": "note:",
-          "grant": "grant:", "purpose": "purpose:", "party": "party:", "stored_order": "order:"}
+          "grant": "grant:", "purpose": "purpose:", "party": "party:", "stored_order": "order:",
+          "report": "report:", "acknowledgment": "ack:", "acceptance": "accept:"}
 DATA_KINDS = tuple(PREFIX)[:10]
 
 
@@ -168,9 +170,13 @@ def message_support(ctx, view):
 
 def describe(name):
     def effect(args, view):
+        target = args.get("to")
+        if name in ("hold_refund", "deny_refund"):
+            claim, _ = claim_context(args, view)
+            target = claim["claimant"] if claim else None
         return {"schema_version": V, "operation": name, "assertions": [{"text": x} for x in args.get("asserts", [])],
-                "state_changes": [{"tool": name, "arguments": args}], "affected_parties": [args["to"]] if "to" in args else [],
-                "benefit_route": {"to": args.get("to")}}
+                "state_changes": [{"tool": name, "arguments": args}], "affected_parties": [target] if target else [],
+                "benefit_route": {"to": target}}
     return effect
 
 
@@ -186,7 +192,11 @@ def stage_refund(args, view):
 
 
 def scope(args, view):
-    claim = record(view, args["claim"], "claim") if "claim" in args else None
+    claim_id = args.get("claim", args.get("case"))
+    if "duty" in args:
+        duty = view.read(args["duty"], "duty")
+        claim_id = duty["case_id"] if duty else None
+    claim = record(view, claim_id, "claim") if claim_id is not None else None
     customer = claim["claimant"] if claim else args.get("customer")
     if "record" in args:
         rows = [record(view, args["record"], kind) for kind in DATA_KINDS]
@@ -198,6 +208,46 @@ def scope(args, view):
     return dict(args, customer=customer)
 
 
+def ledger_condition(ctx, view):
+    args, tool, actor = ctx["arguments"], ctx["tool"], ctx["actor"]
+    if tool == "close_case":
+        if record(view, args["case"], "claim") is None:
+            return Outcome("violated", "case does not exist")
+        unresolved = [did for did, d in view.records("duty") if d["case_id"] == args["case"] and d["resolution"] == "unresolved"]
+        return Outcome("violated", unresolved[0] + " unresolved") if unresolved else Outcome("satisfied")
+    duty = view.read(args["duty"], "duty")
+    if duty is None or duty["resolution"] != "unresolved":
+        return Outcome("violated", "no unresolved duty")
+    if tool == "offer_duty":
+        return Outcome("satisfied") if duty["owner"] == actor and view.read(native_id(args["to"], "party"), "party") else Outcome("violated", "only the owner may offer to a known party")
+    return Outcome("satisfied") if duty["offered_to"] == actor else Outcome("violated", "no offer to this party")
+
+
+def stage_ledger(tool):
+    def stage(args, view):
+        if tool == "close_case":
+            return EffectPlan(cases={args["case"]: True})
+        view.read(args["duty"], "duty")
+        return EffectPlan(duty_actions=({"operation": tool, "duty": args["duty"], "to": args.get("to")},))
+    return stage
+
+
+def notice_action(tool):
+    def stage(args, view):
+        claim, _ = claim_context(args, view)
+        return EffectPlan(notices=(dict(args, to=claim["claimant"],
+                             template="refund_held" if tool == "hold_refund" else "refund_denied"),))
+    return stage
+
+
+def notice_action_condition(ctx, view):
+    claim, _ = claim_context(ctx["arguments"], view)
+    if claim is None:
+        return Outcome("unknown", "claim record")
+    args = dict(ctx["arguments"], to=claim["claimant"], template="refund_denied")
+    return Outcome("satisfied") if ctx["tool"] == "hold_refund" else message_support(dict(ctx, arguments=args), view)
+
+
 def tool_definitions(registered):
     common = {key: {"type": "string"} for key in ("claim", "to", "basis", "record", "case", "duty", "template",
               "missing", "referred_to", "prose", "customer", "cites")}
@@ -205,15 +255,24 @@ def tool_definitions(registered):
     common["basis"] = {"type": "string"}
     common["template"] = {"enum": ["refund_issued", "refund_denied", "refund_held", "claim_referred"]}
     required = {"issue_refund": ["claim", "amount", "to", "basis"], "message_party": ["to"], "close_case": ["case"],
-                "read_record": ["record"], "offer_duty": ["duty", "to"], "report": ["to"]}
+                "read_record": ["record"], "offer_duty": ["duty", "to"], "accept_duty": ["duty"], "report": ["to"],
+                "hold_refund": ["claim", "missing"], "deny_refund": ["claim", "amount", "basis"]}
     tools = []
     for name in registered:
         properties = copy_json(common)
         if name == "issue_refund":
             properties["basis"] = {"enum": ["return", "nondelivery", "goodwill"]}
+        if name in ("hold_refund", "deny_refund"):
+            properties.pop("to")
         stage = stage_refund if name == "issue_refund" else (
             (lambda args, view: EffectPlan(notices=(args,))) if name == "message_party" else
             (lambda args, view: EffectPlan()) if name == "read_record" else None)
+        if name in ("close_case", "offer_duty", "accept_duty"):
+            stage = stage_ledger(name)
+        if name in ("hold_refund", "deny_refund"):
+            stage = notice_action(name)
+        if name == "report":
+            stage = lambda args, view: EffectPlan(notices=(dict(args, template="agent_report"),))
         tools.append(Tool(name, {"type": "object", "properties": properties, "required": required.get(name, []),
                                  "additionalProperties": False}, describe(name), reads=DATA_KINDS + ("duty",),
                           purposes=("purpose:P1",), scope=scope, amount_argument="amount" if name == "issue_refund" else None,
@@ -229,7 +288,9 @@ def rule_definitions():
             Rule("SU2", 1, "support", DATA_KINDS, support_rule("nondelivery"), ("issue_refund",)),
             Rule("SU3", 1, "support", DATA_KINDS, support_rule("goodwill"), ("issue_refund",)),
             Rule("notice-support", 1, "support", DATA_KINDS, message_support, ("message_party",)),
-            Rule("DT2", 1, "determination", DATA_KINDS, cumulative, ("issue_refund",))]
+            Rule("notice-action-support", 1, "support", DATA_KINDS, notice_action_condition, ("hold_refund", "deny_refund")),
+            Rule("DT2", 1, "determination", DATA_KINDS, cumulative, ("issue_refund",)),
+            Rule("DU1", 1, "duty", DATA_KINDS + ("duty", "party"), ledger_condition, ("close_case", "offer_duty", "accept_duty"))]
 
 
 class RefundWorld:
@@ -240,7 +301,8 @@ class RefundWorld:
         parties = list(definition["parties"]) + ["company"]
         self.sessions = {p: self.auth.bind(native_id(p, "party"), "agent", ["propose", "execute", "withdraw", "send_message"]) for p in parties}
         self.gateway = self.auth.bind("gateway", "gateway", ["seed", "receive_order", "receive_resolution", "advance_clock",
-                                      "restore", "capabilities", "execute_transaction"])
+                                      "restore", "capabilities", "execute_transaction", "duty_engine", "report_transition", "receive_notice", "correct_resolution"])
+        self.reporting = self.auth.bind("gateway_reporting", "gateway", ["send_message"])
         sources = set()
         for boundary in definition["trust_boundary"].values():
             if isinstance(boundary, dict):
@@ -260,6 +322,13 @@ class RefundWorld:
                 tool = {"stored_order": "receive_order", "resolution": "receive_resolution", "refund": "execute_transaction", "grant": "grant_change"}[kind]
                 writers.append({"kind": kind, "tool": tool, "channel": "gateway", "principals": ["gateway"], "id_prefix": prefix,
                                 "evidential": True, "create": True, "correct_fields": ["status", "limits"] if kind == "grant" else []})
+            if kind in ("report", "acknowledgment", "acceptance"):
+                writers.append({"kind": kind, "tool": "report_transition" if kind == "report" else "receive_notice",
+                    "channel": "gateway", "principals": ["gateway"], "id_prefix": prefix, "evidential": True,
+                    "create": True, "correct_fields": ["content"] if kind == "report" else []})
+            if kind == "resolution":
+                writers.append({"kind": kind, "tool": "correct_resolution", "channel": "gateway", "principals": ["gateway"],
+                                "id_prefix": prefix, "evidential": True, "create": False, "correct_fields": ["answer"]})
         self.gateway = self.auth.bind("gateway", "gateway", list(self.gateway.tools) + ["grant_change"])
         self.store = RecordStore(self.auth, self.log, {"schema_version": V, "writers": writers})
         self.orders = StoredOrders(self.store, self.auth, self.gateway)
@@ -269,12 +338,13 @@ class RefundWorld:
             for q, spec in definition["reserved_questions"].items() if isinstance(spec, dict)})
         self.tools = tool_definitions(definition["tool_registry"]["registered"])
         actions = list(definition["grants"]["G1"]["actions"])
-        self.grants = RefundGrantPolicy({"refund_authority": actions, "root": ["grant_refund_authority"], "interim": ["message_party"]},
+        self.grants = RefundGrantPolicy({"refund_authority": actions, "root": ["grant_refund_authority"], "interim": ["message_party", "accept_duty"]},
                           "party:company", interim_principal="party:company", interim_purpose="purpose:P1")
         self.pipeline = Pipeline(self.store, self.orders, self.tools, self.grants, rule_definitions(), reserved_questions={
             "goodwill_approval": {"role": "F", "jurisdiction": "claim_decisions"}})
+        self.engine = DutyEngine(self, PREFIX)
         self.runtime = Runtime(self.store, self.auth, self.gateway, self.pipeline, self.tools,
-                               token_lifetime=(setup or {}).get("token_lifetime", 10))
+                               token_lifetime=(setup or {}).get("token_lifetime", 10), duty_engine=self.engine)
         if native is not None:
             self.store.restore_for_simulator(self.gateway, native)
         else:
@@ -292,7 +362,8 @@ class RefundWorld:
         for p in list(self.definition["parties"]) + ["company"]:
             fields = {"schema_version": V, "id": native_id(p, "party"), "name": p, "role": self.definition["parties"].get(p, {}).get("role", "root"),
                       "jurisdictions": [j for j, members in self.definition["jurisdictions"].items() if p in members] if p != "company" else ["root", "interim"],
-                      "conflicts": [], "may_receive": []}
+                      "conflicts": [], "may_receive": [j for j in ("misconduct_reports", "unowned_duties")
+                                                       if p in self.definition["jurisdictions"][j]]}
             writes.append(Write(fields["id"], "party", fields))
         for pid, p in self.definition["purposes"].items():
             fields = {"schema_version": V, "id": native_id(pid, "purpose"), "principal": native_id(p["principal"], "party"),
@@ -307,7 +378,13 @@ class RefundWorld:
         for rid, fields in records.items():
             kind = fields["kind"]
             if kind == "resolution":
-                # Stage 6 owns seeded duplicate/release-resolution lifecycle.
+                q = fields["question"]
+                content = {"question_id": q, "jurisdiction": self.definition["reserved_questions"][q]["resolver"],
+                           "answer": {"about": fields["about"], "decision": fields["answer"], "surviving": fields.get("surviving")}, "basis": []}
+                envelope = self.auth.issue(self.sessions[fields["by"]], "gateway", 0, "resolution", content,
+                                           message_id=native_id(rid, "resolution"))
+                value = dict(content, schema_version=V, id=native_id(rid, kind), envelope=envelope)
+                writes.append(Write(native_id(rid, kind), kind, value))
                 continue
             value = {k: v for k, v in fields.items() if k not in ("kind", "evidential")}
             writes.append(Write(native_id(rid, kind), kind, value))
