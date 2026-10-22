@@ -1,111 +1,60 @@
-1. [DESCRIPTIVE] PR #19 merged at `59e48fcf` after all CI passed and Claude's three deadline mutations were caught.
-2. [DESCRIPTIVE] Stage 7 reuses the frozen W0 world and T01–T10 keys unchanged: five paired development families.
-3. [DESCRIPTIVE] Four deterministic controllers run through the common runner and state audits; no model calls occur.
-4. [LIMITATION] Keyed labels require matching context; changed states and extra requests remain explicitly unassessed.
-5. [LIMITATION] This PR awaits Claude review; properties, full adversarial acceptance, comparators and MCP/replay remain later stages.
+[DESCRIPTIVE] Stage 7 is updated onto merged Q11/Q12 main `b5126451`; its four controllers and answer keys are unchanged.
+[DESCRIPTIVE] All five paired development families and four controllers still produce 40 episodes and 3,316 checks, with zero discrepancies/incomplete observations.
+[DESCRIPTIVE] The updated focused suite passes 197 tests; all eight driver/scoring controls remain.
+[LIMITATION] 195 semantic label actions remain explicitly unassessed; no H3 rates or complete semantic coverage are claimed.
+[LIMITATION] This PR remains unmerged pending Claude review and green CI; later stages stay separate PRs.
 
-## What changed
+# Refund development driver for Claude review
 
-[DESCRIPTIVE] `worlds/refunds/catalog.py` points to the independently supplied
-source bundle, verifies its existing provenance and exposes the five paired
-families. It does not copy or amend an expected outcome. The four controllers in
-`agents/refunds/` are a key follower, immediate compliance, broad withholding and
-a finite adversarial program. Only the key follower receives expectations.
-External events remain simulator-owned and unchanged across controllers.
+[DESCRIPTIVE] The original stage 7 report and evidence are retained in
+`TAA_GATEWAY_STAGE7_PRE_Q11_Q12_v031.md` and the original
+`evidence/gateway-stage7/validation.json`. New post-clarification evidence is
+`evidence/gateway-stage7/post-q11-q12.json`. No historical output is erased.
 
-[DESCRIPTIVE] `correct` runs Claude's diagnostic program, including deliberate
-wrongful preflight proposals and stale/rejected attempts. Those attempts remain
-recorded and labeled; the controller name does not establish moral competence.
-Other controllers produce separate additional input programs, not replacement
-acceptance fixtures. The full frozen and permanent regression suites remain
-mandatory and unchanged in CI.
+[DESCRIPTIVE] The catalog reads Claude's frozen W0 and T01–T10 keys unchanged,
+with five paired families. The correct controller follows the diagnostic key;
+it has not learned competence and intentionally submits some wrongful probes.
+Compliant, cautious and adversarial controllers receive inputs without expected
+outcomes. External events stay simulator-owned. All episodes are development
+material, not held-out or training exports.
 
-[DESCRIPTIVE] The common runner gains one optional **input**:
-`token_from: last_proposal`. It resolves from the latest actual proposal response
-before execution and before audits. A no-token response clears it; unknown or
-mixed references fail. Existing fixture behavior is unchanged. The independent
-observer still computes the full state delta and checks actual effects,
-consumption, receipts and every retained record version. No returned description
-supplies world truth.
+[DESCRIPTIVE] The common runner's optional `token_from: last_proposal` input
+resolves the latest observed token before execution/audits and clears after a
+no-token response. It never reuses an old token by default. Both backends and
+the merged Q11/Q12 `live_offers` projection retain their behavior. The runner
+computes its own full delta and compares returned descriptions, never using
+those descriptions as world truth. No decision, authorization, discharge or
+transaction code or frozen expectation changes in this stage.
 
-## Correction records and labels
+[DESCRIPTIVE] Correction records keep attempted act/scripted reason, gateway
+response/keyed correctness, actual effects/receipts, completion and duty board,
+feedback source and label source. Keyed labels apply only to the same act/step
+and matching actual context. Other changed contexts/actions remain unassessed.
+The report distinguishes wrongful attempts/effects, lawful opportunities and
+withholding, erroneous refusals, duties and reporting. An unresolved duty is
+only a candidate omission, not automatic over-refusal.
 
-[DESCRIPTIVE] Every episode retains its input program, state-audit results,
-native checkpoint, hash-chained JSONL and separately retained simulator HMAC
-checkpoint. Correction records separate attempted act/scripted reason, gateway
-decision/rules and keyed correctness, actual effects/receipts, completion and
-duty board, feedback source, and label source. The split is `development`; no
-training exporter or held-out ingestion path exists.
+[DESCRIPTIVE] Final post-main run: 40 episodes, **3,316 checks** = 117 unchanged
+source assertions + 3,199 independent state audits; **zero discrepancies and
+zero incomplete observations**. Separately: **195 unassessed semantic actions**
+and ten keyed lawful withholdings by the cautious controller. Different keyed
+denominators after divergent trajectories cannot establish comparative H3 rates.
+All 197 focused tests pass, including the eight driver/scoring/integrity controls.
+Each episode retains actual native state, its input program and observations,
+authenticated JSONL and a separately retained trusted simulator checkpoint.
 
-[DESCRIPTIVE] Expected dispositions come only from Claude's source key. A key
-run must pass before it contributes context fingerprints. Another controller
-gets that key label only for the same act/step and matching native
-records/versions, duties, reports, notices, allocations and cases. The baseline
-contributes context equality, never a new expected outcome. Token actor,
-revision, expiry and single-use observations are labeled directly from state.
-Unassessed semantic labels are counted separately from runner-incomplete
-observations. They are not semantic passes. The report does not claim full
-semantic coverage of changed trajectories.
+[DESCRIPTIVE] Accepted main's permanent suites include production frozen
+54 scenarios / 534 source + 1,751 audits and 18 regressions / 169 source + 524
+audits + 3 guards; reference 534 + 1,704 and 169 + 504 + 3. Those main checks
+have zero discrepancies/incomplete and all hidden-state controls detected.
+CI repeats them with this merged runner, including both historical before/fix
+guards. Q13's further regression additions are a separate fix PR, not silently
+folded into this stage.
 
-[DESCRIPTIVE] Metrics distinguish keyed wrongful proposals/executions, lawful
-opportunities/executions, explicit lawful withholding/incorrect gateway refusal,
-open cases, unresolved duties and delivered/acknowledged reports. A remaining
-duty and a keyed lawful opportunity in its case produce only a candidate omission
-flag. There is no automatic over-refusal label from unresolved work. Keyed
-denominators change after trajectories diverge; they are not comparable H3 rates.
-The future comparator stage needs a representation-neutral adapter rather than
-reusing this native-context matcher as its scoring standard.
-
-## Verification
-
-[DESCRIPTIVE] Final local validation: **196 focused tests pass**, including
-8 new driver/scoring/integrity controls. All five pairs and four controllers
-produce **40 episodes, 3,316 checks (117 unchanged source-key assertions and
-3,199 state audits), zero discrepancies and zero incomplete observations**.
-The report separately records **195 unassessed semantic labels** and 10 explicit
-keyed lawful withholdings by the cautious controller. They are not semantic
-passes, false gateway refusals or H3 rates.
-
-| Permanent suite | Scenarios | Checks | Discrepancies | Incomplete |
-|---|---:|---:|---:|---:|
-| Production frozen | 54 | 2,285 | 0 | 0 |
-| Production regressions | 8 | 272 | 0 | 0 |
-| Reference frozen | 54 | 2,238 | 0 | 0 |
-| Reference regressions | 8 | 265 | 0 | 0 |
-
-[DESCRIPTIVE] All three hidden-state controls are detected. Production includes
-534/57 source checks and 1,751/212 state audits plus 3 regression guards.
-Reference includes 534/57 source checks and 1,704/205 audits plus 3 guards.
-No source outcome, reference policy or production core changed. Final source
-hashes and retained artifact hashes are in `evidence/gateway-stage7/validation.json`;
-CI retains full episode JSON/text and repeats acceptance on the PR head.
-
-[DESCRIPTIVE] New controls test key immutability and controller isolation;
-observed-token resolution against **both** implementations and clearing after
-no-token responses; false-refusal and hidden-effect scoring controls; changed
-contexts losing their key labels; preservation/detection of actual hidden-state
-corruption; authenticated log export and all six correction dimensions. The
-source-key outputs and separately implemented reference policy are unchanged.
-
-[LIMITATION] The scripted adversary covers wrong-actor use, direct execution,
-replay, evidence-write rejection, wrong-account payment, unsupported settlement
-notice, closure and an unaccepted offer. This is a finite script. All previously
-reviewed attacks remain in permanent acceptance, but the comprehensive
-adversarial/property/mutant stage is still required. An audit-clean script alone
-does not establish correct decisions on every unkeyed action.
-
-[LIMITATION] No model calls, Modal operations, spending, evidence deletions,
-Notion edits or public releases. No scientific sample, empirical H3 conclusion
-or launch approval is produced. Merge requires Claude review and green CI.
-
-
-## Newly observed case outside this stage's key programs
-
-[DESCRIPTIVE / OPEN QUESTION] During preparation of the later property stage,
-Sol reproduced a new core/reference difference: after A offers D_resolve(CL1)
-to F, production permits F's `accept_duty` proposal using transfer-offer-derived
-ACCEPT authority, while the reference refuses it for lack of a covering grant.
-The frozen fixtures exercise external acceptance and do not settle this tool
-path. W0 AU1 names grants and IR1; IR1's stated scope is messages only. Claude's
-clarification is requested. No implementation or expected outcome is changed
-here. These finite pass counts do not establish agreement on arbitrary new paths.
+[LIMITATION] The finite adversarial controller is not the complete adversarial
+acceptance stage. Properties, attack coverage, conventional comparators and
+MCP/replay remain separately reviewed work. The comparator scorer must use a
+representation-neutral protocol rather than native context hashes as universal
+truth. No model calls, Modal operations, spending, evidence deletion, Notion
+edits or public releases occurred. This is bounded engineering evidence;
+Claude review and all green CI are required before merge.
