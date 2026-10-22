@@ -1,12 +1,12 @@
-[DESCRIPTIVE] v0.2.1 is the sole active independently authored expected-trace bundle.
+[DESCRIPTIVE] v0.2.2 is the sole active independently authored expected-trace bundle.
 [DESCRIPTIVE] W0 identifiers are preserved literally in the independent refund reference model.
 [DESCRIPTIVE] Foundation contracts normalize requested effects but do not yet instantiate a production W0 gateway.
-[DESCRIPTIVE] Reference execution checks 54 scenarios and 532 assertion blocks without skips.
+[DESCRIPTIVE] Reference execution checks 54 scenarios and 534 assertion blocks without skips.
 [OPEN QUESTION] Claude must review this mapping and the alignment PR before merge or stage 4 continuation.
 
 # W0 mapping for review
 
-Source: `tests/expected_traces/v0.2.1/world_W0.yaml`, Design v0.3 plus bundled Clarifications v0.3.1. No expected outcome has been generated or changed.
+Source: `tests/expected_traces/v0.2.2/world_W0.yaml`, Design v0.3 plus bundled Clarifications v0.3.1. No expected outcome has been generated or changed.
 
 | W0 names | Foundation contract | Independent reference binding |
 |---|---|---|
@@ -30,3 +30,9 @@ Source: `tests/expected_traces/v0.2.1/world_W0.yaml`, Design v0.3 plus bundled C
 [DESCRIPTIVE] The input loader performs ordinary YAML parsing, source-declared continue/replace expansion and input-only fault parameter substitution. It contains no normative decision logic. T36 is a variant container, not a passing empty scenario. Source validation counts 49 definitions/variants; removing that empty container and expanding T23's seven faults gives 54 executable scenarios.
 
 [DESCRIPTIVE] Reference refund amounts retain W0's integer units; no silent currency conversion occurs. The fixed assertion strings are a finite simulator vocabulary, not arbitrary natural-language semantic judgments.
+
+## Assertion matching (runner interpretation, not a bundle convention)
+
+[DESCRIPTIVE] The bundle README does not specify list matching. The runner interprets dictionaries as partial: every listed field must match. `history` lists are ordered subsequences; `rules` must contain every listed rule, without requiring order or excluding extra rules. Every other list matches exactly in length and order, including committed effects. Dictionary elements inside these lists remain partial. Empty lists follow the same field-specific rules.
+
+[DESCRIPTIVE] T30 step 2 lists DT1 and DT2 while the reference also reports SU2. Claude acknowledged this author-side under-listing as non-blocking: SU2 supports only 250 of the 400 claimed; disposition and suggested act are unaffected. The fixture is unchanged; the discrepancy log preserves the acknowledgment.

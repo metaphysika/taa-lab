@@ -14,23 +14,26 @@ class IncompleteCoverage(Exception):
     pass
 
 
-def contains(actual, expected):
+def contains(actual, expected, field=None):
+    """Partial dictionaries; history subsequences; rule inclusion; exact other lists."""
     if isinstance(expected, dict):
-        return isinstance(actual, dict) and all(k in actual and contains(actual[k], v) for k, v in expected.items())
+        return isinstance(actual, dict) and all(
+            k in actual and contains(actual[k], v, field=k) for k, v in expected.items())
     if isinstance(expected, list):
         if not isinstance(actual, list):
             return False
-        if not expected:
-            return not actual
-        # Lists of partial records/history entries are ordered subsequences.
-        pos = 0
-        for e in expected:
-            while pos < len(actual) and not contains(actual[pos], e):
+        if field == "rules":
+            return all(any(contains(a, e) for a in actual) for e in expected)
+        if field == "history":
+            pos = 0
+            for e in expected:
+                while pos < len(actual) and not contains(actual[pos], e):
+                    pos += 1
+                if pos == len(actual):
+                    return False
                 pos += 1
-            if pos == len(actual):
-                return False
-            pos += 1
-        return True
+            return True
+        return len(actual) == len(expected) and all(contains(a, e) for a, e in zip(actual, expected))
     if expected == "none":
         return actual is None or actual == "none"
     return type(actual) is type(expected) and actual == expected
@@ -187,7 +190,7 @@ def check_expectations(case, location, expected, state, result, ctx, checks, fin
     for key, value in expected.items():
         try:
             observed = observe(key, value, state, result, ctx, final)
-            status = "pass" if contains(observed, value) else "discrepancy"
+            status = "pass" if contains(observed, value, field=key) else "discrepancy"
         except IncompleteCoverage as error:
             observed, status = str(error), "incomplete"
         checks.append({"trace": case["id"], "assertion": location + "." + key,

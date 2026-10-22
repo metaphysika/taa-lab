@@ -9,13 +9,13 @@ from zipfile import ZipFile
 import yaml
 
 ROOT = Path(__file__).parents[1] / "expected_traces"
-BUNDLE = ROOT / "v0.2.1"
-ZIP_HASH = "48ee6504ab3a0e278c8bd1725f4586463057c2671ce3ccdbeb32acf3db77856e"
+BUNDLE = ROOT / "v0.2.2"
+ZIP_HASH = "9a4b20191c54aa4ff7d1ae4be6517f44aa1ddb9b67aaa00acdafabf34c5751b8"
 
 
 def verify_bundle():
-    pin = json.loads((ROOT / "PROVENANCE_v021.json").read_text())
-    archive = BUNDLE / "taa_expected_traces_v0.2.1.zip"
+    pin = json.loads((ROOT / "PROVENANCE_v022.json").read_text())
+    archive = BUNDLE / "taa_expected_traces_v0.2.2.zip"
     if hashlib.sha256(archive.read_bytes()).hexdigest() != ZIP_HASH or pin["zip_sha256"] != ZIP_HASH:
         raise ValueError("independently supplied zip changed")
     manifest = BUNDLE / "MANIFEST.sha256"

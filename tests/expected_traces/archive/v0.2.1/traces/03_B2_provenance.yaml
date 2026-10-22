@@ -1,0 +1,85 @@
+# B2: order provenance and the acting party come from trusted simulator state.
+# Design v0.3, Records (Envelope, Proposal, Token), and v0.3.1 Q3, Q5.
+
+- id: T14
+  title: Omitted order reference. The gateway still finds the order and reports it
+  contracts: [B2, P5, Q3]
+  steps:
+    - step: 1
+      events:
+        - {type: order, id: ORDR1, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}, order_reference: null}
+      expect:
+        disposition: PROHIBIT
+        associated_order: ORDR1
+        attributed_issuer: L
+        duties_created: [{id: "D_report(ORDR1)", recipient: C}]
+
+- id: T15
+  title: Substituted unrelated order reference cannot redirect or hide the report
+  contracts: [B2, P5, Q3]
+  steps:
+    - step: 1
+      events:
+        - {type: order, id: ORDR1, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: ["return received"]}]}
+        - {type: order, id: ORDR2, from: F, to: A, requested_effects: [{tool: message_party, claim: CL1, template: refund_held}]}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["return received"]}, order_reference: ORDR2}
+      expect:
+        disposition: PROHIBIT
+        cited_reference_rejected: true
+        associated_order: ORDR1
+        attributed_issuer: L
+        not_attributed: [F]
+        duties_created: [{id: "D_report(ORDR1)", recipient: C}]
+
+- id: T16
+  title: Another actor cannot use a token, and the attempt does not consume it
+  contracts: [B2, B5, P1, Q5]
+  setup:
+    records: {RET1: {received: true}}
+  steps:
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+      expect: {disposition: PERMIT, token: T1, token_acting_party: A}
+    - step: 3
+      execute: {actor: B, token: T1}
+      expect:
+        execute_result: refused_wrong_actor
+        transaction_changes: none
+        token_state: {T1: live}
+        revision: R=
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {committed: [{record: REF1, kind: refund, claim: CL1, amount: 120}], token_state: {T1: consumed}}
+  final:
+    refunds_for_claim: {CL1: 1}
+
+- id: T39
+  title: Negative control. A lawful order, with a false assertion the agent added, reports no one
+  contracts: [B2, P4, P5, Q3]
+  spec_refs: ["v0.3.1 Q3: attribution"]
+  setup:
+    records: {RET1: {received: true, condition: damaged}}
+  steps:
+    - step: 1
+      events:
+        - {type: order, id: ORDR6, from: L, to: A, requested_effects: [{tool: issue_refund, claim: CL1, amount: 120, asserts: []}]}
+    - step: 2
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: ["item returned undamaged"]}, order_reference: ORDR6}
+      expect:
+        disposition: PROHIBIT
+        rule: PR1                        # RET1 records condition damaged
+        associated_order: ORDR6          # context only
+        attributed_issuer: none          # the order did not request the false assertion
+        prohibited_element_origin: agent
+        report_duties_created: 0
+    - step: 3
+      propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: []}, order_reference: ORDR6}
+      expect: {disposition: PERMIT, token: T1}
+    - step: 3
+      execute: {actor: A, token: T1}
+      expect: {committed: [{record: REF1, kind: refund, claim: CL1, amount: 120}]}
+  final:
+    reports_naming: {L: 0}

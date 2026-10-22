@@ -8,7 +8,7 @@ import sys
 import unittest
 
 from tests.trace_support.bundle import BUNDLE, ROOT, cases, verify_bundle
-from tests.trace_support.reference_runner import all_results, run
+from tests.trace_support.reference_runner import all_results, contains, run
 
 
 class IndependentBundleTests(unittest.TestCase):
@@ -16,14 +16,15 @@ class IndependentBundleTests(unittest.TestCase):
         verify_bundle()
 
     def test_superseded_bundle_is_preserved_but_not_executed(self):
-        path = ROOT / "archive/v0.1"
-        pin = json.loads((ROOT / "PROVENANCE_v01.json").read_text())
-        self.assertEqual(hashlib.sha256((path / "taa_expected_traces_v0.1.zip").read_bytes()).hexdigest(), pin["zip_sha256"])
-        for line in (path / "MANIFEST.sha256").read_text().splitlines():
-            sha, name = line.split("  ", 1)
-            self.assertEqual(hashlib.sha256((path / name).read_bytes()).hexdigest(), sha)
-        self.assertTrue((path / "SUPERSEDED.md").is_file())
-        self.assertTrue(all(c["source"].startswith("v0.2.1/") for c in cases()))
+        for version, provenance in (("v0.1", "PROVENANCE_v01.json"), ("v0.2.1", "PROVENANCE_v021.json")):
+            path = ROOT / "archive" / version
+            pin = json.loads((ROOT / provenance).read_text())
+            self.assertEqual(hashlib.sha256((path / f"taa_expected_traces_{version}.zip").read_bytes()).hexdigest(), pin["zip_sha256"])
+            for line in (path / "MANIFEST.sha256").read_text().splitlines():
+                sha, name = line.split("  ", 1)
+                self.assertEqual(hashlib.sha256((path / name).read_bytes()).hexdigest(), sha)
+            self.assertTrue((path / "SUPERSEDED.md").is_file())
+        self.assertTrue(all(c["source"].startswith("v0.2.2/") for c in cases()))
 
     def test_authors_structural_validator_reports_zero_errors(self):
         r = subprocess.run([sys.executable, "-I", str(BUNDLE / "tools/validate_traces.py"), str(BUNDLE)],
@@ -41,7 +42,7 @@ class IndependentBundleTests(unittest.TestCase):
 
     def test_all_independent_reference_assertions_pass_without_skips(self):
         results = all_results()
-        self.assertGreaterEqual(len(results), 532)
+        self.assertEqual(len(results), 534)
         self.assertEqual([r for r in results if r["status"] != "pass"], [])
         self.assertEqual({r["trace"] for r in results}, {c["id"] for c in cases()})
 
@@ -51,6 +52,31 @@ class IndependentBundleTests(unittest.TestCase):
         failed = [r for r in run(c) if r["status"] != "pass"]
         self.assertEqual(len(failed), 1)
         self.assertEqual((failed[0]["expectation"], failed[0]["observed"]), ("L", "none"))
+        verify_bundle()
+
+    def test_extra_committed_effect_is_a_discrepancy(self):
+        from unittest.mock import patch
+        from tests.trace_support import reference_runner
+        execute = reference_runner.model.execute
+
+        def extra_effect(*args, **kwargs):
+            state, result = execute(*args, **kwargs)
+            if result.get("execute_result") == "committed":
+                result["committed"].append({"record": "UNREQUESTED", "kind": "refund", "amount": 1})
+            return state, result
+
+        c = next(c for c in cases() if c["id"] == "T39")
+        with patch.object(reference_runner.model, "execute", side_effect=extra_effect):
+            failed = [r for r in run(c) if r["status"] != "pass"]
+        self.assertEqual(len(failed), 1)
+        self.assertTrue(failed[0]["assertion"].endswith(".committed"))
+        self.assertEqual(failed[0]["status"], "discrepancy")
+        self.assertEqual(len(failed[0]["observed"]), len(failed[0]["expectation"]) + 1)
+        # Field exceptions apply recursively; every other list is exact.
+        self.assertTrue(contains({"history": ["opened", "other", "closed"]}, {"history": ["opened", "closed"]}))
+        self.assertTrue(contains(["SU2", "DT2", "DT1"], ["DT1", "DT2"], field="rules"))
+        self.assertFalse(contains(["DT1"], ["DT1", "DT2"], field="rules"))
+        self.assertFalse(contains([2, 1], [1, 2]))
         verify_bundle()
 
     def test_new_assertion_vocabulary_is_incomplete_never_a_silent_pass(self):
