@@ -75,7 +75,7 @@ sys.exit(0 if result.wasSuccessful() else 1)
               "input_hashes": pins,
               "all_inputs_unchanged": all(hashlib.sha256((ROOT / name).read_bytes()).hexdigest() == sha for name, sha in pins.items()),
               "source_unchanged": original_hash == final_hash, "baseline": baseline,
-              "mutations": results, "full_comparator_acceptance": "INCOMPLETE: no W0 policy/backend yet"}
+              "mutations": results, "full_comparator_acceptance": "NOT ASSESSED by this kernel-only gate; W0 requires its separate common-runner acceptance"}
     report["gate_pass"] = (baseline["exit"] == 0 and baseline["tests"] == 21 and
                            baseline["skips"] == 0 and report["source_unchanged"] and report["all_inputs_unchanged"] and all(r["caught"] for r in results))
     (destination / "report.json").write_text(json.dumps(report, indent=2) + "\n")

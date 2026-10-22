@@ -22,6 +22,10 @@ jobs:
         run: python -I scripts/check_gateway_duty_boundaries.py --report "$RUNNER_TEMP/gateway-duty-boundary-mutations.json"
       - name: Independent conventional SQL kernel components and real rollback sensitivity
         run: python -I scripts/check_conventional_kernel.py --output "$RUNNER_TEMP/conventional-kernel"
+      - name: Independently implemented conventional W0 policy, ledger and host
+        run: python -m unittest tests.test_conventional_policy tests.test_conventional_ledger tests.test_conventional_world -v
+      - name: Conventional W0 runs the same frozen, regression and adversarial sources with SQL state audits
+        run: python -I scripts/check_conventional_w0.py --report "$RUNNER_TEMP/conventional-w0.json"
       - name: Run independent expectations against reference; fail on disagreement or incomplete coverage
         run: python -m tests.trace_support.reference_runner --report "$RUNNER_TEMP/gateway-reference-v031.json"
       - name: Run Astra spot-check regressions and hidden-state detection guards
@@ -77,6 +81,7 @@ jobs:
         with:
           name: gateway-reference-v031
           path: |
+            ${{ runner.temp }}/conventional-w0.json
             ${{ runner.temp }}/conventional-kernel/report.json
             ${{ runner.temp }}/conventional-kernel/*.stdout
             ${{ runner.temp }}/conventional-kernel/*.stderr

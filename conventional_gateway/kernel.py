@@ -29,7 +29,7 @@ FAULTS = ("after_validate", "after_stage", "during_effect_commit",
           "during_token_consumption", "during_duty_update",
           "during_receipt_write", "during_revision_advance")
 RELATIONS = ("records", "handles", "duties", "notices", "allocations",
-             "cases", "grants", "orders", "reports", "receipts", "decisions")
+             "cases", "grants", "orders", "reports", "receipts", "decisions", "duty_actions", "configuration")
 
 
 @dataclass(frozen=True)
@@ -252,7 +252,7 @@ class Store:
     def checkpoint(self):
         if self._active:
             raise RuntimeError("cannot checkpoint an uncommitted transaction")
-        data = {"schema": "conventional-sql/0.1", "step": self.step, "epoch": self.epoch,
+        data = {"schema": "conventional-sql/0.2", "step": self.step, "epoch": self.epoch,
                 "relations": {table: list(self._db.execute(f"SELECT id,version,payload FROM {table} ORDER BY id,version")) for table in RELATIONS},
                 "inbox": list(self._db.execute("SELECT id,payload FROM inbox ORDER BY id")),
                 "staged": list(self._db.execute("SELECT id,payload FROM staged ORDER BY id")),
@@ -266,7 +266,7 @@ class Store:
         expected = hmac.new(self._key, encode(data).encode(), "sha256").hexdigest()
         if not isinstance(signature, str) or not hmac.compare_digest(signature, expected):
             raise PermissionError("checkpoint authentication failed")
-        if data["schema"] != "conventional-sql/0.1" or set(data["relations"]) != set(RELATIONS):
+        if data["schema"] != "conventional-sql/0.2" or set(data["relations"]) != set(RELATIONS):
             raise ValueError("checkpoint schema mismatch")
         previous = "0" * 64
         with self.transaction():
@@ -288,11 +288,13 @@ class Kernel:
 
     authorize(snapshot, actor, tool, args) returns True only for permission.
     stage(snapshot, actor, tool, args) returns relational writes. Both operate on
-    detached snapshots. The independent W0 layer has not yet been supplied.
+    detached snapshots. The trusted host supplies the independent W0 policy and
+    tool services; this generic kernel contains no W0 decision predicates.
     """
-    def __init__(self, store, authentication, authorize, stage, reconcile=None):
+    def __init__(self, store, authentication, authorize, stage, reconcile=None, verify_plan=None):
         self.store, self.auth = store, authentication
         self.authorize, self.stage, self.reconcile = authorize, stage, reconcile
+        self.verify_plan = verify_plan
 
     def issue(self, session, tool, args, *, lifetime=10):
         actor = self.auth.identity(session, "act")
@@ -321,6 +323,8 @@ class Kernel:
             if target in targets:
                 raise ValueError("duplicate staged effect target")
             targets.add(target)
+        if self.verify_plan is not None and self.verify_plan(copy(view), actor, tool, copy(args), copy(rows)) is not True:
+            raise Refused("effect_plan_invalid")
         return rows
 
     def execute(self, session, hid, *, tool=None, args=None, fault=None):
