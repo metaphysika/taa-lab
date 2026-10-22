@@ -102,7 +102,8 @@ class RefundReferenceControls(unittest.TestCase):
         self.assertTrue(result["resolution_rejected"])
         self.assertEqual(revised["revision"], s["revision"])
         _, decision = reference.propose(s, "A", "message_party", {"to": "K1", "template": "refund_denied", "claim": "CL1", "amount": 120, "basis": "DEL2"})
-        self.assertEqual(decision["disposition"], "REFUSE")
+        # Q13: existing evidence for another order contradicts the claimed binding.
+        self.assertEqual(decision["disposition"], "PROHIBIT")
 
     def test_correction_cannot_change_carrier_order_identity(self):
         s = reference.start(world())

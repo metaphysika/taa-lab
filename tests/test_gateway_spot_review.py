@@ -13,7 +13,7 @@ from tests.trace_support.state_observations import Observer, state_delta
 class SpotReviewRegressions(unittest.TestCase):
     def test_regression_scenarios_and_negative_controls(self):
         report = run_suite(runner)
-        self.assertEqual(report['scenarios'], 18)
+        self.assertEqual(report['scenarios'], 32)
         self.assertEqual([r for r in report['assertions'] if r['status'] != 'pass'], [])
         self.assertEqual(len(report['negative_controls']), 3)
         for result in report['negative_controls']:

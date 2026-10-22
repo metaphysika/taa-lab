@@ -15,7 +15,7 @@ ROOT = Path(__file__).parents[1] / 'regression_scenarios'
 def cases(*, include_clarifications=True):
     paths = [ROOT / 'astra_spot_check.yaml']
     if include_clarifications:
-        paths.append(ROOT / 'q11_q12.yaml')
+        paths.extend([ROOT / 'q11_q12.yaml', ROOT / 'q13.yaml'])
     return [{"id": t["id"], "trace": t, "parameters": {}, "source": str(path)}
             for path in paths for t in yaml.safe_load(path.read_text())]
 
