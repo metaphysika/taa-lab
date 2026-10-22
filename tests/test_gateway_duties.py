@@ -226,6 +226,73 @@ class DutyEngineTests(unittest.TestCase):
         self.assertEqual(self.state["native"], before)
         self.assertEqual(self.native("D_resolve(CL1)")["owner"], "party:A")
 
+    def offer_context_at(self, step):
+        """Isolate the component: do not let phase-1 expiry clear the offer first."""
+        self.reset()
+        self.step(2)
+        self.execute(self.proposal("offer_duty", {"duty": "D_resolve(CL1)", "to": "F"}))
+        c = backend._context(self.state)
+        self.assertEqual(c.engine.ledger(c.store.snapshot())["D_resolve(CL1)"]["offer_deadline_step"], 7)
+        c.store.gateway_mutation(c.gateway, "duty_engine", lambda state, events: state.update(step=step))
+        return c
+
+    def test_apply_action_acceptance_excludes_exact_offer_deadline(self):
+        for step in (6, 7):
+            with self.subTest(step=step):
+                c = self.offer_context_at(step)
+                before = c.store.snapshot()
+                def accept(state, events):
+                    c.engine.apply_action(state, events, {"operation": "accept_duty", "duty": "D_resolve(CL1)"}, "party:F")
+                if step == 7:
+                    with self.assertRaisesRegex(ValueError, "no live offer"):
+                        c.store.gateway_mutation(c.gateway, "duty_engine", accept)
+                    self.assertEqual(c.store.snapshot(), before)
+                else:
+                    c.store.gateway_mutation(c.gateway, "duty_engine", accept)
+                    self.assertEqual(c.engine.ledger(c.store.snapshot())["D_resolve(CL1)"]["owner"], "party:F")
+
+    def test_receive_acceptance_excludes_exact_offer_deadline(self):
+        for step in (6, 7):
+            with self.subTest(step=step):
+                c = self.offer_context_at(step)
+                before = c.store.snapshot()
+                envelope = c.auth.issue(c.sessions["F"], "gateway_reporting", step, "acceptance",
+                                        {"duties": ["D_resolve(CL1)"]})
+                result = c.engine.receive(envelope)
+                if step == 7:
+                    self.assertEqual(result.get("reason"), "no live transfer offer to this party")
+                    self.assertEqual(c.store.snapshot(), before)
+                    self.assertEqual(c.log.events()[-1]["type"], "rejected_ledger_message")
+                else:
+                    self.assertEqual(result, {})
+                    self.assertEqual(c.engine.ledger(c.store.snapshot())["D_resolve(CL1)"]["owner"], "party:F")
+                    self.assertTrue(c.engine.rows(c.store.snapshot(), "acceptance"))
+
+    def test_reopening_marks_overdue_at_or_after_due_step_in_same_call(self):
+        from taa_gateway.records import Write
+        for offset in (-1, 0, 1):
+            with self.subTest(offset=offset):
+                self.pay_and_close()
+                c = backend._context(self.state)
+                did = "D_refund(CL1,120)"
+                due = c.engine.ledger(c.store.snapshot())[did]["deadline_step"]
+                def reopen(state, events):
+                    # Exercise reopening itself, without the separate ledger-clock path.
+                    state["step"] = due + offset
+                    fields = deepcopy(state["records"]["refund:REF1"][-1]["fields"])
+                    fields["settled"] = False
+                    c.store.append_write(state, events, c.sources["payment_processor"], "external_record",
+                                         Write("refund:REF1", "refund", fields))
+                    duty = c.engine.ledger(state)[did]
+                    self.assertFalse(duty["overdue"])
+                    c.engine.resolve_business(state, events, duty)
+                c.store.gateway_mutation(c.gateway, "duty_engine", reopen)
+                duty = c.engine.ledger(c.store.snapshot())[did]
+                self.assertEqual(duty["resolution"], "unresolved")
+                self.assertEqual(duty["overdue"], offset >= 0)
+                self.assertEqual(duty["history"][-1], {"type": "reopened", "at": due + offset})
+                self.assertFalse(c.store.snapshot()["cases"]["CL1"])
+
     def test_hold_notice_keeps_work_open_and_does_not_accept_a_forged_recipient(self):
         decision = self.proposal("hold_refund", {"claim": "CL1", "missing": "return receipt"})
         self.assertEqual(decision["disposition"], "PERMIT")
