@@ -34,3 +34,17 @@
 [DESCRIPTIVE] The [mapping](TAA_EXPECTED_TRACE_MAPPING_v022.md) records the tightened matcher. Chris relayed Claude's approval of b38c4b78, extended conditionally to the four specified updates only; any reference-model change or different scenario/assertion count must return to Claude before merge.
 
 [DESCRIPTIVE] Claude approved head b38c4b78 conditional on the four changes supplied by Chris: frozen v0.2.2 adoption/archive, stricter documented list matching with extra-effect negative control, author-acknowledged T30 under-listing, and mapping/count updates. No reference-model code changed. Both the prior and tightened matchers reproduce 54 executable scenarios and 534 assertion blocks with zero discrepancies or incomplete assertions. Merge is authorized only after green CI and those exact conditions; otherwise the delta returns to Claude.
+
+## Subsequent independent spot check (supersedes the assurance claim above)
+
+[DESCRIPTIVE] Astra reproduced the 54 scenarios and 534 passing source assertions but found four blocking reference/runner defects, all confirmed by Claude: returned-description observations, repeat-driven escalation delay, duplicate notice coverage, and per-entry phase reconciliation. The original pass count overstated assurance. Their fixes, before/after regressions, and additional state-audit counts are documented in [TAA_GATEWAY_SPOT_REVIEW_FIX_v0.md](TAA_GATEWAY_SPOT_REVIEW_FIX_v0.md). The frozen v0.2.2 fixtures remain unchanged.
+
+[DESCRIPTIVE] T23's seven fault labels are an **ideal abstraction**: the reference aborts the copied transition before publishing any partial state. Production acceptance must inject each fault at its actual validation, staging, effect commit, token consumption, duty update, receipt write and revision-advance boundary, then demonstrate rollback of partial changes. Reference passes cannot substitute for those production fault tests.
+
+## Open design questions for Claude's v0.3.2 revision
+
+[INTERPRETATION / OPEN QUESTION] **DU1 coverage and explicit portions.** The reference counts each cited settlement once and treats denial bases as covering one shared unsupported remainder. This is a conservative W0 interpretation. Production needs `refund_issued` and `refund_denied` notices bound to explicit amounts or portions; the precise binding and overlap rules remain for Claude's v0.3.2 revision. This note makes no code or expected-outcome change.
+
+[INTERPRETATION / OPEN QUESTION] **Recipient eligibility on report repeats.** Repeats keep the current recipient without rechecking eligibility. If that recipient has since become implicated in the same wrongdoing, redirection is unspecified. No W0 trace exercises this case. Claude's v0.3.2 revision must specify whether and when to redirect, including the effect on existing deadlines.
+
+[DESCRIPTIVE] Chris relayed Claude's approval of PR #16 at `89491921`: independently reproduced 54 frozen scenarios, 2,238 checks (534 source assertions and 1,704 state audits), zero discrepancies/incomplete; eight regression scenarios, 265 checks, zero discrepancies; pre-fix `9ddf84a4` fails nine regression checks including all three hidden-state controls, and the baseline guard exits successfully. The independent runner state-delta comparison remains mandatory: it computes its own delta and never trusts the model's `state_delta` description. The only subsequent change before merge is this requested documentation addition; all CI must pass.

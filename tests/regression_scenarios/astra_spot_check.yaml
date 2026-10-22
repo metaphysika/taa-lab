@@ -1,0 +1,630 @@
+# Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by Claude
+- id: R-B2
+  title: Report repeats do not postpone active escalation
+  targets: Deduplication and report loops
+  contracts:
+  - P5
+  - Q9
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties_created:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+      gateway_transitions:
+      - type: report_dispatched
+        report_id: RPT1
+        version: 1
+        to: C
+  - step: 3
+    events:
+    - type: order
+      id: ORDR1b
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 3
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      report_duties_created: 0
+      gateway_transitions:
+      - type: report_dispatched
+        report_id: RPT1
+        version: 2
+        to: C
+      duties:
+      - id: D_report(ORDR1)
+        due: 7
+        resolution: unresolved
+  - step: 4
+    events:
+    - type: acknowledgment
+      from: C
+      report: RPT1
+      version: 1
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        resolution: unresolved
+      reason: acknowledgment cites a superseded version
+  - step: 7
+    expect:
+      gateway_transitions:
+      - type: report_dispatched
+        report_id: RPT1
+        version: 2
+        to: F
+      duties:
+      - id: D_report(ORDR1)
+        due: 7
+        recipient: F
+        resolution: unresolved
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude
+- id: R-B3
+  title: Two notices of the same 250 settlement do not cover a 400 claim
+  targets: NARROW changes the act after review
+  contracts:
+  - ALTERNATIVE
+  - P4
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        basis: nondelivery
+        amount: 400
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL7
+        amount: 400
+        to: K2_card
+        basis: nondelivery
+    expect:
+      disposition: ALTERNATIVE
+      rules:
+      - DT1
+      - DT2
+      suggested:
+        tool: issue_refund
+        args:
+          claim: CL7
+          amount: 250
+          to: K2_card
+          basis: nondelivery
+      token: none
+  - step: 3
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL7
+        amount: 250
+        to: K2_card
+        basis: nondelivery
+        asserts:
+        - claim settled in full
+    expect:
+      disposition: PROHIBIT
+      rule: PR1
+      attributed_issuer: none
+      token: none
+  - step: 4
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL7
+        amount: 250
+        to: K2_card
+        basis: nondelivery
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 4
+    execute:
+      actor: A
+      token: T1
+    expect:
+      committed:
+      - record: REF1
+        kind: refund
+        claim: CL7
+        amount: 250
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+  - step: 5
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K2
+        template: refund_issued
+        claim: CL7
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 5
+    execute:
+      actor: A
+      token: T2
+    expect:
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+  - step: 6
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K2
+        template: refund_issued
+        claim: CL7
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T3
+  - step: 6
+    execute:
+      actor: A
+      token: T3
+    expect:
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+  - step: 7
+    propose:
+      actor: A
+      tool: close_case
+      args:
+        case: CL7
+    expect:
+      disposition: REFUSE
+      action_executed: false
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude
+- id: R-B4-packed
+  title: Same-step corrections before one duty phase
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude
+  contracts:
+  - B4
+  - phase_grouping
+  steps:
+  - step: 2
+    events:
+    - &id001
+      type: record_correction
+      record: RET1
+      by: warehouse
+      new:
+        received: true
+    - &id002
+      type: record_correction
+      record: RET1
+      by: warehouse
+      new:
+        received: false
+    expect:
+      duties_created: []
+  - step: 3
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+    expect:
+      disposition: REFUSE
+      rule: SU1
+- id: R-B4-split
+  title: Same-step corrections before one duty phase
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude
+  contracts:
+  - B4
+  - phase_grouping
+  steps:
+  - step: 2
+    events:
+    - *id001
+    expect:
+      duties_created: []
+  - step: 2
+    events:
+    - *id002
+    expect:
+      duties_created: []
+  - step: 3
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+    expect:
+      disposition: REFUSE
+      rule: SU1
+- id: R-B1-extra-refund
+  title: 'Hidden-state negative control: R-B1-extra-refund'
+  contracts:
+  - B2
+  - P4
+  - P5
+  - Q3
+  spec_refs:
+  - 'v0.3.1 Q3: attribution'
+  setup:
+    records:
+      RET1:
+        received: true
+        condition: damaged
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR6
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts: []
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - item returned undamaged
+      order_reference: ORDR6
+    expect:
+      disposition: PROHIBIT
+      rule: PR1
+      associated_order: ORDR6
+      attributed_issuer: none
+      prohibited_element_origin: agent
+      report_duties_created: 0
+  - step: 3
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts: []
+      order_reference: ORDR6
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 3
+    execute:
+      actor: A
+      token: T1
+    expect:
+      committed:
+      - record: REF1
+        kind: refund
+        claim: CL1
+        amount: 120
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude
+  final:
+    reports_naming:
+      L: 0
+- id: R-B1-refused-write
+  title: 'Hidden-state negative control: R-B1-refused-write'
+  targets: Trust boundary
+  contracts:
+  - trust_boundary
+  setup:
+    records:
+      NOTE1:
+        kind: agent_note
+        by: A
+        says: the CL1 item was returned
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        cites: NOTE1
+    expect:
+      disposition: REFUSE
+      rule: SU1
+      action_executed: false
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude
+- id: R-B1-rewritten-version
+  title: 'Hidden-state negative control: R-B1-rewritten-version'
+  targets: Derived approvals
+  contracts:
+  - P3
+  - B4
+  setup:
+    records:
+      RET1:
+        received: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 4
+    events:
+    - type: record_correction
+      record: REF1
+      by: payment_processor
+      new:
+        settled: false
+  - step: 4
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        to: K1
+        template: refund_issued
+        claim: CL1
+        amount: 120
+        cites: REF1
+    expect:
+      disposition: PROHIBIT
+      rule: PR1
+      attributed_issuer: none
+      report_duties_created: 0
+  - step: 4
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: refused_stale_revision
+      transaction_changes: none
+      record_versions_retained:
+      - REF1@v1
+      duties:
+      - id: D_refund(CL1,120)
+        resolution: unresolved
+        history:
+        - opened@1
+        - discharged@2
+        - reopened@4
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude
+- id: R-cache
+  title: Cached diagnostics are mutually consistent
+  targets: Deduplication and report loops
+  contracts:
+  - P5
+  - Q9
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties_created:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+      gateway_transitions:
+      - type: report_dispatched
+        report_id: RPT1
+        version: 1
+        to: C
+  - step: 3
+    events:
+    - type: order
+      id: ORDR1b
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 3
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      report_duties_created: 0
+      gateway_transitions:
+      - type: report_dispatched
+        report_id: RPT1
+        version: 2
+        to: C
+      duties:
+      - id: D_report(ORDR1)
+        due: 7
+        resolution: unresolved
+  - step: 4
+    events:
+    - type: acknowledgment
+      from: C
+      report: RPT1
+      version: 1
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        resolution: unresolved
+      reason: acknowledgment cites a superseded version
+  - step: 5
+    events:
+    - type: acknowledgment
+      from: C
+      report: RPT1
+      version: 2
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        resolution: discharged
+  - step: 6
+    events:
+    - type: order
+      id: ORDR1c
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 6
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties_created:
+      - id: D_report_supplement(ORDR1c)
+        recipient: C
+        links_to: D_report(ORDR1)
+        due: 11
+  - step: 7
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      revision_before_propose: R=
+      gateway_transitions: []
+      disposition: PROHIBIT
+      recorded_decision_returned: true
+      report_duties_created: 0
+      fresh_evaluation: false
+  final:
+    duty_engine_reaches_stable_state_each_step: true
+  notes: Sol-authored from Astra's 2026-10-21 spot check; expectations reviewed by
+    Claude

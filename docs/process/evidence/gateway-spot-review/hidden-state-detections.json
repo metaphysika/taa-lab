@@ -1,0 +1,2869 @@
+[
+  {
+    "trace": "R-B1-extra-refund",
+    "failures": [
+      {
+        "trace": "R-B1-extra-refund",
+        "assertion": "steps[3]@3.execution.state_delta",
+        "expectation": {
+          "allocations": {
+            "before_present": true,
+            "after_present": true,
+            "before": {},
+            "after": {
+              "REF1": "D_refund(CL1,120)"
+            }
+          },
+          "duties": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "D_resolve(CL1)": {
+                "id": "D_resolve(CL1)",
+                "claim": "CL1",
+                "kind": "resolve",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "unresolved",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1"
+                ],
+                "basis": [],
+                "amount": null,
+                "fallback": "F",
+                "ownership_interrupted": false
+              },
+              "D_refund(CL1,120)": {
+                "id": "D_refund(CL1,120)",
+                "claim": "CL1",
+                "kind": "refund",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "unresolved",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1"
+                ],
+                "basis": [],
+                "amount": 120,
+                "fallback": "F",
+                "ownership_interrupted": false
+              }
+            },
+            "after": {
+              "D_resolve(CL1)": {
+                "id": "D_resolve(CL1)",
+                "claim": "CL1",
+                "kind": "resolve",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "unresolved",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1"
+                ],
+                "basis": [],
+                "amount": null,
+                "fallback": "F",
+                "ownership_interrupted": false
+              },
+              "D_refund(CL1,120)": {
+                "id": "D_refund(CL1,120)",
+                "claim": "CL1",
+                "kind": "refund",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "discharged",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1",
+                  "discharged@3"
+                ],
+                "basis": [
+                  "REF1"
+                ],
+                "amount": 120,
+                "fallback": "F",
+                "ownership_interrupted": false,
+                "by": "REF1",
+                "proof_versions": {
+                  "REF1": 1
+                }
+              }
+            }
+          },
+          "log": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              {
+                "type": "revision",
+                "reason": "order",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 2,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": [
+                    "item returned undamaged"
+                  ]
+                },
+                "result": {
+                  "disposition": "PROHIBIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "PR1",
+                      "result": "violated",
+                      "disposition": "PROHIBIT",
+                      "prohibited_effects": [
+                        "item returned undamaged"
+                      ],
+                      "decided_at_stage": "prohibitions"
+                    }
+                  ],
+                  "rules": [
+                    "PR1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "PR1",
+                  "prohibited_effects": [
+                    "item returned undamaged"
+                  ],
+                  "decided_at_stage": "prohibitions",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "prohibited_element_origin": "agent",
+                  "gateway_transitions": []
+                }
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              }
+            ],
+            "after": [
+              {
+                "type": "revision",
+                "reason": "order",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 2,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": [
+                    "item returned undamaged"
+                  ]
+                },
+                "result": {
+                  "disposition": "PROHIBIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "PR1",
+                      "result": "violated",
+                      "disposition": "PROHIBIT",
+                      "prohibited_effects": [
+                        "item returned undamaged"
+                      ],
+                      "decided_at_stage": "prohibitions"
+                    }
+                  ],
+                  "rules": [
+                    "PR1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "PR1",
+                  "prohibited_effects": [
+                    "item returned undamaged"
+                  ],
+                  "decided_at_stage": "prohibitions",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "prohibited_element_origin": "agent",
+                  "gateway_transitions": []
+                }
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "committed_effect",
+                "revision": 3,
+                "step": 3
+              }
+            ]
+          },
+          "phase_order": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              "duty_engine"
+            ],
+            "after": [
+              "duty_engine",
+              "execute"
+            ]
+          },
+          "receipts": {
+            "before_present": true,
+            "after_present": true,
+            "before": [],
+            "after": [
+              {
+                "token": "T1",
+                "actor": "A",
+                "pre_transaction_revision": 2,
+                "committed_revision": 3,
+                "committed": [
+                  {
+                    "record": "REF1",
+                    "kind": "refund",
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  }
+                ],
+                "step": 3
+              }
+            ]
+          },
+          "records": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": "damaged"
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ]
+            },
+            "after": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": "damaged"
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "REF1": [
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "HIDDEN": [
+                {
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true,
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 1,
+                    "currency": "USD",
+                    "to": "account_X",
+                    "settled": true
+                  }
+                }
+              ]
+            }
+          },
+          "revision": {
+            "before_present": true,
+            "after_present": true,
+            "before": 2,
+            "after": 3
+          },
+          "tokens": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "live",
+                "grant": "G1"
+              }
+            },
+            "after": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "consumed",
+                "grant": "G1"
+              }
+            }
+          }
+        },
+        "observed": {
+          "allocations": {
+            "before_present": true,
+            "after_present": true,
+            "before": {},
+            "after": {
+              "REF1": "D_refund(CL1,120)"
+            }
+          },
+          "duties": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "D_resolve(CL1)": {
+                "id": "D_resolve(CL1)",
+                "claim": "CL1",
+                "kind": "resolve",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "unresolved",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1"
+                ],
+                "basis": [],
+                "amount": null,
+                "fallback": "F",
+                "ownership_interrupted": false
+              },
+              "D_refund(CL1,120)": {
+                "id": "D_refund(CL1,120)",
+                "claim": "CL1",
+                "kind": "refund",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "unresolved",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1"
+                ],
+                "basis": [],
+                "amount": 120,
+                "fallback": "F",
+                "ownership_interrupted": false
+              }
+            },
+            "after": {
+              "D_resolve(CL1)": {
+                "id": "D_resolve(CL1)",
+                "claim": "CL1",
+                "kind": "resolve",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "unresolved",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1"
+                ],
+                "basis": [],
+                "amount": null,
+                "fallback": "F",
+                "ownership_interrupted": false
+              },
+              "D_refund(CL1,120)": {
+                "id": "D_refund(CL1,120)",
+                "claim": "CL1",
+                "kind": "refund",
+                "claimant": "K1",
+                "owner": "A",
+                "resolution": "discharged",
+                "offered_to": null,
+                "due": 21,
+                "overdue": false,
+                "history": [
+                  "opened@1",
+                  "discharged@3"
+                ],
+                "basis": [
+                  "REF1"
+                ],
+                "amount": 120,
+                "fallback": "F",
+                "ownership_interrupted": false,
+                "by": "REF1",
+                "proof_versions": {
+                  "REF1": 1
+                }
+              }
+            }
+          },
+          "log": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              {
+                "type": "revision",
+                "reason": "order",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 2,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": [
+                    "item returned undamaged"
+                  ]
+                },
+                "result": {
+                  "disposition": "PROHIBIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "PR1",
+                      "result": "violated",
+                      "disposition": "PROHIBIT",
+                      "prohibited_effects": [
+                        "item returned undamaged"
+                      ],
+                      "decided_at_stage": "prohibitions"
+                    }
+                  ],
+                  "rules": [
+                    "PR1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "PR1",
+                  "prohibited_effects": [
+                    "item returned undamaged"
+                  ],
+                  "decided_at_stage": "prohibitions",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "prohibited_element_origin": "agent",
+                  "gateway_transitions": []
+                }
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              }
+            ],
+            "after": [
+              {
+                "type": "revision",
+                "reason": "order",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 2,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": [
+                    "item returned undamaged"
+                  ]
+                },
+                "result": {
+                  "disposition": "PROHIBIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "PR1",
+                      "result": "violated",
+                      "disposition": "PROHIBIT",
+                      "prohibited_effects": [
+                        "item returned undamaged"
+                      ],
+                      "decided_at_stage": "prohibitions"
+                    }
+                  ],
+                  "rules": [
+                    "PR1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "PR1",
+                  "prohibited_effects": [
+                    "item returned undamaged"
+                  ],
+                  "decided_at_stage": "prohibitions",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "prohibited_element_origin": "agent",
+                  "gateway_transitions": []
+                }
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [
+                    "ORDR6"
+                  ],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "committed_effect",
+                "revision": 3,
+                "step": 3
+              }
+            ]
+          },
+          "phase_order": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              "duty_engine"
+            ],
+            "after": [
+              "duty_engine",
+              "execute"
+            ]
+          },
+          "receipts": {
+            "before_present": true,
+            "after_present": true,
+            "before": [],
+            "after": [
+              {
+                "token": "T1",
+                "actor": "A",
+                "pre_transaction_revision": 2,
+                "committed_revision": 3,
+                "committed": [
+                  {
+                    "record": "REF1",
+                    "kind": "refund",
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  }
+                ],
+                "step": 3
+              }
+            ]
+          },
+          "records": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": "damaged"
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ]
+            },
+            "after": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": "damaged"
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "REF1": [
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ]
+            }
+          },
+          "revision": {
+            "before_present": true,
+            "after_present": true,
+            "before": 2,
+            "after": 3
+          },
+          "tokens": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "live",
+                "grant": "G1"
+              }
+            },
+            "after": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "asserts": []
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "consumed",
+                "grant": "G1"
+              }
+            }
+          }
+        },
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-extra-refund",
+        "assertion": "steps[3]@3.execution.committed",
+        "expectation": [
+          {
+            "record": "REF1",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 120,
+            "currency": "USD",
+            "to": "K1_card",
+            "settled": true
+          },
+          {
+            "record": "HIDDEN",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 1,
+            "currency": "USD",
+            "to": "account_X",
+            "settled": true
+          }
+        ],
+        "observed": [
+          {
+            "record": "REF1",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 120,
+            "currency": "USD",
+            "to": "K1_card",
+            "settled": true
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-extra-refund",
+        "assertion": "steps[3]@3.execution.record_effects_match_receipts",
+        "expectation": [
+          {
+            "record": "REF1",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 120,
+            "currency": "USD",
+            "to": "K1_card",
+            "settled": true
+          },
+          {
+            "record": "HIDDEN",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 1,
+            "currency": "USD",
+            "to": "account_X",
+            "settled": true
+          }
+        ],
+        "observed": [
+          {
+            "record": "REF1",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 120,
+            "currency": "USD",
+            "to": "K1_card",
+            "settled": true
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-extra-refund",
+        "assertion": "steps[3]@3.committed",
+        "expectation": [
+          {
+            "record": "REF1",
+            "kind": "refund",
+            "claim": "CL1",
+            "amount": 120
+          }
+        ],
+        "observed": [
+          {
+            "record": "REF1",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 120,
+            "currency": "USD",
+            "to": "K1_card",
+            "settled": true
+          },
+          {
+            "record": "HIDDEN",
+            "kind": "refund",
+            "claim": "CL1",
+            "claimant": "K1",
+            "order": "ORD1",
+            "amount": 1,
+            "currency": "USD",
+            "to": "account_X",
+            "settled": true
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "source"
+      }
+    ]
+  },
+  {
+    "trace": "R-B1-refused-write",
+    "failures": [
+      {
+        "trace": "R-B1-refused-write",
+        "assertion": "steps[0]@2.proposal.state_delta",
+        "expectation": {
+          "decisions": {
+            "before_present": true,
+            "after_present": true,
+            "before": [],
+            "after": [
+              {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "cites": "NOTE1"
+                },
+                "context": [],
+                "revision": 1,
+                "result": {
+                  "disposition": "REFUSE",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "SU1",
+                      "result": "violated",
+                      "disposition": "REFUSE"
+                    }
+                  ],
+                  "rules": [
+                    "SU1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "SU1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": []
+                },
+                "repeats": 0
+              }
+            ]
+          },
+          "log": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              }
+            ],
+            "after": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "cites": "NOTE1"
+                },
+                "result": {
+                  "disposition": "REFUSE",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "SU1",
+                      "result": "violated",
+                      "disposition": "REFUSE"
+                    }
+                  ],
+                  "rules": [
+                    "SU1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "SU1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": []
+                }
+              }
+            ]
+          },
+          "records": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": false,
+                    "condition": null
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "NOTE1": [
+                {
+                  "fields": {
+                    "by": "A",
+                    "says": "the CL1 item was returned"
+                  },
+                  "kind": "agent_note",
+                  "writer": "any_agent",
+                  "version": 1,
+                  "evidential": false
+                }
+              ]
+            },
+            "after": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": false,
+                    "condition": null
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "NOTE1": [
+                {
+                  "fields": {
+                    "by": "A",
+                    "says": "the CL1 item was returned"
+                  },
+                  "kind": "agent_note",
+                  "writer": "any_agent",
+                  "version": 1,
+                  "evidential": false
+                }
+              ],
+              "HIDDEN": [
+                {
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true,
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "observed": {
+          "decisions": {
+            "before_present": true,
+            "after_present": true,
+            "before": [],
+            "after": [
+              {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "cites": "NOTE1"
+                },
+                "context": [],
+                "revision": 1,
+                "result": {
+                  "disposition": "REFUSE",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "SU1",
+                      "result": "violated",
+                      "disposition": "REFUSE"
+                    }
+                  ],
+                  "rules": [
+                    "SU1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "SU1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": []
+                },
+                "repeats": 0
+              }
+            ]
+          },
+          "log": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              }
+            ],
+            "after": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return",
+                  "cites": "NOTE1"
+                },
+                "result": {
+                  "disposition": "REFUSE",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [
+                    {
+                      "rule": "SU1",
+                      "result": "violated",
+                      "disposition": "REFUSE"
+                    }
+                  ],
+                  "rules": [
+                    "SU1"
+                  ],
+                  "authority_basis": "G1",
+                  "rule": "SU1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": []
+                }
+              }
+            ]
+          }
+        },
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-refused-write",
+        "assertion": "steps[0]@2.proposal.proposal_does_not_execute",
+        "expectation": false,
+        "observed": true,
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-refused-write",
+        "assertion": "steps[0]@2.action_executed",
+        "expectation": false,
+        "observed": true,
+        "status": "discrepancy",
+        "origin": "source"
+      }
+    ]
+  },
+  {
+    "trace": "R-B1-rewritten-version",
+    "failures": [
+      {
+        "trace": "R-B1-rewritten-version",
+        "assertion": "steps[3]@4.event[0].immutable_record_versions",
+        "expectation": [],
+        "observed": [
+          "REF1@v1"
+        ],
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-rewritten-version",
+        "assertion": "steps[3]@4.event[0].state_delta",
+        "expectation": {
+          "log": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "committed_effect",
+                "revision": 2,
+                "step": 2
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T2"
+                }
+              }
+            ],
+            "after": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "committed_effect",
+                "revision": 2,
+                "step": 2
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T2"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "record_correction",
+                "revision": 3,
+                "step": 4
+              }
+            ]
+          },
+          "pending_correction": {
+            "before_present": false,
+            "after_present": true,
+            "before": null,
+            "after": "REF1@v2"
+          },
+          "records": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": null
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "REF1": [
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ]
+            },
+            "after": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": null
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "REF1": [
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": false
+                  },
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true
+                },
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": false
+                  },
+                  "kind": "refund",
+                  "writer": "payment_processor",
+                  "version": 2,
+                  "evidential": true
+                }
+              ]
+            }
+          },
+          "revision": {
+            "before_present": true,
+            "after_present": true,
+            "before": 2,
+            "after": 3
+          },
+          "tokens": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "revision": 1,
+                "expires": 12,
+                "status": "consumed",
+                "grant": "G1"
+              },
+              "T2": {
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "live",
+                "grant": "G1"
+              }
+            },
+            "after": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "revision": 1,
+                "expires": 12,
+                "status": "consumed",
+                "grant": "G1"
+              },
+              "T2": {
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "void",
+                "grant": "G1"
+              }
+            }
+          }
+        },
+        "observed": {
+          "log": {
+            "before_present": true,
+            "after_present": true,
+            "before": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "committed_effect",
+                "revision": 2,
+                "step": 2
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T2"
+                }
+              }
+            ],
+            "after": [
+              {
+                "type": "revision",
+                "reason": "duty_engine",
+                "revision": 1,
+                "step": 1
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T1"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "committed_effect",
+                "revision": 2,
+                "step": 2
+              },
+              {
+                "type": "decision",
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "result": {
+                  "disposition": "PERMIT",
+                  "grant": "G1",
+                  "evaluated": true,
+                  "constraints": [],
+                  "rules": [],
+                  "authority_basis": "G1",
+                  "associated_orders": [],
+                  "attributed_issuers": [],
+                  "fresh_evaluation": true,
+                  "cited_reference_rejected": false,
+                  "action_executed": false,
+                  "report_duties_created": 0,
+                  "duties_created": [],
+                  "gateway_transitions": [],
+                  "token": "T2"
+                }
+              },
+              {
+                "type": "revision",
+                "reason": "record_correction",
+                "revision": 3,
+                "step": 4
+              }
+            ]
+          },
+          "pending_correction": {
+            "before_present": false,
+            "after_present": true,
+            "before": null,
+            "after": "REF1@v2"
+          },
+          "records": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": null
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "REF1": [
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ]
+            },
+            "after": {
+              "ORD1": [
+                {
+                  "fields": {
+                    "customer": "K1",
+                    "amount": 120,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "ORD2": [
+                {
+                  "fields": {
+                    "customer": "K2",
+                    "amount": 250,
+                    "currency": "USD"
+                  },
+                  "kind": "order",
+                  "writer": "envelope_service",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "payer": "K1",
+                    "amount": 120,
+                    "method": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "PAY2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "payer": "K2",
+                    "amount": 250,
+                    "method": "K2_card",
+                    "settled": true
+                  },
+                  "kind": "payment",
+                  "writer": "payment_processor",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "CL1": [
+                {
+                  "fields": {
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "basis": "return",
+                    "amount": 120
+                  },
+                  "kind": "claim",
+                  "writer": "customer_portal",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "RET1": [
+                {
+                  "fields": {
+                    "order": "ORD1",
+                    "received": true,
+                    "condition": null
+                  },
+                  "kind": "return_receipt",
+                  "writer": "warehouse",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "DEL2": [
+                {
+                  "fields": {
+                    "order": "ORD2",
+                    "status": "delivery_failed",
+                    "failed_value": 250
+                  },
+                  "kind": "carrier_record",
+                  "writer": "carrier",
+                  "version": 1,
+                  "evidential": true
+                }
+              ],
+              "REF1": [
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "writer": "executor",
+                  "version": 1,
+                  "evidential": true
+                },
+                {
+                  "fields": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "order": "ORD1",
+                    "amount": 120,
+                    "currency": "USD",
+                    "to": "K1_card",
+                    "settled": false
+                  },
+                  "kind": "refund",
+                  "writer": "payment_processor",
+                  "version": 2,
+                  "evidential": true
+                }
+              ]
+            }
+          },
+          "revision": {
+            "before_present": true,
+            "after_present": true,
+            "before": 2,
+            "after": 3
+          },
+          "tokens": {
+            "before_present": true,
+            "after_present": true,
+            "before": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "revision": 1,
+                "expires": 12,
+                "status": "consumed",
+                "grant": "G1"
+              },
+              "T2": {
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "live",
+                "grant": "G1"
+              }
+            },
+            "after": {
+              "T1": {
+                "actor": "A",
+                "tool": "issue_refund",
+                "args": {
+                  "claim": "CL1",
+                  "amount": 120,
+                  "to": "K1_card",
+                  "basis": "return"
+                },
+                "revision": 1,
+                "expires": 12,
+                "status": "consumed",
+                "grant": "G1"
+              },
+              "T2": {
+                "actor": "A",
+                "tool": "message_party",
+                "args": {
+                  "to": "K1",
+                  "template": "refund_issued",
+                  "claim": "CL1",
+                  "amount": 120,
+                  "cites": "REF1"
+                },
+                "revision": 2,
+                "expires": 13,
+                "status": "void",
+                "grant": "G1"
+              }
+            }
+          }
+        },
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-rewritten-version",
+        "assertion": "steps[3]@4.event[0].records_written",
+        "expectation": [
+          {
+            "kind": "refund",
+            "evidential": true
+          },
+          {
+            "kind": "refund",
+            "evidential": true
+          }
+        ],
+        "observed": [
+          {
+            "kind": "refund",
+            "evidential": true
+          }
+        ],
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-rewritten-version",
+        "assertion": "step[4].phases1-2.immutable_record_versions",
+        "expectation": [],
+        "observed": [
+          "REF1@v1"
+        ],
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-rewritten-version",
+        "assertion": "steps[4]@4.proposal.immutable_record_versions",
+        "expectation": [],
+        "observed": [
+          "REF1@v1"
+        ],
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-rewritten-version",
+        "assertion": "steps[5]@4.execution.immutable_record_versions",
+        "expectation": [],
+        "observed": [
+          "REF1@v1"
+        ],
+        "status": "discrepancy",
+        "origin": "state-audit"
+      },
+      {
+        "trace": "R-B1-rewritten-version",
+        "assertion": "steps[5]@4.record_versions_retained",
+        "expectation": [
+          "REF1@v1"
+        ],
+        "observed": [],
+        "status": "discrepancy",
+        "origin": "source"
+      }
+    ]
+  }
+]

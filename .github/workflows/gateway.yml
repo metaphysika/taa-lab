@@ -17,13 +17,30 @@ jobs:
           sha256sum -c MANIFEST.sha256
           python -I tools/validate_traces.py .
       - name: Foundation, reference and runner boundary tests (no model calls)
-        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 -v
+        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review -v
       - name: Run independent expectations against reference; fail on disagreement or incomplete coverage
         run: python -m tests.trace_support.reference_runner --report "$RUNNER_TEMP/gateway-reference-v031.json"
+      - name: Run Astra spot-check regressions and hidden-state detection guards
+        run: python -I scripts/check_gateway_spot_review.py --report "$RUNNER_TEMP/gateway-spot-review-fixed.json"
+      - name: Checkout the unchanged pre-fix baseline for causal regression evidence
+        uses: actions/checkout@v4
+        with:
+          ref: 9ddf84a460a28da56f71529a64a3b0da6d5ff49c
+          path: gateway-pre-fix-baseline
+          persist-credentials: false
+      - name: Each defect reproduces on pre-fix main (packed-event twin remains a control)
+        run: |
+          python -I scripts/check_gateway_spot_review.py --implementation-root gateway-pre-fix-baseline --expect-baseline --report "$RUNNER_TEMP/gateway-spot-review-baseline.json"
+          cd gateway-pre-fix-baseline
+          python -m tests.trace_support.reference_runner --report "$RUNNER_TEMP/gateway-frozen-baseline.json"
       - name: Preserve observed assertions and discrepancies
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gateway-reference-v031
-          path: ${{ runner.temp }}/gateway-reference-v031.json
+          path: |
+            ${{ runner.temp }}/gateway-reference-v031.json
+            ${{ runner.temp }}/gateway-spot-review-fixed.json
+            ${{ runner.temp }}/gateway-spot-review-baseline.json
+            ${{ runner.temp }}/gateway-frozen-baseline.json
           if-no-files-found: error

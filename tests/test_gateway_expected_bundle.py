@@ -42,7 +42,8 @@ class IndependentBundleTests(unittest.TestCase):
 
     def test_all_independent_reference_assertions_pass_without_skips(self):
         results = all_results()
-        self.assertEqual(len(results), 534)
+        self.assertEqual(sum(r.get("origin") == "source" for r in results), 534)
+        self.assertGreater(sum(r.get("origin") == "state-audit" for r in results), 0)
         self.assertEqual([r for r in results if r["status"] != "pass"], [])
         self.assertEqual({r["trace"] for r in results}, {c["id"] for c in cases()})
 

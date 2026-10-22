@@ -1,0 +1,166 @@
+[
+  {
+    "trace": "R-B2",
+    "assertion": "steps[5]@7.gateway_transitions",
+    "expectation": [
+      {
+        "type": "report_dispatched",
+        "report_id": "RPT1",
+        "version": 2,
+        "to": "F"
+      }
+    ],
+    "observed": [],
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-B2",
+    "assertion": "steps[5]@7.duties",
+    "expectation": [
+      {
+        "id": "D_report(ORDR1)",
+        "due": 7,
+        "recipient": "F",
+        "resolution": "unresolved"
+      }
+    ],
+    "observed": [
+      {
+        "id": "D_report(ORDR1)",
+        "claim": "CL1",
+        "kind": "report",
+        "claimant": "C",
+        "owner": "gateway_reporting",
+        "resolution": "unresolved",
+        "offered_to": null,
+        "due": 7,
+        "overdue": true,
+        "history": [
+          "opened@2",
+          "dispatched_to_C@2",
+          "dispatched_to_C@3"
+        ],
+        "basis": [],
+        "amount": null,
+        "fallback": "F",
+        "ownership_interrupted": false,
+        "matter": [
+          "L",
+          "CL1",
+          "return received"
+        ],
+        "issuer": "L",
+        "effect": "return received",
+        "incidents": [
+          "ORDR1",
+          "ORDR1b"
+        ],
+        "routes_tried": [
+          "C",
+          "C"
+        ],
+        "report_id": "RPT1",
+        "version": 2,
+        "recipient": "C",
+        "route_due": 8
+      }
+    ],
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-B3",
+    "assertion": "steps[7]@6.duties",
+    "expectation": [
+      {
+        "id": "D_resolve(CL7)",
+        "resolution": "unresolved"
+      }
+    ],
+    "observed": [
+      {
+        "id": "D_resolve(CL7)",
+        "claim": "CL7",
+        "kind": "resolve",
+        "claimant": "K2",
+        "owner": "A",
+        "resolution": "discharged",
+        "offered_to": null,
+        "due": 21,
+        "overdue": false,
+        "history": [
+          "opened@1",
+          "discharged@6"
+        ],
+        "basis": "REF1",
+        "amount": null,
+        "fallback": "F",
+        "ownership_interrupted": false,
+        "proof_versions": {
+          "REF1": 1
+        }
+      }
+    ],
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-B3",
+    "assertion": "steps[8]@7.disposition",
+    "expectation": "REFUSE",
+    "observed": "PERMIT",
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-B4-split",
+    "assertion": "steps[0]@2.duties_created",
+    "expectation": [],
+    "observed": [
+      {
+        "id": "D_refund(CL1,120)",
+        "claim": "CL1",
+        "kind": "refund",
+        "claimant": "K1",
+        "owner": "A",
+        "resolution": "unresolved",
+        "offered_to": null,
+        "due": 22,
+        "overdue": false,
+        "history": [
+          "opened@2"
+        ],
+        "basis": [],
+        "amount": 120,
+        "fallback": "F",
+        "ownership_interrupted": false
+      }
+    ],
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-cache",
+    "assertion": "steps[8]@7.fresh_evaluation",
+    "expectation": false,
+    "observed": true,
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-B1-extra-refund",
+    "assertion": "hidden_state_is_detected",
+    "expectation": true,
+    "observed": false,
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-B1-refused-write",
+    "assertion": "hidden_state_is_detected",
+    "expectation": true,
+    "observed": false,
+    "status": "discrepancy"
+  },
+  {
+    "trace": "R-B1-rewritten-version",
+    "assertion": "hidden_state_is_detected",
+    "expectation": true,
+    "observed": false,
+    "status": "discrepancy"
+  }
+]
