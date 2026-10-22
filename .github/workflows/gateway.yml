@@ -17,7 +17,7 @@ jobs:
           sha256sum -c MANIFEST.sha256
           python -I tools/validate_traces.py .
       - name: Foundation, reference and runner boundary tests (no model calls)
-        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties -v
+        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial -v
       - name: Stage 6 duty deadline controls catch all three review mutations
         run: python -I scripts/check_gateway_duty_boundaries.py --report "$RUNNER_TEMP/gateway-duty-boundary-mutations.json"
       - name: Run independent expectations against reference; fail on disagreement or incomplete coverage
@@ -59,6 +59,16 @@ jobs:
           python -m tests.trace_support.reference_runner --report "$RUNNER_TEMP/gateway-frozen-baseline.json"
       - name: P1-P6 generated checks and mutants (strict; open model/spec gaps fail)
         run: python -I scripts/check_gateway_properties.py --report "$RUNNER_TEMP/gateway-properties.json"
+      - name: All frozen/regression adversarial programs plus Sol controls
+        run: python -I scripts/check_gateway_adversarial.py --report "$RUNNER_TEMP/gateway-adversarial.json"
+      - name: Pin pre-interface-fix runtime for adversarial sensitivity
+        uses: actions/checkout@v4
+        with:
+          ref: 1dafc6645bb1e4e2173e4fe4bfb217451ddec622
+          path: gateway-pre-adversarial-interface
+          persist-credentials: false
+      - name: Issuer-forgery control exposes pre-fix reference schema gap
+        run: python -I scripts/check_gateway_adversarial.py --controls-only --expect-baseline --implementation-root gateway-pre-adversarial-interface --report "$RUNNER_TEMP/gateway-adversarial-before.json"
       - name: Preserve observed assertions and discrepancies
         if: always()
         uses: actions/upload-artifact@v4
@@ -73,6 +83,8 @@ jobs:
             ${{ runner.temp }}/gateway-duty-boundary-mutations.json
             ${{ runner.temp }}/gateway-properties.json
             ${{ runner.temp }}/gateway-properties.attempts.jsonl
+            ${{ runner.temp }}/gateway-adversarial.json
+            ${{ runner.temp }}/gateway-adversarial-before.json
             ${{ runner.temp }}/gateway-q11-q12-fixed.json
             ${{ runner.temp }}/gateway-q11-q12-baseline.json
             ${{ runner.temp }}/gateway-q13-fixed.json
