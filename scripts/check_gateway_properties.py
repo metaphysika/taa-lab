@@ -15,7 +15,7 @@ from tests.gateway_properties.checks import PropertyFailure
 from tests.gateway_properties.driver import run_program
 from tests.gateway_properties.generated import GENERATED, GeneratedGatewayProperties, MAX_EXAMPLES, MAX_COMMANDS, SEED
 from tests.gateway_properties.mutants import FIXTURES, Installed, PROBES
-from tests.gateway_properties.probes import acceptance_authority
+from tests.gateway_properties.probes import acceptance_authority, offer_window
 from tests.trace_support import reference_runner
 from tests.trace_support.bundle import cases
 
@@ -68,7 +68,8 @@ def main():
         else:
             mutants.append(json.loads(child.stdout))
         print(name, 'mutant detected' if mutants[-1]['detected'] else 'MUTANT NOT DETECTED', flush=True)
-    pending = [acceptance_authority(), {'id': 'PROP-Q2', 'status': 'incomplete', 'question': 'Voluntary offer at step 2 then revocation at 3: keep expiry 7 or open fallback window until 8?', 'expected_outcome': None, 'label': 'Claude clarification pending; overlap is retained as an explicit campaign example'}]
+    clarification_checks = [acceptance_authority(), offer_window()]
+    pending = [r for r in clarification_checks if r['status'] != 'pass']
     comparisons = [d for row in GENERATED for d in row.get('result', {}).get('model_differences', [])]
     normal_rows = [row['result'] for row in GENERATED if 'result' in row]
     counts = {'attempted_programs': len(GENERATED), 'unique_programs': len({json.dumps([r['commands'], r['initial'], r['absent']], sort_keys=True) for r in GENERATED}),
@@ -80,7 +81,8 @@ def main():
               'incomplete_attempts': sum(r['status'] == 'incomplete' for r in GENERATED),
               'model_differing_transitions': len(comparisons),
               'model_differing_programs': sum(bool(r['model_differences']) for r in normal_rows),
-              'pending_scope_questions': len(pending),
+              'pending_scope_questions': 0,
+              'clarification_probe_discrepancies': len(pending),
               'model_unrepresented_report_fields': sum(str(d.get('reference', {})).count('unrepresented_field') for d in comparisons),
               'mutants_detected': sum(r['detected'] for r in mutants)}
     errors = []
@@ -88,13 +90,13 @@ def main():
     if any(not r['detected'] or ('independent_fixture' in r and not r['independent_fixture']['source_failures']) for r in mutants):
         errors.append('mutant sensitivity or independent assertion failed')
     if comparisons: errors.append('core/reference disagreements require review; neither output is an expected outcome')
-    if pending: errors.append('two explicit scope/spec questions remain incomplete')
+    if pending: errors.append('Claude Q11/Q12 clarification checks failed')
     hashes_at_end = source_hashes()
     if hashes_at_start != hashes_at_end: errors.append('source changed during the campaign')
     report = {'label': 'DESCRIPTIVE: bounded development checks, not proof or H3 evidence', 'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'settings': {'hypothesis': '6.142.4', 'max_examples': MAX_EXAMPLES, 'max_commands': MAX_COMMANDS, 'seed': SEED, 'database': None, 'deadline': None},
               'source_hashes': hashes_at_start, 'source_hashes_unchanged': hashes_at_start == hashes_at_end,
-              'counts': counts, 'attempts': GENERATED, 'mutants': mutants, 'pending': pending, 'gate_errors': errors}
+              'counts': counts, 'attempts': GENERATED, 'mutants': mutants, 'clarification_checks': clarification_checks, 'pending': pending, 'gate_errors': errors}
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(counts)); print(json.dumps({'gate_errors': errors}))

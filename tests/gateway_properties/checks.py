@@ -81,7 +81,7 @@ def p1(before, after, actor=None, token=None, execution=False):
                     row['tool'] == 'message_party' and row['args'].get('template') in ('refund_held', 'claim_referred') and
                     row['args'].get('claim') == duty['case_id'] and row['args'].get('to') == duty['claimant'], 'IR1 outside its complete narrow window')
         else:
-            require('P1', not grant_id.startswith('ACCEPT:'), 'offer-derived tool authority awaits Claude clarification')
+            require('P1', not grant_id.startswith('ACCEPT:'), 'Q11 forbids offer-derived tool authority')
             grant = current(a, grant_id)
             require('P1', grant is not None and grant['kind'] == 'grant', 'grant is absent')
             g = grant['fields']
