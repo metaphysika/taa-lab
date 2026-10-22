@@ -3,6 +3,7 @@ from taa_gateway import SCHEMA_VERSION as V
 from taa_gateway.grants import GrantPolicy
 from taa_gateway.rules import EvidenceView
 from taa_gateway.serialization import canonical
+from taa_gateway.offers import entries
 
 
 class RefundGrantPolicy(GrantPolicy):
@@ -13,21 +14,12 @@ class RefundGrantPolicy(GrantPolicy):
     def _offers(self, snapshot, actor, tool, resources):
         view = EvidenceView(snapshot, ("duty",))
         offers = []
-        if tool.name not in ("message_party", "accept_duty"):
+        if tool.name not in ("message_party",):
             return offers, view.queries()
         for did, duty in view.records("duty"):
-            window = duty.get("offer_deadline_step")
-            if (tool.name == "accept_duty" and duty["resolution"] == "unresolved" and duty["offered_to"] == actor and
-                    type(window) is int and snapshot["step"] < window):
-                offers.append(("ACCEPT:" + did, {"schema_version": V, "id": "ACCEPT:" + did,
-                    "parent_grant": None, "grantor": self.principal, "grantee": actor,
-                    "action_types": ["accept_duty"], "resource_scope": {"duty": did}, "limits": {},
-                    "purpose_id": self.purpose, "live_conditions": [], "expires_at_step": window, "status": "live"}))
-                continue
-            if tool.name != "message_party":
-                continue
-            if (duty["owner"] != actor or duty["resolution"] != "unresolved" or not duty["offered_to"] or
-                    type(window) is not int or snapshot["step"] >= window or
+            live = [o for o in entries(duty) if o["status"] == "live" and snapshot["step"] < o["expires"]]
+            window = max((o["expires"] for o in live), default=None)
+            if (tool.name != "message_party" or duty["owner"] != actor or duty["resolution"] != "unresolved" or not live or
                     duty["interim_rule"].get("id") != "IR1" or not duty["interim_rule"].get("authority_lost")):
                 continue
             grant = {"schema_version": V, "id": "IR1:" + did, "parent_grant": None,
@@ -44,10 +36,10 @@ class RefundGrantPolicy(GrantPolicy):
 
     def check(self, snapshot, grant, actor, tool, resources):
         result = super().check(snapshot, grant, actor, tool, resources)
-        if grant["id"].startswith(("IR1:", "ACCEPT:")):
+        if grant["id"].startswith("IR1:"):
             offers, queries = self._offers(snapshot, actor, tool, resources)
             result["queries"].extend(queries)
             if not any(canonical(g) == canonical(grant) for _, g in offers):
                 result.update(result="violated", disposition="REFUSE", reason="interim authority is no longer live")
-            result["authority_basis"] = "IR1" if grant["id"].startswith("IR1:") else "transfer_offer"
+            result["authority_basis"] = "IR1"
         return result

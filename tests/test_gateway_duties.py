@@ -198,8 +198,8 @@ class DutyEngineTests(unittest.TestCase):
         self.assertEqual(self.execute(offer)["execute_result"], "committed")
         self.assertEqual(self.native("D_resolve(CL1)")["offer_deadline_step"], 8)
         accepted = self.proposal("accept_duty", {"duty": "D_resolve(CL1)"}, actor="F")
-        self.assertEqual(accepted["disposition"], "PERMIT")
-        self.assertEqual(self.execute(accepted, actor="F")["execute_result"], "committed")
+        self.assertEqual(accepted["disposition"], "REFUSE")
+        self.step(3, {"type": "duty_acceptance", "from": "F", "duties": ["D_resolve(CL1)"]})
         self.assertEqual(self.native("D_resolve(CL1)")["owner"], "party:F")
         self.assertIsNone(self.native("D_resolve(CL1)")["offered_to"])
 

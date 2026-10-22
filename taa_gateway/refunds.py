@@ -209,6 +209,7 @@ def scope(args, view):
 
 
 def ledger_condition(ctx, view):
+    from taa_gateway.offers import offer_to
     args, tool, actor = ctx["arguments"], ctx["tool"], ctx["actor"]
     if tool == "close_case":
         if record(view, args["case"], "claim") is None:
@@ -220,7 +221,8 @@ def ledger_condition(ctx, view):
         return Outcome("violated", "no unresolved duty")
     if tool == "offer_duty":
         return Outcome("satisfied") if duty["owner"] == actor and view.read(native_id(args["to"], "party"), "party") else Outcome("violated", "only the owner may offer to a known party")
-    return Outcome("satisfied") if duty["offered_to"] == actor else Outcome("violated", "no offer to this party")
+    offer = offer_to(duty, actor)
+    return Outcome("satisfied") if offer else Outcome("violated", "no live offer to this party")
 
 
 def stage_ledger(tool):
@@ -290,7 +292,8 @@ def rule_definitions():
             Rule("notice-support", 1, "support", DATA_KINDS, message_support, ("message_party",)),
             Rule("notice-action-support", 1, "support", DATA_KINDS, notice_action_condition, ("hold_refund", "deny_refund")),
             Rule("DT2", 1, "determination", DATA_KINDS, cumulative, ("issue_refund",)),
-            Rule("DU1", 1, "duty", DATA_KINDS + ("duty", "party"), ledger_condition, ("close_case", "offer_duty", "accept_duty"))]
+            Rule("DU1", 1, "duty", DATA_KINDS + ("duty", "party"), ledger_condition, ("close_case",)),
+            Rule("DU4", 1, "duty", DATA_KINDS + ("duty", "party"), ledger_condition, ("offer_duty", "accept_duty"))]
 
 
 class RefundWorld:
@@ -338,7 +341,7 @@ class RefundWorld:
             for q, spec in definition["reserved_questions"].items() if isinstance(spec, dict)})
         self.tools = tool_definitions(definition["tool_registry"]["registered"])
         actions = list(definition["grants"]["G1"]["actions"])
-        self.grants = RefundGrantPolicy({"refund_authority": actions, "root": ["grant_refund_authority"], "interim": ["message_party", "accept_duty"]},
+        self.grants = RefundGrantPolicy({"refund_authority": actions, "root": ["grant_refund_authority"], "interim": ["message_party"]},
                           "party:company", interim_principal="party:company", interim_purpose="purpose:P1")
         self.pipeline = Pipeline(self.store, self.orders, self.tools, self.grants, rule_definitions(), reserved_questions={
             "goodwill_approval": {"role": "F", "jurisdiction": "claim_decisions"}})
@@ -369,8 +372,10 @@ class RefundWorld:
             fields = {"schema_version": V, "id": native_id(pid, "purpose"), "principal": native_id(p["principal"], "party"),
                       "statement": p["statement"], "excluded_proxies": p["excluded_proxies"]}
             writes.append(Write(fields["id"], "purpose", fields))
-        for gid, g in self.definition["grants"].items():
-            g = dict(g, **setup.get("grants", {}).get(gid, {}))
+        grants = copy_json(self.definition["grants"])
+        for gid, changes in setup.get("grants", {}).items():
+            grants.setdefault(gid, {}).update(changes)
+        for gid, g in grants.items():
             writes.append(Write(native_id(gid, "grant"), "grant", self.grant(gid, g)))
         records = copy_json(self.definition["records"])
         for rid in setup.get("remove_records", []): records.pop(rid, None)
