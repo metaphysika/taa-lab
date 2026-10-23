@@ -17,7 +17,12 @@ class StaleEvaluation(ValueError):
 
 
 class Pipeline:
-    def __init__(self, store, orders, tools, grant_policy, rules, *, reserved_questions=None):
+    def __init__(self, store, orders, tools, grant_policy, rules, *, reserved_questions=None,
+                 include_prohibitions=True):
+        # Trusted construction-time C1 intervention, never a proposal argument.
+        if type(include_prohibitions) is not bool:
+            raise ValueError("include_prohibitions must be a boolean")
+        self.__include_prohibitions = include_prohibitions
         tools = tuple(tools)
         self.__store, self.__orders = store, orders
         self.__tools = ToolRegistry(tools)
@@ -68,7 +73,7 @@ class Pipeline:
         effects_context = {"tool": tool.name, "arguments": identity["arguments"],
                            "act": act, "resources": resources}
         prohibitions = [evaluate_rule(rule, effects_context, snapshot, self.__questions)
-                        for rule in self.__rules if rule.kind == "prohibition" and
+                        for rule in self.__rules if self.__include_prohibitions and rule.kind == "prohibition" and
                         (not rule.tools or tool.name in rule.tools)]
         if fixed_grant is not None:
             candidates, discovery = [(fixed_grant["id"], fixed_grant)], []
@@ -139,6 +144,8 @@ class Pipeline:
                         failed["disposition"] = "ALTERNATIVE"
             aggregate, stages = "PERMIT", []
             for stage in STAGES:
+                if stage == "prohibition" and not self.__include_prohibitions:
+                    continue
                 members = [c for c in checks if c["stage"] == stage]
                 aggregate = strictest(aggregate, *(c["disposition"] for c in members))
                 stages.append({"stage": stage, "disposition": aggregate,

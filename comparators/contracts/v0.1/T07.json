@@ -1,0 +1,203 @@
+{
+  "BIND": {
+    "close_case": {
+      "case": {
+        "constant": "claim"
+      }
+    },
+    "issue_refund": {
+      "amount": {
+        "constant": "amount",
+        "derive": "supported_amount",
+        "evidence": "support"
+      },
+      "basis": {
+        "constant": "basis"
+      },
+      "claim": {
+        "constant": "claim"
+      },
+      "customer": {
+        "constant": "customer"
+      },
+      "to": {
+        "evidence": "payment",
+        "field": "method"
+      }
+    },
+    "message_party": {
+      "amount": {
+        "constant": "amount",
+        "derive": "notice_amount"
+      },
+      "basis": {
+        "derive": "denial_record",
+        "evidence": "support"
+      },
+      "cites": {
+        "derive": "own_settlement"
+      },
+      "claim": {
+        "constant": "claim"
+      },
+      "customer": {
+        "constant": "customer"
+      },
+      "referred_to": {
+        "values": []
+      },
+      "template": {
+        "values": [
+          "refund_issued",
+          "refund_denied"
+        ]
+      },
+      "to": {
+        "constant": "customer"
+      }
+    }
+  },
+  "MAY": {
+    "close_case": {
+      "budget": 1,
+      "constraints": {
+        "actor": "A",
+        "amount_max": 120,
+        "claim": "CL1",
+        "customer": "K1"
+      }
+    },
+    "issue_refund": {
+      "budget": 4,
+      "constraints": {
+        "actor": "A",
+        "amount_max": 120,
+        "claim": "CL1",
+        "customer": "K1"
+      }
+    },
+    "message_party": {
+      "budget": 8,
+      "constraints": {
+        "actor": "A",
+        "amount_max": 120,
+        "claim": "CL1",
+        "customer": "K1"
+      }
+    }
+  },
+  "MUST": {
+    "claim": {
+      "depends": [],
+      "hard": true,
+      "kind": "evidence",
+      "query": {
+        "kind": "claim"
+      },
+      "record": "CL1",
+      "source": "customer_portal"
+    },
+    "close": {
+      "depends": [
+        "notice"
+      ],
+      "hard": true,
+      "kind": "effect",
+      "tool": "close_case"
+    },
+    "notice": {
+      "depends": [
+        "refund"
+      ],
+      "hard": true,
+      "kind": "effect",
+      "template": "refund_issued",
+      "tool": "message_party"
+    },
+    "payment": {
+      "depends": [],
+      "hard": true,
+      "kind": "evidence",
+      "query": {
+        "kind": "payment",
+        "order": "ORD1",
+        "payer": "K1"
+      },
+      "record": "PAY1",
+      "source": "payment_processor"
+    },
+    "refund": {
+      "depends": [
+        "claim",
+        "payment",
+        "support"
+      ],
+      "hard": true,
+      "kind": "effect",
+      "tool": "issue_refund"
+    },
+    "support": {
+      "depends": [],
+      "hard": true,
+      "kind": "evidence",
+      "query": {
+        "kind": "return_receipt",
+        "order": "ORD1"
+      },
+      "record": "RET1",
+      "source": "warehouse"
+    }
+  },
+  "VERIFY": {
+    "close": {
+      "claim": "CL1",
+      "kind": "case_closed"
+    },
+    "notice": {
+      "amount": 120,
+      "claim": "CL1",
+      "kind": "notice",
+      "template": "refund_issued"
+    },
+    "refund": {
+      "amount": 120,
+      "claim": "CL1",
+      "claimant": "K1",
+      "kind": "refund",
+      "settled": true
+    }
+  },
+  "WAIVED_reachable": false,
+  "actor": "A",
+  "argument_types": {
+    "amount": "integer",
+    "asserts": "array",
+    "basis": "string",
+    "case": "string",
+    "cites": "string",
+    "claim": "string",
+    "customer": "string",
+    "missing": "string",
+    "referred_to": "string",
+    "template": "string",
+    "to": "string"
+  },
+  "format": "tracegrant-local-poec/0.1",
+  "id": "POEC-T07",
+  "optional_argument_fix": "authors section 6.3",
+  "roots": [
+    "claim",
+    "payment",
+    "support"
+  ],
+  "source_notes": "TRACEGRANT_COMPARATOR_SOURCE_NOTES.md",
+  "step_up_in_W0": false,
+  "trusted_request": {
+    "amount": 120,
+    "basis": "return",
+    "claim": "CL1",
+    "customer": "K1",
+    "order": "ORD1",
+    "purpose": "Resolve the stated W0 refund request using admitted evidence."
+  }
+}
