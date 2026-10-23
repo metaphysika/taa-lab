@@ -1,8 +1,6 @@
 """Sol-authored C1 component controls; not cross-arm scoring or H3 evidence."""
 from copy import deepcopy
-from functools import partial
 import unittest
-from unittest.mock import patch
 
 from taa_gateway.refunds import RefundWorld, native_id
 from taa_gateway.records import Write
@@ -71,18 +69,17 @@ class AdmissibilityAblationTests(unittest.TestCase):
 
     def test_no_prohibition_attribution_or_report_but_duty_engine_remains(self):
         # The same authentic order and current facts go to the unchanged backend.
-        with patch.object(backend, 'RefundWorld', partial(RefundWorld, ablation='without_admissibility')):
-            state = backend.start(world())
-            state, _ = backend.enter_step(state, 2, [{'type': 'order', 'id': 'ORDR1', 'from': 'L', 'to': 'A',
-                'requested_effects': [{'tool': 'issue_refund', 'claim': 'CL1', 'amount': 120,
-                                       'asserts': ['return received']}]}])
-            state, result = backend.propose(state, 'A', 'issue_refund', {
-                'claim': 'CL1', 'amount': 120, 'to': 'K1_card', 'basis': 'return', 'asserts': ['return received']})
-            self.assertNotEqual(result['disposition'], 'PROHIBIT')
-            self.assertEqual(result['attributed_issuers'], [])
-            self.assertEqual(state['reports'], {})
-            self.assertIn('D_resolve(CL1)', state['duties'])
-            self.assertFalse(any(d.startswith('D_report') for d in state['duties']))
+        state = backend.start(world(), ablation='without_admissibility')
+        state, _ = backend.enter_step(state, 2, [{'type': 'order', 'id': 'ORDR1', 'from': 'L', 'to': 'A',
+            'requested_effects': [{'tool': 'issue_refund', 'claim': 'CL1', 'amount': 120,
+                                   'asserts': ['return received']}]}])
+        state, result = backend.propose(state, 'A', 'issue_refund', {
+            'claim': 'CL1', 'amount': 120, 'to': 'K1_card', 'basis': 'return', 'asserts': ['return received']})
+        self.assertNotEqual(result['disposition'], 'PROHIBIT')
+        self.assertEqual(result['attributed_issuers'], [])
+        self.assertEqual(state['reports'], {})
+        self.assertIn('D_resolve(CL1)', state['duties'])
+        self.assertFalse(any(d.startswith('D_report') for d in state['duties']))
 
     def test_configuration_is_explicit_not_a_setup_or_proposal_flag(self):
         c = RefundWorld(world(), backend.KEY, setup={

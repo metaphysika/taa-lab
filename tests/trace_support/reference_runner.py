@@ -288,7 +288,7 @@ def _run(case, backend, checks, token_bindings):
                     ctx["proposal"] = p
                     s, result = backend.propose(s, p["actor"], p["tool"], p["args"], p.get("order_reference"))
                     last_proposal_revision = s["revision"]
-                    token_bindings.record(entry, result.get("token"))
+                    token_bindings.record(entry, result.get("execution_intent", result.get("token")))
                     audit(f"steps[{index}]@{step}.proposal", prior, s, result, agent=True)
                 else:
                     x = deepcopy(entry["execute"])
