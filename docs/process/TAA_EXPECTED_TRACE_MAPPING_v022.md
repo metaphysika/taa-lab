@@ -85,3 +85,24 @@ Source: `tests/expected_traces/v0.2.2/world_W0.yaml`, Design v0.3 plus bundled C
 [DESCRIPTIVE] All native gateway metadata records and all their versions remain in the exported `native` checkpoint and version ledger. The flat committed-business-record vocabulary excludes report/acknowledgment/acceptance metadata, because those are authorized gateway transitions rather than the proposed business act. Business notices, allocations, case changes, receipts and token consumption still come from actual state; full delta comparison includes every native collection.
 
 [DESCRIPTIVE] There are no remaining stage 6 assertion skips. The reference's 54/2,238 and 8/265 counts are unchanged; the core reports 54/2,285 and 8/272 checks, zero discrepancies and zero incomplete, including all three mutation guards. See [stage 6 evidence and limits](TAA_GATEWAY_STAGE6_v031.md). The two v0.3.2 questions stay explicitly conservative; no expected outcome or rule-selection preference was added to fit this mapping.
+
+
+## v0.3.2 Q14 additional observations (frozen bundle unchanged)
+
+`coverage` and `coverage_intervals` are read from actual duty state through the
+existing partial-dictionary/exact-list rules; no new expected outcome is inferred
+from a model. The newly authored Q14 scenarios are outside the frozen bundle.
+`discharge_coverage` preserves the original proof; `coverage_proof` records the
+current layout, first-commit order, supported amount and record versions.
+Native proof references use existing record namespaces; the common external
+oracle independently decodes actual records/receipts and uses abstract W0 IDs.
+It never translates any arm's internal duty proof into a scoring label.
+
+Ordinary business financial version rows carry `commit_sequence` metadata at
+write time. This is their record-store event order, survives sorted JSON replay,
+and confers no permission, warrant or duty machinery. Native/ref/SQL use their
+actual record/audit events. Missing business provenance raises an explicit error;
+it is never guessed from dictionary or record-ID order. Normal business receipt
+and execution-log fault boundaries retain their meanings and partial writes.
+The context/matching function, frozen source keys, controllers and POEC contracts
+are unchanged. TraceGrant remains limited to the original ten development tasks.

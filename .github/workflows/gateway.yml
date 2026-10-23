@@ -17,7 +17,31 @@ jobs:
           sha256sum -c MANIFEST.sha256
           python -I tools/validate_traces.py .
       - name: Foundation, reference and runner boundary tests (no model calls)
-        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial tests.test_gateway_development tests.test_tracegrant_comparator tests.test_gateway_ablations tests.test_gateway_token_bindings tests.test_gateway_no_invalidation tests.test_cross_arm tests.test_gateway_roster_h1 tests.test_gateway_null_allocation -v
+        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial tests.test_gateway_development tests.test_tracegrant_comparator tests.test_gateway_ablations tests.test_gateway_token_bindings tests.test_gateway_no_invalidation tests.test_cross_arm tests.test_gateway_roster_h1 tests.test_gateway_null_allocation tests.test_gateway_q15 tests.test_gateway_q16 tests.test_gateway_q14 tests.test_business_faults -v
+      - name: Q15 routing and ordered-acknowledgment regressions
+        run: python -I scripts/check_gateway_v032.py --suite q15 --report "$RUNNER_TEMP/gateway-q15.json"
+      - name: Q16 capacity, bounded episodes and source supersessions
+        run: python -I scripts/check_gateway_v032.py --suite q16 --report "$RUNNER_TEMP/gateway-q16.json"
+      - name: Q14 receipt-bound portions and corrected claim-line coverage
+        run: python -I scripts/check_gateway_v032.py --suite q14 --report "$RUNNER_TEMP/gateway-q14.json"
+      - name: Common oracle Q14 over actual records on production, conventional, floor and static
+        run: python -I scripts/check_gateway_q14_oracle.py --report "$RUNNER_TEMP/gateway-q14-oracle.json"
+      - name: Q14 missing-receipt control uses original actual state and an isolated evidence omission
+        run: python -I scripts/check_gateway_q14_receipts.py --report "$RUNNER_TEMP/gateway-q14-receipts.json"
+      - name: Pin pre-Q15 source for all targeted regression failures
+        uses: actions/checkout@v4
+        with:
+          ref: 9135bcdb264be955aadff7fae79feead99137c01
+          path: gateway-pre-q15
+          persist-credentials: false
+      - name: Every Q15 scenario fails on pre-change policy
+        run: python -I scripts/check_gateway_v032.py --suite q15 --implementation-root gateway-pre-q15 --expect-baseline --report "$RUNNER_TEMP/gateway-q15-before.json"
+      - name: Targeted Q16 scenarios expose pre-change capacity defects
+        run: python -I scripts/check_gateway_v032.py --suite q16 --implementation-root gateway-pre-q15 --expect-baseline --report "$RUNNER_TEMP/gateway-q16-before.json"
+      - name: Every targeted Q14 scenario exposes its pre-change defect
+        run: python -I scripts/check_gateway_v032.py --suite q14 --implementation-root gateway-pre-q15 --expect-baseline --report "$RUNNER_TEMP/gateway-q14-before.json"
+      - name: Pre-Q14 oracle incorrectly discharges without a matching receipt
+        run: python -I scripts/check_gateway_q14_receipts.py --implementation-root gateway-pre-q15 --expect-baseline --report "$RUNNER_TEMP/gateway-q14-receipts-before.json"
       - name: Q14 null allocation and cross-claim mirror controls
         run: python -I scripts/check_gateway_null_allocation.py --report "$RUNNER_TEMP/gateway-null-allocation.json"
       - name: Pin the pre-null-fix source
@@ -108,6 +132,15 @@ jobs:
           name: gateway-reference-v031
           path: |
             ${{ runner.temp }}/gateway-all-arm-replay.json
+            ${{ runner.temp }}/gateway-q14.json
+            ${{ runner.temp }}/gateway-q14-before.json
+            ${{ runner.temp }}/gateway-q14-oracle.json
+            ${{ runner.temp }}/gateway-q14-receipts.json
+            ${{ runner.temp }}/gateway-q14-receipts-before.json
+            ${{ runner.temp }}/gateway-q16.json
+            ${{ runner.temp }}/gateway-q16-before.json
+            ${{ runner.temp }}/gateway-q15.json
+            ${{ runner.temp }}/gateway-q15-before.json
             ${{ runner.temp }}/gateway-null-allocation.json
             ${{ runner.temp }}/gateway-null-allocation-before.json
             ${{ runner.temp }}/gateway-roster-h1.json

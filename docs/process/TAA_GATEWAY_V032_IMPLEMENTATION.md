@@ -1,10 +1,10 @@
-# Gateway v0.3.2 revision 3.1 implementation — checkpoint
+# Gateway v0.3.2 revision 3.1 implementation — review candidate
 
-PR #30 was approved by Claude and merged after all three exact-head workflows passed.
-This branch begins the separately requested Q14–Q16/H1 implementation; H1 and the null-allocation repair are implemented; Q14–Q16 policy remains incomplete.
-H1 is opt-in authenticated roster publication in isolated regression worlds, with independent SQL and reference encodings.
-Frozen v0.2.2/W0, expected outcomes, controllers, contracts and the pre-declared comparison protocol are unchanged.
-Q14–Q16 implementation, the complete new regression set and Claude's review remain required before final scoring.
+[DESCRIPTIVE] H1 and Q14–Q16 are implemented as the draft PR31 alignment candidate.
+[DESCRIPTIVE] Core, reference and conventional SQL encode their own policy and discharge logic; the common oracle reads actual external evidence.
+[DESCRIPTIVE] Frozen v0.2.2/W0, original regression files, controllers, contracts and the comparison protocol remain unchanged.
+[COVERAGE LIMIT] TraceGrant covers only ten predeclared development programs; no post-outcome contracts are authored.
+[GATE] Local combined-tree acceptance passed; merge and final scoring stay held for Claude's completed-PR review and green CI.
 
 ## Authorization and scope
 
@@ -15,9 +15,9 @@ This branch starts from that merge. Normative sources are the unchanged approved
 [clarifications](TAA_GATEWAY_SPEC_CLARIFICATIONS_v0.3.2.md) and
 [H1 ruling](TAA_GATEWAY_REGRESSION_HOST_EVENTS_H1.md).
 
-This checkpoint is incomplete. It must not be merged as completed v0.3.2 or used
-for final cross-arm scores. The next code changes belong to this same alignment
-PR, then await Claude's review. No final scoring driver is enabled or run.
+This remains a draft pending Claude's completed-delta review and green exact-head CI.
+No merge is authorized before that review and green CI. No final scoring driver
+is enabled or run; scoring belongs to its separate post-review PR.
 
 ## H1 implementation and representation
 
@@ -26,7 +26,7 @@ PR, then await Claude's review. No final scoring driver is enabled or run.
 | Production | `taa_gateway/roster.py`: verifies the envelope; requires root `party:company`, current step and `gateway_roster`; appends a party version through the existing locked record-store write path, with correction rights limited to `jurisdictions` and `may_receive`. Step is checked again under the write lock. |
 | Reference | `taa_gateway_reference/refunds.py`: independently encoded input relation over versioned party facts, using the trusted input actor; relevant changes invoke its revision relation. |
 | Conventional SQL | `conventional_gateway/world.py`: its own signed roster channel, verified inside its transaction; immutable SQL party rows and the existing epoch/handle invalidation path. No core or reference imports. |
-| Common oracle | Observes actual roster histories through `comparators/observed_world.py`; the oracle retains independent reference duty relations and never reads native duty/ownership/allocation statuses. Q15/Q16 re-derivation is still incomplete. |
+| Common oracle | Observes actual roster histories through `comparators/observed_world.py`; the oracle retains independent reference duty relations and never reads native duty/ownership/allocation statuses. Q14–Q16 re-derivation uses those independent relations over actual records, notices, receipts, financial commit order, authenticated messages and committed operations. |
 | Floor/static/TraceGrant business hosts | Same external vocabulary and actual versioned party records. No duty ledger or grant is created by the event. Static permissions and frozen POEC contracts are unchanged. |
 
 Only `setup.host_events: [roster_change]` enables the event. Core already has a
@@ -62,8 +62,9 @@ packages from an explicitly pinned checkout; all five scenarios fail there
 because the event/schema is absent. These are baseline errors, never counted as
 successful source assertions or silently skipped coverage.
 
-Detailed final counts, source hashes and retained log hashes will be recorded in
-`evidence/gateway-v032-h1/validation.json` before this checkpoint is committed.
+Historical H1 counts, source hashes and retained log hashes are recorded in
+`evidence/gateway-v032-h1/validation.json`. Current combined acceptance is
+reported separately below.
 Initial component attempts exposed missing envelope-schema wiring, a step-zero
 setup artifact, and a test's assumption that removing grantor standing left its
 grant usable. The standalone trace attempt also exposed non-semantic roster-list
@@ -73,29 +74,33 @@ wrapper stopped at the old schema exception; its corrected wrapper records it
 as an expected baseline failure. Every log remains retained. Frozen fixtures are unchanged. `h1.yaml` is newly authored outside the frozen
 bundle; its explicit membership projection is declared here.
 
-## Remaining implementation checklist
+## Implemented requirements and remaining gates
 
-- Q14: receipt-bound interval coverage; portion requirements and prohibition
-  precedence; settlement first-commit layout; recomputed correction coverage and
-  retained original proofs; every listed boundary and rollback scenario.
-- Q15: current eligibility at acknowledgment; one routing transition per step;
-  least-recent dispatch selection and recipientless resumption. H1 supplies the
-  event boundary, not these policy changes.
-- Q16: duty-specific capacity with complete grant chain/limits or institutional
-  standing; acceptance capacity; bounded episodes, no self-offer or renewal,
-  capacity return and concurrent windows; retained superseded regressions.
-- Implement each independently in core/reference/conventional and common oracle;
-  prove targeted before/after sensitivity. Preserve frozen outcomes or stop.
-- Claude reviews the completed alignment PR. Only afterward, use a separate PR
-  for the full cross-arm table under the original protocol, without extra
-  interpretation. Replay/audit-window work remains separately reviewable.
+- Q14: receipt-bound whole-integer portions, prohibition precedence, first-commit
+  settlement layout, union coverage, correction/reopening and original proofs.
+  See [Q14 implementation](TAA_GATEWAY_Q14_RECEIPT_COVERAGE.md).
+- Q15: current eligibility at acknowledgment, one routing transition per step,
+  least-recent dispatch, recipientless resumption and actual-send observations.
+- Q16: duty-specific capacity, complete grant paths/limits or institutional
+  standing, acceptance capacity, bounded loss/recovery, no self-offer/renewal,
+  preserved concurrent windows and explicit retained-source supersessions.
+- H1: authenticated roster changes are opt-in regression-world events. Frozen W0
+  remains byte-identical. No role assignment creates tool permission.
+- Final combined-tree discovery, scripted scenarios, normative, property,
+  adversarial, oracle, before/after and all-arm input-only gates must finish.
+  Failed/interrupted prefixes remain evidence, never passing acceptance.
+- Claude reviews the completed alignment PR; CI must be green before merge.
+  Only afterward, use a separate PR for the full cross-arm table under the
+  original protocol, without extra interpretation. Replay/audit-window work
+  remains separately reviewable.
 
 No model calls, Modal operations, spending, deletions, Notion edits or public
 release. These are bounded engineering checks, not empirical H3 validation.
 
-## Next implementation interfaces to preserve
+## H1-checkpoint planning notes (historical)
 
-Inspection identifies three integration boundaries for the remaining work:
+These earlier notes record the integration boundaries subsequently implemented
+by the Q14–Q16 candidate above:
 
 1. The core currently reconciles duties before appending the final receipt.
    Q14's receipt-bound discharge therefore needs a transaction-local receipt
@@ -208,3 +213,108 @@ and legacy compatibility only. At that checkpoint, Q14-NULL-ALLOCATION was an
 intentional failed preflight control. The current repair addresses it without
 altering that evidence; Q14–Q16 policy requirements and the unimplemented rows
 above remain open. The alignment PR stays draft, and final scoring remains held.
+
+
+## Q15 continuation (historical, before Q16 integration)
+
+Q15 dynamic routing, phase-1 acknowledgment eligibility and least-recent routing
+are implemented independently in the core, reference and SQL arm. The common
+oracle uses its permitted independent reference duty relations over actual
+inputs; its physical send reader does not read native duty/ownership ledgers.
+See [Q15 and business-fault report](TAA_GATEWAY_Q15_AND_BUSINESS_FAULTS.md).
+This status supersedes historical Q15-pending entries above; Q14 interval/receipt
+coverage and Q16 capacity remain unimplemented. No Q11/Q12 case is superseded
+before its Q16 replacement exists. Final scoring remains held.
+
+
+## Q16 continuation (historical, before Q14 integration)
+
+Q16 capacity and bounded loss/recovery episodes are now implemented independently
+in the core, reference and conventional SQL arm, and re-derived by the common
+external oracle. See [capacity checkpoint](TAA_GATEWAY_Q16_CAPACITY_CHECKPOINT.md).
+This supersedes historical Q16-pending statements above. Exactly two Q11/Q12
+source cases now have explicit active successors; their original files remain.
+The permanent regression population stays 32; its assertion/audit counts can
+change because those two source scenarios now exercise the approved Q16 rule.
+Frozen assertions and original files are unchanged.
+
+Q14 interval/receipt coverage remains INCOMPLETE. Source-authored draft scenarios
+are retained in `drafts/TAA_Q14_REGRESSIONS_DRAFT.yaml`, outside acceptance. Their
+pre-change exploration, including an invalid financial-source input, is retained
+as incomplete authoring evidence, never a passing baseline or an implemented
+Q14 gate. The draft must be completed against legitimate authenticated inputs
+before it enters acceptance. Final scoring and PR merge remain held.
+
+
+## Current Q14 integration
+
+Q14 is now integrated in this branch, superseding the earlier incomplete status
+entries above. The18 source-authored cases were activated byte-for-byte from
+the retained authoring revision v1, after using legitimate chargeback creation
+for the ordering case. Original draft and failed probe remain preserved. Core,
+reference and SQL targeted probes pass102 source assertions each; frozen and
+active permanent-regression compatibility also passed in the isolated candidate
+before integration. Those probes are not a substitute for the final combined
+acceptance now running. The first full Q15/Q16 discovery had one old IR1 test
+checking a phase-1-only fixture: the corrected component seeds both existing
+claim duties and explicitly runs phase2, preserving its final expected result.
+The failed run, intermediate test attempt and corrected preflight are retained.
+
+The production executor passes a private future receipt binding to its locked
+copy-on-write duty calculation, then publishes the actual receipt in the same
+transaction. SQL has its own private projection, cleared on every exit, and
+reference uses an ideal copied next-state relation. No projected admission can
+escape actual rollback. Only actual receipts and notices feed the common oracle;
+no internal arm duty/status/allocation ledger is read for scoring.
+
+
+## Final combined local acceptance — 2026-10-23
+
+Full discovery: **1,097 methods, 36 existing optional skips, zero failures/errors**,
+2773.595 seconds. All21 current workflow commands, scripted all-scenarios and
+four fresh pinned sensitivity commands pass. Historical checkout-only baseline
+steps remain enabled in GitHub; they were not all repeated locally.
+
+| Suite | Scenarios | Source assertions per backend | Reference audits | Production audits | Conventional SQL audits |
+|---|---:|---:|---:|---:|---:|
+| Frozen v0.2.2 | 54 | 534 | 1,704 | 1,751 | 7,539 |
+| Active permanent regressions | 32 | 218 | 647 | 671 | 3,090 |
+| Q14 | 18 | 102 | 547 | 548 | 2,058 |
+| Q15 | 9 | 32 | 191 | 211 | 1,221 |
+| Q16 | 16 | 119 | 494 | 510 | 2,290 |
+
+All current normative groups have zero discrepancies, incomplete assertions or
+errors. All three hidden-state controls remain detected. P1–P6 detect all six
+mutants; adversarial and existing development gates pass. The two explicit Q16
+source substitutions account for permanent source count217→218; Q14 preserves
+those post-Q16 counts. Original regression YAML, frozen fixtures/W0, contracts,
+controllers, protocol and adversarial source inventory remain unchanged.
+
+Before/after sensitivity needs two distinct descriptions: every targeted Q15
+and Q16 case has an actual pre-change discrepancy. Seven Q14 cases instead
+expose the old absent portion-schema/decision path: their baseline checks are
+**incomplete**, not observed semantic disagreements. Other targeted Q14 cases
+have actual discrepancies. Already-correct controls are explicitly marked.
+The before counts (including11 incomplete Q14 checks per backend) are retained
+in the evidence; all current Q14 checks are complete. No expectation changed.
+The initial packaging assertion incorrectly demanded an actual discrepancy for
+every target; preserve its failed log and correct the report classification,
+without changing any implementation, scenario, gate or test result.
+
+All-arm input replay:1,096 planned instances;961 executed,127 missing-contract
+TraceGrant instances unrun,8 business boundaries not applicable by design.
+42,977 state checks retain4 real floor/static missing-receipt discrepancies;
+zero unexpected discrepancies, incomplete checks or errors among executed
+instances. Six of the14 floor/static T23 instances really execute; the other
+eight have absent boundaries with specific reasons. Actual before/after fault
+states are retained. TraceGrant remains limited to ten predeclared development
+programs:127 missing-contract instances = original84 +9 Q15 +16 Q16 +18 Q14.
+No post-outcome contracts are authored, and overall replay coverage is incomplete.
+
+This is engineering replay, not final cross-arm scoring or H3 evidence. Final
+scoring remains held for Claude's completed-PR review. Evidence:
+[evidence/gateway-v032-final/validation.json](evidence/gateway-v032-final/validation.json)
+and its lossless acceptance.zip, including failed/interrupted diagnostics,
+source pins, pre-Q14 source reconstruction and preserved free scripted outputs.
+No model calls, Modal operations, spending, evidence deletion, Notion edits or
+public releases.

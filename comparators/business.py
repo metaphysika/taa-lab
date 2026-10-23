@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 
 from comparators.tracegrant import TraceGrant, contract, digest, canonical
+from comparators.business_faults import FaultAdapter, InjectedBusinessFault
 
 KEY = b'POEC-offline-simulator-certificate-key'
 TG_FIELDS = ('states', 'evidence', 'certificates', 'receipts', 'history', 'budget')
@@ -19,8 +20,14 @@ def put(s, rid, fields, writer):
     rows = s['records'].setdefault(rid, [])
     if rows and rows[-1]['kind'] != kind:
         raise ValueError('record kind change')
-    rows.append(dict(id=rid, version=len(rows) + 1, kind=kind, fields=f,
-                     writer=writer, evidential=kind != 'agent_note'))
+    written = dict(id=rid, version=len(rows) + 1, kind=kind, fields=f,
+                   writer=writer, evidential=kind != 'agent_note')
+    if kind in ('refund','chargeback'):
+        # Ordinary version-log metadata: sequence and fact commit in the same
+        # append. No extra receipt/log write, authorization or duty machinery.
+        written['commit_sequence'] = 1 + max((r['commit_sequence'] for history in s['records'].values()
+            for r in history if r['kind'] in ('refund','chargeback')),default=0)
+    rows.append(written)
     s['revision'] += 1
 
 
@@ -42,7 +49,7 @@ def schema(tool, args):
                 'deny_refund': {'claim', 'amount', 'basis'}}
     if not isinstance(args, dict) or not required.get(tool, set()) <= args.keys():
         return False
-    allowed = strings | {'amount', 'asserts'}
+    allowed = strings | {'amount', 'asserts'} | ({'portion'} if tool=='message_party' else set())
     if tool in ('hold_refund', 'deny_refund'):
         allowed -= {'to'}
     if not args.keys() <= allowed or any(type(v) is not str for k, v in args.items() if k in strings):
@@ -78,7 +85,7 @@ class Service:
             self.s.update(before)
             raise
 
-    def apply(self, tool, args, actor):
+    def apply(self, tool, args, actor, fault=None):
         s = self.s
         if tool == 'issue_refund':
             claim = self.current(args['claim'])['fields']
@@ -93,9 +100,13 @@ class Service:
             s['notices'].append(dict(actor=actor, args=deepcopy(args), step=s['step']))
         elif tool == 'close_case':
             s['cases'][args['case']] = True
+        if fault is not None and tool in ('issue_refund','message_party','close_case'):
+            fault.hit('during_effect_commit')
         # Other registered calls are ordinary recorded business operations.
         # In particular, offers/acceptance do not create or consult a ledger.
         s['business_operations'].append(dict(actor=actor, tool=tool, args=deepcopy(args), step=s['step']))
+        if fault is not None and tool not in ('issue_refund','message_party','close_case'):
+            fault.hit('during_effect_commit')
         s['revision'] += 1
 
     def observed_effect(self, before, tool):
@@ -325,7 +336,9 @@ class Backend:
         return describe(before, s, answer)
 
     def execute(self, before, actor, token=None, fault=None):
+        adapter = FaultAdapter(fault) if fault is not None and self.arm != 'tracegrant' else None
         s = deepcopy(before)
+        interrupted = False
         answer = dict(execute_result='refused_no_token')
         if self.arm == 'tracegrant':
             g = self._load(s)
@@ -339,12 +352,15 @@ class Backend:
         elif token in s['intents']:
             act = s['intents'][token]
             if self.allowed(s, actor, act['tool'], act['args']):
-                if fault is not None:
-                    raise ValueError('cross-arm development programs contain no business fault injection')
                 try:
-                    with Service(s).transaction():
-                        Service(s).apply(act['tool'], act['args'], actor)
+                    if adapter is not None:
+                        adapter.hit('after_validate')
+                    # Floor/static have no rollback. A failure preserves writes.
+                    Service(s).apply(act['tool'], act['args'], actor, adapter)
                     answer['execute_result'] = 'committed'
+                except InjectedBusinessFault as error:
+                    interrupted = True
+                    answer.update(execute_result='failed', reason=str(error), fault_at=fault)
                 except (KeyError, ValueError) as error:
                     answer.update(execute_result='failed', reason=str(error))
             else:
@@ -355,6 +371,15 @@ class Backend:
             receipt = dict(actor=actor, pre_transaction_revision=before['revision'], committed=written,
                            step=s['step'], tool=s['business_operations'][-1]['tool'], args=deepcopy(s['business_operations'][-1]['args']))
             receipt['token' if self.arm == 'tracegrant' else 'intent'] = token
-            s['receipts'].append(receipt)
-        s['log'].append(dict(type='execute', actor=actor, reference=token, result=answer['execute_result']))
+            try:
+                if adapter is not None:
+                    adapter.hit('during_receipt_write')
+                s['receipts'].append(receipt)
+                if adapter is not None:
+                    adapter.hit('before_log_write')
+            except InjectedBusinessFault as error:
+                interrupted = True
+                answer.update(execute_result='failed', reason=str(error), fault_at=fault)
+        if not interrupted:
+            s['log'].append(dict(type='execute', actor=actor, reference=token, result=answer['execute_result']))
         return describe(before, s, answer)

@@ -12,12 +12,19 @@ import yaml
 ROOT = Path(__file__).parents[1] / 'regression_scenarios'
 
 
-def cases(*, include_clarifications=True):
+def cases(*, include_clarifications=True, include_superseded=False):
     paths = [ROOT / 'astra_spot_check.yaml']
     if include_clarifications:
         paths.extend([ROOT / 'q11_q12.yaml', ROOT / 'q13.yaml'])
-    return [{"id": t["id"], "trace": t, "parameters": {}, "source": str(path)}
-            for path in paths for t in yaml.safe_load(path.read_text())]
+    result = [{"id": t["id"], "trace": t, "parameters": {}, "source": str(path)}
+              for path in paths for t in yaml.safe_load(path.read_text())]
+    if include_clarifications and not include_superseded:
+        replacement_path = ROOT / 'q16.yaml'
+        replacements = {t['supersedes']: t for t in yaml.safe_load(replacement_path.read_text()) if 'supersedes' in t}
+        result = [dict(id=replacements[c['id']]['id'], historical_id=c['id'],
+                       trace=deepcopy(replacements[c['id']]), parameters={}, source=str(replacement_path))
+                  if c['id'] in replacements else c for c in result]
+    return result
 
 
 def mutated(function, kind, backend=None):

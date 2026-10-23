@@ -31,17 +31,33 @@ from tests.trace_support.bundle import cases, verify_bundle
 from worlds.refunds.catalog import inputs_only
 from worlds.refunds.token_bindings import prepare
 from comparators.cross_arm import ARMS, backend
+from comparators.business_faults import NOT_APPLICABLE
 for package in (taa_gateway,taa_gateway_reference,conventional_gateway,comparators):
     assert Path(package.__file__).resolve().is_relative_to(implementation)
 verify_bundle()
 def extra(name):
     path=ROOT/'tests/regression_scenarios'/name
     return [dict(id=t['id'],trace=t,parameters={},source=str(path)) for t in yaml.safe_load(path.read_text())]
-suites={'frozen':cases(),'permanent-regressions':regressions.cases(),'H1':extra('h1.yaml'),'Q14-null':extra('q14_null_allocation.yaml')}
+class FaultStateCapture:
+    """Harness-only copies of actual states; never returned state descriptions."""
+    def __init__(self, wrapped):
+        self.wrapped, self.states = wrapped, []
+
+    def __getattr__(self, name):
+        return getattr(self.wrapped, name)
+
+    def execute(self, before, actor, token, fault=None):
+        prior = deepcopy(before)
+        after, result = self.wrapped.execute(before, actor, token, fault)
+        if fault is not None:self.states.append(dict(boundary=fault, before=prior, after=deepcopy(after)))
+        return after, result
+
+
+suites={'frozen':cases(),'permanent-regressions':regressions.cases(),'H1':extra('h1.yaml'),'Q14-null':extra('q14_null_allocation.yaml'),'Q15':extra('q15.yaml'),'Q16':extra('q16.yaml'),'Q14':extra('q14.yaml')}
 manifest=json.loads((implementation/'comparators/contracts/v0.1/MANIFEST.json').read_text())
 contract_ids={Path(k).stem for k in manifest['contracts']}
 report=dict(scope='Input replay and full-state audits only. No semantic scores, no oracle metrics, no final comparison.',
-            implementation_root=str(implementation),arms={})
+            implementation_root=str(implementation),tracegrant_limit='Only the ten predeclared development programs have frozen POEC contracts. No new contracts are authored for these replay suites; semantic cross-arm scoring remains limited to those ten development programs.',arms={})
 ok=True
 selected_arms=a.arms or ARMS
 if any(arm not in ARMS for arm in selected_arms):p.error('unknown arm')
@@ -50,26 +66,47 @@ for arm in selected_arms:
     groups={}
     for name,inputs in suites.items():
         if a.suites and name not in a.suites:continue
-        rows=[];errors=[];unavailable=[];executed=0
+        rows=[];errors=[];unavailable=[];not_applicable=[];nonatomic=[];unexpected=[];fault_states=[];executed=0
         for source in inputs:
             if arm=='tracegrant' and source['id'] not in contract_ids:
                 unavailable.append(dict(trace=source['id'],reason='No frozen POEC contract for this task; not run'))
                 continue
-            if arm in ('floor','static') and source.get('parameters',{}).get('fault_at'):
-                unavailable.append(dict(trace=source['id'],reason='Business host has no transaction fault adapter; real T23 fault injection unsupported'))
+            points=set()
+            for entry in source['trace']['steps']:
+                point=entry.get('execute',{}).get('inject_fault')
+                if point is None:continue
+                if point.startswith('${'):point=source['parameters'][point[2:-1]]
+                points.add(point)
+            if len(points)>1:raise ValueError('fault applicability must be reported per action for a multi-fault source')
+            fault=next(iter(points)) if points else None
+            if arm in ('floor','static') and fault in NOT_APPLICABLE:
+                not_applicable.append(dict(trace=source['id'],boundary=fault,classification='not applicable by design',reason=NOT_APPLICABLE[fault]))
                 continue
             program,bindings=prepare(source)
             program=inputs_only(program)
             program["parameters"]=deepcopy(source.get("parameters",{}))
             executed+=1
-            try:rows.extend(runner.run(program,backend=backend(arm,source['id']),token_bindings=bindings))
+            try:
+                host=backend(arm,source['id'])
+                captured=FaultStateCapture(host) if arm in ('floor','static') and fault is not None else None
+                checks=runner.run(program,backend=captured or host,token_bindings=bindings)
+                if captured:
+                    fault_states.append(dict(trace=source['id'],states=captured.states))
+                rows.extend(checks)
+                for check in checks:
+                    if check['status']!='discrepancy':continue
+                    if (arm in ('floor','static') and fault in ('during_effect_commit','during_receipt_write') and
+                        check['origin']=='state-audit' and check['assertion'].endswith('.record_effects_match_receipts') and
+                        isinstance(check['expectation'],list) and check['expectation'] and check['observed']==[]):
+                        nonatomic.append(check)  # Retain the failing audit verbatim; never waive it.
+                    else:unexpected.append(check)
             except Exception as error:errors.append(dict(trace=source['id'],type=type(error).__name__,message=str(error)))
-        counts=dict(planned_scenarios=len(inputs),executed_scenarios=executed,unavailable_scenarios=len(unavailable),
+        counts=dict(planned_scenarios=len(inputs),executed_scenarios=executed,unavailable_scenarios=len(unavailable),not_applicable_scenarios=len(not_applicable),
             checks=len(rows),source_assertions=sum(r.get('origin')=='source' for r in rows),
             state_audits=sum(r.get('origin')=='state-audit' for r in rows),
-            discrepancies=sum(r['status']=='discrepancy' for r in rows),incomplete=sum(r['status']=='incomplete' for r in rows),errors=len(errors))
-        good=not counts['discrepancies'] and not counts['incomplete'] and not errors
-        ok &= good;groups[name]=dict(counts=counts,gate_pass=good,unavailable=unavailable,errors=errors,assertions=rows)
+            discrepancies=sum(r['status']=='discrepancy' for r in rows),incomplete=sum(r['status']=='incomplete' for r in rows),errors=len(errors),observed_nonatomic_fault_audits=len(nonatomic),unexpected_discrepancies=len(unexpected))
+        good=not unexpected and not counts['incomplete'] and not errors
+        ok &= good;groups[name]=dict(counts=counts,gate_pass=good,unavailable=unavailable,not_applicable_by_design=not_applicable,observed_nonatomic_faults=nonatomic,actual_fault_states=fault_states,unexpected_discrepancies=unexpected,errors=errors,assertions=rows)
         print(json.dumps(dict(arm=arm,suite=name,**counts)),flush=True)
         report['arms'][arm]=groups
         a.report.parent.mkdir(parents=True,exist_ok=True);a.report.write_text(json.dumps(report,indent=2)+'\n')

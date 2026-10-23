@@ -20,7 +20,10 @@ def actor_program(case):
 
 
 def coverage():
-    available={c['id'] for c in frozen()+regression()+controls()}
-    mapping=json.loads((ROOT/'COVERAGE.json').read_text())['attacks']
+    current=regression()
+    aliases={c['historical_id']: c['id'] for c in current if 'historical_id' in c}
+    available={c['id'] for c in frozen()+current+controls()}
+    declared=json.loads((ROOT/'COVERAGE.json').read_text())['attacks']
+    mapping={attack:[aliases.get(case,case) for case in cases] for attack,cases in declared.items()}
     missing={attack:sorted(set(ids)-available) for attack,ids in mapping.items() if set(ids)-available}
     return mapping,missing

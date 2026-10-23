@@ -40,6 +40,8 @@ def put(s, rid, fields, writer):
         raise ValueError("record cannot change kind")
     versions.append({"fields": fields, "kind": kind, "writer": writer, "version": len(versions) + 1,
                      "evidential": kind != "agent_note"})
+    if kind in ("refund", "chargeback"):
+        s["log"].append(dict(type="financial_write",record=rid,version=len(versions),step=s["step"]))
     return rid + "@v" + str(len(versions))
 
 
@@ -113,22 +115,74 @@ def standing(s, d, party):
 
 def take(s, d, party):
     d["offers"] = {p: dict(o, active=False) for p, o in transfer_offers(d).items()}
-    d.update(owner=party, ownership_interrupted=False,
-             authority_baseline=any(g["grantee"] == party and grant_live(s, gid) and "issue_refund" in g["actions"]
-                                    for gid, g in s["grants"].items()) or party in s["world"]["jurisdictions"]["claim_decisions"])
+    d.update(owner=party, ownership_interrupted=False, authority_baseline=True, incapacity=False)
     project_offer(d)
+
+
+def member(s, party, jurisdiction):
+    row = current(s, party)
+    if row and row["kind"] == "party":
+        return jurisdiction in facts(s, party).get("jurisdictions", [])
+    return party == "company" and jurisdiction == "root" or party in s["world"]["jurisdictions"].get(jurisdiction, [])
+
+
+def discharge_path(s, gid, actor, tool, claim, template=None):
+    """Independent complete-path relation; never combines grant fragments."""
+    leaf = s["grants"].get(gid)
+    if not leaf or leaf["grantee"] != actor or tool not in leaf["actions"] or not grant_live(s, gid):
+        return None
+    purpose = leaf.get("purpose", "P1")
+    if purpose != "P1" or purpose not in s["world"]["purposes"]:
+        return None
+    chain = [];g = leaf
+    while g:
+        chain.append(g)
+        if g.get("purpose", "P1") != purpose:
+            return None
+        scope = g.get("scope", {})
+        if claim and "customers" in scope and claim["claimant"] not in scope["customers"]:
+            return None
+        if template is not None and "template" in scope and template not in (scope["template"] if isinstance(scope["template"], list) else [scope["template"]]):
+            return None
+        if g["grantor"] == "company":
+            if not member(s, "company", "root") or any(a != "grant_refund_authority" for a in g["actions"]):
+                return None
+        elif not member(s, g["grantor"], "refund_authority"):
+            return None
+        parent = s["grants"].get(g.get("parent"))
+        if g.get("parent"):
+            if not parent or parent["grantee"] != g["grantor"] or "grant_refund_authority" not in parent["actions"]:
+                return None
+        elif g["grantor"] != "company":
+            return None
+        g = parent
+    return chain
+
+
+def capacity(s, actor, duty):
+    if actor is None:
+        return False
+    if member(s, actor, "refund_authority") or member(s, actor, "claim_decisions"):
+        return True
+    c = facts(s, duty["claim"])
+    if not c:
+        return False
+    tool = "issue_refund" if duty["kind"] == "refund" else "message_party"
+    for gid in s["grants"]:
+        chain = discharge_path(s, gid, actor, tool, c, None if tool == "issue_refund" else "refund_issued")
+        if not chain or tool == "message_party" and not discharge_path(s, gid, actor, tool, c, "refund_denied"):
+            continue
+        if tool == "issue_refund" and any(g.get("limits", {}).get("per_refund_max", duty["amount"]) < duty["amount"] for g in chain):
+            continue
+        return True
+    return False
 
 
 def authority(s, actor, tool, args):
     claim_id = args.get("claim", args.get("case", s["duties"].get(args.get("duty"), {}).get("claim")))
     claim = facts(s, claim_id)
-    for gid, g in sorted(s["grants"].items()):
-        parent = s["grants"].get(g.get("parent"))
-        if (g["grantee"] == actor and tool in g["actions"] and grant_live(s, gid) and
-                g.get("purpose") in s["world"]["purposes"] and
-                (not parent or (parent["grantee"] == g["grantor"] and
-                                "grant_refund_authority" in parent["actions"])) and
-                (not claim or claim["claimant"] in g.get("scope", {}).get("customers", []))):
+    for gid in sorted(s["grants"]):
+        if discharge_path(s, gid, actor, tool, claim, args.get("template")):
             return gid
     if tool == "message_party" and args.get("template") in ("claim_referred", "refund_held"):
         if any(d["owner"] == actor and d.get("ownership_interrupted") and any(standing(s, d, p) for p in transfer_offers(d)) and
@@ -307,6 +361,10 @@ def constraints(s, actor, tool, args):
                     require(rule_id, "violated", "ALTERNATIVE" if bound > 0 else "REFUSE", suggested=alternative if bound > 0 else None)
     if tool == "message_party":
         template = args.get("template")
+        if template in ("refund_issued","refund_denied"):
+            budget = facts(s,str(args.get("cites","")).split("@v")[0]).get("amount") if template=="refund_issued" else max(0,c.get("amount",0)-(supporting(s,args.get("claim"))[1] or 0))
+            if span(args,budget) is None:
+                require("templates","violated","REFUSE",reason="malformed notice portion")
         if template not in s["world"]["message_templates"] or template == "free_prose":
             require("templates", "unknown", "REFER")
         if template == "refund_denied" and not denial_basis(s, args):
@@ -321,7 +379,7 @@ def constraints(s, actor, tool, args):
             require("DU4", "violated", "REFUSE")
     if tool == "accept_duty":
         d = s["duties"].get(args.get("duty"))
-        if not d or not standing(s, d, actor):
+        if not d or not standing(s, d, actor) or not capacity(s, actor, d):
             require("DU4", "violated", "REFUSE", failed_stage="duty")
     rank = min((ORDER.index(x["disposition"]) for x in conditions), default=5)
     chosen = [x for x in conditions if ORDER.index(x["disposition"]) == rank]
@@ -340,6 +398,8 @@ def open_duty(s, did, claim, kind, amount=None):
          "resolution": "unresolved", "offered_to": None, "due": s["step"] + 20,
          "overdue": False, "history": ["opened@" + str(s["step"])], "basis": [], "amount": amount,
          "fallback": "F", "ownership_interrupted": False}
+    if kind in ("refund", "resolve"):
+        d["incapacity"] = False
     s["duties"][did] = d
     s["cases"].setdefault(claim, False)
     return d
@@ -363,6 +423,83 @@ def resolution_proofs(s, d):
     return proofs
 
 
+def span(a, budget):
+    n=a.get("amount");p=a.get("portion",{"from":0,"to":n})
+    if (type(n) is not int or n<=0 or type(budget) is not int or not isinstance(p,dict) or
+        set(p)!={"from","to"} or type(p["from"]) is not int or type(p["to"]) is not int):
+        return None
+    return deepcopy(p) if 0<=p["from"]<p["to"]<=budget and p["to"]-p["from"]==n else None
+
+
+def witnessed_notices(s):
+    if "notice_receipts" in s:
+        return deepcopy(s["notice_receipts"])
+    result=[];unused=set(range(len(s["notices"])))
+    for index,receipt in enumerate(s["receipts"]):
+        t=s["tokens"].get(receipt.get("token"))
+        if not t or receipt.get("actor")!=t["actor"]:
+            continue
+        a=deepcopy(t["args"])
+        if t["tool"] in ("hold_refund","deny_refund"):
+            a.update(to=facts(s,a["claim"])["claimant"],template="refund_held" if t["tool"]=="hold_refund" else "refund_denied")
+        elif t["tool"]!="message_party":
+            continue
+        found=next((i for i in sorted(unused) if same(s["notices"][i]["args"],a) and s["notices"][i]["actor"]==t["actor"]),None)
+        if found is not None:
+            unused.remove(found);result.append(dict(receipt=index,notice_index=found,actor=t["actor"],args=a))
+    return result
+
+
+def claim_coverage(s,d):
+    c=facts(s,d["claim"]);supported=supporting(s,d["claim"])[1]
+    supported=0 if supported is None else supported
+    admissions=d.setdefault("admissions",[])
+    for w in witnessed_notices(s):
+        if any((a["receipt"],a["notice_index"])==(w["receipt"],w["notice_index"]) for a in admissions):continue
+        a=w["args"]
+        if a.get("claim")!=d["claim"] or a.get("to")!=d["claimant"]:continue
+        issued=a.get("template")=="refund_issued"
+        if not issued and a.get("template")!="refund_denied":continue
+        rid=str(a.get("cites" if issued else "basis","")).split("@v")[0];f=facts(s,rid)
+        budget=f.get("amount") if issued else max(0,c["amount"]-supported)
+        p=span(a,budget)
+        valid=(settlement(s,rid,d["claim"],f.get("amount")) and allocation_allows(s,s["allocations"].get(rid),d["claim"])) if issued else denial_basis(s,a)
+        if p and valid:
+            admissions.append(dict(w,record=rid,version=current(s,rid)["version"],original=deepcopy(f),portion=p,budget=budget,supported=supported))
+    seq=s["financial_sequence"] if "financial_sequence" in s else [e["record"] for e in s["log"] if e["type"]=="financial_write"]
+    layout=[];seen=set();offset=0
+    for rid in seq:
+        if rid in seen:continue
+        seen.add(rid);f=facts(s,rid);n=f.get("amount")
+        if type(n) is int and n>=0 and settlement(s,rid,d["claim"],n) and allocation_allows(s,s["allocations"].get(rid),d["claim"]):
+            layout.append(dict(record=rid,version=current(s,rid)["version"],offset=offset,amount=n));offset+=n
+    segments=[];basis=set(x["record"] for x in layout)
+    for a in admissions:
+        rid=a["record"];f=facts(s,rid);p=a["portion"]
+        if not f:continue
+        if a["args"]["template"]=="refund_issued":
+            row=next((r for r in layout if r["record"]==rid),None)
+            if not row:continue
+            start=row["offset"]
+        else:
+            if current(s,rid)["kind"] not in ("return_receipt","carrier_record") or f.get("order")!=c["order"]:continue
+            start=supported
+        segments.append((max(0,start+p["from"]),min(c["amount"],start+p["to"])));basis.add(rid)
+    merged=[]
+    for lo,hi in sorted(segments):
+        if lo>=hi:continue
+        if merged and lo<=merged[-1]["to"]:merged[-1]["to"]=max(merged[-1]["to"],hi)
+        else:merged.append({"from":lo,"to":hi})
+    basis.update(rid for rid in seq if facts(s,rid).get("claim")==d["claim"])
+    basis.update([d["claim"],c["order"]])
+    for kind in ("carrier_record","return_receipt","resolution"):
+        basis.update(rid for rid,f in records(s,kind) if f.get("order")==c["order"] or kind=="resolution" and f.get("about")==d["claim"])
+    basis.update(a["record"] for a in admissions if current(s,a["record"]))
+    d["coverage"]=sum(p["to"]-p["from"] for p in merged);d["coverage_intervals"]=merged
+    d["coverage_proof"]=dict(layout=layout,financial_order=list(dict.fromkeys(rid for rid in seq if facts(s,rid).get("claim")==d["claim"])),supported=supported,claim_amount=c["amount"],versions={rid:current(s,rid)["version"] for rid in sorted(basis) if current(s,rid)})
+    return sorted(rid for rid in basis if current(s,rid)) if d["coverage"]==c["amount"] else None
+
+
 def proof(s, d):
     if d["kind"] == "refund":
         for kind in ("refund", "chargeback"):
@@ -370,27 +507,9 @@ def proof(s, d):
                 if settlement(s, rid, d["claim"], d["amount"], d["id"]) and s["allocations"].get(rid) in (None, d["id"]):
                     return {"resolution": "discharged", "by": rid, "basis": [rid]}
     if d["kind"] == "resolve":
-        # Notices acknowledge coverage; repetition cannot create new coverage.
-        payments, denials = {}, {}
-        for n in s["notices"]:
-            a = n["args"]
-            if a.get("claim") != d["claim"] or a.get("to") != d["claimant"]:
-                continue
-            rid = a.get("cites")
-            if a.get("template") == "refund_issued":
-                f = facts(s, rid)
-                paid = f.get("amount")
-                if (type(paid) is int and type(a.get("amount")) is int and 0 < a["amount"] <= paid and
-                        settlement(s, rid, d["claim"], paid)):
-                    payments[rid] = max(payments.get(rid, 0), min(a["amount"], paid))
-            elif a.get("template") == "refund_denied" and denial_basis(s, a):
-                rid = a["basis"].split("@v")[0]
-                denials[rid] = max(denials.get(rid, 0), a["amount"])
-        # Denial bases describe the same unsupported remainder, not disjoint
-        # payments; two records of that remainder cannot double its coverage.
-        denied = max(denials.values(), default=0)
-        if sum(payments.values()) + denied >= facts(s, d["claim"])["amount"]:
-            return {"resolution": "discharged", "basis": sorted(set(payments) | set(denials))}
+        covered=claim_coverage(s,d)
+        if covered is not None:
+            return {"resolution":"discharged","basis":covered}
     candidates = resolution_proofs(s, d)
     return candidates[0] if candidates else None
 
@@ -405,11 +524,43 @@ def dispatch(s, d, recipient, again=False, repeat=False):
         s["log"].append({"type": "report_dispatched", "report_id": d["report_id"], "version": d["version"], "to": recipient, "step": s["step"]})
 
 
+def recipients(s, jurisdiction):
+    # Original jurisdiction order is priority; authenticated roster additions follow.
+    order = list(s["world"]["jurisdictions"][jurisdiction])
+    order += [p for p, _ in records(s, "party") if p not in order]
+    return [p for p in order if not current(s, p) or
+            jurisdiction in facts(s, p).get("jurisdictions", []) and
+            jurisdiction in facts(s, p).get("may_receive", [])]
+
+
 def eligible(s, claim, effect):
     implicated = {o["from"] for o in s["orders"].values() if any(
-        e.get("claim") == claim and (effect in e.get("asserts", []) or
+        e.get("claim") == claim and (effect in e.get("asserts", []) or effect == "to:" + str(e.get("to")) or
         effect in ("refund_issued", "refund_denied") and e.get("template") == effect) for e in o["requested_effects"])}
-    return [p for p in s["world"]["jurisdictions"]["misconduct_reports"] if p not in implicated]
+    return [p for p in recipients(s, "misconduct_reports") if p not in implicated]
+
+
+def report_choices(s, d):
+    return recipients(s, "unowned_duties") if d["kind"] == "unowned_report" else eligible(s, d["claim"], d.get("effect"))
+
+
+def route_report(s, d):
+    if d.get("routing_step") == s["step"]:
+        return
+    choices = report_choices(s, d)
+    old = d.get("recipient")
+    invalid = old is not None and old not in choices
+    due = d.get("route_due") is not None and s["step"] >= d["route_due"]
+    if not (invalid or due or old is None and choices):
+        return
+    last = {p: max((e["step"] for e in s["log"] if e["type"] == "report_dispatched" and
+                   e["report_id"] == d["report_id"] and e["to"] == p), default=-1) for p in choices}
+    recipient = min(choices, key=lambda p: (last[p], choices.index(p))) if choices else None
+    d["routing_step"] = s["step"]
+    if invalid:
+        d["history"].append("redirected_from_" + old + "@" + str(s["step"]))
+        d["redirection_reason"] = "recipient no longer eligible"
+    dispatch(s, d, recipient, again=not invalid)
 
 
 def reconcile(s, correction=None):
@@ -429,14 +580,15 @@ def reconcile(s, correction=None):
             if d["kind"] in ("report", "unowned_report"):
                 if d["resolution"] == "unresolved" and s["step"] >= d["due"]:
                     d["overdue"] = True
-                if d["resolution"] == "unresolved" and d.get("route_due") and s["step"] >= d["route_due"]:
-                    choices = [p for p in (s["world"]["jurisdictions"]["unowned_duties"] if d["kind"] == "unowned_report" else eligible(s, d["claim"], d.get("effect"))) if p not in d["routes_tried"]]
-                    dispatch(s, d, choices[0] if choices else None, again=True)
+                if d["resolution"] == "unresolved":
+                    route_report(s, d)
                 continue
             candidate = proof(s, d)
             # A new version of a bound fact requires a new proof. Never edit history.
-            if d["resolution"] != "unresolved" and (not candidate or
+            complete_notice = d["kind"] == "resolve" and d["resolution"] == "discharged" and candidate and candidate["resolution"] == "discharged"
+            if d["resolution"] != "unresolved" and (not candidate or not complete_notice and
                     any(current(s, rid)["version"] != version for rid, version in d.get("proof_versions", {}).items())):
+                d.setdefault("resolution_proof_history",[]).append(dict(at=s["step"],resolution=d["resolution"],versions=deepcopy(d.get("proof_versions")),coverage=deepcopy(d.get("discharge_coverage"))))
                 d["resolution"] = "unresolved"
                 d["history"].append("reopened@" + str(s["step"]))
                 d["reopening_cites"] = correction
@@ -447,6 +599,8 @@ def reconcile(s, correction=None):
                 s["allocations"] = {rid: owner for rid, owner in s["allocations"].items() if owner != d["id"]}
             if d["resolution"] == "unresolved" and candidate:
                 d.update(candidate)
+                if d["kind"] == "resolve" and candidate["resolution"] == "discharged":
+                    d["discharge_coverage"] = deepcopy(d["coverage_proof"])
                 d["proof_versions"] = {rid: current(s, rid)["version"] for rid in candidate["basis"]}
                 d["history"].append(candidate["resolution"] + "@" + str(s["step"]))
                 if d["kind"] == "refund" and candidate["resolution"] == "discharged":
@@ -458,15 +612,16 @@ def reconcile(s, correction=None):
             if any(o["active"] and s["step"] >= o["due"] for o in offers.values()):
                 d["offers"] = {p: dict(o, active=False) if s["step"] >= o["due"] else o for p, o in offers.items()}
                 project_offer(d)
-            owner_live = (d["owner"] in s["world"]["jurisdictions"]["claim_decisions"] or
-                          any(g["grantee"] == d["owner"] and grant_live(s, gid) and "issue_refund" in g["actions"] for gid, g in s["grants"].items()))
-            if owner_live and not d["ownership_interrupted"] and not d.get("authority_baseline", True):
+            owner_live = capacity(s, d["owner"], d)
+            d["incapacity"] = not owner_live
+            if owner_live:
+                d["ownership_interrupted"] = False
                 d["authority_baseline"] = True
-            if d["owner"] and not owner_live and d.get("authority_baseline", True) and not d["ownership_interrupted"]:
+            elif d["owner"] and not d["ownership_interrupted"]:
                 d["ownership_interrupted"] = True
-                if d["fallback"]:
+                if d["fallback"] and d["fallback"] != d["owner"]:
                     offer(s, d, d["fallback"])
-            if d["ownership_interrupted"] and not any(o["active"] for o in transfer_offers(d).values()):
+            if d["owner"] and d["ownership_interrupted"] and not any(o["active"] for o in transfer_offers(d).values()):
                 d["owner"] = None
                 rid = "D_unowned_report(" + d["claim"] + ")"
                 if rid not in s["duties"]:
@@ -635,13 +790,17 @@ def apply_event(before, ev, *, stabilize=True):
         detail.update(records_written=[{"kind": "resolution", "evidential": True}], tokens_issued_by_reviewer=0)
     elif kind == "acknowledgment":
         d = next((d for d in s["duties"].values() if d.get("report_id") == ev["report"] and d["resolution"] == "unresolved"), None)
-        if not d or d["recipient"] != ev["from"] or d["version"] != ev["version"]:
-            s["log"].append({"type": "rejected_acknowledgment", "input": deepcopy(ev)})
-            return s, {"reason": "acknowledgment cites a superseded version"}
+        if (not d or d["recipient"] != ev["from"] or d["version"] != ev["version"] or
+                ev["from"] not in report_choices(s, d)):
+            reason = ("unknown report or wrong recipient" if not d or d["recipient"] != ev["from"] else
+                      "acknowledgment cites a superseded version" if d["version"] != ev["version"] else
+                      "recipient no longer eligible")
+            s["log"].append({"type": "rejected_acknowledgment", "input": deepcopy(ev), "reason": reason})
+            return s, {"reason": reason}
         d.update(resolution="discharged", basis=[ev["report"] + "@v" + str(ev["version"])])
         d["history"].append("discharged@" + str(s["step"]))
     elif kind == "duty_acceptance":
-        if not ev["duties"] or not all(did in s["duties"] and standing(s, s["duties"][did], ev["from"]) for did in ev["duties"]):
+        if not ev["duties"] or not all(did in s["duties"] and standing(s, s["duties"][did], ev["from"]) and capacity(s, ev["from"], s["duties"][did]) for did in ev["duties"]):
             s["log"].append({"type": "rejected_ledger_message", "input": deepcopy(ev)})
             return s, {"reason": "no live transfer offer to this party"}
         for did in ev["duties"]:
@@ -706,7 +865,7 @@ def arguments_valid(tool, args):
                 'deny_refund': {'claim', 'amount', 'basis'}}
     if not isinstance(args, dict) or not required.get(tool, set()) <= args.keys():
         return False
-    allowed = strings | {'amount', 'asserts'}
+    allowed = strings | {'amount', 'asserts'} | ({'portion'} if tool=='message_party' else set())
     if tool in ('hold_refund', 'deny_refund'):
         allowed -= {'to'}
     if not args.keys() <= allowed or any(type(v) is not str for k,v in args.items() if k in strings):
@@ -795,21 +954,23 @@ def execute(before, actor, token_id=None, fault=None):
         committed.append(effect)
     elif tool == "message_party":
         s["notices"].append({"actor": actor, "args": deepcopy(a), "step": s["step"]})
+    elif tool in ("hold_refund","deny_refund"):
+        s["notices"].append(dict(actor=actor,args=dict(a,to=facts(s,a["claim"])["claimant"],template="refund_held" if tool=="hold_refund" else "refund_denied"),step=s["step"]))
     elif tool == "close_case":
         s["cases"][a["case"]] = True
     elif tool == "offer_duty":
         offer(s, s["duties"][a["duty"]], a["to"])
     elif tool == "accept_duty":
         d = s["duties"].get(a["duty"])
-        if not d or not standing(s, d, actor):
+        if not d or not standing(s, d, actor) or not capacity(s, actor, d):
             return deepcopy(before), {"execute_result": "refused_acceptance", "action_executed": False}
         take(s, d, actor)
     elif tool not in ("read_record", "hold_refund", "deny_refund", "report"):
         raise ValueError("effect outside represented world")
     t["status"] = "consumed"
-    reconcile(s)
     s["receipts"].append({"token": token_id, "actor": actor, "pre_transaction_revision": pre,
                            "committed_revision": pre + 1, "committed": deepcopy(committed), "step": s["step"]})
+    reconcile(s)
     revision(s, "committed_effect")
     s["phase_order"].append("execute")
     return s, {"execute_result": "committed", "action_executed": True, "committed": committed,

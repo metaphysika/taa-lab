@@ -66,10 +66,9 @@ All other list semantics retain the existing exact/ordered runner rules.
 
 These scenarios are a separate CI suite (`scripts/check_gateway_roster_h1.py`)
 while Q14–Q16 implementation is incomplete; they do not replace or silently
-shrink the permanent acceptance regressions. `R-Q12-parallel-L` and
-`R-Q11-authorized-standing` remain active until their Q16 successors are added;
-the originals will be retained when superseded. No Q14/Q15/Q16 coverage is
-claimed by these host-event checks.
+shrink the permanent acceptance regressions. `R-Q12-parallel-L` and `R-Q11-authorized-standing` are now superseded by
+the explicitly linked Q16 successors below. Their original files are retained.
+No complete Q14/Q15/Q16 coverage is claimed by the H1 host-event checks.
 
 ## Q14 null allocation ruling (permanent, separate acceptance suite)
 
@@ -93,8 +92,72 @@ contract or silently treated as covered. This pre-existing limitation remains
 incomplete coverage. Frozen contracts, controllers and original matching keys
 are unchanged.
 
-Business floor/static hosts do not support T23 transaction fault injection. The
-input-only all-arm replay lists all seven variants per host as unavailable
-coverage; it does not replace them with successful no-fault runs. The report
-also lists missing TraceGrant contracts. Executed audits and unsupported
-coverage have separate counts; neither is a final cross-arm score.
+Business floor/static fault replay observes actual non-atomic writes at its
+permission, effect and receipt boundaries. Common audit failures for effects
+without receipts remain in reports. The four boundaries per host with no
+counterpart are classified "not applicable by design" with reasons. This
+supersedes the historical unsupported label; historical evidence is unchanged.
+TraceGrant has only ten predeclared development contracts. Missing contracts
+remain unrun; no new ones may be authored after these outcomes. Wider coverage
+requires Astra's blind authorship. Cross-arm scoring is limited to those ten
+declared development programs, and remains held pending the complete alignment.
+
+`q15.yaml` adds nine Q15/H1 scenarios (32 source assertions per normative
+implementation), including payment-route implication and unowned-report routing.
+The common runner reads actual dispatches in commit order, rather than inferring
+sends solely from changes to a duty's recipient. Original W0/frozen files and
+Q11/Q12 source files are unchanged. Q14 policy remains incomplete.
+
+
+## Q16 capacity and bounded loss episodes
+
+`q16.yaml`: 16 Sol-authored source scenarios, 119 assertions per normative
+backend, labeled from Claude's Q16/H1 clarification. They cover both forms of
+acceptance, grants with and without discharge capacity, limits, institutional
+capacity, missing evidence, scope/purpose/ancestry, initial incapacity, recovery,
+renewed loss before/after fallback expiry, no self-offer and last-live-window
+unownership. Each sensitivity target names its backend; three positive controls
+are not claimed as pre-change failures. The same inputs also drive the common
+external oracle over actual production/conventional records and operations.
+
+`regressions.cases()` substitutes exactly `R-Q16-authorized-without-capacity`
+for `R-Q11-authorized-standing`, and `R-Q16-parallel-L` for `R-Q12-parallel-L`.
+The original YAML is byte-identical; `include_superseded=True` exposes historical
+cases for their historical sensitivity gate. Active replacements carry
+`historical_id`, preserving coverage lineage. All other 30 cases are unchanged.
+The 16-case Q16 suite separately includes both replacements and additional
+controls; cross-suite duplication is reported, not treated as new independent
+samples. Every normative suite still uses common full-state audits and the
+state-delta comparison guard.
+
+Q14 draft interval scenarios are outside acceptance in
+`docs/process/drafts/TAA_Q14_REGRESSIONS_DRAFT.yaml`; Q14 coverage is incomplete.
+No missing assertion is counted as a passing check. No post-outcome POEC
+contracts are created for any of these cases. TraceGrant remains limited to the
+ten predeclared development programs for cross-arm scoring.
+
+
+## Q14 receipt-bound portions and correction coverage (current candidate)
+
+`q14.yaml` activates the18-case authoring revision v1 byte-for-byte, with102
+source assertions per normative backend. The retained v0 draft's financial
+creator error and its failed probe stay outside acceptance; v1 corrects only
+those two input kinds to authorized chargeback creation. No expected outcome,
+ID, amount or chronology changed. No expected value comes from a model.
+
+The same source cases drive the common oracle on actual production/conventional/
+floor/static inputs. Only actual receipts paired with actual physical notices
+admit coverage. There are separate permanent controls for receipt omission,
+proposal-only, malformed committed notices, all seven native/SQL fault points,
+correction proof/version history and due boundaries, actual financial order
+across sorted JSON, absent provenance and invalid allocation values. The oracle
+never reads any arm's internal duty/status/allocation ledger.
+
+Run `scripts/check_gateway_v032.py --suite q14`, the common-oracle gate
+`scripts/check_gateway_q14_oracle.py`, and
+`scripts/check_gateway_q14_receipts.py` with their `--report` paths. The normative
+and receipt-presence baseline modes pin9135bcdb and require the old failures;
+positive controls stay positive. Newly authored Q14/Q15/Q16 scenarios await
+Claude's completed-PR review. No new TraceGrant contracts: the additional18
+Q14 tasks remain unrun in that arm, and final scoring remains limited to the
+ten originally declared development programs.

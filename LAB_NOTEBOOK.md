@@ -8165,3 +8165,104 @@ will be silently changed. Full compatibility acceptance is required before
 proceeding to Q14–Q16 policy work; scoring stays held.
 
 Null-allocation repair final local acceptance: 1,073 tests /36 existing skips /zero failures or errors in 2005.117s; 286 component methods pass. All 17 current-workflow commands, scripted all-scenarios and the fresh pinned null baseline guard pass. Fourteen historical count comparisons remain unchanged. New three-scenario suite: nine source assertions and reference/production/SQL audits34/34/159, zero discrepancies/incomplete. Seven component controls pass; pinned-before six failures, zero errors. All-arm input-only engineering replay executes654 scenario instances with zero audit discrepancies;98 unavailable instances explicitly listed (84 missing POEC contracts,14 unsupported business fault variants), not credited as passes. Source pins and frozen manifest remain unchanged. Full-source discovery repeated after the applicability-reporting harness change; interrupted/failed prefixes and prior failed oracle probe retained. Evidence: docs/process/evidence/gateway-v032-null/validation.json. Q14–Q16 policy remains incomplete in draft PR31; no final scoring, merge or scientific validation claim.
+
+## Prospective Q15 and comparator coverage continuation — 2026-10-23 UTC
+
+Claude approved the null-allocation repair at9135bcdb and kept its two permanent controls. TraceGrant's84 missing-contract instances stay unrun; no contracts may be authored after seeing outcomes. Comparative scoring is limited to the ten declared development programs. Wider contracts require Astra's blind authorship. Floor/static T23 faults are observable non-atomic behavior: inject only at real boundaries, record actual partial state through unchanged common audits, and classify boundaries absent by design with reasons. Final scoring remains held.
+
+Before implementation/results, added seven Q15 scenarios outside frozen W0: changed eligibility redirects with original due and fresh routing window; ordered acknowledgment after/before a disqualifying event; deadline plus conflict dispatches once; least-recent eligible alternation; a recipientless report resumes through authenticated H1; and acknowledgment after roster disqualification fails. Repeats retain deadlines after redirection. Expectations come from the approved Q15/H1 text, not either implementation. Core, reference, SQL and common external oracle will encode/check these independently. Q14 interval/receipt coverage and Q16 capacity remain pending during this increment.
+
+Prospective business-fault boundaries (before fault results): floor/static have a permission/intent check, an actual effect write and a receipt write, but no staged transaction, token consumption, duty reconciliation or transaction revision-commit boundary. T23 after_validate injects before effects. during_effect_commit injects after the actual effect and before business-operation/receipt records. during_receipt_write injects immediately before receipt creation, retaining the completed effect/business operation. An additional before_log_write control injects after receipt creation and before the normal execution log. Expected: leaked actual writes without receipts at the two mid-write boundaries, exposed (not waived) by the common record_effects_match_receipts audit; no writes at after_validate; receipt but no normal execution log at before_log_write. No counterpart is run as an ordinary success; it is reported not applicable by design with a reason. The policy/decision/reference code is not used by this adapter.
+
+Q15 physical observations must include actual sends in commit order, including repeated sends of the same version to the same recipient; duty-recipient diffs alone miss those. The observer now reads native dispatch events, SQL report-version audit events and reference dispatch logs. The oracle's representation reader independently reads actual SQL audit order and adds a per-delivery ordinal, not an arm's internal duty status. Acknowledgment-only SQL writes do not count as sends. This is declared before comparator scoring; no contracts, controllers or semantic matching keys are changed.
+
+Q15 source inspection added two prospective cases before their first execution: a later order for the same prohibited payment route disqualifies the recipient (the reference's old implication relation covered assertion/template effects only); and an unowned-duty report must also redirect after authenticated loss of its recipient's jurisdiction. These expand the new suite to nine scenarios. No earlier expected outcome was changed. The old conservative component that deliberately retained an implicated C is updated to the approved Q15 behavior F. The synthetic physical-report unit fixture now supplies its report audit event as well as its SQL row, preserving its acknowledgment expectations under the stronger actual-dispatch reader.
+
+Prospective fault-adapter extension before execution: for offer_duty, accept_duty and other plain business-only calls, the operation record itself is the effect. The effect fault must occur after that real write, rather than before it. Add a component control for floor/static offer_duty that retains the operation and has no receipt. The independent action_executed observation must also count a changed actual business_operations collection; completed ordinary calls were already visible through their receipt. No actor-visible fault argument, ledger or authorization capability is added.
+
+Prospective Q16 continuation before implementation/results: q16.yaml declares sixteen source-derived scenarios, including three positive controls. They cover the two required explicit supersessions, positive accept+message capacity, inadequate per-refund capacity and later capacity gain, initial incapacity with a separate unaffected resolve duty, message-only resolve capacity, owner restoration before/at expiry, repeated loss with inherited/new windows, fallback exhaustion, fallback-owner self-offer avoidance with a third-party window, last-live-window accountability and invalid scope/purpose/ancestry. Expected sensitive backends are declared where the old SQL arm already implements message-only capacity. Old q11_q12.yaml is retained unchanged. Capacity-loss/return is a phase2 duty-engine decision over all phase1 facts; clock expiry must not preempt same-step capacity restoration. No immediate evidence requirement or IR1 confers capacity.
+
+Prospective Q14 cases before implementation/results: eighteen cases declare default complementary notices and repeated defaults (positive controls), distinct paid and denied portions, five malformed shapes/integers/length/budget checks, prohibition precedence, nonexistent citation refusal, cross-claim blocking, explicit own-duty reuse, the required S300/S200 coverage350 reopenings, unchanged coverage without reopening, rollback exclusion, and actual REFZ-before-REFA commit order. Original notices, admissions and discharge proofs must remain immutable; recomputed coverage is separate. Receipts are projected only inside the atomic transaction's private working calculation and actually written after duty updates; rollback must remove all projected effects. The common oracle independently admits only actual receipt-bound notices from each arm's records, never an arm's internal duty ledger. No keys, contracts, reviewed controllers or frozen expectations are changed.
+
+
+2026-10-23 — Q15/Q16 checkpoint acceptance scope (before broad acceptance):
+Q15 nine scenarios and Q16 sixteen scenarios pass targeted common-runner gates
+on all three independent implementations. Source supersession is exactly the
+two Q16-mandated Q11/Q12 replacements; original YAML remains unchanged. SQL's
+old component deliberately expecting incapable L to accept is updated under
+Q16 to refuse L, preserve windows, then accept capable F. Preserve its failed
+pre-update discovery/failfast evidence. Q14 interval draft is outside acceptance:
+its first-commit-order draft used an unauthorized financial creator; baseline
+exceptions and all draft bytes stay retained, not successful sensitivity. No
+final scoring. Full tests, scripted scenarios, normative/property/adversarial
+and input-only all-arm gates are required before this checkpoint commit.
+
+
+Q16 property gate caught a test-adapter compatibility defect: generated29/58
+programs and5,348 checks pass, but the P2 worker TypeErrors because waive still
+takes two parameters while ledger_condition now takes capacity as its third.
+Strict six-mutant gate fails5/6; preserve that failure. Fix only the mutation
+adapter signature/forwarding, retaining its closure-waiver intent. Fresh P2
+worker detects the independent property and one T09 source failure. Restart
+full discovery after this test-code change and rerun the mutation campaign.
+Runtime/driver/observer/fixture sources in the ongoing arm replay are unchanged;
+retain the exact one-file before/after delta and earlier interrupted discovery.
+No passing full-campaign claim until the corrected runs finish.
+
+
+2026-10-23 — Q14 integration before final combined acceptance:
+Native, independent reference and SQL candidates each pass18 prewritten cases /
+102 source assertions; all three preserve frozen534 and active-regression218
+source counts and their prior audits in isolated compatibility probes. Common
+oracle probes use actual production/SQL/floor/static records and receipts;
+pre-change9135 incorrectly discharges the controlled receipt-omission pair,
+while Q14 leaves it unresolved. Original state snapshots remain intact. Original
+Q14 draft/creator exception retained; v1 changes only authorized input kinds,
+with every expected outcome unchanged, and is activated byte-for-byte.
+
+Full Q15/Q16 discovery completed1087/36skips with one old IR1 fixture failure:
+clock-only ownership check preceded phase2. Its first phase2 adaptation then
+correctly exposed the unseeded new resolution-duty window. Final fixture seeds
+both existing duties and explicitly checks the phase1/phase2 transition; original
+final expectations pass. Preserve both failures and pre-Q14 source archive
+(e1cbb1f15a9b56a19fcfc210709c0632ce1475a00a599624a07ce5bb125dff3b).
+This prefix is NOT passing full acceptance. Integrate Q14 in this same PR31;
+final full discovery, scripted, all workflow gates, fresh Q14/Q15/Q16 sensitivity
+and all-arm input replay now run on the combined pinned tree. No final scores,
+new POEC contracts, model calls, Modal operations, spending or releases.
+
+
+Final Q14 acceptance caught one further old component assumption: the SQL ledger
+unit inserted bare notices without receipts. Q14 correctly did not discharge.
+Update its fixture to execute actual committed notices through Kernel, retaining
+all original discharge/deduplication expectations and the exact120 union check.
+All43 SQL component methods pass. Preserve the failed workflow step and source
+delta (tests/test_conventional_ledger.py only), restart full discovery, resume
+workflow commands from that step. Runtime/observer/input sources in the ongoing
+all-arm replay are unchanged. No frozen outcome, mutation or threshold changes.
+
+Full combined discovery then exposed two report-only synthetic SQL snapshots
+that omitted the receipts relation. The receipt observer correctly raised
+KeyError instead of assuming absence. Add explicit receipts=[] to those two
+fixtures, retaining their original acknowledgment/delivery expectations. Both
+targeted methods pass. Preserve the interrupted discovery, source-only delta
+and targeted log; restart full discovery verbosely with fail-fast. No runtime,
+expected outcome or frozen fixture changed in this correction.
+
+2026-10-23 — PR31 final local acceptance complete. Full discovery1097 methods,
+36 existing optional skips, zero failures/errors (2773.595s). All21 current
+workflow commands, scripted and4 fresh pinned baseline commands pass. Current
+Q14/Q15/Q16:18/9/16 scenarios,102/32/119 source assertions per backend; all0
+discrepancies/incomplete/errors. Frozen534 unchanged; active permanent218
+reflects only two approved Q16 substitutions, original YAML preserved.
+All-arm replay961 executed /127 TG missing-contract unrun /8 business absent
+boundaries;4 actual partial-write record/receipt discrepancies retained,0
+unexpected/incomplete/errors. Final scoring and merge held for Claude/green CI.
+
+Correction to earlier progress claim: seven Q14 baseline scenarios expose
+absent old portion-schema/decision paths and have incomplete-only checks, not
+actual semantic discrepancies. Preserve the packaging assertion failure and
+source; classify these separately in the report, changing no code, fixture or
+result. Q15/Q16 targets each have actual before discrepancies. Scripted output
+folders moved intact to scratch and archived with manifest; none deleted.
+See docs/process/evidence/gateway-v032-final/validation.json and acceptance.zip.

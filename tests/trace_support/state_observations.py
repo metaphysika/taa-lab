@@ -61,19 +61,45 @@ def executed(before, after):
         if (new or old).get('kind') not in ('report', 'unowned_report') and not equal(old, new):
             business = True
     business |= any(not equal(before[k], after[k]) for k in ('orders', 'grants', 'world'))
+    if 'business_operations' in before or 'business_operations' in after:
+        business |= (('business_operations' in before) != ('business_operations' in after) or
+                     not equal(before['business_operations'], after['business_operations']))
     return bool(business or consumed(before, after) or not equal(before['receipts'], after['receipts']))
 
 
-def dispatches(before, after):
+def report_sends(state):
+    """Actual dispatch artifacts in commit order, including same-role re-dispatch."""
     found = []
-    for did, d in after['duties'].items():
-        if d.get('kind') not in ('report', 'unowned_report') or not d.get('recipient'):
-            continue
-        old = before['duties'].get(did)
-        if old is None or old.get('version') != d['version'] or old.get('recipient') != d['recipient']:
-            found.append({'type': 'report_dispatched', 'report_id': d['report_id'],
-                          'version': d['version'], 'to': d['recipient']})
+    if 'native' in state:
+        for row in state['log']:
+            event = row['native_event']
+            if event['type'] == 'report_sent':
+                envelope = event['payload']['envelope']; content = envelope['content']
+                found.append(dict(type='report_dispatched', report_id=content['report_id'],
+                                  version=content['version'], to=envelope['recipient'].split(':', 1)[-1]))
+    elif 'relational_checkpoint' in state:
+        prior = {}
+        for event in (entry['sql_event'] for entry in state['log'] if 'sql_event' in entry):
+            if event['kind'] != 'version_written' or event['payload']['relation'] != 'reports':
+                continue
+            rid, payload = event['payload']['id'], event['payload']['payload']
+            old = prior.get(rid)
+            if payload['recipient'] and (old is None or any(payload.get(k) != old.get(k)
+                    for k in ('recipient', 'version', 'dispatch_step'))):
+                found.append(dict(type='report_dispatched', report_id=rid,
+                                  version=payload['version'], to=payload['recipient']))
+            prior[rid] = payload
+    else:
+        found = [{k: e[k] for k in ('type', 'report_id', 'version', 'to')}
+                 for e in state['log'] if e['type'] == 'report_dispatched']
     return found
+
+
+def dispatches(before, after):
+    old, new = report_sends(before), report_sends(after)
+    if old != new[:len(old)]:
+        raise ValueError('retained report dispatch history changed')
+    return new[len(old):]
 
 
 def sql_relations(state):

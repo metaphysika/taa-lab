@@ -29,5 +29,6 @@ def accept(duty, actor, authority):
         if o["status"] == "live":
             o["status"] = "accepted" if o["to"] == actor else "closed_by_acceptance"
     duty["owner"] = actor
+    duty["content"]["incapacity"] = False
     duty["interim_rule"].update(authority_lost=False, authority_baseline=authority)
     project(duty)

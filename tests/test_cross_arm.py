@@ -285,7 +285,9 @@ class CrossArmTests(unittest.TestCase):
         self.assertEqual(o.metrics(s)['reports_delivered'], 0)
         payload = dict(duty='D_report(O1)', report_id='RPT1', recipient='C', version=1,
             acknowledged=False, incidents=['O1'], matter=['L', 'CL1', 'return received'])
-        s['relational_checkpoint'] = {'relations': {'reports': [('RPT1', 1, json.dumps(payload))]}}
+        s['relational_checkpoint'] = {'relations': {'reports': [('RPT1', 1, json.dumps(payload))], 'receipts': []}}
+        s['log'].append({'type': 'version_written', 'sql_event': {'kind': 'version_written',
+            'payload': {'relation': 'reports', 'id': 'RPT1', 'version': 1, 'payload': deepcopy(payload)}}})
         o.external(dict(ack, version=2), s)
         self.assertEqual(o.board()['D_report(O1)']['resolution'], 'unresolved')
         o.external(ack, s)
@@ -331,7 +333,7 @@ class CrossArmTests(unittest.TestCase):
         self.assertEqual((d['version'], d['due'], d['route_due']), (2, 6, 6))
         p = dict(duty='D_report(O1)', report_id='RPT1', recipient='C', version=1,
                  acknowledged=False, incidents=['O1'], matter=['L', 'CL1', 'return received'])
-        s['relational_checkpoint'] = {'relations': {'reports': [('RPT1', 1, json.dumps(p))]}}
+        s['relational_checkpoint'] = {'relations': {'reports': [('RPT1', 1, json.dumps(p))], 'receipts': []}}
         o.external({'type': 'acknowledgment', 'from': 'C', 'report': 'RPT1', 'version': 1}, s)
         self.assertEqual(o.board()['D_report(O1)']['resolution'], 'unresolved')
 
