@@ -114,6 +114,23 @@ class NoInvalidationTests(unittest.TestCase):
                 self.assertEqual(c.store.snapshot(), consumed)
                 self.assertEqual(len(self.refund_rows(c)), 1)
 
+    def test_withdrawal_is_intrinsic_and_does_not_void_other_tokens(self):
+        for mode in (PRIMARY, DIAGNOSTIC):
+            with self.subTest(mode=mode):
+                c = self.context(mode)
+                first, second = self.proposal(c, 80)['token'], self.proposal(c, 70)['token']
+                c.runtime.withdraw(c.sessions['A'], first)
+                before = c.store.snapshot()
+                self.assertEqual(before['tokens'][first]['status'], 'withdrawn')
+                wid = before['tokens'][first]['certificate']['warrant_id']
+                self.assertEqual(before['warrants'][wid]['status'], 'withdrawn')
+                self.assertEqual(before['tokens'][second]['status'], 'live')
+                self.assertEqual(c.runtime.execute(c.sessions['A'], first)['execute_result'],
+                                 'refused_token_not_live')
+                self.assertEqual(c.store.snapshot(), before)
+                self.assertEqual(c.runtime.execute(c.sessions['A'], second)['execute_result'], 'committed')
+                self.assertEqual(sum(r['amount'] for r in self.refund_rows(c)), 70)
+
     def test_intrinsic_expiry_advances_revision_without_voiding_other_tokens(self):
         for mode in (PRIMARY, DIAGNOSTIC):
             with self.subTest(mode=mode):

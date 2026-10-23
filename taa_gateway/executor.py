@@ -150,7 +150,11 @@ class Runtime:
             if self.store.invalidates_tokens_on_revision and state["revision"] != cert["state_revision"]:
                 raise ExecutionRefused("refused_stale_revision")
             warrant = state["warrants"][cert["warrant_id"]]
-            if self.store.invalidates_tokens_on_revision and (row["status"] != "live" or warrant["status"] != "live"):
+            not_live = row["status"] != "live" or warrant["status"] != "live"
+            revision_void = (row["status"] == "void" and warrant["status"] == "void" and
+                             row.get("void_reason") == "revision")
+            # C2 removes world-change invalidation, never intrinsic retirement.
+            if not_live and (self.store.invalidates_tokens_on_revision or not revision_void):
                 raise ExecutionRefused("refused_token_not_live")
             name = row["tool"] if tool is None else tool
             args = row["args"] if arguments is None else arguments
