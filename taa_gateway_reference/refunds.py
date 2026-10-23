@@ -166,14 +166,30 @@ def supporting(s, claim_id):
     return "unknown", None, None, "claim basis"
 
 
-def settlement(s, rid, claim_id, amount):
+def allocation_allows(s, value, claim_id, duty_id=None):
+    """Null and omission mean unallocated; non-null identities stay bound.
+
+    A refund proof reserves its own duty. A claimant notice may cite a payment
+    already used for a duty of that same claim (Q14/T20), never another claim.
+    """
+    if value is None or value == claim_id:
+        return True
+    if duty_id is not None:
+        return value == duty_id
+    if type(value) is not str:
+        return False
+    allocated = s["duties"].get(value)
+    return bool(allocated and allocated["claim"] == claim_id)
+
+
+def settlement(s, rid, claim_id, amount, duty_id=None):
     r, c = current(s, rid), facts(s, claim_id)
     if not r or not r["evidential"] or r["kind"] not in ("refund", "chargeback") or not c:
         return False
     f = r["fields"]
     return (f.get("settled") is True and f.get("claim") == claim_id and f.get("claimant") == c["claimant"] and
             f.get("order") == c["order"] and f.get("currency") == facts(s, c["order"])["currency"] and
-            f.get("amount") == amount and f.get("allocated_to", claim_id) == claim_id)
+            f.get("amount") == amount and allocation_allows(s, f.get("allocated_to"), claim_id, duty_id))
 
 
 def aggregate(s, order):
@@ -245,7 +261,7 @@ def constraints(s, actor, tool, args):
                   f.get("claimant") != c["claimant"] or f.get("order") != c["order"] or
                   f.get("currency") != facts(s, c["order"])["currency"] or
                   f.get("amount", 0) < args.get("amount", 0) or
-                  f.get("allocated_to") not in (None, args.get("claim"))):
+                  not allocation_allows(s, f.get("allocated_to"), args.get("claim"))):
                 contradicted.append("refund_issued")
             elif f.get("settled") is not True:
                 require("templates", "violated", "REFUSE", reason="settlement not established")
@@ -351,7 +367,7 @@ def proof(s, d):
     if d["kind"] == "refund":
         for kind in ("refund", "chargeback"):
             for rid, _ in records(s, kind):
-                if settlement(s, rid, d["claim"], d["amount"]) and s["allocations"].get(rid, d["id"]) == d["id"]:
+                if settlement(s, rid, d["claim"], d["amount"], d["id"]) and s["allocations"].get(rid) in (None, d["id"]):
                     return {"resolution": "discharged", "by": rid, "basis": [rid]}
     if d["kind"] == "resolve":
         # Notices acknowledge coverage; repetition cannot create new coverage.

@@ -17,7 +17,17 @@ jobs:
           sha256sum -c MANIFEST.sha256
           python -I tools/validate_traces.py .
       - name: Foundation, reference and runner boundary tests (no model calls)
-        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial tests.test_gateway_development tests.test_tracegrant_comparator tests.test_gateway_ablations tests.test_gateway_token_bindings tests.test_gateway_no_invalidation tests.test_cross_arm tests.test_gateway_roster_h1 -v
+        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial tests.test_gateway_development tests.test_tracegrant_comparator tests.test_gateway_ablations tests.test_gateway_token_bindings tests.test_gateway_no_invalidation tests.test_cross_arm tests.test_gateway_roster_h1 tests.test_gateway_null_allocation -v
+      - name: Q14 null allocation and cross-claim mirror controls
+        run: python -I scripts/check_gateway_null_allocation.py --report "$RUNNER_TEMP/gateway-null-allocation.json"
+      - name: Pin the pre-null-fix source
+        uses: actions/checkout@v4
+        with:
+          ref: 5d0ca5cf69bb81fd2ef19bb3be64e9111a9b7b7d
+          path: gateway-pre-null
+          persist-credentials: false
+      - name: Null allocation controls expose pre-change defects
+        run: python -I scripts/check_gateway_null_allocation.py --implementation-root gateway-pre-null --expect-baseline --report "$RUNNER_TEMP/gateway-null-allocation-before.json"
       - name: H1 authenticated roster events in isolated regression worlds
         run: python -I scripts/check_gateway_roster_h1.py --report "$RUNNER_TEMP/gateway-roster-h1.json"
       - name: Pin the pre-H1 implementation for regression sensitivity
@@ -89,12 +99,17 @@ jobs:
         run: python -I scripts/check_gateway_adversarial.py --controls-only --expect-baseline --implementation-root gateway-pre-adversarial-interface --report "$RUNNER_TEMP/gateway-adversarial-before.json"
       - name: Frozen-contract TraceGrant reconstruction, all development inputs
         run: python -I scripts/run_tracegrant_comparator.py --report "$RUNNER_TEMP/tracegrant-development.json"
+      - name: Engineering input replay on every arm (no final scoring)
+        run: python -I scripts/check_gateway_all_arm_replay.py --report "$RUNNER_TEMP/gateway-all-arm-replay.json"
       - name: Preserve observed assertions and discrepancies
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gateway-reference-v031
           path: |
+            ${{ runner.temp }}/gateway-all-arm-replay.json
+            ${{ runner.temp }}/gateway-null-allocation.json
+            ${{ runner.temp }}/gateway-null-allocation-before.json
             ${{ runner.temp }}/gateway-roster-h1.json
             ${{ runner.temp }}/gateway-roster-h1-before.json
             ${{ runner.temp }}/conventional-w0.json

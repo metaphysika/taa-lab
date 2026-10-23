@@ -367,7 +367,7 @@ def _duty_pass(state, spec, correction=None):
                 # Payment allocation is exclusive; notice/report evidence need
                 # not reserve monetary allocation merely because it cites a payment.
                 allocation = record["fields"].get("allocation_id")
-                if allocation and state["allocations"].get(allocation, duty_id) != duty_id:
+                if allocation and state["allocations"].get(allocation) not in (None, duty_id):
                     continue
                 if duty.get("kind") == "report" and record["writer"] != duty["recipient"]:
                     continue

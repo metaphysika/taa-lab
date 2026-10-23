@@ -70,3 +70,31 @@ shrink the permanent acceptance regressions. `R-Q12-parallel-L` and
 `R-Q11-authorized-standing` remain active until their Q16 successors are added;
 the originals will be retained when superseded. No Q14/Q15/Q16 coverage is
 claimed by these host-event checks.
+
+## Q14 null allocation ruling (permanent, separate acceptance suite)
+
+`q14_null_allocation.yaml` covers absent and explicit-null settlement allocation
+and the cross-claim duty mirror. `tests.test_gateway_null_allocation` permanently
+checks the original executed-payment/notice control against the common oracle
+for production, conventional and floor without rewriting actual arm records.
+It also checks the mirror correction, allocation ledgers in both reference
+models, and same-claim notice reuse. Run `scripts/check_gateway_null_allocation.py`;
+its pinned-before mode exposes the defects while mirror/absent controls stay
+passing. This adds acceptance separately without changing historical source
+counts or any frozen fixture. New scenario expectations await the completed
+alignment PR's Claude review.
+
+`scripts/check_gateway_all_arm_replay.py` replays original inputs using the same
+runner/state audits for every arm. It does not compute behavioral/semantic/oracle
+scores. Normal frozen/regression verdicts remain enforced separately on reference,
+production and conventional. TraceGrant has only ten frozen task contracts;
+other IDs are listed individually as unavailable, never assigned a fabricated
+contract or silently treated as covered. This pre-existing limitation remains
+incomplete coverage. Frozen contracts, controllers and original matching keys
+are unchanged.
+
+Business floor/static hosts do not support T23 transaction fault injection. The
+input-only all-arm replay lists all seven variants per host as unavailable
+coverage; it does not replace them with successful no-fault runs. The report
+also lists missing TraceGrant contracts. Executed audits and unsupported
+coverage have separate counts; neither is a final cross-arm score.

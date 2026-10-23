@@ -1,0 +1,2756 @@
+{
+  "implementation_root": "/workspace/taa-gateway-v032",
+  "baseline": false,
+  "gate_pass": true,
+  "tests": 7,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "failing_methods": [],
+  "output": "test_generic_reference_null_allocation_matches_absence_but_other_duty_blocks (null_allocation_controls.NullAllocationTests.test_generic_reference_null_allocation_matches_absence_but_other_duty_blocks) ... ok\ntest_mirror_correction_to_another_claims_duty_reopens_and_stays_blocked (null_allocation_controls.NullAllocationTests.test_mirror_correction_to_another_claims_duty_reopens_and_stays_blocked) ... ok\ntest_null_internal_allocation_is_unallocated (null_allocation_controls.NullAllocationTests.test_null_internal_allocation_is_unallocated) ... ok\ntest_original_committed_control_passes_all_three_without_rewriting_records (null_allocation_controls.NullAllocationTests.test_original_committed_control_passes_all_three_without_rewriting_records) ... ok\ntest_record_allocation_absent_null_claim_and_own_duty_are_equivalent (null_allocation_controls.NullAllocationTests.test_record_allocation_absent_null_claim_and_own_duty_are_equivalent) ... ok\ntest_record_and_internal_allocations_bound_to_other_duty_stay_blocked (null_allocation_controls.NullAllocationTests.test_record_and_internal_allocations_bound_to_other_duty_stay_blocked) ... ok\ntest_same_claim_notice_can_reuse_a_settlement_bound_to_its_refund_duty (null_allocation_controls.NullAllocationTests.test_same_claim_notice_can_reuse_a_settlement_bound_to_its_refund_duty) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 75.652s\n\nOK\n",
+  "control_sha256": "230b7eb60d1879e437b2822747a1bdf69973aced5efea428515d74e4fb886c4b",
+  "source_sha256": {
+    "taa_gateway_reference/__init__.py": "108479bafa88e736b184bef42a254363d527e0ce341121e773e3479b688ab132",
+    "taa_gateway_reference/model.py": "50856fba91e4137028af9c85a247e5d1df8eac6395b01d5372dbc052fc2ff353",
+    "taa_gateway_reference/refunds.py": "92d5cc27bd38f97b10fd29cb0bc6fd835b401229e183a4ca7065bcfe79d53996",
+    "comparators/__init__.py": "4b6dcc4a57c0a6c21429af98bb787ccea7409a383e6380a8d8e1050cf79a3c12",
+    "comparators/audit.py": "2dcdb7380f321886081fae74da8c165080c7c052428e3d97958f81c6ee431aea",
+    "comparators/business.py": "6bf93e0c750d3ed8a5aa003410731f4560805edf9f40a3d1c2d55efd25f80783",
+    "comparators/cross_arm.py": "db06fff7fd709f13934af471c423aaa4652b6b0aba24dde5b2e7d976c7a42914",
+    "comparators/duty_oracle.py": "5ac58a39d8af503b86dc24975c081398151217755ab91f716bcb02aab985dadc",
+    "comparators/harness.py": "61c22e7b132d8abd98fe75645cb8da6e3094d46c8ec905a18b12bb5be6f98748",
+    "comparators/observed_world.py": "ee930b1524a2123ba87daefa607ed4bd18de1470a89e0dae3ca2f87184e96b0c",
+    "comparators/tracegrant.py": "856789b12874bf22775646f53d53cbaca18c053fa0ed767b3459ccd77c3a9918",
+    "comparators/world.py": "5e0bac331b2eb22378472dd7ea46069701ee01f917d400c70de9baad2051c9e6"
+  },
+  "trace_suites": {
+    "reference": {
+      "counts": {
+        "scenarios": 3,
+        "source_assertions": 9,
+        "state_audits": 34,
+        "checks": 43,
+        "discrepancies": 0,
+        "incomplete": 0
+      },
+      "gate_pass": true,
+      "assertions": [
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "id": "D_refund(CL1,120)",
+              "claim": "CL1",
+              "kind": "refund",
+              "claimant": "K1",
+              "owner": "A",
+              "resolution": "discharged",
+              "offered_to": null,
+              "due": 21,
+              "overdue": false,
+              "history": [
+                "opened@1",
+                "discharged@1"
+              ],
+              "basis": "REFX",
+              "amount": 120,
+              "fallback": "F",
+              "ownership_interrupted": false,
+              "by": "REFX",
+              "proof_versions": {
+                "REFX": 1
+              }
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.gateway_transitions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.fresh_evaluation",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.proposal_does_not_execute",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.disposition",
+          "expectation": "PERMIT",
+          "observed": "PERMIT",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.token",
+          "expectation": "T1",
+          "observed": "T1",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.committed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.consumption_matches_receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.record_effects_match_receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.exactly_one_requested_consumption",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.receipt_actor",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.pre_transaction_revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.duties",
+          "expectation": [
+            {
+              "id": "D_resolve(CL1)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "id": "D_resolve(CL1)",
+              "claim": "CL1",
+              "kind": "resolve",
+              "claimant": "K1",
+              "owner": "A",
+              "resolution": "discharged",
+              "offered_to": null,
+              "due": 21,
+              "overdue": false,
+              "history": [
+                "opened@1",
+                "discharged@2"
+              ],
+              "basis": "REFX",
+              "amount": null,
+              "fallback": "F",
+              "ownership_interrupted": false,
+              "proof_versions": {
+                "REFX": 1
+              }
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "id": "D_refund(CL1,120)",
+              "claim": "CL1",
+              "kind": "refund",
+              "claimant": "K1",
+              "owner": "A",
+              "resolution": "discharged",
+              "offered_to": null,
+              "due": 21,
+              "overdue": false,
+              "history": [
+                "opened@1",
+                "discharged@1"
+              ],
+              "basis": "REFX",
+              "amount": 120,
+              "fallback": "F",
+              "ownership_interrupted": false,
+              "by": "REFX",
+              "proof_versions": {
+                "REFX": 1
+              }
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "unresolved"
+            },
+            {
+              "id": "D_refund(CL8,120)",
+              "resolution": "unresolved"
+            }
+          ],
+          "observed": [
+            {
+              "id": "D_refund(CL1,120)",
+              "claim": "CL1",
+              "kind": "refund",
+              "claimant": "K1",
+              "owner": "A",
+              "resolution": "unresolved",
+              "offered_to": null,
+              "due": 21,
+              "overdue": false,
+              "history": [
+                "opened@1"
+              ],
+              "basis": [],
+              "amount": 120,
+              "fallback": "F",
+              "ownership_interrupted": false
+            },
+            {
+              "id": "D_refund(CL8,120)",
+              "claim": "CL8",
+              "kind": "refund",
+              "claimant": "K1",
+              "owner": "A",
+              "resolution": "unresolved",
+              "offered_to": null,
+              "due": 21,
+              "overdue": false,
+              "history": [
+                "opened@1"
+              ],
+              "basis": [],
+              "amount": 120,
+              "fallback": "F",
+              "ownership_interrupted": false
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.gateway_transitions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.fresh_evaluation",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.proposal_does_not_execute",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.disposition",
+          "expectation": "PROHIBIT",
+          "observed": "PROHIBIT",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.rule",
+          "expectation": "PR1",
+          "observed": "PR1",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.token",
+          "expectation": "none",
+          "observed": "none",
+          "status": "pass",
+          "origin": "source"
+        }
+      ]
+    },
+    "production": {
+      "counts": {
+        "scenarios": 3,
+        "source_assertions": 9,
+        "state_audits": 34,
+        "checks": 43,
+        "discrepancies": 0,
+        "incomplete": 0
+      },
+      "gate_pass": true,
+      "assertions": [
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "case_id": "CL1",
+              "claimant": "K1",
+              "content": {
+                "amount": 120,
+                "by": "REFX",
+                "kind": "refund",
+                "proofs": [
+                  {
+                    "allocation": "D_refund(CL1,120)",
+                    "current_version": null,
+                    "equals": {
+                      "claim": "CL1",
+                      "claimant": "K1",
+                      "currency": "USD",
+                      "order": "ORD1",
+                      "settled": true
+                    },
+                    "kind": "refund",
+                    "minimum": {
+                      "amount": 120
+                    },
+                    "record_id": "refund:REFX"
+                  }
+                ]
+              },
+              "deadline_step": 21,
+              "discharge_condition": {
+                "bindings": {
+                  "amount": 120,
+                  "claim": "CL1",
+                  "claimant": "K1",
+                  "currency": "USD",
+                  "order": "ORD1",
+                  "settled": true
+                },
+                "evidence_kind": "settlement"
+              },
+              "fallback_owner": "party:F",
+              "history": [
+                "opened@1",
+                "discharged@1"
+              ],
+              "id": "D_refund(CL1,120)",
+              "interim_rule": {
+                "authority_lost": false,
+                "id": "IR1"
+              },
+              "offer_deadline_step": null,
+              "offered_to": null,
+              "origin": {
+                "created_at": 1,
+                "rule": "DU2"
+              },
+              "overdue": false,
+              "owner": "A",
+              "resolution": "discharged",
+              "resolution_basis": [
+                {
+                  "record_id": "refund:REFX",
+                  "record_version": 1
+                }
+              ],
+              "route_deadline_step": null,
+              "schema_version": "0.3.1",
+              "amount": 120,
+              "by": "REFX",
+              "kind": "refund",
+              "proofs": [
+                {
+                  "allocation": "D_refund(CL1,120)",
+                  "current_version": null,
+                  "equals": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "currency": "USD",
+                    "order": "ORD1",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "minimum": {
+                    "amount": 120
+                  },
+                  "record_id": "refund:REFX"
+                }
+              ],
+              "due": 21
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.fresh_evaluation",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.recorded_decision_returned",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.proposal_does_not_execute",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.disposition",
+          "expectation": "PERMIT",
+          "observed": "PERMIT",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.token",
+          "expectation": "T1",
+          "observed": "T1",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.committed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.consumption_matches_receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.record_effects_match_receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.exactly_one_requested_consumption",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.receipt_actor",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.pre_transaction_revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.duties",
+          "expectation": [
+            {
+              "id": "D_resolve(CL1)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "case_id": "CL1",
+              "claimant": "K1",
+              "content": {
+                "amount": null,
+                "kind": "resolve",
+                "proofs": [
+                  {
+                    "allocation": null,
+                    "allocation_case": "CL1",
+                    "current_version": null,
+                    "equals": {
+                      "claim": "CL1",
+                      "claimant": "K1",
+                      "currency": "USD",
+                      "order": "ORD1",
+                      "settled": true
+                    },
+                    "kind": "refund",
+                    "minimum": {
+                      "amount": 120
+                    },
+                    "record_id": "refund:REFX"
+                  }
+                ]
+              },
+              "deadline_step": 21,
+              "discharge_condition": {
+                "bindings": {
+                  "amount": null,
+                  "claim": "CL1",
+                  "claimant": "K1"
+                },
+                "evidence_kind": "notice"
+              },
+              "fallback_owner": "party:F",
+              "history": [
+                "opened@1",
+                "discharged@2"
+              ],
+              "id": "D_resolve(CL1)",
+              "interim_rule": {
+                "authority_lost": false,
+                "id": "IR1"
+              },
+              "offer_deadline_step": null,
+              "offered_to": null,
+              "origin": {
+                "created_at": 1,
+                "rule": "DU1"
+              },
+              "overdue": false,
+              "owner": "A",
+              "resolution": "discharged",
+              "resolution_basis": [
+                {
+                  "record_id": "refund:REFX",
+                  "record_version": 1
+                }
+              ],
+              "route_deadline_step": null,
+              "schema_version": "0.3.1",
+              "amount": null,
+              "kind": "resolve",
+              "proofs": [
+                {
+                  "allocation": null,
+                  "allocation_case": "CL1",
+                  "current_version": null,
+                  "equals": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "currency": "USD",
+                    "order": "ORD1",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "minimum": {
+                    "amount": 120
+                  },
+                  "record_id": "refund:REFX"
+                }
+              ],
+              "due": 21
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "case_id": "CL1",
+              "claimant": "K1",
+              "content": {
+                "amount": 120,
+                "by": "REFX",
+                "kind": "refund",
+                "proofs": [
+                  {
+                    "allocation": "D_refund(CL1,120)",
+                    "current_version": null,
+                    "equals": {
+                      "claim": "CL1",
+                      "claimant": "K1",
+                      "currency": "USD",
+                      "order": "ORD1",
+                      "settled": true
+                    },
+                    "kind": "refund",
+                    "minimum": {
+                      "amount": 120
+                    },
+                    "record_id": "refund:REFX"
+                  }
+                ]
+              },
+              "deadline_step": 21,
+              "discharge_condition": {
+                "bindings": {
+                  "amount": 120,
+                  "claim": "CL1",
+                  "claimant": "K1",
+                  "currency": "USD",
+                  "order": "ORD1",
+                  "settled": true
+                },
+                "evidence_kind": "settlement"
+              },
+              "fallback_owner": "party:F",
+              "history": [
+                "opened@1",
+                "discharged@1"
+              ],
+              "id": "D_refund(CL1,120)",
+              "interim_rule": {
+                "authority_lost": false,
+                "id": "IR1"
+              },
+              "offer_deadline_step": null,
+              "offered_to": null,
+              "origin": {
+                "created_at": 1,
+                "rule": "DU2"
+              },
+              "overdue": false,
+              "owner": "A",
+              "resolution": "discharged",
+              "resolution_basis": [
+                {
+                  "record_id": "refund:REFX",
+                  "record_version": 1
+                }
+              ],
+              "route_deadline_step": null,
+              "schema_version": "0.3.1",
+              "amount": 120,
+              "by": "REFX",
+              "kind": "refund",
+              "proofs": [
+                {
+                  "allocation": "D_refund(CL1,120)",
+                  "current_version": null,
+                  "equals": {
+                    "claim": "CL1",
+                    "claimant": "K1",
+                    "currency": "USD",
+                    "order": "ORD1",
+                    "settled": true
+                  },
+                  "kind": "refund",
+                  "minimum": {
+                    "amount": 120
+                  },
+                  "record_id": "refund:REFX"
+                }
+              ],
+              "due": 21
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "unresolved"
+            },
+            {
+              "id": "D_refund(CL8,120)",
+              "resolution": "unresolved"
+            }
+          ],
+          "observed": [
+            {
+              "case_id": "CL1",
+              "claimant": "K1",
+              "content": {
+                "amount": 120,
+                "kind": "refund"
+              },
+              "deadline_step": 21,
+              "discharge_condition": {
+                "bindings": {
+                  "amount": 120,
+                  "claim": "CL1",
+                  "claimant": "K1",
+                  "currency": "USD",
+                  "order": "ORD1",
+                  "settled": true
+                },
+                "evidence_kind": "settlement"
+              },
+              "fallback_owner": "party:F",
+              "history": [
+                "opened@1"
+              ],
+              "id": "D_refund(CL1,120)",
+              "interim_rule": {
+                "authority_lost": false,
+                "id": "IR1"
+              },
+              "offer_deadline_step": null,
+              "offered_to": null,
+              "origin": {
+                "created_at": 1,
+                "rule": "DU2"
+              },
+              "overdue": false,
+              "owner": "A",
+              "resolution": "unresolved",
+              "resolution_basis": null,
+              "route_deadline_step": null,
+              "schema_version": "0.3.1",
+              "amount": 120,
+              "kind": "refund",
+              "due": 21
+            },
+            {
+              "case_id": "CL8",
+              "claimant": "K1",
+              "content": {
+                "amount": 120,
+                "kind": "refund"
+              },
+              "deadline_step": 21,
+              "discharge_condition": {
+                "bindings": {
+                  "amount": 120,
+                  "claim": "CL8",
+                  "claimant": "K1",
+                  "currency": "USD",
+                  "order": "ORD1",
+                  "settled": true
+                },
+                "evidence_kind": "settlement"
+              },
+              "fallback_owner": "party:F",
+              "history": [
+                "opened@1"
+              ],
+              "id": "D_refund(CL8,120)",
+              "interim_rule": {
+                "authority_lost": false,
+                "id": "IR1"
+              },
+              "offer_deadline_step": null,
+              "offered_to": null,
+              "origin": {
+                "created_at": 1,
+                "rule": "DU2"
+              },
+              "overdue": false,
+              "owner": "A",
+              "resolution": "unresolved",
+              "resolution_basis": null,
+              "route_deadline_step": null,
+              "schema_version": "0.3.1",
+              "amount": 120,
+              "kind": "refund",
+              "due": 21
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.fresh_evaluation",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.recorded_decision_returned",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.proposal_does_not_execute",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.disposition",
+          "expectation": "PROHIBIT",
+          "observed": "PROHIBIT",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.rule",
+          "expectation": "PR1",
+          "observed": "PR1",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.token",
+          "expectation": "none",
+          "observed": "none",
+          "status": "pass",
+          "origin": "source"
+        }
+      ]
+    },
+    "conventional": {
+      "counts": {
+        "scenarios": 3,
+        "source_assertions": 9,
+        "state_audits": 159,
+        "checks": 168,
+        "discrepancies": 0,
+        "incomplete": 0
+      },
+      "gate_pass": true,
+      "assertions": [
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "amount": 120,
+              "authority_baseline": true,
+              "by": "REFX",
+              "claim": "CL1",
+              "claimant": "K1",
+              "due": 21,
+              "fallback": "F",
+              "history": [
+                "opened@1",
+                "discharged@1"
+              ],
+              "id": "D_refund(CL1,120)",
+              "kind": "refund",
+              "offered_to": null,
+              "offers": {},
+              "overdue": false,
+              "owner": "A",
+              "ownership_interrupted": false,
+              "proof": [
+                {
+                  "amount": 120,
+                  "kind": "settlement",
+                  "record": "REFX"
+                }
+              ],
+              "resolution": "discharged"
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "step[2].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.committed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.records_written",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.fresh_evaluation",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.recorded_decision_returned",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.proposal.proposal_does_not_execute",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.disposition",
+          "expectation": "PERMIT",
+          "observed": "PERMIT",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[1]@2.token",
+          "expectation": "T1",
+          "observed": "T1",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.committed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.records_written",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.consumption_matches_receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.record_effects_match_receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.exactly_one_requested_consumption",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.receipt_actor",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.execution.pre_transaction_revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-null",
+          "assertion": "steps[2]@2.duties",
+          "expectation": [
+            {
+              "id": "D_resolve(CL1)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "authority_baseline": true,
+              "claim": "CL1",
+              "claimant": "K1",
+              "due": 21,
+              "fallback": "F",
+              "history": [
+                "opened@1",
+                "discharged@2"
+              ],
+              "id": "D_resolve(CL1)",
+              "kind": "resolve",
+              "offered_to": null,
+              "offers": {},
+              "overdue": false,
+              "owner": "A",
+              "ownership_interrupted": false,
+              "proof": [
+                {
+                  "amount": 120,
+                  "kind": "settlement",
+                  "record": "REFX"
+                }
+              ],
+              "resolution": "discharged"
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-absent",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "discharged"
+            }
+          ],
+          "observed": [
+            {
+              "amount": 120,
+              "authority_baseline": true,
+              "by": "REFX",
+              "claim": "CL1",
+              "claimant": "K1",
+              "due": 21,
+              "fallback": "F",
+              "history": [
+                "opened@1",
+                "discharged@1"
+              ],
+              "id": "D_refund(CL1,120)",
+              "kind": "refund",
+              "offered_to": null,
+              "offers": {},
+              "overdue": false,
+              "owner": "A",
+              "ownership_interrupted": false,
+              "proof": [
+                {
+                  "amount": 120,
+                  "kind": "settlement",
+                  "record": "REFX"
+                }
+              ],
+              "resolution": "discharged"
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[1].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[0]@1.duties",
+          "expectation": [
+            {
+              "id": "D_refund(CL1,120)",
+              "resolution": "unresolved"
+            },
+            {
+              "id": "D_refund(CL8,120)",
+              "resolution": "unresolved"
+            }
+          ],
+          "observed": [
+            {
+              "amount": 120,
+              "authority_baseline": true,
+              "claim": "CL1",
+              "claimant": "K1",
+              "due": 21,
+              "fallback": "F",
+              "history": [
+                "opened@1"
+              ],
+              "id": "D_refund(CL1,120)",
+              "kind": "refund",
+              "offered_to": null,
+              "offers": {},
+              "overdue": false,
+              "owner": "A",
+              "ownership_interrupted": false,
+              "resolution": "unresolved"
+            },
+            {
+              "amount": 120,
+              "authority_baseline": true,
+              "claim": "CL8",
+              "claimant": "K1",
+              "due": 21,
+              "fallback": "F",
+              "history": [
+                "opened@1"
+              ],
+              "id": "D_refund(CL8,120)",
+              "kind": "refund",
+              "offered_to": null,
+              "offers": {},
+              "overdue": false,
+              "owner": "A",
+              "ownership_interrupted": false,
+              "resolution": "unresolved"
+            }
+          ],
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "step[2].phases1-2.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.immutable_record_versions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.duties",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.reports",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.grants",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.orders",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.allocations",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.records",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.cases",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.notices",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.tokens",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.receipts",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.decisions",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.world",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.setup",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.revision",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.sql_projection.step",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.state_delta",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.committed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.action_executed",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.records_written",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.fresh_evaluation",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.recorded_decision_returned",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.receipt_history_retained",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.proposal.proposal_does_not_execute",
+          "expectation": "matches actual state",
+          "observed": "verified",
+          "status": "pass",
+          "origin": "state-audit"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.disposition",
+          "expectation": "PROHIBIT",
+          "observed": "PROHIBIT",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.rule",
+          "expectation": "PR1",
+          "observed": "PR1",
+          "status": "pass",
+          "origin": "source"
+        },
+        {
+          "trace": "R-Q14-allocation-cross-claim-duty",
+          "assertion": "steps[1]@2.token",
+          "expectation": "none",
+          "observed": "none",
+          "status": "pass",
+          "origin": "source"
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 # Gateway v0.3.2 revision 3.1 implementation — checkpoint
 
 PR #30 was approved by Claude and merged after all three exact-head workflows passed.
-This branch begins the separately requested Q14–Q16/H1 implementation; only H1 is implemented here so far.
+This branch begins the separately requested Q14–Q16/H1 implementation; H1 and the null-allocation repair are implemented; Q14–Q16 policy remains incomplete.
 H1 is opt-in authenticated roster publication in isolated regression worlds, with independent SQL and reference encodings.
 Frozen v0.2.2/W0, expected outcomes, controllers, contracts and the pre-declared comparison protocol are unchanged.
 Q14–Q16 implementation, the complete new regression set and Claude's review remain required before final scoring.
@@ -118,9 +118,9 @@ These are implementation notes, not amendments to the approved text. New outcome
 expectations must remain authored from that text, with the full required suite
 exposed on pinned pre-change code before any final comparison is run.
 
-## Open engineering discrepancy found before final scoring
+## Historical engineering discrepancy found before final scoring
 
-**Q14-NULL-ALLOCATION — unresolved, blocks final scoring.** A pre-scoring
+**Q14-NULL-ALLOCATION — historical finding at checkpoint 5d0ca5cf.** See the [repair and nullable-field sweep](TAA_GATEWAY_NULL_ALLOCATION_REPAIR.md) for the subsequent ruling, fix and permanent controls. The following preserves the original finding. A pre-scoring
 component control commits a correct CL1 refund of 120 and a corresponding
 claimant notice, then asks the common oracle about D_refund and D_resolve. The
 production record explicitly contains `allocated_to: null`; the conventional
@@ -173,9 +173,11 @@ Chris supplied this review in the chat before the exact-head CI check and merge:
 > Verified locally: all 15 CI steps pass with unchanged counts. The external oracle uses only the independent reference duty relations over each arm's actual records, notices, authenticated messages and committed operations, and never reads an arm's internal duties, resolution statuses or allocation ledger. Normative report obligations are not counted as deliveries; acknowledgments bind only actually dispatched reports. Floor and static arms perform duty tools as plain business writes, with no tokens or ledger. The cross-arm protocol was committed before implementation and outcomes, and no key is derived from any arm's output.
 
 The new Q14-NULL-ALLOCATION control above tests a previously uncovered interface
-case; it is retained as an open defect despite those reproducible legacy passes.
+case; the original failed probe is retained unchanged. The subsequent null-allocation
+repair and its independent current/baseline acceptance are documented in
+[TAA_GATEWAY_NULL_ALLOCATION_REPAIR.md](TAA_GATEWAY_NULL_ALLOCATION_REPAIR.md).
 
-## Completed checkpoint acceptance
+## H1 checkpoint acceptance (historical 5d0ca5cf)
 
 - Full discovery: **1,066 tests**, 36 existing optional skips, zero failures or
   errors; 1,612.847 seconds. All 279 gateway component methods pass, including
@@ -202,6 +204,7 @@ Frozen structure validator: 49 traces/variants, zero errors, unchanged zip and
 manifest. Source pins stayed unchanged throughout final acceptance.
 
 The complete v0.3.2 task remains **INCOMPLETE**. This acceptance table covers H1
-and legacy compatibility only. Q14-NULL-ALLOCATION is an intentional failed
-preflight control; Q14–Q16 requirements and all unimplemented rows above remain
-open. The alignment PR stays draft, and final scoring remains held.
+and legacy compatibility only. At that checkpoint, Q14-NULL-ALLOCATION was an
+intentional failed preflight control. The current repair addresses it without
+altering that evidence; Q14–Q16 policy requirements and the unimplemented rows
+above remain open. The alignment PR stays draft, and final scoring remains held.

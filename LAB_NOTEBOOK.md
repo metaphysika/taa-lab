@@ -8146,3 +8146,22 @@ explicitly counted. Frozen 49-trace validator/manifest passes; source pins match
 Evidence: docs/process/evidence/gateway-v032-h1/validation.json. Q14–Q16 and the
 Q14 null-allocation oracle defect remain incomplete; no final scores or merge
 approval for this draft checkpoint. Push a clean checkpoint for continuation.
+
+## Q14-NULL-ALLOCATION ruling and repair — 2026-10-23 America/Chicago
+
+Chris relayed Claude's ruling: null and absent allocated_to both mean
+unallocated; non-null allocation to a different duty or claim stays blocked.
+The same default-value defect was found in the refund reference's allocation
+ledger and the generic declarative model's ledger. Fix only these allocation
+representation sites, preserve actual arm records and all frozen inputs/keys/
+controllers. Seven permanent component methods plus a separate three-scenario
+trace suite cover the original executed-payment/notice control on production,
+SQL and floor, cross-claim correction, null/absent ledgers and same-claim notice
+reuse. On pinned pre-change 5d0ca5cf: six failures, zero errors, including the
+original production/oracle control and both ledger null cases; mirror controls
+stay blocked. Fixed controls pass. The sweep's other nullable/default findings
+will be listed in the PR; no numerical, evidential, deadline or grant semantics
+will be silently changed. Full compatibility acceptance is required before
+proceeding to Q14–Q16 policy work; scoring stays held.
+
+Null-allocation repair final local acceptance: 1,073 tests /36 existing skips /zero failures or errors in 2005.117s; 286 component methods pass. All 17 current-workflow commands, scripted all-scenarios and the fresh pinned null baseline guard pass. Fourteen historical count comparisons remain unchanged. New three-scenario suite: nine source assertions and reference/production/SQL audits34/34/159, zero discrepancies/incomplete. Seven component controls pass; pinned-before six failures, zero errors. All-arm input-only engineering replay executes654 scenario instances with zero audit discrepancies;98 unavailable instances explicitly listed (84 missing POEC contracts,14 unsupported business fault variants), not credited as passes. Source pins and frozen manifest remain unchanged. Full-source discovery repeated after the applicability-reporting harness change; interrupted/failed prefixes and prior failed oracle probe retained. Evidence: docs/process/evidence/gateway-v032-null/validation.json. Q14–Q16 policy remains incomplete in draft PR31; no final scoring, merge or scientific validation claim.
