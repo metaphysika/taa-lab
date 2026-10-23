@@ -122,3 +122,32 @@ C3, external duty scoring, floor/static business operations and four-controller
 cross-arm integration remain to be implemented in subsequent PRs.
 
 [DESCRIPTIVE] Final local acceptance completed on 2026-10-23 UTC: full discovery **1,025 tests, 36 skipped, zero failures/errors**, in 2,171.015 seconds. The collected inventory is the parent's 1,014 plus the eleven C2 methods; existing skips are retained. Scripted all-scenarios also passes. [validation.json](evidence/gateway-c2/validation.json) records exact comparisons, component and mutation evidence, source/log hashes and the frozen archive hash. These unit-test skips are distinct from the zero-incomplete frozen and regression acceptance gates.
+
+## R1 — intrinsic withdrawal remains binding
+
+[DESCRIPTIVE] Chris relayed Claude's approval of PR #29 at `2c7f84d9`, conditional
+on preserving token-intrinsic withdrawal in both C2 configurations. The reviewed
+code ignored every non-live status when world-change invalidation was disabled.
+The new component test reproduced execution of a withdrawn token in both modes:
+two assertion failures, zero errors. No expected outcome was changed.
+
+[DESCRIPTIVE] The executor now bypasses a non-live state only when both the token
+and warrant are explicitly void with the reason `revision`. Withdrawal, own
+expiry and any other intrinsic retirement still refuse execution. The actor,
+exact-argument, single-use and explicit expiry checks remain. Withdrawing one
+token leaves another outstanding token live and executable in both variants;
+this does not restore revision-wide invalidation or primary reassessment.
+
+[DESCRIPTIVE] Final R1 checks: 12 component methods pass; full discovery runs
+1,026 tests with 36 existing skips and zero failures/errors (2,772.389 seconds).
+All 19 gateway command steps and scripted all-scenarios pass. Every one of the
+fourteen default-count comparisons remains unchanged. The one added test method
+accounts for the discovery/component increase. Exact before/after controls,
+counts, source hashes and log hashes are in
+[withdrawal validation](evidence/gateway-c2-withdrawal/validation.json).
+Earlier C2 evidence remains historical and unchanged.
+
+[DESCRIPTIVE] PR #28 merged at `1d885fcf194b53ab11c923078641fd46a4c8a35e` after all
+three exact-head workflows succeeded. PR #29 now targets main. Claude's relayed
+conditional approval covers this fix; merge still requires green CI on its new
+head. C3 remains a separate PR, with Q14–Q16 unchanged.
