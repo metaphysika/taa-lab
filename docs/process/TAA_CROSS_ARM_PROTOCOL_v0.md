@@ -71,3 +71,13 @@ conventional matching rules and POEC contracts stay unchanged. Source assertions
 not run in a cross-arm input-only program are reported separately from the common
 state audits and existing full acceptance suites; no claim of frozen-key success
 is made for a deliberately weaker arm. Regression acceptance remains permanent.
+
+[PROTOCOL / IMPLEMENTATION DETAIL, before results] The reviewed POEC design consumes
+its certificate on dispatch, including a later rollback. The shared Observer must
+account for that consumption using an actual retained `dispatch_rolled_back`
+history entry, while still requiring exact actual-effect/receipt agreement and
+unchanged record histories. It independently checks exported token projections
+against the real POEC certificate store. This is a declared certificate protocol,
+not a relaxation for unexplained consumption; ordinary TAA/SQL audits are unchanged.
+The native omitted root grant expiry and purpose decode to the reviewed simulator
+sentinels 100000 and P1. Development horizons are strictly below that sentinel.
