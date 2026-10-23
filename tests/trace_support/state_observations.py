@@ -157,6 +157,16 @@ class Observer:
         if 'relational_checkpoint' in after:
             for key, actual_rows in sql_projection(after).items():
                 check('sql_projection.' + key, actual_rows, after[key])
+        if 'business_operations' in before:
+            for channel in ('business_operations', 'messages'):
+                check(channel + '_history_retained', before[channel], after[channel][:len(before[channel])])
+        if after.get('execution_protocol') == 'poec':
+            actual = {tid: dict(actor=row['certificate']['actor'], tool=row['certificate']['tool'],
+                               args=row['certificate']['arguments'], status=row['status'])
+                      for tid, row in after['poec']['certificates'].items()}
+            projected = {tid: {k: row[k] for k in ('actor', 'tool', 'args', 'status')}
+                         for tid, row in after['tokens'].items()}
+            check('poec_certificate_projection', actual, projected)
         # Every state collection, including all record versions, is included.
         # Absence of this adapter contract is incomplete, not a fabricated zero.
         if 'state_delta' not in result:
@@ -193,10 +203,33 @@ class Observer:
                 check('proposal_does_not_execute', False, executed(before, after))
             else:
                 took = consumed(before, after)
-                check('consumption_matches_receipts', took, [r['token'] for r in new_receipts])
+                no_tokens = before.get('execution_protocol') == 'business_operations'
+                if no_tokens:
+                    check('business_arms_have_no_tokens', {}, after['tokens'])
+                    check('business_receipts_have_no_security_token', [], [r['token'] for r in new_receipts if 'token' in r])
+                    check('no_security_consumption', [], took)
+                elif before.get('execution_protocol') == 'poec':
+                    # Published POEC certificates are one-shot on dispatch,
+                    # including an aborted dispatch. Verify aborts from the
+                    # actual retained policy history, never returned reasons.
+                    aborted = [e['certificate'] for e in after['poec']['history'][len(before['poec']['history']):]
+                               if e['type'] == 'dispatch_rolled_back']
+                    check('consumption_matches_receipts_or_retained_poec_abort', took,
+                          [r['token'] for r in new_receipts] + aborted)
+                else:
+                    check('consumption_matches_receipts', took, [r['token'] for r in new_receipts])
                 check('record_effects_match_receipts', actual_effects, [e for r in new_receipts for e in r['committed']])
                 if new_receipts:
-                    check('exactly_one_requested_consumption', [execute.get('token')], took)
+                    if no_tokens:
+                        check('exactly_one_requested_business_operation', [execute.get('token')], [r['intent'] for r in new_receipts])
+                        operations = after['business_operations'][len(before['business_operations']):]
+                        check('one_actual_business_operation', 1, len(operations))
+                        intent = before['intents'][execute['token']]
+                        expected_operation = dict(actor=execute['actor'], tool=intent['tool'],
+                                                  args=intent['args'], step=after['step'])
+                        check('business_operation_matches_bound_intent', [expected_operation], operations)
+                    else:
+                        check('exactly_one_requested_consumption', [execute.get('token')], took)
                     check('receipt_actor', [execute['actor']], [r['actor'] for r in new_receipts])
                     check('pre_transaction_revision', [before['revision']], [r['pre_transaction_revision'] for r in new_receipts])
         return checks

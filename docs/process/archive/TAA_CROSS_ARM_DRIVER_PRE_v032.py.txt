@@ -1,0 +1,67 @@
+"""Offline C3 comparison under a committed protocol; no model/provider imports."""
+import argparse
+from collections import defaultdict
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from comparators.cross_arm import run_suite, PROTOCOL
+from comparators.harness import run_suite as reviewed_tracegrant
+
+EXPECTED_PROTOCOL_SHA256 = 'e8059b51eaea0399f4ffe198d5712497067e5a0f43045539ffad1a71a67b9580'
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--report', type=Path, required=True)
+    a = p.parse_args()
+    if hashlib.sha256(PROTOCOL.read_bytes()).hexdigest() != EXPECTED_PROTOCOL_SHA256:
+        raise ValueError('pre-evaluation matching protocol changed')
+    a.report.parent.mkdir(parents=True, exist_ok=True)
+    episodes = a.report.with_suffix('.episodes.jsonl')
+    # Never overwrite a previous prefix or reinterpret a failed attempt.
+    with episodes.open('x') as stream:
+        def retain(row):
+            stream.write(json.dumps(row, sort_keys=True, allow_nan=False) + '\n')
+            stream.flush()
+        try:
+            report = run_suite(on_episode=retain)
+        except Exception as error:
+            a.report.write_text(json.dumps(dict(status='incomplete', incomplete=1,
+                error=type(error).__name__ + ': ' + str(error),
+                retained_episode_prefix=episodes.name), indent=2) + '\n')
+            raise
+    historical = {(e['case'], e['controller']): e for e in reviewed_tracegrant()['episodes']}
+    faithful = []
+    for e in report['episodes']:
+        if e['arm'] != 'tracegrant':
+            continue
+        prior = historical[(e['case'], e['controller'])]
+        for field, earlier in (('states', prior['obligations']), ('receipts', prior['receipts']), ('history', prior['history'])):
+            faithful.append(dict(case=e['case'], controller=e['controller'], field=field,
+                                 status='pass' if e['poec'][field] == earlier else 'discrepancy'))
+    report['tracegrant_driver_equivalence'] = faithful
+    report['counts']['tracegrant_driver_checks'] = len(faithful)
+    report['counts']['tracegrant_driver_discrepancies'] = sum(r['status'] != 'pass' for r in faithful)
+    if report['counts']['episodes'] != 320:
+        raise ValueError('missing or duplicated predeclared arm/controller/task')
+    summaries = defaultdict(list)
+    for e in report['episodes']:
+        summaries[e['arm'] + '/' + e['controller']].append(e['metrics'])
+    aggregate = {}
+    for group, rows in summaries.items():
+        aggregate[group] = {k: sum(r[k] for r in rows) for k in rows[0] if type(rows[0][k]) is int}
+    output = {k: v for k, v in report.items() if k != 'episodes'}
+    output.update(summary_by_arm_controller=aggregate,
+                  episodes_sha256=hashlib.sha256(episodes.read_bytes()).hexdigest(),
+                  protocol_path=str(PROTOCOL.relative_to(ROOT)))
+    a.report.write_text(json.dumps(output, indent=2, allow_nan=False) + '\n')
+    print(json.dumps(report['counts']))
+    return bool(report['counts']['discrepancies'] or report['counts']['incomplete'] or report['counts']['tracegrant_driver_discrepancies'])
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

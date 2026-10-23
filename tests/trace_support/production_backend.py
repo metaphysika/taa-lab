@@ -18,7 +18,8 @@ class UnsupportedCapability(Exception):
 
 def _context(state):
     return RefundWorld(state["world"], KEY, native=state["native"],
-                       events=[row["native_event"] for row in state["log"]], setup=state["setup"])
+                       events=[row["native_event"] for row in state["log"]], setup=state["setup"],
+                       **({"ablation": state["ablation"]} if state.get("ablation") is not None else {}))
 
 
 def _format(result):
@@ -90,13 +91,16 @@ def _project(context, previous=None):
     log = [{"type": e["type"], "native_event": e,
             **({"result": _format(e["payload"]["result"])} if e["type"] in ("decision", "recorded_decision") else {})}
            for e in context.log.events()]
-    return {"native": state, "world": copy_json(context.definition), "setup": copy_json((previous or {}).get("setup", {})),
+    result = {"native": state, "world": copy_json(context.definition), "setup": copy_json((previous or {}).get("setup", {})),
             "records": records, "tokens": tokens, "duties": duties, "reports": copy_json(state["reports"]),
             "receipts": receipts, "notices": copy_json(state["notices"]), "allocations": copy_json(state["allocations"]),
             "cases": copy_json(state["cases"]), "grants": grants, "orders": orders, "log": log,
             "revision": state["revision"], "step": state["step"],
             "decisions": [dict(d, actor=abstract_id(d["actor"]), result=_format(d["result"])) for d in state["decisions"]],
             "phase_order": copy_json((previous or {}).get("phase_order", []))}
+    if (previous or {}).get("ablation") is not None:
+        result["ablation"] = previous["ablation"]
+    return result
 
 
 def _describe(before, after, result):
@@ -108,10 +112,10 @@ def _describe(before, after, result):
     return after, result
 
 
-def start(world, setup=None, *, defer_first_step=False):
+def start(world, setup=None, *, defer_first_step=False, ablation=None):
     setup = setup or {}
-    context = RefundWorld(world, KEY, setup=setup)
-    state = _project(context, {"setup": setup})
+    context = RefundWorld(world, KEY, setup=setup, **({"ablation": ablation} if ablation is not None else {}))
+    state = _project(context, {"setup": setup, "ablation": ablation})
     if not defer_first_step:
         state, _ = enter_step(state, 1)
     return state
@@ -277,6 +281,7 @@ def inject_hidden_state(state, result, kind, args):
         changed = True
     if changed:
         context = RefundWorld(state["world"], KEY, native=native,
-                              events=[row["native_event"] for row in state["log"]], setup=state["setup"])
+                              events=[row["native_event"] for row in state["log"]], setup=state["setup"],
+                              **({"ablation": state["ablation"]} if state.get("ablation") is not None else {}))
         state = _project(context, state)
     return state, result
