@@ -310,7 +310,8 @@ def rule_definitions():
 
 class RefundWorld:
     def __init__(self, definition, key, *, native=None, events=(), setup=None, ablation=None):
-        if ablation not in (None, "without_admissibility"):
+        if ablation not in (None, "without_admissibility", "without_invalidation",
+                            "without_invalidation_reassessment_diagnostic"):
             raise ValueError("unknown offline ablation")
         self.definition = copy_json(definition)
         self.auth, self.log = SimulatorAuthority(key), EventLog("production-refunds", key)
@@ -347,7 +348,9 @@ class RefundWorld:
                 writers.append({"kind": kind, "tool": "correct_resolution", "channel": "gateway", "principals": ["gateway"],
                                 "id_prefix": prefix, "evidential": True, "create": False, "correct_fields": ["answer"]})
         self.gateway = self.auth.bind("gateway", "gateway", list(self.gateway.tools) + ["grant_change"])
-        self.store = RecordStore(self.auth, self.log, {"schema_version": V, "writers": writers})
+        invalidation = ablation not in ("without_invalidation", "without_invalidation_reassessment_diagnostic")
+        self.store = RecordStore(self.auth, self.log, {"schema_version": V, "writers": writers},
+                                 invalidate_tokens_on_revision=invalidation)
         self.orders = StoredOrders(self.store, self.auth, self.gateway)
         self.resolutions = StoredResolutions(self.store, self.auth, self.gateway, {
             q: {"jurisdiction": spec["resolver"], "reviewers": [native_id(p, "party") for p in definition["jurisdictions"][spec["resolver"]]],
@@ -362,7 +365,8 @@ class RefundWorld:
             "goodwill_approval": {"role": "F", "jurisdiction": "claim_decisions"}})
         self.engine = DutyEngine(self, PREFIX)
         self.runtime = Runtime(self.store, self.auth, self.gateway, self.pipeline, self.tools,
-                               token_lifetime=(setup or {}).get("token_lifetime", 10), duty_engine=self.engine)
+                               token_lifetime=(setup or {}).get("token_lifetime", 10), duty_engine=self.engine,
+                               reassess_on_execute=ablation != "without_invalidation")
         if native is not None:
             self.store.restore_for_simulator(self.gateway, native)
         else:
