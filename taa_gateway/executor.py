@@ -43,7 +43,13 @@ class InjectedFault(RuntimeError):
 
 
 class Runtime:
-    def __init__(self, store, authority, gateway_session, pipeline, tools, *, token_lifetime=10, duty_engine=None):
+    def __init__(self, store, authority, gateway_session, pipeline, tools, *, token_lifetime=10, duty_engine=None,
+                 reassess_on_execute=True):
+        if type(reassess_on_execute) is not bool:
+            raise ValueError("reassess_on_execute must be a boolean")
+        if not reassess_on_execute and store.invalidates_tokens_on_revision:
+            raise ValueError("disabling reassessment requires the explicit no-invalidation configuration")
+        self.__reassess_on_execute = reassess_on_execute
         actor, channel = authority.identity(gateway_session, "capabilities")
         authority.identity(gateway_session, "execute_transaction")
         if channel != "gateway" or type(token_lifetime) is not int or token_lifetime < 1:
@@ -141,22 +147,27 @@ class Runtime:
                 raise ExecutionRefused("refused_token_consumed")
             if state["step"] >= cert["expires_at_step"]:
                 raise ExecutionRefused("refused_token_expired")
-            if state["revision"] != cert["state_revision"]:
+            if self.store.invalidates_tokens_on_revision and state["revision"] != cert["state_revision"]:
                 raise ExecutionRefused("refused_stale_revision")
             warrant = state["warrants"][cert["warrant_id"]]
-            if row["status"] != "live" or warrant["status"] != "live":
+            not_live = row["status"] != "live" or warrant["status"] != "live"
+            revision_void = (row["status"] == "void" and warrant["status"] == "void" and
+                             row.get("void_reason") == "revision")
+            # C2 removes world-change invalidation, never intrinsic retirement.
+            if not_live and (self.store.invalidates_tokens_on_revision or not revision_void):
                 raise ExecutionRefused("refused_token_not_live")
             name = row["tool"] if tool is None else tool
             args = row["args"] if arguments is None else arguments
             if digest({"tool": name, "arguments": args}) != cert["exact_argument_digest"]:
                 raise ExecutionRefused("refused_argument_mismatch")
-            current = self.pipeline.assess_snapshot(state, actor, name, args)
-            if (current["disposition"] != "PERMIT" or current["act_description_hash"] != warrant["act_description_hash"] or
-                    digest(current["justification"]) != row["basis_hash"]):
-                raise ExecutionRefused("refused_revalidation")
+            if self.__reassess_on_execute:
+                current = self.pipeline.assess_snapshot(state, actor, name, args)
+                if (current["disposition"] != "PERMIT" or current["act_description_hash"] != warrant["act_description_hash"] or
+                        digest(current["justification"]) != row["basis_hash"]):
+                    raise ExecutionRefused("refused_revalidation")
             at("after_validate")
             plan, _ = self._plan(state, name, args)
-            if digest(plan) != row["plan_hash"]:
+            if self.__reassess_on_execute and digest(plan) != row["plan_hash"]:
                 raise ExecutionRefused("refused_staging_mismatch")
             at("after_stage")
             versions, committed = [], []
@@ -194,8 +205,11 @@ class Runtime:
             at("during_receipt_write")
             self.store.advance_revision(state, events)
             at("during_revision_advance")
+            validation = ("pre_transaction_revision" if self.store.invalidates_tokens_on_revision else
+                          "fixed_token_conditions_and_reassessment" if self.__reassess_on_execute else
+                          "fixed_token_conditions_only")
             result.update(execute_result="committed", committed=committed, action_executed=True,
-                          validation_compares="pre_transaction_revision")
+                          validation_compares=validation)
             events.append((state["step"], "receipt", receipt))
         try:
             self.store.gateway_mutation(self.gateway, "execute_transaction", transaction)

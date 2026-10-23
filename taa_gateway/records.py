@@ -22,7 +22,10 @@ class Write:
 
 
 class RecordStore:
-    def __init__(self, authority, event_log, write_policy):
+    def __init__(self, authority, event_log, write_policy, *, invalidate_tokens_on_revision=True):
+        if type(invalidate_tokens_on_revision) is not bool:
+            raise ValueError("invalidate_tokens_on_revision must be a boolean")
+        self.__invalidate_tokens_on_revision = invalidate_tokens_on_revision
         validate("write_policy", write_policy)
         if any(p["channel"] == "agent" and p["evidential"] for p in write_policy["writers"]):
             raise ValueError("an agent assertion cannot be an evidential write")
@@ -43,6 +46,11 @@ class RecordStore:
                         "cases": {}, "reports": {}, "duty_records": {}}
         self.__lock = RLock()
         self.__mutating = False
+
+    @property
+    def invalidates_tokens_on_revision(self):
+        """Trusted episode configuration, not an agent-writable state field."""
+        return self.__invalidate_tokens_on_revision
 
     @property
     def revision(self):
@@ -120,7 +128,8 @@ class RecordStore:
         if relevant and state["revision"] == prior["revision"]:
             self.advance_revision(state, events)
         for tid, row in state["tokens"].items():
-            if row["status"] == "live" and row["certificate"]["state_revision"] != state["revision"]:
+            if (self.__invalidate_tokens_on_revision and row["status"] == "live" and
+                    row["certificate"]["state_revision"] != state["revision"]):
                 row["status"], row["void_reason"] = "void", "revision"
                 state["warrants"][row["certificate"]["warrant_id"]]["status"] = "void"
                 events.append((state["step"], "token_voided", {"token": tid, "revision": state["revision"]}))
@@ -143,6 +152,8 @@ class RecordStore:
         if not self.__mutating or state is not self.__state or type(count) is not int or count < 1:
             raise ValueError("not the locked working state")
         state["revision"] += count
+        if not self.__invalidate_tokens_on_revision:
+            return
         for tid, row in state["tokens"].items():
             if row["status"] == "live":
                 row["status"] = "void"
@@ -209,6 +220,13 @@ class RecordStore:
             if writes or boundaries or expired or ledger_boundaries:
                 self.advance_revision(state, events, int(bool(writes)) + len(boundaries) + int(bool(expired)) + ledger_boundaries)
                 for tid in expired:
+                    # C2 removes world-change invalidation, not intrinsic expiry.
+                    # Only this expired token is retired; other handles stay live.
+                    if not self.__invalidate_tokens_on_revision:
+                        row = state["tokens"][tid]
+                        row["status"] = "void"
+                        state["warrants"][row["certificate"]["warrant_id"]]["status"] = "void"
+                        events.append((state["step"], "token_voided", {"token": tid, "revision": state["revision"]}))
                     state["tokens"][tid]["void_reason"] = "expired"
             for boundary in boundaries:
                 events.append((next_step, "clock_boundary", boundary))
