@@ -131,7 +131,12 @@ def _find(context, rid):
 def apply_event(before, event, stabilize=True):
     context, result = _context(before), {}
     typ = event["type"]
-    if typ in ("acknowledgment", "duty_acceptance"):
+    if typ == "roster_change":
+        payload = {k: v for k, v in event.items() if k not in ("type", "by")}
+        envelope = context.auth.issue(context.sessions[event["by"]], "gateway_roster", before["step"],
+                    "roster_change", payload, message_id="roster:" + str(len(context.log.events()) + 1))
+        result.update(context.roster.receive(envelope))
+    elif typ in ("acknowledgment", "duty_acceptance"):
         content = {k: event[k] for k in ("report", "version", "duties") if k in event}
         envelope = context.auth.issue(context.sessions[event["from"]], "gateway_reporting", before["step"],
                                      "acceptance" if typ == "duty_acceptance" else typ, content,

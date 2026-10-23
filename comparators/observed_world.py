@@ -28,8 +28,11 @@ def records(state):
     aliases = {rid: 'RES' + str(i + 1) for i, rid in enumerate(
         rid for rid, rows in source.items() if rows[-1]['kind'] == 'resolution')}
     found = {}
+    roster_enabled = 'roster_change' in state.get('setup', {}).get('host_events', state.get('host_events', []))
     for rid, rows in source.items():
-        if rows[-1]['kind'] not in KINDS:
+        if rows[-1]['kind'] == 'party' and not roster_enabled:
+            continue
+        if rows[-1]['kind'] not in KINDS | {'party'}:
             if rows[-1]['kind'] not in {'grant', 'purpose', 'party', 'stored_order', 'report', 'acknowledgment', 'acceptance'}:
                 raise ValueError('unmapped actual record kind: ' + rows[-1]['kind'])
             continue
@@ -37,6 +40,9 @@ def records(state):
         history = []
         for row in rows:
             kind, f = row['kind'], deepcopy(row['fields'])
+            if kind == 'party':
+                f = {k: sorted(f[k]) if k in ('jurisdictions', 'may_receive') else f[k]
+                     for k in ('name', 'role', 'jurisdictions', 'conflicts', 'may_receive')}
             if kind == 'resolution' and 'question_id' in f:
                 answer = f['answer']
                 if set(answer) - {'about', 'decision', 'surviving', 'substantive_basis', 'correction_envelope'}:

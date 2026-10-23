@@ -17,7 +17,17 @@ jobs:
           sha256sum -c MANIFEST.sha256
           python -I tools/validate_traces.py .
       - name: Foundation, reference and runner boundary tests (no model calls)
-        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial tests.test_gateway_development tests.test_tracegrant_comparator tests.test_gateway_ablations tests.test_gateway_token_bindings tests.test_gateway_no_invalidation tests.test_cross_arm -v
+        run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial tests.test_gateway_development tests.test_tracegrant_comparator tests.test_gateway_ablations tests.test_gateway_token_bindings tests.test_gateway_no_invalidation tests.test_cross_arm tests.test_gateway_roster_h1 -v
+      - name: H1 authenticated roster events in isolated regression worlds
+        run: python -I scripts/check_gateway_roster_h1.py --report "$RUNNER_TEMP/gateway-roster-h1.json"
+      - name: Pin the pre-H1 implementation for regression sensitivity
+        uses: actions/checkout@v4
+        with:
+          ref: cbcb5a5ca7e01b0e7206a8cc4be5634410f92e36
+          path: gateway-pre-v032
+          persist-credentials: false
+      - name: Every H1 targeted scenario fails on the pre-change implementation
+        run: python -I scripts/check_gateway_roster_h1.py --implementation-root gateway-pre-v032 --expect-baseline --report "$RUNNER_TEMP/gateway-roster-h1-before.json"
       - name: Stage 6 duty deadline controls catch all three review mutations
         run: python -I scripts/check_gateway_duty_boundaries.py --report "$RUNNER_TEMP/gateway-duty-boundary-mutations.json"
       - name: Independent conventional SQL kernel components and real rollback sensitivity
@@ -85,6 +95,8 @@ jobs:
         with:
           name: gateway-reference-v031
           path: |
+            ${{ runner.temp }}/gateway-roster-h1.json
+            ${{ runner.temp }}/gateway-roster-h1-before.json
             ${{ runner.temp }}/conventional-w0.json
             ${{ runner.temp }}/conventional-kernel/report.json
             ${{ runner.temp }}/conventional-kernel/*.stdout

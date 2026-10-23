@@ -8093,3 +8093,56 @@ Chris supplied v0.3.2 revision 3.1, Astra-confirmed, during C3 acceptance. Text 
 H1 regression host-event ruling received and saved as docs/process/TAA_GATEWAY_REGRESSION_HOST_EVENTS_H1.md. Q14–Q16 worlds will declare authenticated company-only roster_change overlays; no trusted host mutations or edits to frozen W0. Actual roster changes go through versioned writes and revision invalidation; rejected/no-op changes are log-only. Implementation belongs to the next PR. The pre-v0.3.2 diagnostic prefix stopped at 235/320 and is explicitly incomplete; no final cross-arm aggregate was produced. A historical-constructor sensitivity failure was fixed by omitting the redundant None mode keyword in ordinary mode; fresh targeted checks pass, explicit-mode restoration remains checked, and full corrected-source discovery is running.
 
 C3 infrastructure final local acceptance — 2026-10-23 UTC: corrected-source full discovery 1,052 tests in 1,512.792s, 36 existing optional skips, zero failures/errors; gateway components 265 including 26 new methods, all pass; scripted all-scenarios pass. All fourteen existing count comparisons reproduce exactly. Nineteen named gateway commands have successful evidence, with the component and historical sensitivity gates explicitly rerun after the compatibility fix. Frozen reference/production 534 source +1,704/1,751 audits; regressions 32 scenarios each, 217 source +653/676 audits and three hidden-state controls; zero current-suite discrepancies/incomplete. Inactive deferred driver is preserved unchanged in docs/process/archive/TAA_CROSS_ARM_DRIVER_PRE_v032.py.txt. The interrupted pre-v0.3.2 prefix has 235/320 episodes, 27,361 audits, zero discrepancies/incomplete within the prefix; 85 uncompleted episodes and final scoring remain explicitly incomplete/held for Q14–Q16/H1. Evidence: docs/process/evidence/gateway-c3/validation.json. Approved specification and H1 texts recorded; no frozen/controller/contract/matching-rule edits. Open C3 for Claude review; no merge without review and green CI.
+
+## Gateway v0.3.2 implementation: H1 checkpoint — 2026-10-23 UTC
+
+Claude approved PR30 at eb0e7dc0. All three exact-head GitHub workflows passed;
+merged cbcb5a5ca7e01b0e7206a8cc4be5634410f92e36. A fresh alignment branch begins
+the requested Q14–Q16/H1 work. H1 now has an explicit opt-in regression-world
+host event, authenticated root-only core inbox and single write path, independent
+SQL authentication/transaction and reference relation, actual-history oracle
+decoding, plus the same external vocabulary for ledger-free business hosts.
+Relevant changes version the roster and advance revision; rejected/no-op events
+are log-only. C2 invalidation ablations stay explicit. Added five authored traces
+outside W0, 26 source assertions per normative backend, full-state audits and a
+pinned-baseline sensitivity guard. All five fail on pre-H1 code; baseline errors
+are recorded as failures, not skipped coverage. Fourteen new component methods
+pass. Full compatibility checks are running before the clean checkpoint commit.
+
+Q14 interval/receipt coverage, Q15 dynamic routing and Q16 capacity episodes are
+still incomplete. The two named Q11/Q12 cases are not superseded prematurely;
+originals must remain when their Q16 successors are added. The single alignment
+PR will stay draft and unmergeable as complete v0.3.2 until those requirements,
+every listed regression, Claude review and green CI are met. Final scoring is
+held for a separate post-review PR. Frozen v0.2.2, W0 and all scientific resources
+are unchanged. No model calls, Modal operations, spending, deletions or releases.
+
+An early broad test prefix was interrupted and retained after adding the
+transaction-lock step recheck and its component control; the final source is
+being tested afresh. Earlier component/trace failures remain in the scratch
+evidence and will be listed by log hash, including the old-schema baseline
+wrapper's first exception. No failed attempt is counted as completed acceptance.
+
+Pre-scoring Q14 interface control exposed a pre-existing common-oracle defect:
+explicit `allocated_to: null` on a valid production settlement is rejected by the
+reference settlement predicate, while the equivalent omitted field is accepted.
+The oracle leaves the production arm's two duties unresolved despite the
+correct committed refund and notice. Conventional/floor controls discharge.
+The expectation was authored from DU1/DU2 before running this control. Actual
+records, source and failed diagnostic are preserved with the H1 checkpoint;
+this is an unresolved scoring blocker to repair/test with Q14, not an accepted
+cross-arm result. No final scoring or matching-rule adjustment was performed.
+
+H1 checkpoint final local acceptance: 1,066 tests /36 existing skips /zero
+failures/errors in 1,612.847s; 279 gateway component methods pass, including
+fourteen H1 methods; historical scripted all-scenarios passes. Sixteen current
+workflow commands pass locally (older baseline-checkout commands excluded),
+plus fresh H1 sensitivity against the exact pre-change tree. All fourteen legacy
+count comparisons unchanged. H1 per backend: five scenarios and 26 source
+assertions; reference/production/SQL audits 61/64/413; zero discrepancies or
+incomplete in these executed H1 suites. All five targets fail baseline in all
+three implementations, with 24 downstream baseline assertions unexecuted and
+explicitly counted. Frozen 49-trace validator/manifest passes; source pins match.
+Evidence: docs/process/evidence/gateway-v032-h1/validation.json. Q14–Q16 and the
+Q14 null-allocation oracle defect remain incomplete; no final scores or merge
+approval for this draft checkpoint. Push a clean checkpoint for continuation.

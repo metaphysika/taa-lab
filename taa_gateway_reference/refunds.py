@@ -57,6 +57,14 @@ def start(world, setup=None, *, defer_first_step=False):
          "grants": deepcopy(world["grants"]), "duties": {}, "cases": {}, "tokens": {},
          "decisions": [], "receipts": [], "log": [], "reports": {}, "allocations": {},
          "notices": [], "token_lifetime": setup.get("token_lifetime", 10), "phase_order": []}
+    if "roster_change" in setup.get("host_events", []):
+        s["host_events"] = ["roster_change"]
+        for party in list(world["parties"]) + ["company"]:
+            put(s, party, {"kind": "party", "name": party, "role": world["parties"].get(party, {}).get("role", "root"),
+                "jurisdictions": [j for j, members in world["jurisdictions"].items() if party in members]
+                    if party != "company" else ["root", "interim"],
+                "conflicts": [], "may_receive": [j for j in ("misconduct_reports", "unowned_duties")
+                    if party in world["jurisdictions"][j]]}, "company")
     seed = deepcopy(world["records"])
     for rid in setup.get("remove_records", []):
         seed.pop(rid, None)
@@ -527,7 +535,29 @@ def apply_event(before, ev, *, stabilize=True):
     if kind == "message":
         s["log"].append(deepcopy(ev))
         return s, detail
-    if kind == "order":
+    if kind == "roster_change":
+        if kind not in s.get("host_events", []):
+            raise ValueError("roster event not declared in regression overlay")
+        row = current(s, ev.get("party")) if type(ev.get("party")) is str else None
+        keys = ("add_jurisdictions", "remove_jurisdictions", "add_may_receive", "remove_may_receive")
+        valid = (not set(ev) - {"type", "by", "party", *keys} and
+                 all(type(ev.get(k, [])) is list and all(type(x) is str and x for x in ev.get(k, [])) for k in keys))
+        if ev.get("by") != "company" or not row or row["kind"] != "party" or not valid:
+            s["log"].append({"type": "rejected_roster_change", "input": deepcopy(ev)})
+            return s, {"roster_rejected": True}
+        fields = deepcopy(row["fields"])
+        for field in ("jurisdictions", "may_receive"):
+            members = (set(fields[field]) - set(ev.get("remove_" + field, []))) | set(ev.get("add_" + field, []))
+            fields[field] = [v for v in fields[field] if v in members]
+            for v in ev.get("add_" + field, []):
+                if v not in fields[field]:
+                    fields[field].append(v)
+        if fields == row["fields"]:
+            s["log"].append({"type": "roster_change_noop", "input": deepcopy(ev)})
+            return s, detail
+        put(s, ev["party"], dict(fields, kind="party"), "company")
+        detail["records_written"] = [{"kind": "party", "evidential": True}]
+    elif kind == "order":
         if ev["id"] in s["orders"] or ev["from"] not in s["world"]["parties"]:
             raise ValueError("duplicate order or unauthenticated issuer")
         s["orders"][ev["id"]] = deepcopy(ev)

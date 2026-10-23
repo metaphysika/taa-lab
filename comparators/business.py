@@ -131,6 +131,13 @@ class Backend:
                  receipts=[], log=[], reports={}, allocations={}, notices=[], phase_order=[],
                  intents={}, business_operations=[], messages=[], arm=self.arm,
                  execution_protocol='poec' if self.arm == 'tracegrant' else 'business_operations')
+        if 'roster_change' in setup.get('host_events', []):
+            for party in list(world['parties']) + ['company']:
+                put(s, party, dict(kind='party', name=party, role=world['parties'].get(party, {}).get('role', 'root'),
+                    jurisdictions=[j for j, members in world['jurisdictions'].items() if party in members]
+                        if party != 'company' else ['root', 'interim'],
+                    conflicts=[], may_receive=[j for j in ('misconduct_reports', 'unowned_duties')
+                        if party in world['jurisdictions'][j]]), 'company')
         seed = deepcopy(world['records'])
         for rid in setup.get('remove_records', []):
             seed.pop(rid, None)
@@ -198,7 +205,28 @@ class Backend:
     def event(s, event):
         e = deepcopy(event)
         typ = e['type']
-        if typ in ('record_insert', 'record_correction'):
+        if typ == 'roster_change':
+            if typ not in s['setup'].get('host_events', []):
+                raise ValueError('roster event requires regression overlay')
+            row = Service(s).current(e.get('party')) if type(e.get('party')) is str else None
+            keys = ('add_jurisdictions', 'remove_jurisdictions', 'add_may_receive', 'remove_may_receive')
+            valid = (not set(e) - {'type', 'by', 'party', *keys} and
+                all(type(e.get(k, [])) is list and all(type(x) is str and x for x in e.get(k, [])) for k in keys))
+            if e.get('by') != 'company' or not row or row['kind'] != 'party' or not valid:
+                s['log'].append(dict(type='rejected_roster_change', event=e))
+                return
+            fields = deepcopy(row['fields'])
+            for field in ('jurisdictions', 'may_receive'):
+                members = (set(fields[field]) - set(e.get('remove_' + field, []))) | set(e.get('add_' + field, []))
+                fields[field] = [v for v in fields[field] if v in members]
+                for v in e.get('add_' + field, []):
+                    if v not in fields[field]:
+                        fields[field].append(v)
+            if fields != row['fields']:
+                put(s, e['party'], dict(fields, kind='party'), 'company')
+            else:
+                s['log'].append(dict(type='roster_change_noop', event=e))
+        elif typ in ('record_insert', 'record_correction'):
             rid = e['record']
             current = Service(s).current(rid)
             if typ == 'record_insert':

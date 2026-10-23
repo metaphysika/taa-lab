@@ -42,6 +42,14 @@ class World:
             with self.store.transaction():
                 self.store.append("configuration", "world", definition, relevant=False)
                 self.store.append("configuration", "setup", setup, relevant=False)
+                if "roster_change" in setup.get("host_events", []):
+                    for party in list(definition["parties"]) + ["company"]:
+                        seed[party] = {"kind": "party", "name": party,
+                            "role": definition["parties"].get(party, {}).get("role", "root"),
+                            "jurisdictions": [j for j, names in definition["jurisdictions"].items() if party in names]
+                                if party != "company" else ["root", "interim"],
+                            "conflicts": [], "may_receive": [j for j in ("misconduct_reports", "unowned_duties")
+                                if party in definition["jurisdictions"][j]]}
                 for rid, fields in seed.items():
                     fields = copy(fields)
                     kind = fields.pop("kind")
@@ -64,8 +72,8 @@ class World:
         self.policy = Policy(self.definition)
         self.ledger = Ledger(self.policy)
         self.auth = Authentication(KEY)
-        names = set(self.definition["parties"]) | {"warehouse", "carrier", "payment_processor", "customer_portal", "reviewer_interface"}
-        self.sessions = {name: self.auth.session(name, ("act", "record", "order", "resolution", "acceptance", "acknowledgment", "grant")) for name in sorted(names)}
+        names = set(self.definition["parties"]) | {"company", "warehouse", "carrier", "payment_processor", "customer_portal", "reviewer_interface"}
+        self.sessions = {name: self.auth.session(name, ("act", "record", "order", "resolution", "acceptance", "acknowledgment", "grant", "roster")) for name in sorted(names)}
         self.kernel = Kernel(self.store, self.auth,
             lambda view, actor, tool, args: self.policy.evaluate(view, actor, tool, args).get("disposition") == "PERMIT",
             self.stage, self.ledger.stabilize, self.verify_plan)
@@ -147,6 +155,34 @@ class World:
 
     def event(self, event):
         store, kind = self.store, event["type"]
+        if kind == "roster_change":
+            if kind not in self.setup.get("host_events", []):
+                raise ValueError("roster_change not enabled by regression setup")
+            envelope = self._envelope(event["by"], "roster", "roster", event)
+            with store.transaction():
+                verified = store.accept_envelope(self.auth, envelope, channel="roster", recipient="roster")
+                payload = verified["payload"]
+                keys = ("add_jurisdictions", "remove_jurisdictions", "add_may_receive", "remove_may_receive")
+                valid = (not set(payload) - {"type", "by", "party", *keys} and
+                    all(type(payload.get(k, [])) is list and all(type(x) is str and x for x in payload.get(k, [])) for k in keys))
+                previous = store.current("records").get(payload.get("party")) if type(payload.get("party")) is str else None
+                if verified["sender"] != "company" or not previous or previous["kind"] != "party" or not valid:
+                    store.event("rejected_roster_change", {"envelope": verified})
+                    return {"roster_rejected": True}
+                fields = copy(previous["fields"])
+                for field in ("jurisdictions", "may_receive"):
+                    present = set(fields[field])
+                    wanted = (present - set(payload.get("remove_" + field, []))) | set(payload.get("add_" + field, []))
+                    fields[field] = [x for x in fields[field] if x in wanted]
+                    for x in payload.get("add_" + field, []):
+                        if x not in fields[field]:
+                            fields[field].append(x)
+                if fields == previous["fields"]:
+                    store.event("roster_change_noop", {"envelope": verified})
+                else:
+                    store.append("records", payload["party"], {"kind": "party", "writer": "company",
+                        "evidential": True, "fields": fields})
+            return {}
         if kind in ("record_insert", "record_correction"):
             if kind == "record_insert":
                 fields = copy(event["fields"])

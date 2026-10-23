@@ -13,7 +13,8 @@ from comparators.observed_world import view, report_artifacts, canonical
 class Oracle:
     def __init__(self, initial):
         v = view(initial)
-        self.s = relation.start(v['world'], {}, defer_first_step=True)
+        host_events = initial.get('setup', {}).get('host_events', initial.get('host_events', []))
+        self.s = relation.start(v['world'], {'host_events': host_events}, defer_first_step=True)
         self.s['duties'], self.s['allocations'] = {}, {}
         self.delivered, self.closures, self.invalid_transfers, self.incomplete = [], [], [], []
         self.sync(initial)

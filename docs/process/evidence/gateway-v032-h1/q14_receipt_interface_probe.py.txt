@@ -1,0 +1,28 @@
+"""Pre-scoring Q14 engineering control, outcomes specified from DU1/DU2.
+
+Committed correct settlement+notice should discharge the corresponding duties.
+Not a scored cross-arm episode; no fixture or matching-key changes.
+"""
+from copy import deepcopy
+import json,sys
+sys.path.insert(0,'/workspace/taa-gateway-v032')
+from tests.trace_support.bundle import world
+from tests.trace_support import production_backend as core
+from conventional_gateway import backend as sql
+from comparators.business import Backend
+from comparators.duty_oracle import Oracle
+results=[]
+for name,b in [('production',core),('conventional',sql),('floor',Backend('floor'))]:
+ s=b.start(world(),{'records':{'RET1':{'received':True}}});o=Oracle(s);o.clock(1);o.reconcile(s)
+ for tool,args in [('issue_refund',{'claim':'CL1','amount':120,'to':'K1_card','basis':'return'}),
+                   ('message_party',{'claim':'CL1','to':'K1','template':'refund_issued','amount':120,'cites':'REF1'})]:
+  s,r=b.propose(s,'A',tool,args)
+  s,r=b.execute(s,'A',r.get('execution_intent',r.get('token')))
+  assert r['execute_result']=='committed'
+  o.committed('A',tool,args,s)
+ actual={d:o.board()[d]['resolution'] for d in ['D_refund(CL1,120)','D_resolve(CL1)']}
+ expected={d:'discharged' for d in actual}
+ results.append(dict(backend=name,expected=expected,actual=actual,passed=actual==expected,
+                     settlement=s['records']['REF1'][-1]['fields']))
+print(json.dumps(results,indent=2))
+raise SystemExit(not all(r['passed'] for r in results))

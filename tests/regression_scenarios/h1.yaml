@@ -1,0 +1,79 @@
+# Sol-authored from Claude's H1 clarification; expectations reviewed by Claude
+# Each setup overlay declares this event. Frozen W0 is never edited.
+- id: R-H1-capacity-roster-history
+  attribution: Sol-authored from Claude's H1 clarification; expectations reviewed by Claude
+  setup: {host_events: [roster_change]}
+  steps:
+  - {step: 1}
+  - step: 2
+    events:
+    - {type: roster_change, by: company, party: F, remove_jurisdictions: [refund_authority, claim_decisions]}
+    expect:
+      revision: R+
+      records_written: [{kind: party, evidential: true}]
+      record_versions_retained: [F@v1, F@v2]
+      roster: {F: {jurisdictions: [misconduct_reports]}}
+  - step: 3
+    events:
+    - {type: roster_change, by: company, party: F, add_jurisdictions: [refund_authority, claim_decisions]}
+    expect:
+      revision: R+
+      record_versions_retained: [F@v1, F@v2, F@v3]
+      roster: {F: {jurisdictions: [claim_decisions, misconduct_reports, refund_authority]}}
+- id: R-H1-non-root
+  attribution: Sol-authored from Claude's H1 clarification; expectations reviewed by Claude
+  setup: {host_events: [roster_change]}
+  steps:
+  - {step: 1}
+  - step: 2
+    events:
+    - {type: roster_change, by: L, party: F, remove_jurisdictions: [refund_authority, claim_decisions]}
+    expect:
+      revision: R=
+      records_written: []
+      record_versions_retained: [F@v1]
+      roster: {F: {jurisdictions: [claim_decisions, misconduct_reports, refund_authority]}}
+- id: R-H1-noop
+  attribution: Sol-authored from Claude's H1 clarification; expectations reviewed by Claude
+  setup: {host_events: [roster_change]}
+  steps:
+  - {step: 1}
+  - step: 2
+    events:
+    - {type: roster_change, by: company, party: R, remove_jurisdictions: [refund_authority]}
+    expect: {revision: R=, records_written: [], record_versions_retained: [R@v1]}
+- id: R-H1-token-invalidation
+  attribution: Sol-authored from Claude's H1 clarification; expectations reviewed by Claude
+  setup:
+    host_events: [roster_change]
+    records: {RET1: {received: true}}
+  steps:
+  - step: 1
+    propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+    expect: {disposition: PERMIT, token: T1}
+  - step: 2
+    events:
+    - {type: roster_change, by: company, party: R, add_jurisdictions: [misconduct_reports], add_may_receive: [misconduct_reports]}
+    expect: {revision: R+, token_state: {T1: void}}
+  - step: 3
+    propose: {actor: A, tool: issue_refund, args: {claim: CL1, amount: 120, to: K1_card, basis: return}}
+    expect: {disposition: PERMIT, token: T2}
+  - step: 4
+    events:
+    - {type: roster_change, by: company, party: R, add_jurisdictions: [misconduct_reports], add_may_receive: [misconduct_reports]}
+    expect: {revision: R=, records_written: [], token_state: {T2: live}}
+- id: R-H1-listed-order
+  attribution: Sol-authored from Claude's H1 clarification; expectations reviewed by Claude
+  setup: {host_events: [roster_change]}
+  steps:
+  - {step: 1}
+  - step: 2
+    events:
+    - {type: roster_change, by: company, party: R, add_jurisdictions: [misconduct_reports], add_may_receive: [misconduct_reports]}
+    expect: {roster: {R: {jurisdictions: [fraud_questions], may_receive: []}}}
+  - step: 2
+    events:
+    - {type: roster_change, by: company, party: R, remove_jurisdictions: [misconduct_reports], remove_may_receive: [misconduct_reports]}
+    expect:
+      record_versions_retained: [R@v1, R@v2, R@v3]
+      roster: {R: {jurisdictions: [fraud_questions], may_receive: []}}

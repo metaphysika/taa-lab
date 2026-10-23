@@ -17,6 +17,7 @@ from taa_gateway.orders import StoredOrders
 from taa_gateway.pipeline import Pipeline
 from taa_gateway.records import RecordStore, Write
 from taa_gateway.resolutions import StoredResolutions
+from taa_gateway.roster import RosterInbox
 from taa_gateway.rules import Outcome, Rule
 from taa_gateway.serialization import copy_json
 
@@ -314,6 +315,7 @@ class RefundWorld:
                             "without_invalidation_reassessment_diagnostic"):
             raise ValueError("unknown offline ablation")
         self.definition = copy_json(definition)
+        roster_enabled = "roster_change" in (setup or {}).get("host_events", [])
         self.auth, self.log = SimulatorAuthority(key), EventLog("production-refunds", key)
         self.log.restore_open_for_simulator(events)
         parties = list(definition["parties"]) + ["company"]
@@ -347,11 +349,16 @@ class RefundWorld:
             if kind == "resolution":
                 writers.append({"kind": kind, "tool": "correct_resolution", "channel": "gateway", "principals": ["gateway"],
                                 "id_prefix": prefix, "evidential": True, "create": False, "correct_fields": ["answer"]})
-        self.gateway = self.auth.bind("gateway", "gateway", list(self.gateway.tools) + ["grant_change"])
+        if roster_enabled:
+            writers.append({"kind": "party", "tool": "roster_change", "channel": "gateway", "principals": ["gateway"],
+                "id_prefix": PREFIX["party"], "evidential": True, "create": False,
+                "correct_fields": ["jurisdictions", "may_receive"]})
+        self.gateway = self.auth.bind("gateway", "gateway", list(self.gateway.tools) + ["grant_change", "roster_change"])
         invalidation = ablation not in ("without_invalidation", "without_invalidation_reassessment_diagnostic")
         self.store = RecordStore(self.auth, self.log, {"schema_version": V, "writers": writers},
                                  invalidate_tokens_on_revision=invalidation)
         self.orders = StoredOrders(self.store, self.auth, self.gateway)
+        self.roster = RosterInbox(self.store, self.auth, self.gateway, enabled=roster_enabled)
         self.resolutions = StoredResolutions(self.store, self.auth, self.gateway, {
             q: {"jurisdiction": spec["resolver"], "reviewers": [native_id(p, "party") for p in definition["jurisdictions"][spec["resolver"]]],
                 "requires_bound_basis": q == "release_determination"}

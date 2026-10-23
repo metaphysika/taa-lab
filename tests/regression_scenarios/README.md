@@ -49,3 +49,24 @@ The sensitivity run uses `--implementation-root PATH_TO_80831009 --expect-baseli
 required failures are named by backend, and already-correct cases remain controls.
 No expected result is generated from the reference. All 32 regressions, including
 the original eight and the ten Q11/Q12 scenarios, remain in permanent acceptance.
+
+
+## H1 isolated-world suite (v0.3.2 implementation checkpoint)
+
+`h1.yaml` is Sol-authored from Claude's H1 clarification; expectations reviewed
+by Claude as specified in the ruling. Implementation review is still pending.
+Every scenario declares `setup.host_events: [roster_change]`. This is trusted
+world configuration, outside the agent interface; frozen W0 and v0.2.2 are
+unchanged. The five scenarios cover removal/restoration with history, non-root
+rejection, no-op, token invalidation and no-op token survival, and two same-step
+entries in listed order. Events are phase 1; event expectations observe the state
+after the common phase-2 reconciliation. `roster` reads actual latest party
+records; jurisdiction and may-receive memberships are normalized alphabetically.
+All other list semantics retain the existing exact/ordered runner rules.
+
+These scenarios are a separate CI suite (`scripts/check_gateway_roster_h1.py`)
+while Q14–Q16 implementation is incomplete; they do not replace or silently
+shrink the permanent acceptance regressions. `R-Q12-parallel-L` and
+`R-Q11-authorized-standing` remain active until their Q16 successors are added;
+the originals will be retained when superseded. No Q14/Q15/Q16 coverage is
+claimed by these host-event checks.
