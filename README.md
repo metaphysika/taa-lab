@@ -1,5 +1,7 @@
 # TAA Lab (v0.24.29 serving-only virtue review; frozen Study C v0.23.9)
 
+Exploratory live-demo harness **v0.1** is prepared for offline review: thirty scripted episodes over floor, static and MCP TAA hosts, a restricted model surface, independent own-state scoring and paid-attempt guards. [Plan, proposed prompt, choices and offline commands](docs/process/TAA_LIVE_DEMO_PLAN_v01.md). No live model, neutral check, spending or launch is approved; this work never counts toward H3.
+
 Audit window **v0.2.0** renders the retained v0.2 scoring evidence as 320 local episode pages and 40 cross-arm comparisons, with actual state changes, projected event rows and observed-step filters. [Replay report and coverage](docs/process/TAA_GATEWAY_REPLAY_v020.md) · [regeneration](replay/README.md). Archive checksums and retained-delta consistency are checked; native HMAC authentication and an independent ending checkpoint are not claimed. The historical v0.1.1 artifact remains retained. No episode is rerun and no model is connected.
 
 Offline MCP front **v0.1** exposes registered tools as proposals over the existing authenticated session and core runtime. Execution remains an explicit, actor-bound atomic operation; world administration is outside the wire. [Interface, local session boundary and smoke commands](docs/process/TAA_GATEWAY_MCP_v01.md). Scripted clients only; no model connection or launch approval.

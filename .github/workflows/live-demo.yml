@@ -1,0 +1,19 @@
+name: Live demo offline isolation
+on: [push, pull_request]
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-gateway.txt
+      - name: New harness controls with OS-level outbound networking disabled
+        run: sudo unshare --net "$(command -v python)" scripts/live_demo_offline_ci.py --require-network-blocked
+      - name: Approved source, frozen traces and retained v0.2 journal unchanged
+        run: python scripts/check_live_demo_preservation.py --report "$RUNNER_TEMP/live-demo-preservation.json"

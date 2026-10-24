@@ -1881,3 +1881,11 @@ runtime/assets/worker guard9600/9800/reservation9.194555556 unchanged. Higher
 attestedPRIOR19.67 (dashboard19.62), credit10.38, cap36; window Nov9 01UTC unchanged.
 Fresh v02428 resources, no reset. NO LAUNCH until Claude/new exact-commit owner
 approval. See PAPER3_STUDY_D_GEMMA_ADMISSION_v02428.md.
+
+
+## 2026-10-24 — live-demo v0.1 offline preparation
+
+Chris authorizes offline Step3 only from Q17 merge436fbf00. New live_demo package proposes native Luna functions,4096 ceiling,30 exploratory episodes,12turns, restricted uniform business surface and independent own-state oracle. Plan and all review choices: docs/process/TAA_LIVE_DEMO_PLAN_v01.md; controlling task retained verbatim alongside it. MCP/core/reference/static policy and original score evidence unchanged; no scored rerun. No live/neutral/model/metadata call, Modal/spend/keys.env access or launch approved. New PR must await Claude's recorded review; exact-commit owner launch approval remains separate. Final validation/diagnostics are in evidence/gateway-live-demo-v01/validation.json and acceptance.zip after closure. Use Python3.11 for historical float-sum tests; preserve3.12 diagnostic instead of changing frozen arithmetic. Paper3 ledgers/freezes remain protected.
+
+
+Live-demo v0.1 local gates now complete:1156repositorytests/36skips and24focusedcontrols PASS;30scriptedepisodes and stop campaigns retained; normative153/1079perbackend unchanged;140source/evidencefiles and originalv0.2journal unchanged; allproviderledgers unchanged. Finalvalidation/evidencehashes are in docs/process/evidence/gateway-live-demo-v01/validation.json. No model/neutral/metadata/Modal/spending; no merge/launch approval. Session-limit checkpoint remains historical; full-004 finished, do not restart it. Publish for Claude review as its own PR.
