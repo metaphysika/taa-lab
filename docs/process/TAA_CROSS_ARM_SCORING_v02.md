@@ -31,7 +31,7 @@ Astra’s two additional oracle limitations:
 - reference-derived scoring is a common normative evaluator, not independent ground truth about ethics;
 - broader fault campaigns must account explicitly for receiptless closure and transfer operations.
 
-The template-scope question is answered by Claude’s Q17 ruling; its implementation and unchanged-protocol verification are tracked separately from the retained v0.2 run.
+The template-scope question is answered by Claude’s Q17/Q17.1 rulings. [PR #36](https://github.com/metaphysika/taa-lab/pull/36) implements them; its [separate verification](TAA_GATEWAY_Q17_VERIFICATION.md) produces a 320-episode journal byte-identical to v0.2, with every score unchanged. The retained original v0.2 run remains unchanged.
 
 Runtime commit: `4bb6d23c1fb186d7f00a35e07d059a53eafb0858`. Protocol SHA-256: `e8059b51eaea0399f4ffe198d5712497067e5a0f43045539ffad1a71a67b9580`.
 

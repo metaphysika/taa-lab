@@ -6,18 +6,12 @@ Implementation branch: `fix/gateway-q17`, worktree `/workspace/taa-comparison-v0
 
 The final post-IR1 code passes 1,132 tests (36 optional skips), 77 component tests and scripted scenarios. Final normative acceptance passes on reference/core/conventional: 153 scenarios and 1,079 source assertions each, zero discrepancies/incomplete. Frozen v0.2.2 and W0 remain unchanged. The failed first discovery and all pre-repair results are retained and labeled. Never change an expected outcome to match an implementation.
 
-Inspect existing processes, exit files and manifests before restarting anything:
+Verification is complete. Do not restart the obsolete freeze controller or the scoring driver. All final exit files in `/workspace/scratch/gateway-q17/` are 0: discovery-final, components-ir1-repair, acceptance-final, all-arm-replay-final, scoring-verification and metric-verification. The failed first discovery and its guard exit 1 remain historical evidence.
 
-- `/workspace/scratch/gateway-q17/discovery-final.{log,exit}`: complete, exit 0.
-- `acceptance-final.{json,log,exit}` in that directory: complete, exit 0.
-- `components-ir1-repair.{log,exit}`: 77 tests, exit 0.
-- `all-arm-replay-final.{json,log,exit}`: final engineering replay; inspect its current status. The older `all-arm-replay-q171` is pre-IR1-repair evidence.
-- `freeze-and-verify.exit` is 1 from the intentionally stopped old controller. **Do not restart `freeze_and_verify.py` or reuse its obsolete guard.** No scoring episode ran through it.
+The clean runtime is `a91ffa91716d28d438caeb233a74d1e58597defc`. The completed new run is `/workspace/scratch/gateway-cross-arm-scoring-v02-q17`; all 320 episodes match the original v0.2 journal byte-for-byte. Full metrics, manifests, scripts and raw state audits are retained in `docs/process/evidence/gateway-q17-verification/`. No verification rerun is needed.
 
-The remaining scoring verification is authorized exactly once, under the unchanged protocol, ten programs, controllers, matching keys and fixed contracts. Use the clean verified implementation commit with `/workspace/scratch/gateway-q17/run_verification.py`, output `/workspace/scratch/gateway-cross-arm-scoring-v02-q17`. The driver rejects a dirty tree, changed protected inputs or an existing output directory. A retained partial run requires review; never auto-retry it.
+The final engineering replay has zero unexpected discrepancies and zero incomplete assertions in executed cases. Four known floor/static financial fault audits remain explicit; 143 TraceGrant tasks are unrun without frozen contracts, and eight floor/static fault boundaries are not applicable by design. No wider coverage is claimed.
 
-After a completed manifest, run `/workspace/scratch/gateway-q17/compare_verification.py` with the original `/workspace/scratch/gateway-cross-arm-scoring-v02` and the new output directory. It compares every arm/controller/episode score and stops on any changed cell. **If any score changes, stop and report to Claude.** Retain v0, v0.1 and the original v0.2 score evidence unchanged.
-
-Package final logs, source hashes, the new journal and the complete metric comparison as separate Q17 evidence. Update the verification report, this continuation record and the draft PR. Record every unavailable TraceGrant task and any known floor/static non-atomic fault discrepancies explicitly. TraceGrant reconstruction remains limited to its ten predeclared contracts; no new contracts are authored after outcomes.
+PRs #33–#35 are merged on green CI. Q17/Q17.1 is PR #36, awaiting Claude review and Astra confirmation before demo sign-off. On continuation, inspect this PR's latest head/reviews/CI first. Do not infer permission for a model call or launch from a merge.
 
 Q17/Q17.1 and Astra's exact limitations are recorded in the requested documents. The demo protocol must prospectively decide whether the model can read the MCP session decision log. Q17 merge needs green CI and Claude review; Astra confirms Q17 before demo sign-off. A merge does not authorize launch or spending.
