@@ -8376,6 +8376,27 @@ all cell/observation contributions, independent pre-states, sources, controls,
 logs and checksummed11.2MB archive retained. No model/Modal/spend/deletion/
 Notion/release. PR32 remains draft/unmerged pending Claude's corrected-run review.
 
+2026-10-23 America/Chicago — Begin separate thin MCP front PR under Chris's
+approved next-stage instruction. Offline stdio, pinned protocol2025-06-18;
+trusted host supplies SimulatorAuthority.Session. No caller-selected actor,
+external event/record/clock/grant path, model endpoint or HTTP listener. All
+registered names call existing Runtime.propose; execute/withdraw call their
+unchanged methods. Session decision resource views existing core event rows,
+not a new decision authority. Frozen/regression tests use scripted JSON-RPC
+through the real line framer and unchanged common runner/state audits. Host
+only supplies external events and seven real transaction-fault points. Test
+wrong-actor token use, raw claimed identity, spoofed Session, withdrawals,
+argument mismatch, malformed frames and real subprocess stdio with dynamic
+returned token. No expected fixture/source key or core policy change. New PR
+requires Claude's review; no models, Modal, spending, deletion or release.
+
+Checkpoint only; stage paused under Chris's comparison-blocker priority.
+MCP local acceptance:1113 methods /36 optional skips /0 failures/errors,
+2535.498s; scripted all-scenarios exit0. Frozen/regression MCP gate138
+scenarios /1055 source /3875 state audits /3 hidden-state guards:0 discrepancy
+or incomplete. No MCP PR or merge yet. Preserve this branch and scratch
+evidence while comparison fixes and v0.2 take priority.
+
 
 ## 2026-10-24 — comparison review fixes, v0.2 preparation (offline)
 
@@ -8391,3 +8412,8 @@ The conventional template/action audit also found the core W0 converter drops te
 Four financial partial-write audit discrepancies remain explicit in the separate engineering supplement, with 8 non-applicable boundaries. The 24 added closure/transfer fault probes retain12 receiptless operations, explicitly not scored by the unchanged receipt-based protocol metrics, with 246 state audits passing. TraceGrant remains limited to ten fixed-contract programs; 127 wider no-contract replays stay unrun. All 15 protected v0/v0.1 files remain byte-identical. A report-formatting syntax failure was corrected on the same retained journal; no episode rerun.
 
 Evidence and full zero-delta tables are in TAA_CROSS_ARM_SCORING_v02.md and evidence/gateway-cross-arm-scoring-v02/. PR33 stays draft pending Claude review, Astra's exact missing limitations text, and the separately logged core template-conversion question. Runtime source remains frozen; frontend work resumes separately. No model calls, Modal operations, spending, deletions, Notion edits or public releases.
+
+
+## 2026-10-24 — offline MCP front v0.1, comparison-fix integration
+
+Thin stdio MCP exposes proposals, explicit execution/withdrawal and the existing session event rows through the authenticated host-selected Session. No decision, authorization, discharge or transaction code is replaced. No host write/reviewer/clock/fault endpoint is exposed. Full 1,121 tests pass (36 optional skips), scripted scenarios pass, and the common runner records 140 scenarios, 1,062 source assertions, 3,907 state audits and 4,972 checks with 0 discrepancies/incomplete items; all 3 hidden-state controls are detected. Includes the two comparison-review traces, unchanged frozen fixtures and all permanent Q/H1 acceptance. Evidence: TAA_GATEWAY_MCP_v01.md and evidence/gateway-mcp-v01/. No model calls, Modal, spending, deletion or launch.
