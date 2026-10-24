@@ -19,6 +19,8 @@ class Tool:
     scope: object = None
     amount_argument: object = None
     stage: object = None
+    scope_absent_is_violation: tuple = ()
+    scope_dimensions: object = None
 
 
 class ToolRegistry:
@@ -48,7 +50,14 @@ class ToolRegistry:
             Draft202012Validator.check_schema(schema)
             if tool.authorization_rule is None and not tool.referral:
                 raise ValueError("a registered tool without an authorization rule needs a referral")
-            tool = replace(tool, arguments_schema=schema, reads=tuple(tool.reads),
+            if any(type(key) is not str or not key for key in tool.scope_absent_is_violation):
+                raise ValueError("invalid known-absence scope dimension")
+            dimensions = tuple(schema.get("properties", {})) if tool.scope_dimensions is None else tuple(tool.scope_dimensions)
+            if len(set(dimensions)) != len(dimensions) or any(type(k) is not str or not k for k in dimensions):
+                raise ValueError("invalid registered resource dimensions")
+            if not set(tool.scope_absent_is_violation) <= set(dimensions):
+                raise ValueError("known-absence dimension is not registered")
+            tool = replace(tool, scope_dimensions=dimensions, scope_absent_is_violation=tuple(tool.scope_absent_is_violation), arguments_schema=schema, reads=tuple(tool.reads),
                            purposes=tuple(tool.purposes), referral=copy_json(tool.referral))
             # Retain our own schema, not a caller-owned mutable dictionary.
             self.__tools[tool.name] = (tool, Draft202012Validator(copy_json(schema)))
@@ -69,4 +78,9 @@ class ToolRegistry:
         resources = (tool.scope(copy_json(arguments), view) if tool.scope else copy_json(arguments))
         if type(resources) is not dict:
             raise ValueError("trusted resource projection must be an object")
+        # Dimensions come from trusted registration, never a submitted key set.
+        for key in tool.scope_dimensions:
+            resources.setdefault(key, None)
+        # Other projection context (e.g. claim for IR1) remains available, but
+        # never creates additional scope dimensions.
         return copy_json(act), copy_json(resources)

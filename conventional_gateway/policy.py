@@ -139,10 +139,10 @@ class Policy:
                 scope = current.get("scope", {})
                 if customer is not None and "customers" in scope and customer not in scope["customers"]:
                     covered = False
-                template = args.get("template")
-                if template is not None and "template" in scope:
+                template = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}.get(tool,args.get("template"))
+                if tool in ("message_party", "hold_refund", "deny_refund", "report") and "template" in scope:
                     allowed = scope["template"] if isinstance(scope["template"], list) else [scope["template"]]
-                    if template not in allowed:
+                    if template is None or template not in allowed:
                         covered = False
                 current = grants.get(current.get("parent"))
             if covered:

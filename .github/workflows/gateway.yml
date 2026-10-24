@@ -26,6 +26,18 @@ jobs:
         run: python -I scripts/check_gateway_mcp.py --report "$RUNNER_TEMP/gateway-mcp.json"
       - name: Deterministic retained-log replay and evidence attribution controls
         run: python -m unittest tests.test_gateway_replay -v
+      - name: Pin pre-Q17 policy for ruling sensitivity
+        uses: actions/checkout@v4
+        with:
+          ref: 74c5b0a0f77d3b8709ba7ffe43b2f502f0f756cc
+          path: gateway-pre-q17
+          persist-credentials: false
+      - name: Q17 and Q17.1 expose pre-change scope failures
+        run: python -I scripts/check_gateway_q17.py --implementation-root gateway-pre-q17 --expect-baseline --report "$RUNNER_TEMP/gateway-q17-before.json"
+      - name: Q17 applicable dimensions, free prose and scope parity
+        run: |
+          python -m unittest tests.test_gateway_q17 -v
+          python -I scripts/check_gateway_q17.py --report "$RUNNER_TEMP/gateway-q17.json"
       - name: Q15 routing and ordered-acknowledgment regressions
         run: python -I scripts/check_gateway_v032.py --suite q15 --report "$RUNNER_TEMP/gateway-q15.json"
       - name: Q16 capacity, bounded episodes and source supersessions
@@ -178,4 +190,6 @@ jobs:
             ${{ runner.temp }}/gateway-q11-q12-baseline.json
             ${{ runner.temp }}/gateway-q13-fixed.json
             ${{ runner.temp }}/gateway-q13-baseline.json
+            ${{ runner.temp }}/gateway-q17.json
+            ${{ runner.temp }}/gateway-q17-before.json
           if-no-files-found: error

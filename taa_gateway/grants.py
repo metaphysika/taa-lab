@@ -57,8 +57,14 @@ class GrantPolicy:
             if any(action not in permitted for action in current["action_types"]):
                 reasons.append("grantor lacks standing: " + current["id"])
             for key, allowed in current["resource_scope"].items():
-                if key not in resources or resources[key] is None:
-                    unknown.append("missing scope resource: " + key)
+                dimensions = tuple(tool.arguments_schema.get("properties", {})) if tool.scope_dimensions is None else tool.scope_dimensions
+                if key not in dimensions:
+                    continue  # Q17.1: dimensions are fixed by registration, not call keys.
+                if resources.get(key) is None:
+                    if key in tool.scope_absent_is_violation:
+                        reasons.append("absent scope value: " + key)
+                    else:
+                        unknown.append("missing scope resource: " + key)
                 elif not any(canonical(resources[key]) == canonical(value)
                              for value in (allowed if type(allowed) is list else [allowed])):
                     reasons.append("outside scope: " + key)

@@ -91,7 +91,7 @@ class PipelineTests(unittest.TestCase):
                       Tool("close_case", {"type": "object", "required": ["claim_id"],
                                           "properties": {"claim_id": {"type": "string"}}, "additionalProperties": False},
                            description("close_case"), purposes=("purpose-fair",),
-                           scope=lambda args, view: {"customer": "customer-one"}),
+                           scope=lambda args, view: {"customer": "customer-one"}, scope_dimensions=("customer",)),
                       Tool("export_records", {"type": "object", "maxProperties": 0}, description("export_records"),
                            authorization_rule=None, referral={"jurisdiction": "data_requests", "role": "compliance"})]
         self.rules = [Rule("PR", 1, "prohibition", ("delivery",), prohibition, ("issue_refund",)),
