@@ -31,3 +31,14 @@ The fault supplement records close_case, offer_duty and accept_duty partial writ
 Pre-fix controls reproduced the three defects (four subtest failures: scope, acknowledgment on core/SQL actual deliveries, and receipt drift). After-fix controls must pass. Full repository discovery and scripted scenarios precede the implementation freeze. The v0.2 run retains a durable episode journal; no automatic rerun after viewing results. Every v0.1→v0.2 metric cell is reported, including unchanged cells, and changes are traced to observations/oracle outcomes. The full table includes every arm/controller, discrepancies, incomplete and unassessed items. TraceGrant coverage remains only the ten fixed-contract development programs.
 
 [OPEN INPUT] The exact Astra “what the table does not show” list has been requested from Chris. It must be included in the final report rather than attributed from a reconstruction. This PR needs Claude's review and green CI before merge. No merge or launch approval is inferred from passing checks.
+
+
+## Completed validation and v0.2 evidence
+
+[ENGINEERING OBSERVATION] Runtime `4bb6d23c1fb186d7f00a35e07d059a53eafb0858` passes full discovery: 1,114 tests, 36 optional skips, 0 failures/errors; scripted scenarios pass. All eight GitHub checks on that runtime head are green. Eight new comparison methods pass; the pre-fix three-method run reproduced four subtest failures. The separate24 closure/transfer fault probes pass246 common state audits;12 retain business changes without receipts and are explicitly not scored by receipt-based operation metrics.
+
+[DESCRIPTIVE] One v0.2 run completed320 episodes,39,072 state audits and117 baseline source checks:0 discrepancies,0 incomplete,2,041 unassessed observations. All200 protocol cells,72 supplementary cells and1,088 controller cells match v0.1. Direct retained-data comparison confirms identical final worlds, common oracle boards and per-episode reference-policy counts in all320 episodes. New observation fields are only the explicit receiptless-operation marker, measure label and42 realized-invocation receipt observations. No episode was rerun. An initial formatter syntax failure and the corrected rendering are retained as processing diagnostics.
+
+[ENGINEERING OBSERVATION] All-arm input replay completed with0 unexpected discrepancies/incomplete/errors. Four financial partial-write receipt-mismatch audits remain as observed behavior outside the320 episodes;8 boundaries are not applicable by design. TraceGrant has127 additional no-contract instances explicitly unrun. No new contracts were authored.
+
+[REVIEW] See TAA_CROSS_ARM_SCORING_v02.md and evidence/gateway-cross-arm-scoring-v02/validation.json. The exact Astra limitations list and the separate core template-conversion ruling remain pending. This is a draft fix PR for Claude's review; no merge, launch or H3 conclusion is authorized by these checks.
