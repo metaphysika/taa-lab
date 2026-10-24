@@ -8375,3 +8375,24 @@ partial-write evidence unchanged (6 injections,8 boundaries not applicable,
 all cell/observation contributions, independent pre-states, sources, controls,
 logs and checksummed11.2MB archive retained. No model/Modal/spend/deletion/
 Notion/release. PR32 remains draft/unmerged pending Claude's corrected-run review.
+
+2026-10-23 America/Chicago — Begin separate thin MCP front PR under Chris's
+approved next-stage instruction. Offline stdio, pinned protocol2025-06-18;
+trusted host supplies SimulatorAuthority.Session. No caller-selected actor,
+external event/record/clock/grant path, model endpoint or HTTP listener. All
+registered names call existing Runtime.propose; execute/withdraw call their
+unchanged methods. Session decision resource views existing core event rows,
+not a new decision authority. Frozen/regression tests use scripted JSON-RPC
+through the real line framer and unchanged common runner/state audits. Host
+only supplies external events and seven real transaction-fault points. Test
+wrong-actor token use, raw claimed identity, spoofed Session, withdrawals,
+argument mismatch, malformed frames and real subprocess stdio with dynamic
+returned token. No expected fixture/source key or core policy change. New PR
+requires Claude's review; no models, Modal, spending, deletion or release.
+
+Checkpoint only; stage paused under Chris's comparison-blocker priority.
+MCP local acceptance:1113 methods /36 optional skips /0 failures/errors,
+2535.498s; scripted all-scenarios exit0. Frozen/regression MCP gate138
+scenarios /1055 source /3875 state audits /3 hidden-state guards:0 discrepancy
+or incomplete. No MCP PR or merge yet. Preserve this branch and scratch
+evidence while comparison fixes and v0.2 take priority.
