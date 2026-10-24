@@ -8424,3 +8424,37 @@ Evidence and full zero-delta tables are in TAA_CROSS_ARM_SCORING_v02.md and evid
 The v0.2 archive supplies actual initial channels and phase changes; the viewer validates before-values and renders token, record, duty, report, receipt and projected log transitions without executing a policy or oracle. The conventional projected ending checkpoint is shown as a tail replacement, with its original failed append-only-assumption diagnostic retained. No HMAC or independent native ending-checkpoint verification is claimed for scored journals. Legacy v0.1 partial coverage and the original artifact remain preserved.
 
 Full 1,122 tests pass (36 optional skips), scripted scenarios pass, and eight replay component methods pass. Two independent processes, including PYTHONHASHSEED=17, reproduce all 362 files exactly. Node filter controls pass; no browser-layout claim. Evidence: TAA_GATEWAY_REPLAY_v020.md and evidence/gateway-replay-v02/. Source scoring records, frozen expectations and all normative runtime code remain unchanged. Claude review and green CI precede any merge; no models, Modal, spend, deletion or release.
+
+
+2026-10-23 America/Chicago — Begin separate thin MCP front PR under Chris's
+approved next-stage instruction. Offline stdio, pinned protocol2025-06-18;
+trusted host supplies SimulatorAuthority.Session. No caller-selected actor,
+external event/record/clock/grant path, model endpoint or HTTP listener. All
+registered names call existing Runtime.propose; execute/withdraw call their
+unchanged methods. Session decision resource views existing core event rows,
+not a new decision authority. Frozen/regression tests use scripted JSON-RPC
+through the real line framer and unchanged common runner/state audits. Host
+only supplies external events and seven real transaction-fault points. Test
+wrong-actor token use, raw claimed identity, spoofed Session, withdrawals,
+argument mismatch, malformed frames and real subprocess stdio with dynamic
+returned token. No expected fixture/source key or core policy change. New PR
+requires Claude's review; no models, Modal, spending, deletion or release.
+
+Checkpoint only; stage paused under Chris's comparison-blocker priority.
+MCP local acceptance:1113 methods /36 optional skips /0 failures/errors,
+2535.498s; scripted all-scenarios exit0. Frozen/regression MCP gate138
+scenarios /1055 source /3875 state audits /3 hidden-state guards:0 discrepancy
+or incomplete. No MCP PR or merge yet. Preserve this branch and scratch
+evidence while comparison fixes and v0.2 take priority.
+
+
+## 2026-10-24 — offline MCP front v0.1, comparison-fix integration
+
+Thin stdio MCP exposes proposals, explicit execution/withdrawal and the existing session event rows through the authenticated host-selected Session. No decision, authorization, discharge or transaction code is replaced. No host write/reviewer/clock/fault endpoint is exposed. Full 1,121 tests pass (36 optional skips), scripted scenarios pass, and the common runner records 140 scenarios, 1,062 source assertions, 3,907 state audits and 4,972 checks with 0 discrepancies/incomplete items; all 3 hidden-state controls are detected. Includes the two comparison-review traces, unchanged frozen fixtures and all permanent Q/H1 acceptance. Evidence: TAA_GATEWAY_MCP_v01.md and evidence/gateway-mcp-v01/. No model calls, Modal, spending, deletion or launch.
+
+
+## 2026-10-24 — audit-window CI fixture cleanup and approved MCP integration
+
+Claude approved PR #35 at e86fd9a8; PR #33 then #34 merged on green CI. PR #35's broad GitHub tests exposed retained replay-class archive memory in two unchanged historical CPU-admission tests, while its gateway workflow passed. Release class fixture references and collect garbage after each replay class; do not loosen admission limits or change policy, renderer, source journals or generated pages. Eight replay controls plus both admission controls pass in one process (10 tests). Integrated full discovery and scripted evidence is recorded separately before the repair commit; no model calls, Modal operations, spending or public release.
+
+Integrated verification completes: 1,129 repository tests pass (36 optional skips); scripted scenarios pass. The 10 replay/admission controls pass together. See evidence/gateway-replay-v02/validation.json and ci-integration-repair.zip for retained logs and the separate cleanup hash.

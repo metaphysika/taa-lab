@@ -36,3 +36,11 @@ Independent processes, including PYTHONHASHSEED=17, produce identical bytes for 
 Full repository discovery passes **1,122 tests** (36 optional skips), and scripted scenarios pass. Eight replay component methods pass. The fixed JavaScript passes Node syntax and arm/observed-step/reset controls; a browser-layout test is not claimed. The source scoring archives and expected fixtures remain unchanged.
 
 [Validation, source/page hashes and reproducibility](evidence/gateway-replay-v02/validation.json) accompanies [pages.zip](evidence/gateway-replay-v02/pages.zip). Claude review and green CI are required before merge. No model calls, Modal operations, spending, deletions, Notion edits or public releases.
+
+## CI integration repair after Claude review
+
+PR #34 is merged before this PR as instructed. Integrating it preserves the approved MCP front and adds its seven component methods to discovery. GitHub's broad test job exposed two unchanged historical CPU-admission memory assertions after the replay classes retained their large parsed scoring archives for the rest of discovery. The gateway-specific workflow was green.
+
+The test-only cleanup releases class-level replay fixtures after each class and collects garbage. Eight replay controls followed immediately by both historical memory-admission controls pass together (10 tests). No admission threshold, runtime, scoring journal, expected fixture, renderer or page changes. Original source and artifact hashes above identify the reviewed rendering run; the subsequent cleanup hash is recorded separately. The full integrated discovery and scripted outcome are recorded in validation when complete.
+
+Integrated verification completes: 1,129 repository tests pass (36 optional skips); scripted scenarios pass. The 10 replay/admission controls pass together. See evidence/gateway-replay-v02/validation.json and ci-integration-repair.zip for retained logs and the separate cleanup hash.

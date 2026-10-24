@@ -11,7 +11,18 @@ ROOT=Path(__file__).resolve().parents[1]
 VALIDATION=ROOT/'docs/process/evidence/gateway-cross-arm-scoring-v01-corrected/validation.json'
 
 
-class ReplayTests(unittest.TestCase):
+class ArchiveFixture(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        # Do not retain bulk replay data in the shared discovery process.
+        # Later admission subprocesses inherit the parent resident footprint.
+        for name in ("episodes", "manifest", "source", "schedules"):
+            if name in cls.__dict__:delattr(cls,name)
+        import gc
+        gc.collect()
+
+
+class ReplayTests(ArchiveFixture):
     @classmethod
     def setUpClass(cls):
         cls.episodes,cls.manifest,cls.source=replay.read_evidence(VALIDATION)
@@ -70,7 +81,7 @@ class ReplayTests(unittest.TestCase):
         with self.assertRaises(ValueError):replay.native_document(truncated,checkpoint)
 
 
-class RetainedReplayTests(unittest.TestCase):
+class RetainedReplayTests(ArchiveFixture):
     @classmethod
     def setUpClass(cls):
         cls.episodes,cls.manifest,cls.source=replay.read_evidence(ROOT/'docs/process/evidence/gateway-cross-arm-scoring-v02/validation.json')

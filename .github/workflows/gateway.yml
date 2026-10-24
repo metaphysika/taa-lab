@@ -20,6 +20,10 @@ jobs:
         run: python -m unittest tests.test_gateway_foundation tests.test_gateway_reference tests.test_gateway_expected_bundle tests.test_gateway_alignment_v031 tests.test_gateway_spot_review tests.test_gateway_pipeline tests.test_gateway_executor tests.test_gateway_refund_runtime tests.test_gateway_production_runner tests.test_gateway_duties tests.test_gateway_adversarial tests.test_gateway_development tests.test_tracegrant_comparator tests.test_gateway_ablations tests.test_gateway_token_bindings tests.test_gateway_no_invalidation tests.test_cross_arm tests.test_gateway_roster_h1 tests.test_gateway_null_allocation tests.test_gateway_q15 tests.test_gateway_q16 tests.test_gateway_q14 tests.test_business_faults -v
       - name: Corrected context equivalence and independent pre-commit reference-policy controls
         run: python -m unittest tests.test_context_canonicalization tests.test_commit_oracle tests.test_comparison_review_v02 -v
+      - name: Offline MCP framing, identity and core-path controls
+        run: python -m unittest tests.test_gateway_mcp -v
+      - name: Scripted MCP client on frozen and permanent acceptance with common state audits
+        run: python -I scripts/check_gateway_mcp.py --report "$RUNNER_TEMP/gateway-mcp.json"
       - name: Deterministic retained-log replay and evidence attribution controls
         run: python -m unittest tests.test_gateway_replay -v
       - name: Q15 routing and ordered-acknowledgment regressions
@@ -137,6 +141,7 @@ jobs:
         with:
           name: gateway-reference-v031
           path: |
+            ${{ runner.temp }}/gateway-mcp.json
             ${{ runner.temp }}/gateway-all-arm-replay.json
             ${{ runner.temp }}/gateway-q14-overlap.json
             ${{ runner.temp }}/gateway-q14.json
