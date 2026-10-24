@@ -8322,3 +8322,9 @@ TraceGrant covers only ten predeclared programs; no new contracts/wider claim.
 No interpretation beyond protocol definitions, model calls, Modal operations,
 spending, evidence deletion, Notion edits or release. Report-only PR follows;
 it requires a new Claude review and cannot merge under PR31's approval.
+
+Report artifact check caught Git text normalization of standalone episodes.csv
+(CRLF→LF). Normalize only that presentation copy to the committed LF bytes and
+update its checksum; parsed CSV rows/values are identical. Preserve original
+CRLF renderer CSV and hash in the lossless archive. No score or classification
+changed, no runtime or rerun. Validate checksums against actual Git blobs.
