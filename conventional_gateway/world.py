@@ -234,7 +234,9 @@ class World:
                 if kind == "grant_revocation":
                     grant["status"] = "revoked"
                 elif kind == "grant_amendment":
-                    grant["limits"] = dict(grant.get("limits", {}), **event["change"])
+                    for key,value in event["change"].items():
+                        if key == "scope":grant["scope"] = copy(value)
+                        else:grant.setdefault("limits", {})[key] = copy(value)
                 else:
                     if event["grant"] in grants:
                         raise PermissionError("grant identity already exists")

@@ -233,7 +233,13 @@ def stage_refund(args, view):
     return EffectPlan(writes=(Write(native_id("REF" + str(number), "refund"), "refund", fields),))
 
 
-def scope(args, view):
+def native_scope(value):
+    result = copy_json(value)
+    if "customers" in result:result["customer"] = result.pop("customers")
+    return result
+
+
+def scope(args, view, *, tool_name=None):
     claim_id = args.get("claim", args.get("case"))
     if "duty" in args:
         duty = view.read(args["duty"], "duty")
@@ -247,7 +253,15 @@ def scope(args, view):
         if customer is None and "order" in row:
             order = record(view, row["order"], "order")
             customer = order.get("customer") if order else None
-    return dict(args, customer=customer)
+    resources = dict(args, customer=customer)
+    implicit_templates = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}
+    if tool_name in implicit_templates:
+        resources["template"] = implicit_templates[tool_name]
+    elif tool_name == "message_party":
+        resources["template"] = args.get("template")  # None is known free prose, not unknown evidence.
+    else:
+        resources.pop("template", None)
+    return resources
 
 
 def ledger_condition(ctx, view, capacity):
@@ -321,7 +335,9 @@ def tool_definitions(registered):
             stage = lambda args, view: EffectPlan(notices=(dict(args, template="agent_report"),))
         tools.append(Tool(name, {"type": "object", "properties": properties, "required": required.get(name, []),
                                  "additionalProperties": False}, describe(name), reads=DATA_KINDS + ("duty",),
-                          purposes=("purpose:P1",), scope=scope, amount_argument="amount" if name == "issue_refund" else None,
+                          purposes=("purpose:P1",), scope=lambda args, view, name=name: scope(args, view, tool_name=name),
+                          scope_absent_is_violation=("template",) if name == "message_party" else (),
+                          scope_dimensions=("customer", "claim", "to", "template") if name == "message_party" else (("customer", "template") if name in ("hold_refund", "deny_refund", "report") else ("customer",)), amount_argument="amount" if name == "issue_refund" else None,
                           authorization_rule=None if name == "export_records" else "AU1",
                           referral={"role": "C"} if name == "export_records" else None, stage=stage))
     return tools
@@ -372,7 +388,7 @@ class RefundWorld:
             if kind in ("stored_order", "resolution", "refund", "grant"):
                 tool = {"stored_order": "receive_order", "resolution": "receive_resolution", "refund": "execute_transaction", "grant": "grant_change"}[kind]
                 writers.append({"kind": kind, "tool": tool, "channel": "gateway", "principals": ["gateway"], "id_prefix": prefix,
-                                "evidential": True, "create": True, "correct_fields": ["status", "limits"] if kind == "grant" else []})
+                                "evidential": True, "create": True, "correct_fields": ["status", "limits", "resource_scope"] if kind == "grant" else []})
             if kind in ("report", "acknowledgment", "acceptance"):
                 writers.append({"kind": kind, "tool": "report_transition" if kind == "report" else "receive_notice",
                     "channel": "gateway", "principals": ["gateway"], "id_prefix": prefix, "evidential": True,
@@ -411,9 +427,10 @@ class RefundWorld:
             self._seed(setup or {})
 
     def grant(self, gid, fields):
+        resource_scope = native_scope(fields.get("scope", {}))
         return {"schema_version": V, "id": native_id(gid, "grant"), "parent_grant": native_id(fields["parent"], "grant") if fields.get("parent") else None,
                 "grantor": native_id(fields["grantor"], "party"), "grantee": native_id(fields["grantee"], "party"),
-                "action_types": fields["actions"], "resource_scope": {"customer": fields.get("scope", {}).get("customers", ["K1", "K2"])} if fields.get("scope") else {},
+                "action_types": fields["actions"], "resource_scope": resource_scope,
                 "limits": fields.get("limits", {}), "purpose_id": native_id(fields.get("purpose", "P1"), "purpose"),
                 "live_conditions": [], "expires_at_step": fields.get("expires_at", 100000), "status": fields["status"]}
 

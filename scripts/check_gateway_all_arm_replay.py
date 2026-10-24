@@ -53,7 +53,7 @@ class FaultStateCapture:
         return after, result
 
 
-suites={'frozen':cases(),'permanent-regressions':regressions.cases(),'H1':extra('h1.yaml'),'Q14-null':extra('q14_null_allocation.yaml'),'Q15':extra('q15.yaml'),'Q16':extra('q16.yaml'),'Q14':extra('q14.yaml')}
+suites={'frozen':cases(),'permanent-regressions':regressions.cases(),'H1':extra('h1.yaml'),'Q14-null':extra('q14_null_allocation.yaml'),'Q15':extra('q15.yaml'),'Q16':extra('q16.yaml'),'Q14':extra('q14.yaml'),'Q14-overlap':extra('q14_overlap.yaml'),'comparison-review':extra('comparison_review_v02.yaml'),'Q17':extra('q17.yaml'),'Q17.1':extra('q17_1.yaml')}
 manifest=json.loads((implementation/'comparators/contracts/v0.1/MANIFEST.json').read_text())
 contract_ids={Path(k).stem for k in manifest['contracts']}
 report=dict(scope='Input replay and full-state audits only. No semantic scores, no oracle metrics, no final comparison.',

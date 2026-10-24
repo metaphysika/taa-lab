@@ -178,7 +178,11 @@ def apply_event(before, event, stabilize=True):
         fields["id"] = native_id(event["grant"], "grant")
         if typ == "grant_revocation": fields["status"] = "revoked"
         elif typ == "grant_issue": fields.update(status="live", grantee=native_id(event["to"], "party"))
-        else: fields["limits"].update(event["change"])
+        else:
+            from taa_gateway.refunds import native_scope
+            for key,value in event["change"].items():
+                if key == "scope":fields["resource_scope"] = native_scope(value)
+                else:fields["limits"][key] = value
         context.store.publish(context.gateway, "grant_change", [Write(fields["id"], "grant", fields)])
     elif typ == "resolution":
         question = event["question"]

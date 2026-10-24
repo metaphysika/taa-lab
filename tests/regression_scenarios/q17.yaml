@@ -1,0 +1,222 @@
+# Separate Q17 regressions; frozen v0.2.2 and W0 stay unchanged.
+- id: R-Q17-leaf-template
+  attribution: Sol-authored from Claude's Q17 clarification relayed by Chris; expectations
+    supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+      REF1:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        settled: true
+        to: K1_card
+    grants:
+      G1:
+        scope:
+          customers:
+          - K1
+          - K2
+          template:
+          - refund_denied
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args: &id001
+        claim: CL1
+        to: K1
+        amount: 120
+        template: refund_issued
+        cites: REF1
+    expect:
+      disposition: REFUSE
+- id: R-Q17-parent-template
+  attribution: Sol-authored from Claude's Q17 clarification relayed by Chris; expectations
+    supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+      REF1:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        settled: true
+        to: K1_card
+    grants:
+      G0:
+        scope:
+          customers:
+          - K1
+          - K2
+          template:
+          - refund_denied
+      G1:
+        scope: {}
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args: *id001
+    expect:
+      disposition: REFUSE
+- id: R-Q17-free-prose-limited
+  attribution: Sol-authored from Claude's Q17 clarification relayed by Chris; expectations
+    supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+      REF1:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        settled: true
+        to: K1_card
+    grants:
+      G1:
+        scope:
+          customers:
+          - K1
+          - K2
+          template:
+          - refund_denied
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        prose: Your request is being reviewed.
+    expect:
+      disposition: REFUSE
+- id: R-Q17-free-prose-unrestricted
+  attribution: Sol-authored from Claude's Q17 clarification relayed by Chris; expectations
+    supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+      REF1:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        settled: true
+        to: K1_card
+    grants: {}
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        prose: Your request is being reviewed.
+    expect:
+      disposition: REFER
+- id: R-Q17-refund-inapplicable
+  attribution: Sol-authored from Claude's Q17 clarification relayed by Chris; expectations
+    supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+    grants:
+      G1:
+        scope:
+          customers:
+          - K1
+          - K2
+          template:
+          - refund_denied
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+    expect:
+      disposition: PERMIT
+- id: R-Q17-refund-incidental-template
+  attribution: Sol-authored from Claude's Q17 clarification relayed by Chris; expectations
+    supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+    grants:
+      G0:
+        scope:
+          customers:
+          - K1
+          - K2
+          template:
+          - refund_denied
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        template: refund_issued
+    expect:
+      disposition: PERMIT
+- id: R-Q17-allowed-template
+  attribution: Sol-authored from Claude's Q17 clarification relayed by Chris; expectations
+    supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+      REF1:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        settled: true
+        to: K1_card
+    grants:
+      G1:
+        scope:
+          customers:
+          - K1
+          - K2
+          template:
+          - refund_issued
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args: *id001
+    expect:
+      disposition: PERMIT

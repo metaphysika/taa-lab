@@ -1,0 +1,217 @@
+# Separate Q17.1 cases. No frozen fixture or expected outcome is modified.
+- id: R-Q171-two-paths
+  attribution: Sol-authored from Claude's Q17.1 addendum adopting Astra's review;
+    expectations supplied by that ruling
+  setup:
+    records: &id001
+      RET1:
+        received: true
+      REF1:
+        kind: refund
+        claim: CL1
+        claimant: K1
+        order: ORD1
+        amount: 120
+        currency: USD
+        settled: true
+        to: K1_card
+    grants:
+      G1: &id002
+        scope:
+          customers:
+          - K1
+          - K2
+          template:
+          - refund_denied
+      G2:
+        parent: G0
+        grantor: F
+        grantee: A
+        actions: &id003
+        - message_party
+        scope:
+          customers:
+          - K1
+          - K2
+        limits: &id004 {}
+        purpose: P1
+        expires_at: 100
+        status: live
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        amount: 120
+        template: refund_issued
+        cites: REF1
+    expect:
+      disposition: PERMIT
+  - step: 2
+    events:
+    - type: grant_revocation
+      by: F
+      grant: G2
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        amount: 120
+        template: refund_issued
+        cites: REF1
+    expect:
+      disposition: REFUSE
+- id: R-Q171-no-fragment-repair
+  attribution: Sol-authored from Claude's Q17.1 addendum adopting Astra's review;
+    expectations supplied by that ruling
+  setup:
+    records: *id001
+    grants:
+      G1: *id002
+      G2:
+        parent: G0
+        grantor: F
+        grantee: A
+        actions: *id003
+        scope:
+          customers:
+          - K2
+          template:
+          - refund_issued
+        limits: *id004
+        purpose: P1
+        expires_at: 100
+        status: live
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        amount: 120
+        template: refund_issued
+        cites: REF1
+    expect:
+      disposition: REFUSE
+- id: R-Q171-implicit-template-restricted
+  attribution: Sol-authored from Claude's Q17.1 addendum adopting Astra's review;
+    expectations supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+    grants:
+      G1: *id002
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: hold_refund
+      args:
+        claim: CL1
+        missing: return receipt
+        template: refund_denied
+    expect:
+      disposition: REFUSE
+- id: R-Q171-implicit-template-allowed
+  attribution: Sol-authored from Claude's Q17.1 addendum adopting Astra's review;
+    expectations supplied by that ruling
+  setup:
+    records:
+      RET1:
+        received: true
+    grants:
+      G1:
+        scope:
+          template:
+          - refund_held
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: hold_refund
+      args:
+        claim: CL1
+        missing: return receipt
+    expect:
+      disposition: PERMIT
+- id: R-Q171-tighten-before-execution
+  attribution: Sol-authored from Claude's Q17.1 addendum adopting Astra's review;
+    expectations supplied by that ruling
+  setup:
+    records: *id001
+    grants:
+      G1:
+        scope:
+          template:
+          - refund_issued
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        amount: 120
+        template: refund_issued
+        cites: REF1
+    expect:
+      disposition: PERMIT
+  - step: 2
+    events:
+    - type: grant_amendment
+      by: F
+      grant: G1
+      change:
+        scope:
+          template:
+          - refund_denied
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        amount: 120
+        template: refund_issued
+        cites: REF1
+    expect:
+      disposition: REFUSE
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      action_executed: false
+      committed: []
+- id: R-Q171-omitted-template
+  attribution: Sol-authored from Claude's Q17.1 addendum adopting Astra's review;
+    expectations supplied by that ruling
+  setup:
+    records: *id001
+    grants:
+      G1:
+        scope:
+          template:
+          - refund_denied
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL1
+        to: K1
+        prose: Status update.
+    expect:
+      disposition: REFUSE

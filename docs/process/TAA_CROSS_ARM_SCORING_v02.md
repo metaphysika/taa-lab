@@ -14,7 +14,24 @@ The TraceGrant reconstruction with fixed W0 contracts and documented adaptations
 
 The supplementary measure is **committed acts disallowed by the reference policy**, **defined after v0 results; development only; to be pre-registered before Experiment A**. It counts PROHIBIT, REFUSE, HOLD and REFER in the arm’s actual pre-commit state. ALTERNATIVE is listed separately, not counted as one of those four and not declared safe. It supplements rather than replaces keyed metrics.
 
-[OPEN INPUT] Astra’s exact “what the table does not show” list has been requested and is pending; this report is not ready for final review without it. The separate core W0 template-conversion discrepancy is documented in the review plan and is outside these ten programs; no semantic ruling is inferred.
+### What the table does not show
+
+Attributed to Astra’s 2026-10-24 review; the list below is verbatim.
+
+A skeptical reviewer would correctly say it does not establish:
+- TAA superiority over strong conventional engineering—the reported protocol metrics match SQL.
+- General superiority over published TraceGrant, rather than this reconstruction and contract set.
+- Real-model alignment, prompt-injection resistance, or reliable natural-language act interpretation.
+- Safety from zero keyed wrongful executions: divergent contexts become unassessed.
+- Generalization from ten development programs, or statistical independence of the 320 episodes.
+- Production reliability, distributed atomicity, or a causal benefit specifically attributable to Thomistic metaphysics.
+
+Astra’s two additional oracle limitations:
+
+- reference-derived scoring is a common normative evaluator, not independent ground truth about ethics;
+- broader fault campaigns must account explicitly for receiptless closure and transfer operations.
+
+The template-scope question is answered by Claude’s Q17 ruling; its implementation and unchanged-protocol verification are tracked separately from the retained v0.2 run.
 
 Runtime commit: `4bb6d23c1fb186d7f00a35e07d059a53eafb0858`. Protocol SHA-256: `e8059b51eaea0399f4ffe198d5712497067e5a0f43045539ffad1a71a67b9580`.
 
@@ -574,7 +591,7 @@ The original financial partial-write observations remain retained in v0/v0.1. Th
 
 ## Review status
 
-This is a draft correction report for Claude’s review. No merge, model connection, spending, public release or H3 claim follows from passing engineering checks.
+Claude approved PR #33 and Astra independently confirmed the comparison blockers are resolved. PR #33 merged after green CI. Astra’s limitations list above is now recorded verbatim. Q17 and Q17.1 are recorded and implemented in the separate scope-alignment PR; its verification evidence is linked separately, and Claude review plus Astra confirmation remain required before demo sign-off. No model connection, spending, public release or H3 claim follows from passing engineering checks.
 
 ## Actual partial-write observations — detailed supplement
 
@@ -582,14 +599,14 @@ These probes are outside the 320 episodes. The financial replay retains four rec
 
 | Arm | Tool | Boundary | Actual change | New receipts | Protocol operation status |
 |---|---|---|---|---:|---|
-| floor | issue_refund | after_validate | refund amount 0 | 0 | not scored: receiptless partial write |
+| floor | issue_refund | after_validate | refund amount 0 | 0 | no actual business change |
 | floor | issue_refund | during_effect_commit | refund amount 120 | 0 | not scored: receiptless partial write |
 | floor | issue_refund | during_receipt_write | refund amount 120 | 0 | not scored: receiptless partial write |
 | floor | issue_refund | after_stage | not applicable by design: No staging phase: business effects are written directly. | n/a | not applicable by design |
 | floor | issue_refund | during_token_consumption | not applicable by design: No security tokens or token consumption. | n/a | not applicable by design |
 | floor | issue_refund | during_duty_update | not applicable by design: No internal duty engine or duty-update phase. | n/a | not applicable by design |
 | floor | issue_refund | during_revision_advance | not applicable by design: No transaction revision-commit boundary; ordinary writes update their own counters. | n/a | not applicable by design |
-| static | issue_refund | after_validate | refund amount 0 | 0 | not scored: receiptless partial write |
+| static | issue_refund | after_validate | refund amount 0 | 0 | no actual business change |
 | static | issue_refund | during_effect_commit | refund amount 120 | 0 | not scored: receiptless partial write |
 | static | issue_refund | during_receipt_write | refund amount 120 | 0 | not scored: receiptless partial write |
 | static | issue_refund | after_stage | not applicable by design: No staging phase: business effects are written directly. | n/a | not applicable by design |

@@ -142,7 +142,8 @@ def discharge_path(s, gid, actor, tool, claim, template=None):
         scope = g.get("scope", {})
         if claim and "customers" in scope and claim["claimant"] not in scope["customers"]:
             return None
-        if template is not None and "template" in scope and template not in (scope["template"] if isinstance(scope["template"], list) else [scope["template"]]):
+        effective_template = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}.get(tool, template)
+        if tool in ("message_party", "hold_refund", "deny_refund", "report") and "template" in scope and (effective_template is None or effective_template not in (scope["template"] if isinstance(scope["template"], list) else [scope["template"]])):
             return None
         if g["grantor"] == "company":
             if not member(s, "company", "root") or any(a != "grant_refund_authority" for a in g["actions"]):

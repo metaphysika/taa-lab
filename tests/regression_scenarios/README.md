@@ -179,3 +179,8 @@ acceptance, outside the frozen bundle and the ten scoring programs.
 ## Comparison review v0.2
 
 `comparison_review_v02.yaml` contains Sol-authored expectations from Astra's review confirmed by Claude and relayed by Chris: parent customer scope and acknowledgment after repeated physical delivery. `tracegrant_injected_drift_v02.json` is an injected-drift probe using the existing frozen T02 contract, not a new contract. `tests.test_comparison_review_v02` runs these plus scope/action, acknowledgment guard and receiptless partial-operation components. Frozen W0 and v0.2.2 are unchanged. These review regressions are outside the ten-program scoring population.
+
+
+## Q17 scope dimensions
+
+q17.yaml contains ruling-derived scope regressions, including positive controls. The pre-change core must fail leaf/parent template restrictions and limited free prose; controls for unrestricted prose, allowed templates and template-inapplicable refunds correctly already pass. Every case is asserted on core, reference and the independently implemented conventional arm. No frozen expected outcome changes.
