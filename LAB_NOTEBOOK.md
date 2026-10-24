@@ -8266,3 +8266,31 @@ source; classify these separately in the report, changing no code, fixture or
 result. Q15/Q16 targets each have actual before discrepancies. Scripted output
 folders moved intact to scratch and archived with manifest; none deleted.
 See docs/process/evidence/gateway-v032-final/validation.json and acceptance.zip.
+
+2026-10-23 America/Chicago (2026-10-24 UTC) — Claude approves PR31 at6526bccd conditional on a sensitive
+overlap regression. Before testing, new R-Q14-overlap-reaches-claim keeps
+CL7=400 and the original250 settlement; four committed default100 notices
+all cover [0,100). Expect coverage100, unresolved duty and REFUSE close_case.
+Summing overlaps would reach400 and incorrectly discharge. Keep original
+R-Q14-repeated-default and all existing suites unchanged. Mutate only the
+interval-merging branch in each independent implementation, require an actual
+source discrepancy in every backend, then restore and require complete passes.
+No production changes, final scoring, model calls, spending or Modal operations.
+
+Overlap sensitivity preflight caught a mutation-harness use-site error: SQL's
+ledger imports compute directly, so patching only coverage.compute did not
+install the mutant in the execution path. Preserve the failed campaign and
+helper source; patch ledger.compute at its actual use site, compile against
+the defining function's globals, and rerun. No production or expected outcome
+changes. Interrupt the obsolete discovery prefix; final discovery restarts
+after the corrected three-backend mutation campaign.
+
+PR31 addition local acceptance:1098 methods /36 existing optional skips /0
+failures/errors (1739.969s); scripted passes. New source15 assertions/backend,
+86/86/310 reference/native/SQL audits;0 current discrepancies/incomplete. Each
+summed-overlap mutant has3 source discrepancies and actual wrong discharge400
+with PERMIT closure. Exact restored observations match. Fifteen fresh old-cohort
+count comparisons unchanged. Preserve original scenario and all runtime/frozen
+sources. Evidence docs/process/evidence/gateway-pr31-overlap. Merge only on
+green exact-head CI under Chris's relayed conditional approval; then separate
+ten-program scoring PR. No paid/model/Modal operations or releases.

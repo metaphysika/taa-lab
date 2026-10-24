@@ -161,3 +161,16 @@ positive controls stay positive. Newly authored Q14/Q15/Q16 scenarios await
 Claude's completed-PR review. No new TraceGrant contracts: the additional18
 Q14 tasks remain unrun in that arm, and final scoring remains limited to the
 ten originally declared development programs.
+
+## PR31 overlap sensitivity addition
+
+`q14_overlap.yaml` preserves the original18-case Q14 suite unchanged. The new
+R-Q14-overlap-reaches-claim commits four default100 notices against the same
+250 settlement and400 claim. Correct union coverage is100, the duty remains
+unresolved and closure is REFUSE. Summing overlap reaches400 and wrongly
+discharges. `check_gateway_q14_overlap.py` runs the same trace/common audits on
+reference, production and SQL, then disables interval merging independently in
+each implementation. Each mutant must yield actual source discrepancies for
+both duty state and closure; no incomplete assertion is accepted. Restoration
+must reproduce the passing observations exactly. This remains permanent CI
+acceptance, outside the frozen bundle and the ten scoring programs.

@@ -24,6 +24,8 @@ jobs:
         run: python -I scripts/check_gateway_v032.py --suite q16 --report "$RUNNER_TEMP/gateway-q16.json"
       - name: Q14 receipt-bound portions and corrected claim-line coverage
         run: python -I scripts/check_gateway_v032.py --suite q14 --report "$RUNNER_TEMP/gateway-q14.json"
+      - name: Sensitive repeated-notice overlap and summed-overlap mutants on all three backends
+        run: python -I scripts/check_gateway_q14_overlap.py --report "$RUNNER_TEMP/gateway-q14-overlap.json"
       - name: Common oracle Q14 over actual records on production, conventional, floor and static
         run: python -I scripts/check_gateway_q14_oracle.py --report "$RUNNER_TEMP/gateway-q14-oracle.json"
       - name: Q14 missing-receipt control uses original actual state and an isolated evidence omission
@@ -132,6 +134,7 @@ jobs:
           name: gateway-reference-v031
           path: |
             ${{ runner.temp }}/gateway-all-arm-replay.json
+            ${{ runner.temp }}/gateway-q14-overlap.json
             ${{ runner.temp }}/gateway-q14.json
             ${{ runner.temp }}/gateway-q14-before.json
             ${{ runner.temp }}/gateway-q14-oracle.json

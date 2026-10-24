@@ -1,0 +1,121 @@
+# Sol-authored from Claude PR31 review; original Q14 source unchanged.
+- id: R-Q14-overlap-reaches-claim
+  attribution: Sol-authored from Claude's PR31 overlap review; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T3
+  - step: 4
+    execute:
+      actor: A
+      token: T3
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+        coverage: 100
+  - step: 5
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T4
+  - step: 5
+    execute:
+      actor: A
+      token: T4
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+        coverage: 100
+  - step: 6
+    propose:
+      actor: A
+      tool: close_case
+      args:
+        case: CL7
+    expect:
+      disposition: REFUSE
