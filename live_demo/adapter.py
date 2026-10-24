@@ -23,6 +23,7 @@ from taa_gateway.serialization import parse_json
 
 D = Decimal
 WAITS = (10, 30, 60, 120)
+ALLOWED_OUTPUT_TYPES = frozenset(('function_call', 'message', 'reasoning'))
 
 
 class Stop(RuntimeError):
@@ -31,34 +32,52 @@ class Stop(RuntimeError):
         super().__init__(reason)
 
 
+class OutputCeiling(Stop):
+    def __init__(self):
+        super().__init__('output_ceiling')
+
+
 class TransportFailure(Exception):
     def __init__(self, status=None, partial=b'', retry_after=0):
         self.status, self.partial, self.retry_after = status, partial, retry_after
 
 
-def authorized(launch, approved_commit, approval):
+def authorized(launch, approved_commit, approval, *, allow_model_discovery=False):
     # Called on EVERY physical attempt, before any key access or networking.
     if not launch or not approved_commit:
         raise Stop('launch_not_approved')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=config.ROOT, text=True).strip()
-    # The paid ledger legitimately changes under our exclusive run lock. All
+    # Accounting ledgers legitimately change under our exclusive run lock. All
     # tracked source/input changes remain forbidden on every attempt.
     dirty = subprocess.check_output(['git', 'diff', '--name-only', 'HEAD', '--', '.',
-        ':!results/formation-spending-v021/openai.json'], cwd=config.ROOT, text=True)
+        ':!results/formation-spending-v021/openai.json', ':!results/live-demo-v01-budget.txt'],
+        cwd=config.ROOT, text=True)
     if dirty or head != approved_commit or len(approved_commit) != 40:
         raise Stop('launch_commit_mismatch')
-    if approval != dict(owner='Chris', commit=head, step='live-demo-v01', launch_approved=True):
+    if type(approval) is not dict:
+        raise Stop('launch_not_approved')
+    returned = approval.get('model_returned')
+    if not (type(returned) is str and returned or allow_model_discovery and returned is None):
+        raise Stop('launch_not_approved')
+    if approval != dict(owner='Chris', commit=head, step='live-demo-v01', launch_approved=True,
+                        model_returned=returned):
         raise Stop('launch_not_approved')
     config.verify()
 
 
 class Budget:
-    def __init__(self, ledger, evidence, step_cap='5', provider_cap='8'):
+    def __init__(self, ledger, evidence, step_cap='5', provider_cap='8', step_ledger=None):
         self.ledger, self.evidence = Path(ledger), evidence
         self.step_cap, self.provider_cap = D(step_cap), D(provider_cap)
         if self.step_cap > 5 or self.provider_cap > 8:
             raise ValueError('caps cannot be increased by this harness')
-        self.spent = D('0')
+        self.step_ledger = Path(step_ledger) if step_ledger is not None else None
+        if self.step_ledger is not None and self.step_ledger.with_suffix('.pending').exists():
+            raise Stop('step_ledger_pending')
+        self.spent = D(self.step_ledger.read_text()) if self.step_ledger is not None and self.step_ledger.exists() else D('0')
+        if not self.spent.is_finite() or self.spent < 0:
+            raise Stop('invalid_step_ledger')
+        self.phase_spent = D('0')
         self.attempts, self.input_tokens, self.output_tokens = 0, 0, 0
         self.prices = config.load('prices.json')
 
@@ -78,10 +97,17 @@ class Budget:
         # Caller holds the existing global formation run.lock throughout.
         # Journal precedes replacement; an interrupted write is a review stop.
         self.evidence.write('ledger_change', dict(prior=str(prior), delta=str(delta), after=str(prior+delta)))
+        # A pending step write blocks BOTH entry points after interrupted booking.
+        # Prepare it before changing the provider ledger, under the shared lock.
+        if self.step_ledger is not None:
+            with self.step_ledger.with_suffix('.pending').open('xb') as stream:
+                stream.write(str(self.spent+delta).encode()); stream.flush(); os.fsync(stream.fileno())
         temporary = self.ledger.with_name(self.ledger.name+'.live-demo-pending')
         with temporary.open('xb') as stream:
             stream.write(encoded(row)+b'\n'); stream.flush(); os.fsync(stream.fileno())
         os.replace(temporary, self.ledger)
+        if self.step_ledger is not None:
+            os.replace(self.step_ledger.with_suffix('.pending'), self.step_ledger)
 
     def reserve(self, body):
         # Byte upper bound for all serialized input, tools and framing, with a
@@ -98,11 +124,12 @@ class Budget:
         self.evidence.write('reservation', dict(prompt_bound=prompt_bound, dollars=str(reserve)))
         self._book(reserve)
         self.spent += reserve
+        self.phase_spent += reserve
         self.attempts += 1
         return reserve, prompt_bound
 
-    def settle(self, reservation, prompt_bound, reply):
-        if reply.get('model') != config.MODEL:
+    def settle(self, reservation, prompt_bound, reply, expected_model=config.MODEL):
+        if reply.get('model') != expected_model:
             raise Stop('model_identity')
         u = reply.get('usage')
         if type(u) is not dict or any(type(u.get(k)) is not int or u[k] < 0
@@ -124,6 +151,7 @@ class Budget:
         self.evidence.write('usage', dict(native=u, charged=str(actual), retained_reserve='0'))
         self._book(actual-reservation)
         self.spent += actual-reservation
+        self.phase_spent += actual-reservation
         self.input_tokens += u['input_tokens']; self.output_tokens += u['output_tokens']
 
 
@@ -176,6 +204,7 @@ def http(body):
 
 
 class Adapter:
+    max_attempts = 5
     def __init__(self, budget, evidence, *, launch=False, approved_commit=None, approval=None,
                  transport=None, sleeper=time.sleep):
         self.budget, self.evidence = budget, evidence
@@ -187,13 +216,20 @@ class Adapter:
         authorized(self.launch, self.approved_commit, self.approval)
 
     def cost(self):
-        return dict(dollars=str(self.budget.spent), attempts=self.budget.attempts,
+        return dict(dollars=str(self.budget.phase_spent), attempts=self.budget.attempts,
                     input_tokens=self.budget.input_tokens, output_tokens=self.budget.output_tokens)
 
+    def body(self, history):
+        return dict(model=config.MODEL, instructions=(config.FROZEN/'system.txt').read_text(),
+                    input=history, tools=manifest(), max_output_tokens=config.OUTPUT_TOKENS, store=False,
+                    include=['reasoning.encrypted_content'])
+
+    def expected_model(self, reply):
+        return self.approval['model_returned'] if self.approval is not None else config.MODEL
+
     def respond(self, history, spec, turn):
-        body = dict(model=config.MODEL, instructions=(config.FROZEN/'system.txt').read_text(),
-                    input=history, tools=manifest(), max_output_tokens=config.OUTPUT_TOKENS, store=False)
-        for attempt in range(1, 6):
+        body = self.body(history)
+        for attempt in range(1, self.max_attempts+1):
             self._authorize()
             reservation, bound = self.budget.reserve(body)
             self.evidence.write('request', dict(spec=spec, turn=turn, attempt=attempt, body=body))
@@ -208,7 +244,7 @@ class Adapter:
                     raise Stop('transport_not_retryable') from None
                 if attempt == 1:
                     self.retry_needed += 1
-                if attempt == 5 or self.retry_needed > 10:
+                if attempt == self.max_attempts or self.retry_needed > 10:
                     raise Stop('transport_exhaustion') from None
                 wait = max(WAITS[attempt-1], error.retry_after)
                 self.evidence.write('retry_wait', dict(seconds=wait, retry_needed=self.retry_needed))
@@ -224,12 +260,20 @@ class Adapter:
                 raise Stop('unknown_output') from None
             if type(reply) is not dict:
                 raise Stop('unknown_output')
-            self.budget.settle(reservation, bound, reply)
+            self.evidence.write('native_format', dict(model_returned=reply.get('model'),
+                usage_shape=shape(reply.get('usage')),
+                reasoning_items=[shape(item) for item in reply.get('output', [])
+                                 if type(item) is dict and item.get('type') == 'reasoning']
+                    if type(reply.get('output')) is list else []))
+            self.budget.settle(reservation, bound, reply, expected_model=self.expected_model(reply))
+            details = reply.get('incomplete_details')
+            if reply.get('status') == 'incomplete' and type(details) is dict and details.get('reason') == 'max_output_tokens':
+                raise OutputCeiling()
             if reply.get('status') != 'completed' or type(reply.get('output')) is not list or not reply['output']:
                 raise Stop('unknown_output')
             seen = set()
             for item in reply['output']:
-                if type(item) is not dict or item.get('type') not in ('function_call', 'message', 'reasoning'):
+                if type(item) is not dict or item.get('type') not in ALLOWED_OUTPUT_TYPES:
                     raise Stop('unknown_output')
                 if item['type'] == 'function_call':
                     if (any(type(item.get(k)) is not str for k in ('call_id', 'name', 'arguments')) or
@@ -238,3 +282,11 @@ class Adapter:
                     seen.add(item['call_id'])
             return reply
         raise AssertionError('unreachable')
+
+
+def shape(value):
+    if type(value) is dict:
+        return {k: shape(v) for k, v in value.items()}
+    if type(value) is list:
+        return [shape(v) for v in value]
+    return type(value).__name__

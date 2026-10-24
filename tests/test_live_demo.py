@@ -209,7 +209,8 @@ class LiveDemoTests(unittest.TestCase):
         with patch('subprocess.check_output',side_effect=[head+'\n','']),patch('live_demo.config.verify'):
             with self.assertRaisesRegex(Stop,'launch_not_approved'):authorized(True,head,None)
         with patch('subprocess.check_output',side_effect=[head+'\n','']),patch('live_demo.config.verify'):
-            authorized(True,head,dict(owner='Chris',commit=head,step='live-demo-v01',launch_approved=True))
+            authorized(True,head,dict(owner='Chris',commit=head,step='live-demo-v01',launch_approved=True,
+                                      model_returned=config.MODEL))
 
     def test_incomplete_http_read_is_retained_without_resend(self):
         from http.client import IncompleteRead

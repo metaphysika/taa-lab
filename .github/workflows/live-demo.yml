@@ -17,3 +17,5 @@ jobs:
         run: sudo unshare --net "$(command -v python)" scripts/live_demo_offline_ci.py --require-network-blocked
       - name: Approved source, frozen traces and retained v0.2 journal unchanged
         run: python scripts/check_live_demo_preservation.py --report "$RUNNER_TEMP/live-demo-preservation.json"
+      - name: Surviving review mutants fail their targeted controls, without network access
+        run: sudo unshare --net "$(command -v python)" scripts/check_live_demo_review_mutations.py --report "$RUNNER_TEMP/live-demo-review-mutations.json"

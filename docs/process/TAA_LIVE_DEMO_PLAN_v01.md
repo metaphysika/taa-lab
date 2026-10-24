@@ -1,5 +1,7 @@
 # Live-demo harness v0.1 — offline build for review
 
+[Descriptive] PR37 review update: [harness v0.1.1 changes](TAA_LIVE_DEMO_PR37_REVIEW_FIXES.md) supersede the original reasoning replay, identity, output-ceiling and read-denominator behavior below. The proposed system prompt is accepted by Claude. The neutral entry point is prepared but no real check is authorized. The earlier local results/archives below remain historical evidence.
+
 [Descriptive] Chris authorized Step 3 offline preparation on 2026-10-24, starting from PR #36 merge `436fbf002d3e0f9e84a41206fe3c4c43b0d71ed7`. This document records the implementation choices under the supplied plan. No model call, including a neutral check, is authorized. No launch approval receipt is supplied. Each paid launch requires Chris's approval of the exact final commit after Claude's review; this PR must not merge before that review is recorded.
 
 [Descriptive] The study is exploratory: ten declared development programs T01–T10, three arms (floor, static, TAA), one repeat, thirty primaries. It never contributes to H3. W0, existing event steps, reviewed business hosts, static permissions, production core and MCP front remain unchanged. The independent reference-derived oracle evaluates actual own-state actions; no keyed matching or implementation-generated expected outcome is used.

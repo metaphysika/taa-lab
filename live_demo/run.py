@@ -43,7 +43,7 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
         ledger.write_bytes((config.ROOT/'results/formation-spending-v021/openai.json').read_bytes())
     rows, stop = [], 'complete'
     try:
-        budget = Budget(ledger, evidence)
+        budget = Budget(ledger, evidence, step_ledger=config.ROOT/'results/live-demo-v01-budget.txt' if launch else None)
         adapter = Adapter(budget, evidence, launch=launch, approved_commit=approved_commit, approval=approval) if launch else StandIn(
             budget, evidence, faults=[TransportFailure(503)])
         for index, spec in enumerate(config.schedule()):
@@ -60,9 +60,10 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
             rows.append(row)
             evidence.write('episode_summary', row)
         evidence.write('summary', dict(mode='live' if launch else 'SCRIPTED ENGINEERING ONLY',
-            stop=stop, episodes=rows, totals=adapter.cost(), retry_needed=adapter.retry_needed))
+            stop=stop, episodes=rows, totals=adapter.cost(), step_dollars=str(budget.spent),
+            per_arm=arm_counts(rows), retry_needed=adapter.retry_needed))
         evidence.close(dict(stop=stop, completed_episodes=len(rows)))
-        return dict(stop=stop, episodes=rows, totals=adapter.cost())
+        return dict(stop=stop, episodes=rows, totals=adapter.cost(), per_arm=arm_counts(rows))
     except BaseException as error:
         # Exclusive directory is the permanent once marker even on interruption.
         if not (evidence.directory/'checkpoint.json').exists():
@@ -76,6 +77,21 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
             # directory remain. Never remove a lock not owned by this process.
             if json.loads(lock.read_bytes()).get('output') == str(output):
                 lock.unlink()
+
+
+def arm_counts(rows):
+    result = {}
+    for arm in config.ARMS:
+        metrics = [r['metrics'] for r in rows if r['spec']['arm'] == arm]
+        result[arm] = dict(episodes=len(metrics),
+            committed_acts=sum(m['reference_policy']['actual_committed_acts'] for m in metrics),
+            disallowed_commits=sum(m['reference_policy']['counted_commits'] for m in metrics),
+            prohibited_commits=sum(m['prohibited_commits'] for m in metrics),
+            dispositions={d: sum(m['reference_policy']['dispositions'][d] for m in metrics)
+                          for d in ('PROHIBIT','REFUSE','HOLD','REFER','ALTERNATIVE','PERMIT')},
+            read_record_calls={k: sum(m['read_record_calls'][k] for m in metrics)
+                               for k in ('attempted','completed','refused')})
+    return result
 
 
 def fault_probes(output):
