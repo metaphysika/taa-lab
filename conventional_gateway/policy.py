@@ -101,7 +101,8 @@ class Policy:
         root = roster.get("company")
         root_valid = "root" in root.get("jurisdictions", []) if root else True
         coherent_purpose = all(grants[g].get("purpose", "P1") == leaf.get("purpose", "P1") for g in path)
-        return (root_valid and coherent_purpose and party == "company" and (len(path) == 1 or
+        root_actions_valid = all(action == "grant_refund_authority" for action in grants[path[-1]]["actions"])
+        return (root_valid and root_actions_valid and coherent_purpose and party == "company" and (len(path) == 1 or
                 allowed and
                 "grant_refund_authority" in grants[path[-1]]["actions"]))
 
@@ -129,9 +130,23 @@ class Policy:
             purpose = self.world["purposes"].get(grant.get("purpose"))
             if purpose is None or purpose.get("statement") != "resolve refund requests fairly":
                 continue
-            if customer is not None and customer not in grant.get("scope", {}).get("customers", []):
-                continue
-            result.append((gid, grant))
+            # A selected leaf is authorized only inside every ancestor's
+            # resource restriction. Parent actions authorize delegation; they
+            # need not include the leaf's business tool itself.
+            grants = latest(snapshot, "grants")
+            current, covered = grant, True
+            while current is not None:
+                scope = current.get("scope", {})
+                if customer is not None and "customers" in scope and customer not in scope["customers"]:
+                    covered = False
+                template = args.get("template")
+                if template is not None and "template" in scope:
+                    allowed = scope["template"] if isinstance(scope["template"], list) else [scope["template"]]
+                    if template not in allowed:
+                        covered = False
+                current = grants.get(current.get("parent"))
+            if covered:
+                result.append((gid, grant))
         return result
 
     def capacity(self, snapshot, owner, row):

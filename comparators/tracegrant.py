@@ -281,18 +281,22 @@ class TraceGrant:
                     world.apply(tool, arguments, actor)
                     if fault == 'after_effect':
                         raise DispatchFailure('injected after actual effect')
-                    effect = world.observed_effect(before, tool)
+                    actual = world.observed_execution(before)
+                    if (actual['tool'] != certificate['tool'] or actual['actor'] != certificate['actor'] or
+                            canonical(actual['arguments']) != canonical(certificate['arguments'])):
+                        raise DispatchFailure('actual tool or complete canonical arguments differ from certificate')
+                    effect = actual['effect']
                     bound = ({k: arguments[k] for k in ('claim', 'to', 'amount')} if tool == 'issue_refund' else
                              {k: arguments[k] for k in ('claim', 'to', 'amount', 'template')} if tool == 'message_party' else
                              {'claim': arguments['case']})
-                    if not all(k in effect and effect[k] == v for k, v in bound.items()):
+                    if not all(k in effect and canonical(effect[k]) == canonical(v) for k, v in bound.items()):
                         raise DispatchFailure('actual effect differs from certified arguments')
                     expected = self.c['VERIFY'][node]
-                    if not all(effect.get(k) == v for k, v in expected.items()):
+                    if not all(k in effect and canonical(effect[k]) == canonical(v) for k, v in expected.items()):
                         raise DispatchFailure('postcondition failed')
                     receipt = {'id': 'R' + str(len(self.receipts) + 1), 'contract': self.c['id'],
                                'obligation': node, 'certificate': deepcopy(certificate), 'status': 'success',
-                               'effect': effect, 'record_provenance': world.current(effect['record']) if effect['kind'] == 'refund' else None}
+                               'effect': effect, 'actual_execution': {k: deepcopy(actual[k]) for k in ('tool', 'arguments', 'actor')}, 'record_provenance': world.current(effect['record']) if effect['kind'] == 'refund' else None}
                     self.receipts.append(receipt)
                     self.states[node] = 'VERIFIED'
                     self._activate()

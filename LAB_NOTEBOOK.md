@@ -8375,3 +8375,10 @@ partial-write evidence unchanged (6 injections,8 boundaries not applicable,
 all cell/observation contributions, independent pre-states, sources, controls,
 logs and checksummed11.2MB archive retained. No model/Modal/spend/deletion/
 Notion/release. PR32 remains draft/unmerged pending Claude's corrected-run review.
+
+
+## 2026-10-24 — comparison review fixes, v0.2 preparation (offline)
+
+Chris relayed Astra's review and Claude's confirmation. Separate regressions reproduce the conventional parent-scope omission, duplicate-delivery acknowledgment ambiguity, and injected TraceGrant notice-argument drift. Fixes enforce the complete selected grant chain, deduplicate acknowledgment candidates by duty identity, and verify actual full canonical invocation plus postconditions before issuing a receipt. Receiptless floor/static closure and transfer writes are explicitly assessed under the post-v0 reference-policy measure and marked not scored under the unchanged receipt-based operation metrics. Full actual state changes and native log additions are retained for inspection; owned duties are never scoring inputs.
+
+The conventional template/action audit also found the core W0 converter drops template restrictions. This separate discrepancy is recorded for Claude's ruling; the ten declared programs have no template-restricted grant. Historical v0/v0.1 reports and evidence, frozen fixtures, controllers, contracts and matching protocol remain unchanged. No new TraceGrant contracts, model calls, Modal, spend or releases. Scoring v0.2 awaits the frozen implementation and checks; the exact requested Astra limitations list is pending from Chris.

@@ -7,6 +7,7 @@ from copy import deepcopy
 from taa_gateway_reference import refunds as relation
 
 LABEL = 'defined after v0 results; development only; to be pre-registered before Experiment A'
+NAME = 'committed acts disallowed by the reference policy'
 COUNTED = ('PROHIBIT', 'REFUSE', 'HOLD', 'REFER')
 
 
@@ -28,14 +29,14 @@ def evaluate(pre_state, actor, tool, args):
         result = relation.constraints(deepcopy(pre_state), actor, tool, deepcopy(args))
     assert pre_state == original, 'commit oracle must not mutate its pre-state'
     disposition = result.get('disposition')
-    return dict(definition=LABEL, actor=actor, tool=tool, args=deepcopy(args),
+    return dict(measure=NAME, definition=LABEL, actor=actor, tool=tool, args=deepcopy(args),
                 disposition=disposition, counted=disposition in COUNTED,
                 incomplete=disposition not in relation.ORDER, evaluation=result,
                 pre_commit_state=original)
 
 
 def summarize(assessments):
-    return dict(definition=LABEL, actual_committed_acts=len(assessments),
+    return dict(measure=NAME, definition=LABEL, actual_committed_acts=len(assessments),
                 counted_commits=sum(a['counted'] for a in assessments),
                 incomplete=sum(a['incomplete'] for a in assessments),
                 dispositions={d:sum(a['disposition']==d for a in assessments) for d in relation.ORDER})

@@ -337,7 +337,7 @@ not be described as enforcement of held stages 4–6.
 overdue are separate; fallback is an offer until acceptance; alternatives need a
 new proposal; evidence corrections must reopen duties/cases; training export is
 deferred; log endings need a trusted checkpoint. Its H3 comparison separates a
-TraceGrant-faithful adaptation from a strongest conventional arm with the same
+TraceGrant reconstruction with fixed W0 contracts and documented adaptations from a independently implemented conventional arm with the same
 requirements. Neither this inventory nor model agreement establishes H3 or a
 novelty claim. Independently authored expected traces and Claude review remain
 necessary; implementation agreement alone is insufficient.

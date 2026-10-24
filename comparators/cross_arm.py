@@ -11,7 +11,7 @@ from agents.refunds import CONTROLLERS
 from comparators.business import Backend as BusinessBackend, describe
 from comparators.duty_oracle import Oracle
 from comparators.observed_world import canonical, context, legacy_context, view
-from comparators import commit_oracle
+from comparators import commit_oracle, retained_actual
 from tests.trace_support import production_backend as core, reference_runner
 from tests.trace_support.state_observations import effects
 from conventional_gateway import backend as conventional
@@ -58,10 +58,12 @@ class Recorded:
         self.delegate, self.controller = delegate, controller
         self.origins = iter(e.get('proposal_origin') for e in program['trace']['steps'] if 'propose' in e)
         self.calls, self.origins_by_handle, self.state, self.oracle = [], {}, None, None
+        self.actual_initial, self.actual_transitions = None, []
 
     def start(self, *args, **kwargs):
         self.state = self.delegate.start(*args, **kwargs)
         self.oracle = Oracle(self.state)
+        self.actual_initial = retained_actual.initial(self.state)
         return self.state
 
     def enter_step(self, before, step, events=(), *, event_observer=None):
@@ -76,6 +78,7 @@ class Recorded:
                 event_observer(index, prior, after, result)
         self.state, result = self.delegate.enter_step(before, step, events, event_observer=external)
         self.oracle.reconcile(self.state, correction)
+        self.actual_transitions.append(retained_actual.transition(before,self.state,'events_and_duty_reconciliation',{'step':step,'events':list(events)}))
         return self.state, result
 
     def advance(self, before, step):
@@ -104,6 +107,7 @@ class Recorded:
         self.calls.append(dict(kind='proposal', key=identity, context=fingerprint, v0_context=old_fingerprint, actor=actor,
             tool=tool, args=deepcopy(args), withheld=self.controller.withhold, result={k: deepcopy(v) for k, v in result.items() if k != 'state_delta'},
             effects=effects(before, after), committed=False))
+        self.actual_transitions.append(retained_actual.transition(before,after,'agent_withholding' if self.controller.withhold else 'proposal',{'actor':actor,'tool':tool,'arguments':args,'order_reference':order_reference}))
         self.state = after
         return after, result
 
@@ -138,7 +142,11 @@ class Recorded:
             context_changed=bool(origin and fingerprint != origin['context']), actor=actor, tool=(act or {}).get('tool'),
             args=deepcopy((act or {}).get('args')), result={k: deepcopy(v) for k, v in result.items() if k != 'state_delta'},
             effects=effects(before, after), committed=bool(actual_receipts),
-            supplementary_assessment=assessment))
+            supplementary_assessment=assessment,
+            receiptless_operation=(dict(tool=act['tool'],actor=actor,arguments=deepcopy(act['args']),
+                protocol_operation_scoring='not scored: existing protocol operation metrics require a receipt',
+                reference_policy_assessment=assessment) if actual_commit and not actual_receipts else None)))
+        self.actual_transitions.append(retained_actual.transition(before,after,'execution',{'actor':actor,'token':token,'fault':fault}))
         self.state = after
         return after, result
 
@@ -194,7 +202,8 @@ def episode(case, arm, controller_name, baseline=None):
     return dict(case=case['id'], arm=arm, controller=controller_name, observations=rows,
         assertions=checks, key_acceptance=source_checks, metrics=metrics, oracle_board=observed.oracle.board(),
         final_world=view(observed.state), poec=deepcopy(observed.state.get('poec')),
-        supplementary_harm=commit_oracle.summarize([c['supplementary_assessment'] for c in observed.calls
+        actual_initial=observed.actual_initial, actual_transitions=observed.actual_transitions,
+        reference_policy_committed_acts=commit_oracle.summarize([c['supplementary_assessment'] for c in observed.calls
             if c['kind']=='execution' and c['supplementary_assessment'] is not None]),
         discrepancies=sum(r['status'] == 'discrepancy' for r in failures),
         incomplete=sum(r['status'] == 'incomplete' for r in failures) + metrics['oracle_incomplete'],
