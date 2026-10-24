@@ -106,12 +106,45 @@ def view(state):
                 grants=grants(state), orders=orders(state), notices=notices(state), cases=deepcopy(state['cases']))
 
 
-def context(state, oracle):
+def context_payload(state, oracle, *, normalize_neutral=True):
     v = view(state)
     # Explicit simulator defaults: omitted root expiry/purpose mean 100000/P1
     # in the reviewed native world. All development steps are strictly below it.
     v['duties'] = oracle.board()
+    if normalize_neutral:
+        # Narrow schema-specific equivalences only, not recursive null removal.
+        # Never mutate actual records, normative facts or original proofs.
+        def neutral_fields(kind, fields):
+            key = 'allocated_to' if kind in ('refund', 'chargeback') else 'condition' if kind == 'return_receipt' else None
+            if key is not None and key in fields and fields[key] is None:
+                del fields[key]
+        for history in v['records'].values():
+            for record in history:
+                neutral_fields(record['kind'], record['fields'])
+        for record in v['world']['records'].values():
+            neutral_fields(record['kind'], record)
+        # The current-grant projector already maps absent parent to None.
+        # Apply that same root/no-parent representation to seed configuration.
+        for grant in v['world']['grants'].values():
+            grant.setdefault('parent', None)
+        for duty in v['duties'].values():
+            for admission in duty.get('admissions', []):
+                if admission['args']['template'] == 'refund_issued':
+                    neutral_fields('refund', admission['original'])
+                elif admission['args']['template'] == 'refund_denied':
+                    kind = v['records'][admission['record']][-1]['kind']
+                    neutral_fields(kind, admission['original'])
+    return v
+
+
+def context(state, oracle):
+    v = context_payload(state, oracle)
     return hashlib.sha256(canonical(v).encode()).hexdigest()
+
+
+def legacy_context(state, oracle):
+    """v0 fingerprint retained for exact observation-level correction auditing."""
+    return hashlib.sha256(canonical(context_payload(state, oracle, normalize_neutral=False)).encode()).hexdigest()
 
 
 def report_artifacts(state):

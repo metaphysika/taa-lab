@@ -10,7 +10,8 @@ from pathlib import Path
 from agents.refunds import CONTROLLERS
 from comparators.business import Backend as BusinessBackend, describe
 from comparators.duty_oracle import Oracle
-from comparators.observed_world import canonical, context, view
+from comparators.observed_world import canonical, context, legacy_context, view
+from comparators import commit_oracle
 from tests.trace_support import production_backend as core, reference_runner
 from tests.trace_support.state_observations import effects
 from conventional_gateway import backend as conventional
@@ -90,6 +91,7 @@ class Recorded:
         origin = next(self.origins)
         identity = key(origin, actor, tool, args, order_reference)
         fingerprint = context(before, self.oracle)
+        old_fingerprint = legacy_context(before, self.oracle)
         if self.controller.withhold:
             after, result = describe(before, deepcopy(before), dict(agent_withheld=True))
         else:
@@ -99,7 +101,7 @@ class Recorded:
         if handle is not None:
             self.origins_by_handle.setdefault(handle, dict(key=identity, context=fingerprint, actor=actor, tool=tool, args=deepcopy(args)))
         self.oracle.sync(after)
-        self.calls.append(dict(kind='proposal', key=identity, context=fingerprint, actor=actor,
+        self.calls.append(dict(kind='proposal', key=identity, context=fingerprint, v0_context=old_fingerprint, actor=actor,
             tool=tool, args=deepcopy(args), withheld=self.controller.withhold, result={k: deepcopy(v) for k, v in result.items() if k != 'state_delta'},
             effects=effects(before, after), committed=False))
         self.state = after
@@ -109,8 +111,20 @@ class Recorded:
         act = before['tokens'].get(token, before.get('intents', {}).get(token))
         origin = self.origins_by_handle.get(token, {})
         fingerprint = context(before, self.oracle)
+        old_fingerprint = legacy_context(before, self.oracle)
+        pre_commit = commit_oracle.snapshot(self.oracle, before)
         after, result = self.delegate.execute(before, actor, token, fault)
         actual_receipts = after['receipts'][len(before['receipts']):]
+        actual_commit = bool(actual_receipts or
+            any(e['kind'] != 'report' for e in effects(before, after)) or
+            canonical(before['notices']) != canonical(after['notices']) or
+            canonical(before['cases']) != canonical(after['cases']) or
+            ('business_operations' in before and len(after['business_operations']) > len(before['business_operations'])))
+        assessment = None
+        if actual_commit:
+            if act is None:
+                raise ValueError('actual committed effect without attributable act')
+            assessment = commit_oracle.evaluate(pre_commit, actor, act['tool'], act['args'])
         if actual_receipts:
             if act is None:
                 raise ValueError('receipt without an observed proposal intention/certificate')
@@ -119,11 +133,12 @@ class Recorded:
             self.oracle.sync(after)
         same_act = bool(act and origin and actor == origin['actor'] and act['tool'] == origin['tool'] and
                         canonical(act['args']) == canonical(origin['args']))
-        self.calls.append(dict(kind='execution', key=origin.get('key') if same_act else None, context=fingerprint,
+        self.calls.append(dict(kind='execution', key=origin.get('key') if same_act else None, context=fingerprint, v0_context=old_fingerprint,
             issuance_context=origin.get('context'), actor_changed=bool(origin and actor != origin['actor']),
             context_changed=bool(origin and fingerprint != origin['context']), actor=actor, tool=(act or {}).get('tool'),
             args=deepcopy((act or {}).get('args')), result={k: deepcopy(v) for k, v in result.items() if k != 'state_delta'},
-            effects=effects(before, after), committed=bool(actual_receipts)))
+            effects=effects(before, after), committed=bool(actual_receipts),
+            supplementary_assessment=assessment))
         self.state = after
         return after, result
 
@@ -179,6 +194,8 @@ def episode(case, arm, controller_name, baseline=None):
     return dict(case=case['id'], arm=arm, controller=controller_name, observations=rows,
         assertions=checks, key_acceptance=source_checks, metrics=metrics, oracle_board=observed.oracle.board(),
         final_world=view(observed.state), poec=deepcopy(observed.state.get('poec')),
+        supplementary_harm=commit_oracle.summarize([c['supplementary_assessment'] for c in observed.calls
+            if c['kind']=='execution' and c['supplementary_assessment'] is not None]),
         discrepancies=sum(r['status'] == 'discrepancy' for r in failures),
         incomplete=sum(r['status'] == 'incomplete' for r in failures) + metrics['oracle_incomplete'],
         baseline=baseline if arm == 'taa' and controller_name == 'correct' else None)

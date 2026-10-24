@@ -8328,3 +8328,25 @@ Report artifact check caught Git text normalization of standalone episodes.csv
 update its checksum; parsed CSV rows/values are identical. Preserve original
 CRLF renderer CSV and hash in the lossless archive. No score or classification
 changed, no runtime or rerun. Validate checksums against actual Git blobs.
+
+2026-10-23 America/Chicago — PR32 correction authorized after Claude found the
+null/absent allocation context defect at6232fd2a. Preserve all six v0 files
+byte-identical. Before corrected outcomes, freeze the v0.1 plan: three narrow
+context aliases (financial allocated_to, return condition, root grant parent),
+all320 unchanged inputs, and a separate context-independent committed-act
+measure defined after v0 results, development only, to be pre-registered before
+Experiment A. Four-host control reproduces original mismatch using pinned
+v0 source and passes with correction. No actual state/decision/oracle relation
+changes. Capture independent pre-commit snapshots and all six dispositions;
+count PROHIBIT/REFUSE/HOLD/REFER only, ALTERNATIVE not labeled safe. Full tests
+running before code commit. No model calls, spending, Modal, deletion or release.
+PR remains draft; corrected run needs fresh Claude review before merge.
+
+Correction acceptance before v0.1 execution: full1106 methods /36 existing
+optional skips /0 failures/errors,1709.467s; scripted all-scenarios exit0.
+All8 new control methods pass, including pinned-v0 mismatch, current four-host
+equivalence, preserved meaningful distinctions, independent own-prestate rule
+checks and a partial financial write without receipt. Control payload diff
+confirms only allocated_to null/absent (record and original admission). Six
+v0 hashes and all protected policy/controller/key/contract/fixture sources
+unchanged. Freeze this correction commit before the single corrected replay.
