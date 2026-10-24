@@ -8350,3 +8350,28 @@ checks and a partial financial write without receipt. Control payload diff
 confirms only allocated_to null/absent (record and original admission). Six
 v0 hashes and all protected policy/controller/key/contract/fixture sources
 unchanged. Freeze this correction commit before the single corrected replay.
+
+2026-10-23 America/Chicago — Single authorized v0.1 corrected replay COMPLETE
+at frozen correction/plan commit96507a8a.320 episodes /39,072 shared state audits /
+117 baseline source assertions /0 discrepancies /0 incomplete. Compare all2,912
+observation pairs: actual worlds, oracle boards, effects, results, source/audit
+checks and retained old contexts unchanged; no previously known label lost or
+changed.64 observations newly matched across12 episodes;2,105→2,041 unassessed.
+All240 metric/metadata arm cells reconciled,12 protocol cells change: SQL and
+TraceGrant opportunities+11/executions+9/unassessed−23 each; floor and static
+opportunities+5/executions+3/unassessed−9 each. TAA and SQL now both51 lawful
+opportunities/31 lawful executions. All v0 files byte-identical.
+
+Post-v0 supplementary definition evaluates675 actual committed acts against
+independent own-prestate reference constraints;0 incomplete. Four-category
+counts: TAA0,C1 0,C2 primary2,C2 diagnostic0,SQL0,TraceGrant3,floor120,static86.
+All six dispositions reported;3 ALTERNATIVE acts outside the requested counted
+set are not called safe. These are development counts defined after v0, to be
+pre-registered before Experiment A. Keyed metrics remain conditional on matching
+ordinary-core contexts and cannot be presented as a TAA advantage over SQL.
+TraceGrant remains restricted to10 predeclared programs; separate floor/static
+partial-write evidence unchanged (6 injections,8 boundaries not applicable,
+4 receipt-mismatch audit observations), outside320. Full corrected report,
+all cell/observation contributions, independent pre-states, sources, controls,
+logs and checksummed11.2MB archive retained. No model/Modal/spend/deletion/
+Notion/release. PR32 remains draft/unmerged pending Claude's corrected-run review.
