@@ -73,7 +73,7 @@ class Service:
         return {k: deepcopy(history[-1][k]) for k in ('id', 'version', 'kind', 'fields')} if history else None
 
     def snapshot(self):
-        return deepcopy({k: self.s[k] for k in ('records', 'notices', 'cases')})
+        return dict(deepcopy({k: self.s[k] for k in ('records', 'notices', 'cases')}), operations=deepcopy(self.s['business_operations']))
 
     @contextmanager
     def transaction(self):
@@ -108,6 +108,13 @@ class Service:
         if fault is not None and tool not in ('issue_refund','message_party','close_case'):
             fault.hit('during_effect_commit')
         s['revision'] += 1
+
+    def observed_execution(self, before):
+        from comparators.execution_observation import invocation, check_notice
+        actual = invocation(before['operations'], self.s['business_operations'])
+        effect = self.observed_effect(before, actual['tool'])
+        check_notice(actual, effect)
+        return dict(actual, effect=effect)
 
     def observed_effect(self, before, tool):
         s = self.s

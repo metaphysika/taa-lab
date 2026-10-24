@@ -1,0 +1,11 @@
+{
+  "id": "R-COMP-injected-notice-customer-drift",
+  "attribution": "Sol-authored from Astra's comparison review, confirmed by Claude and relayed by Chris",
+  "label": "injected-drift probe",
+  "contract": "T02",
+  "setup": {"records": {"RET1": {"received": true}}},
+  "refund": {"claim": "CL1", "amount": 120, "to": "K1_card", "basis": "return"},
+  "notice": {"claim": "CL1", "to": "K1", "amount": 120, "template": "refund_issued", "cites": "REF1", "customer": "K1"},
+  "injection": {"customer": "K2"},
+  "expect": {"dispatch": "rolled_back", "new_receipts": 0, "obligation_verified": false, "injection_observed_customer": "K2"}
+}

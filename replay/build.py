@@ -1,7 +1,8 @@
 """Build offline pages without running an episode, policy, model or oracle.
 
-Scored journals retain selected observations, not a complete native event log.
-Missing channels remain explicit. Oracle obligations never become deliveries.
+Historical v0.1 journals expose selected observations; v0.2 also retains actual
+state changes and projected event rows. Missing channels remain explicit.
+Oracle obligations never become deliveries.
 """
 import argparse
 from collections import defaultdict
@@ -13,7 +14,7 @@ from pathlib import Path
 import re
 import zipfile
 
-VERSION = '0.1.1'
+VERSION = '0.2.0'
 GAPS = ('Complete native token status history was not retained in the scored journal.',
         'Complete native duty/report/correction events were not retained; external oracle histories are labeled separately.')
 CSS = '''body{margin:0;background:#eef1f5;color:#17212e;font:16px system-ui,sans-serif}header,main{padding:1.5rem;max-width:1600px;margin:auto}h1{font-size:1.8rem}h2{font-size:1.2rem}a{color:#164f93}nav,label{margin-right:1rem}.notice{border-left:5px solid #b16b14;background:#fff4db;padding:1rem}.columns{display:flex;gap:1rem;align-items:flex-start;overflow:auto}.arm{min-width:390px;flex:1;background:white;padding:1rem;border:1px solid #c9d1dc}.row{border-top:3px solid #6383a6;margin-top:1rem;padding-top:.5rem}pre{font:12px ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6f9;padding:.7rem}summary{cursor:pointer;padding:.4rem}small,.muted{color:#4a596b}table{border-collapse:collapse}td,th{border:1px solid #ccd;padding:.4rem;text-align:left}.tag{font-size:.85rem;background:#dfebf7;padding:.2rem .4rem}button,select{font:inherit;padding:.3rem}input{margin-right:.4rem} [hidden]{display:none!important}'''
@@ -112,12 +113,12 @@ def oracle_history(duties):
     return [dict(step=step if step>=0 else 'not retained',duty=did,transition=event) for step,did,i,event in sorted(rows)]
 
 
-def column(episode,schedule):
+def historical_column(episode,schedule):
     rows,inputs=timeline(episode,schedule)
-    arm=episode['arm'];parts=['<section class="arm" data-column="'+esc(arm)+'"><h2>'+esc(arm)+'</h2>']
+    arm=episode['arm'];parts=['<section class="arm" data-column="'+esc(arm)+'"><h2>'+esc({'conventional':'independently implemented conventional arm','tracegrant':'TraceGrant reconstruction with fixed W0 contracts and documented adaptations'}.get(arm,arm))+'</h2>']
     parts.append('<p class="notice">Incomplete historical event coverage. No native token state or physical report delivery is inferred from an oracle obligation.</p>')
     parts.append(detail('Retained protocol metrics (keyed metrics are conditional)',episode['metrics']))
-    parts.append(detail('Supplementary committed-act measure — post-v0 development only',episode['supplementary_harm']))
+    parts.append(detail('Committed acts disallowed by the reference policy — post-v0 development only',episode.get('reference_policy_committed_acts',episode.get('supplementary_harm'))))
     parts.append(detail('Input events and scheduled clock steps (not observed outcomes)',inputs))
     for row in rows:
         o=row['observation'];r=o['result'];withheld=o['kind']=='proposal' and o['withheld'];prefix=episode['case']+'-'+episode['controller']+'-'+arm+'-'+str(row['index'])
@@ -148,6 +149,17 @@ def column(episode,schedule):
     return ''.join(parts)
 
 
+def column(episode,schedule):
+    if ('actual_initial' in episode)!=('actual_transitions' in episode):raise ValueError('incomplete retained-state channels')
+    if 'actual_initial' in episode:
+        from replay.retained import render
+        actions=[t for t in episode['actual_transitions'] if t['phase'] in ('proposal','agent_withholding','execution')]
+        if len(actions)!=len(episode['observations']):raise ValueError('actual action count mismatch')
+        rows=[dict(index=i,step=t['step'],observation=o) for i,(t,o) in enumerate(zip(actions,episode['observations']))]
+        return render(episode,rows,detail,esc,duty_table)
+    return historical_column(episode,schedule)
+
+
 def filename(*parts):
     if not all(re.fullmatch(r'[A-Za-z0-9_-]+',p) for p in parts):raise ValueError('unsafe episode identity')
     return '--'.join(parts)+'.html'
@@ -158,22 +170,23 @@ def build(episodes,manifest,archive_hash,input_schedules):
     for e in sorted(episodes,key=lambda e:(e['case'],e['controller'],e['arm'])):
         groups[e['case'],e['controller']].append(e)
         title=e['case']+' · '+e['controller']+' · '+e['arm']
-        files[filename(e['case'],e['controller'],e['arm'])]=document(title,column(e,input_schedules[e['case'],e['controller']]))
-    index=['<p class="notice">Keyed metrics apply only while context matches the ordinary core. Early-diverging floor/static actions can go unassessed; this is not safety evidence. Keyed counts must not be presented as a TAA advantage over conventional SQL. TraceGrant covers only ten development programs. Supplementary measures were defined after v0; development only; pre-register before Experiment A.</p>',
-        '<p>Source archive SHA-256: <code>'+esc(archive_hash)+'</code>. Complete native histories are unavailable in these historical pages. Open a comparison, then select arms; each episode also has its own page.</p><ul>']
+        files[filename(e['case'],e['controller'],e['arm'])]=document(title,column(e,None if 'actual_initial' in e else input_schedules[e['case'],e['controller']]))
+    retained=all('actual_initial' in e and 'actual_transitions' in e for e in episodes)
+    index=['<p class="notice">Keyed metrics apply only while context matches the ordinary core. Early-diverging floor/static actions can go unassessed; this is not safety evidence. Keyed counts must not be presented as a TAA advantage over the independently implemented conventional arm. The TraceGrant reconstruction with fixed W0 contracts and documented adaptations covers only ten development programs. Supplementary measures were defined after v0; development only; pre-register before Experiment A.</p>',
+        '<p>Source archive SHA-256: <code>'+esc(archive_hash)+'</code>. '+('Actual state channels and event additions are retained; native HMAC/end-checkpoint authentication is not verified.' if retained else 'Complete native histories are unavailable in these historical pages.')+' Open a comparison, then select arms; each episode also has its own page.</p><ul>']
     for (case,controller),group in sorted(groups.items()):
         by_arm={e['arm']:e for e in group};ordered=[by_arm[a] for a in manifest['arms']]
         controls='<nav>'+''.join('<label><input type="checkbox" data-arm="'+esc(a)+'" checked>'+esc(a)+'</label>' for a in manifest['arms'])+'</nav>'
-        step_options='<label>Scheduled step <select data-step-filter><option value="all">All</option>'+''.join('<option>'+str(step)+'</option>' for step in sorted({r['step'] for r in input_schedules[case,controller]}))+'</select></label>'
-        content=step_options+controls+'<div class="columns">'+''.join(column(e,input_schedules[case,controller]) for e in ordered)+'</div>'
+        step_options='<label>'+('Observed step' if retained else 'Scheduled step')+' <select data-step-filter><option value="all">All</option>'+''.join('<option>'+str(step)+'</option>' for step in (sorted({t['step'] for e in group for t in e.get('actual_transitions',[])}) if retained else sorted({r['step'] for r in input_schedules[case,controller]})))+'</select></label>'
+        content=step_options+controls+'<div class="columns">'+''.join(column(e,None if 'actual_initial' in e else input_schedules[case,controller]) for e in ordered)+'</div>'
         name=filename(case,controller)
         files[name]=document(case+' · '+controller+' · side-by-side arms',content)
         links=' '.join('<a href="'+filename(case,controller,a)+'">'+esc(a)+'</a>' for a in manifest['arms'])
         index.append('<li><a href="'+name+'">'+esc(case+' / '+controller)+' comparison</a> · '+links+'</li>')
     index.append('</ul>')
-    files['index.html']=document('Scored v0.1 replay / audit window',''.join(index))
+    files['index.html']=document('Retained scoring replay / audit window',''.join(index))
     proof=dict(renderer_version=VERSION,source_archive_sha256=archive_hash,episodes=len(episodes),
-               episode_pages=len(episodes),comparison_pages=len(groups),coverage_gaps=list(GAPS),
+               episode_pages=len(episodes),comparison_pages=len(groups),retained_state_episodes=sum('actual_initial' in e for e in episodes),coverage_gaps=[] if retained else list(GAPS),authentication_limits=['No HMAC authentication or independent native ending checkpoint is verified.'],
                files={name:sha(blob) for name,blob in sorted(files.items())})
     files['MANIFEST.json']=canonical(proof)+b'\n'
     return files,proof
@@ -213,7 +226,7 @@ def main(argv=None):
         files['MANIFEST.json']=canonical(proof)+b'\n'
     else:
         episodes,manifest,digest=read_evidence(a.validation)
-        files,proof=build(episodes,manifest,digest,schedules(root,manifest))
+        files,proof=build(episodes,manifest,digest,{} if all('actual_initial' in e for e in episodes) else schedules(root,manifest))
     a.output.mkdir(parents=True,exist_ok=False)
     for name,blob in sorted(files.items()):(a.output/name).write_bytes(blob)
     print(json.dumps({k:v for k,v in proof.items() if k!='files'},sort_keys=True))

@@ -1,0 +1,48 @@
+# Sol-authored from Astra's comparison review, confirmed by Claude and relayed by Chris.
+# Separate regressions; frozen v0.2.2 fixtures and W0 are unchanged.
+- id: R-COMP-parent-customer-scope
+  attribution: Sol-authored from Astra's comparison review confirmed by Claude
+  title: A leaf grant cannot exceed its parent customer scope
+  setup:
+    records:
+      RET1: {received: true}
+    grants:
+      G0:
+        scope: {customers: [K2]}
+  steps:
+  - step: 1
+    propose:
+      actor: A
+      tool: issue_refund
+      args: {claim: CL1, amount: 120, to: K1_card, basis: return}
+    expect: {disposition: REFUSE, token: none}
+- id: R-COMP-repeat-delivery-ack
+  attribution: Sol-authored from Astra's comparison review confirmed by Claude
+  title: One report duty stays one acknowledgment candidate after C-F-C routing
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - {tool: issue_refund, claim: CL1, amount: 120, asserts: [return received]}
+  - step: 1
+    propose:
+      actor: A
+      tool: issue_refund
+      args: {claim: CL1, amount: 120, to: K1_card, basis: return, asserts: [return received]}
+    expect:
+      disposition: PROHIBIT
+      gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 1, to: C}]
+  - step: 6
+    expect:
+      gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 1, to: F}]
+  - step: 11
+    expect:
+      gateway_transitions: [{type: report_dispatched, report_id: RPT1, version: 1, to: C}]
+  - step: 12
+    events: [{type: acknowledgment, from: C, report: RPT1, version: 1}]
+    expect:
+      duties: [{id: 'D_report(ORDR1)', resolution: discharged}]

@@ -76,7 +76,7 @@ Cross-arm programs are derived input-only comparison programs, not claims that a
 weaker arm passes every TAA-specific frozen assertion. The ordinary-core baseline
 is separately checked against the independent source assertions. Existing full
 frozen/regression acceptance remains in CI for the reference, production and
-strongest conventional implementations. These suites and cross-arm state-audit
+independently implemented conventional implementations. These suites and cross-arm state-audit
 coverage are reported separately.
 
 [DESCRIPTIVE] Exact source identity includes the original proposal entry, acting
@@ -96,7 +96,7 @@ Incomplete observation vocabulary and exceptions fail the comparison gate and
 retain the completed episode prefix. Unsupported semantic labels remain
 unassessed rather than becoming favorable outcomes.
 
-[INTERPRETATION] Exact agreement with the strongest conventional implementation
+[INTERPRETATION] Exact agreement with the independently implemented conventional implementation
 is success for both. These are finite scripted development observations. They
 are not held-out evaluation, population estimates, training-transfer evidence,
 proof of H3, novelty evidence or a public/live release. Q14–Q16 are now approved; implementation follows this infrastructure PR.
@@ -143,7 +143,7 @@ record; its statement that Q14–Q16 were pending describes its writing time.
 
 [ORDER OF WORK] C2 is merged. This PR finishes C3 infrastructure using the
 Q1–Q13 relations already reviewed. Q14–Q16 must next be implemented in the TAA
-core, independent reference, independent conventional arm and common oracle,
+core, independent reference, independently implemented conventional arm and common oracle,
 with the specified regression and pre-change sensitivity evidence. Final
 cross-arm scoring follows in its own PR under the pre-declared matching rules.
 No final cross-arm score is computed or committed here. Diagnostic per-episode

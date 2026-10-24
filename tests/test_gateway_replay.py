@@ -68,3 +68,46 @@ class ReplayTests(unittest.TestCase):
         with self.assertRaises(ValueError):replay.native_document(mutated,checkpoint)
         rows=blob.splitlines();truncated=b'\n'.join(rows[:-2]+rows[-1:])+b'\n'
         with self.assertRaises(ValueError):replay.native_document(truncated,checkpoint)
+
+
+class RetainedReplayTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.episodes,cls.manifest,cls.source=replay.read_evidence(ROOT/'docs/process/evidence/gateway-cross-arm-scoring-v02/validation.json')
+        cls.schedules=replay.schedules(ROOT,cls.manifest)
+
+    def test_all_actual_channels_reconstruct_and_align_with_2912_observations(self):
+        from replay.retained import transitions
+        count=0
+        for e in self.episodes:
+            rows,_=replay.timeline(e,self.schedules[e['case'],e['controller']])
+            actual=list(transitions(e));actions=[t for t in actual if t['phase'] in ('proposal','agent_withholding','execution')]
+            self.assertEqual(len(actions),len(rows));count+=len(actions)
+            self.assertEqual([t['step'] for t in actions],[r['step'] for r in rows])
+        self.assertEqual(count,2912)
+
+    def test_actual_pages_are_deterministic_and_show_token_and_record_changes(self):
+        es=[e for e in self.episodes if e['case']=='T03' and e['controller']=='correct' and e['arm'] in ('taa','conventional')]
+        m=dict(self.manifest,arms=['taa','conventional']);before=deepcopy(es)
+        a,proof=replay.build(es,m,self.source,self.schedules);b,again=replay.build(es,m,self.source,{})
+        self.assertEqual(a,b);self.assertEqual(proof,again);self.assertEqual(es,before)
+        self.assertEqual(proof['coverage_gaps'],[]);self.assertEqual(proof['retained_state_episodes'],2)
+        page=a['T03--correct--taa.html'].decode()
+        self.assertIn('Actual token, record, duty, report, notice and receipt changes',page)
+        self.assertIn('Observed revision before / after',page)
+        self.assertIn('HMAC authentication',page);self.assertNotIn('full native lifecycle not retained',page)
+        self.assertIn('record_correction',page)
+
+    def test_inconsistent_before_values_missing_channels_and_log_prefixes_fail_closed(self):
+        from replay.retained import transitions
+        original=next(e for e in self.episodes if e['case']=='T03' and e['controller']=='correct' and e['arm']=='taa')
+        wrong=deepcopy(original)
+        t=next(t for t in wrong['actual_transitions'] if 'revision' in t['actual_channels'])
+        t['actual_channels']['revision']['before']=-1
+        with self.assertRaises(ValueError):list(transitions(wrong))
+        wrong=deepcopy(original);del wrong['actual_initial']['channels']['tokens']
+        with self.assertRaises(ValueError):list(transitions(wrong))
+        wrong=deepcopy(original);wrong['actual_transitions'][0]['actual_event_log']['before_length']+=1
+        with self.assertRaises(ValueError):list(transitions(wrong))
+        wrong=deepcopy(original);del wrong['actual_initial']
+        with self.assertRaises(ValueError):replay.column(wrong,self.schedules[wrong['case'],wrong['controller']])
