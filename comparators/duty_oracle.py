@@ -49,16 +49,16 @@ class Oracle:
         elif event['type'] == 'acknowledgment':
             physical = [a for a in self.delivered if a['id'] == event['report'] and
                         a['version'] == event['version'] and a['to'] == event['from']]
-            candidates = []
+            candidates = {}
             for a in physical:
                 for d in self.s['duties'].values():
                     key = ['unowned', d['claim']] if d['kind'] == 'unowned_report' else d.get('matter')
                     if (key == a['key'] and d['resolution'] == 'unresolved' and
                             d.get('version') == event['version'] and d.get('recipient') == event['from'] and
                             (d['kind'] == 'unowned_report' or d.get('incidents') == a['incidents'])):
-                        candidates.append(d)
+                        candidates[d['id']] = d
             if len(candidates) == 1:
-                accepted = dict(event, report=candidates[0]['report_id'])
+                accepted = dict(event, report=next(iter(candidates.values()))['report_id'])
                 self.s, _ = relation.apply_event(self.s, accepted, stabilize=False)
         # Record corrections are already read from actual histories. Reconcile
         # once after all events of the step; never create a transient refund duty.

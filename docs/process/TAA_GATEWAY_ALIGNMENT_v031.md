@@ -142,3 +142,8 @@ Frozen v0.2.2/W0, source outcomes, original Q11/Q12 files, controllers, matching
 function/protocol and frozen POEC contracts are unchanged. Final scoring waits
 for Claude's review of completed PR31, then its separate PR. No model calls,
 Modal operations, spending, deletions, Notion edits or public releases.
+
+
+## Comparison review v0.2 — additional scope-conversion question
+
+[OPEN / 2026-10-24 UTC] The conventional-chain audit found that the core W0 converter discards template restrictions. A refund_issued notice constrained to refund_denied is REFUSE in reference/SQL and PERMIT in core. The generic grant checker can retain the restriction but would HOLD calls with no template resource, whereas reference currently ignores template restrictions for those calls. Claude's ruling has been requested; no rule meaning is inferred. This is separate from Q14–Q16 and outside the ten declared scoring programs. See COMP-V02-CORE-TEMPLATE-CONVERSION in the append-only discrepancy log and TAA_COMPARISON_REVIEW_v02.md.

@@ -16,7 +16,7 @@ gateway as specified, not demonstrated comparative performance. The controlling
 *TAA Gateway Core Design v0.3* is reconciled in the
 [code inventory, section 5](TAA_GATEWAY_CODE_INVENTORY_v0.md#5-controlling-gap-matrix-gateway-v03).
 It replaces initial selective invalidation with a global revision barrier and
-separates TraceGrant-faithful and strongest conventional comparators. These are
+separates TraceGrant reconstruction with fixed W0 contracts and documented adaptations and independently implemented conventional comparators. These are
 design updates; source-paper findings and verification depths are unchanged.
 This note supersedes v0's provisional assessment where newer sources narrow it.
 
@@ -236,10 +236,11 @@ completion-gate comparator before making broader comparative claims. TraceGrant
 is a richer conventional runtime than static permissions; do not rename one as
 the other or silently rewrite the existing hypothesis.
 
-[DESCRIPTIVE] v0.3 separates two questions. A **TraceGrant-faithful** arm includes
-only verified published behavior and an implementation matrix identifying
-published, unspecified and locally adapted features. A **strongest conventional**
-arm independently implements the same normative requirements, evidence and
+[DESCRIPTIVE] v0.3 separates two questions. In the current terminology, the
+**TraceGrant reconstruction with fixed W0 contracts and documented adaptations**
+identifies published, unspecified and locally adapted features in its implementation
+matrix. The **independently implemented conventional arm** implements the same
+normative requirements, evidence and
 persistent state as TAA. Its representation difference and the single proposed
 advantage must be declared before evaluation. Matching safety is a success for
 both; omitted protections cannot create a TAA advantage. H3 endpoints, match

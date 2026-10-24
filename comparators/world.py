@@ -13,6 +13,7 @@ class World:
         setup = setup or {}
         self.definition = deepcopy(definition)
         self.records, self.sources, self.notices, self.cases, self.external = {}, {}, [], {}, []
+        self.operations = []
         self._lock, self.step = RLock(), 1
         seed = deepcopy(definition['records'])
         for rid in setup.get('remove_records', []):
@@ -39,7 +40,7 @@ class World:
         return deepcopy(rows[-1]) if rows else None
 
     def snapshot(self):
-        return deepcopy({'records': self.records, 'notices': self.notices, 'cases': self.cases})
+        return deepcopy({'records': self.records, 'notices': self.notices, 'cases': self.cases, 'operations': self.operations})
 
     @contextmanager
     def transaction(self):
@@ -49,6 +50,7 @@ class World:
                 yield
             except BaseException:
                 self.records, self.notices, self.cases = before['records'], before['notices'], before['cases']
+                self.operations = before['operations']
                 self.sources = sources
                 raise
 
@@ -95,6 +97,15 @@ class World:
             self.cases[args['case']] = True
         else:
             raise ValueError('outside the frozen task contract effect profile')
+        self.operations.append({'actor': actor, 'tool': tool, 'args': deepcopy(args)})
+
+    def observed_execution(self, before):
+        from comparators.execution_observation import invocation
+        actual = invocation(before['operations'], self.operations)
+        effect = self.observed_effect(before, actual['tool'])
+        from comparators.execution_observation import check_notice
+        check_notice(actual, effect)
+        return dict(actual, effect=effect)
 
     def observed_effect(self, before, tool):
         # Never accept an effect list returned by apply(). Observe actual state.
