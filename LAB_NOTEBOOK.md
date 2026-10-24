@@ -8294,3 +8294,84 @@ count comparisons unchanged. Preserve original scenario and all runtime/frozen
 sources. Evidence docs/process/evidence/gateway-pr31-overlap. Merge only on
 green exact-head CI under Chris's relayed conditional approval; then separate
 ten-program scoring PR. No paid/model/Modal operations or releases.
+
+2026-10-23 America/Chicago — PR31 merged at a6df341d after all six CI runs
+succeeded on7ae8137b. Begin separate report-only ten-program cross-arm stage
+under Chris's explicit instruction. Freeze execution plan and utility hashes
+before outcomes. Existing reviewed run_suite:8 arms ×4 scripted controllers ×10
+programs =320 scored episodes, plus independent baseline-key validation passes.
+No outcome forecast, policy/controller/key/contract change or new contract.
+Retain one durable attempt with all discrepancies, incomplete/unassessed items
+and separate T23 engineering faults. No models, Modal, spending or release.
+
+2026-10-23 America/Chicago — Single preplanned cross-arm scoring run COMPLETE.
+Runtime merge a6df341d, pre-outcome plan8f9b7931. T01–T10 only,8 arms ×4 fixed
+scripted controllers =320 episodes;25 common metrics (24 scalar + one list).
+39,072 common state checks and117 separate baseline-source assertions;0 audit
+discrepancies,0 incomplete;2,105 unassessed proposal/execution observations
+retained verbatim, not relabeled. Journal matches canonical driver JSON and
+protected source hashes remain unchanged. No rerun or policy/controller/key/
+contract changes. Full arm/controller tables, all320 episode/list rows, all
+unassessed items and raw observations archived. Scalar/list totals reconcile
+against raw data and CSV, all320 episode keys unique. Published Markdown table
+lines are bit-identical to the pre-frozen renderer; prose only clarifies status
+versus repeated-operation counts and spacing. Original renderer output retained.
+Separate reviewed T23 supplement:6 real fault injections,8 boundaries not
+applicable by design,4 actual receipt-mismatch audits, outside320 totals.
+TraceGrant covers only ten predeclared programs; no new contracts/wider claim.
+No interpretation beyond protocol definitions, model calls, Modal operations,
+spending, evidence deletion, Notion edits or release. Report-only PR follows;
+it requires a new Claude review and cannot merge under PR31's approval.
+
+Report artifact check caught Git text normalization of standalone episodes.csv
+(CRLF→LF). Normalize only that presentation copy to the committed LF bytes and
+update its checksum; parsed CSV rows/values are identical. Preserve original
+CRLF renderer CSV and hash in the lossless archive. No score or classification
+changed, no runtime or rerun. Validate checksums against actual Git blobs.
+
+2026-10-23 America/Chicago — PR32 correction authorized after Claude found the
+null/absent allocation context defect at6232fd2a. Preserve all six v0 files
+byte-identical. Before corrected outcomes, freeze the v0.1 plan: three narrow
+context aliases (financial allocated_to, return condition, root grant parent),
+all320 unchanged inputs, and a separate context-independent committed-act
+measure defined after v0 results, development only, to be pre-registered before
+Experiment A. Four-host control reproduces original mismatch using pinned
+v0 source and passes with correction. No actual state/decision/oracle relation
+changes. Capture independent pre-commit snapshots and all six dispositions;
+count PROHIBIT/REFUSE/HOLD/REFER only, ALTERNATIVE not labeled safe. Full tests
+running before code commit. No model calls, spending, Modal, deletion or release.
+PR remains draft; corrected run needs fresh Claude review before merge.
+
+Correction acceptance before v0.1 execution: full1106 methods /36 existing
+optional skips /0 failures/errors,1709.467s; scripted all-scenarios exit0.
+All8 new control methods pass, including pinned-v0 mismatch, current four-host
+equivalence, preserved meaningful distinctions, independent own-prestate rule
+checks and a partial financial write without receipt. Control payload diff
+confirms only allocated_to null/absent (record and original admission). Six
+v0 hashes and all protected policy/controller/key/contract/fixture sources
+unchanged. Freeze this correction commit before the single corrected replay.
+
+2026-10-23 America/Chicago — Single authorized v0.1 corrected replay COMPLETE
+at frozen correction/plan commit96507a8a.320 episodes /39,072 shared state audits /
+117 baseline source assertions /0 discrepancies /0 incomplete. Compare all2,912
+observation pairs: actual worlds, oracle boards, effects, results, source/audit
+checks and retained old contexts unchanged; no previously known label lost or
+changed.64 observations newly matched across12 episodes;2,105→2,041 unassessed.
+All240 metric/metadata arm cells reconciled,12 protocol cells change: SQL and
+TraceGrant opportunities+11/executions+9/unassessed−23 each; floor and static
+opportunities+5/executions+3/unassessed−9 each. TAA and SQL now both51 lawful
+opportunities/31 lawful executions. All v0 files byte-identical.
+
+Post-v0 supplementary definition evaluates675 actual committed acts against
+independent own-prestate reference constraints;0 incomplete. Four-category
+counts: TAA0,C1 0,C2 primary2,C2 diagnostic0,SQL0,TraceGrant3,floor120,static86.
+All six dispositions reported;3 ALTERNATIVE acts outside the requested counted
+set are not called safe. These are development counts defined after v0, to be
+pre-registered before Experiment A. Keyed metrics remain conditional on matching
+ordinary-core contexts and cannot be presented as a TAA advantage over SQL.
+TraceGrant remains restricted to10 predeclared programs; separate floor/static
+partial-write evidence unchanged (6 injections,8 boundaries not applicable,
+4 receipt-mismatch audit observations), outside320. Full corrected report,
+all cell/observation contributions, independent pre-states, sources, controls,
+logs and checksummed11.2MB archive retained. No model/Modal/spend/deletion/
+Notion/release. PR32 remains draft/unmerged pending Claude's corrected-run review.
