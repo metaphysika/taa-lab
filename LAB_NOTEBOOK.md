@@ -8303,3 +8303,22 @@ programs =320 scored episodes, plus independent baseline-key validation passes.
 No outcome forecast, policy/controller/key/contract change or new contract.
 Retain one durable attempt with all discrepancies, incomplete/unassessed items
 and separate T23 engineering faults. No models, Modal, spending or release.
+
+2026-10-23 America/Chicago — Single preplanned cross-arm scoring run COMPLETE.
+Runtime merge a6df341d, pre-outcome plan8f9b7931. T01–T10 only,8 arms ×4 fixed
+scripted controllers =320 episodes;25 common metrics (24 scalar + one list).
+39,072 common state checks and117 separate baseline-source assertions;0 audit
+discrepancies,0 incomplete;2,105 unassessed proposal/execution observations
+retained verbatim, not relabeled. Journal matches canonical driver JSON and
+protected source hashes remain unchanged. No rerun or policy/controller/key/
+contract changes. Full arm/controller tables, all320 episode/list rows, all
+unassessed items and raw observations archived. Scalar/list totals reconcile
+against raw data and CSV, all320 episode keys unique. Published Markdown table
+lines are bit-identical to the pre-frozen renderer; prose only clarifies status
+versus repeated-operation counts and spacing. Original renderer output retained.
+Separate reviewed T23 supplement:6 real fault injections,8 boundaries not
+applicable by design,4 actual receipt-mismatch audits, outside320 totals.
+TraceGrant covers only ten predeclared programs; no new contracts/wider claim.
+No interpretation beyond protocol definitions, model calls, Modal operations,
+spending, evidence deletion, Notion edits or release. Report-only PR follows;
+it requires a new Claude review and cannot merge under PR31's approval.
