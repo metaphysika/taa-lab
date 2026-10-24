@@ -8294,3 +8294,12 @@ count comparisons unchanged. Preserve original scenario and all runtime/frozen
 sources. Evidence docs/process/evidence/gateway-pr31-overlap. Merge only on
 green exact-head CI under Chris's relayed conditional approval; then separate
 ten-program scoring PR. No paid/model/Modal operations or releases.
+
+2026-10-23 America/Chicago — PR31 merged at a6df341d after all six CI runs
+succeeded on7ae8137b. Begin separate report-only ten-program cross-arm stage
+under Chris's explicit instruction. Freeze execution plan and utility hashes
+before outcomes. Existing reviewed run_suite:8 arms ×4 scripted controllers ×10
+programs =320 scored episodes, plus independent baseline-key validation passes.
+No outcome forecast, policy/controller/key/contract change or new contract.
+Retain one durable attempt with all discrepancies, incomplete/unassessed items
+and separate T23 engineering faults. No models, Modal, spending or release.
