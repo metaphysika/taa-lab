@@ -8375,3 +8375,29 @@ partial-write evidence unchanged (6 injections,8 boundaries not applicable,
 all cell/observation contributions, independent pre-states, sources, controls,
 logs and checksummed11.2MB archive retained. No model/Modal/spend/deletion/
 Notion/release. PR32 remains draft/unmerged pending Claude's corrected-run review.
+
+2026-10-23 America/Chicago — Owner relayed Claude approval of PR32/eb5213b9;
+mark ready and merge only after every exact-head CI run is green. Begin separate
+replay/audit-window PR. Read-only generator uses immutable v0.1 archive plus
+hash-pinned input schedules; it executes no backend, policy or oracle. Historical
+scored data lacks complete native token/duty/report/correction event streams.
+Do not fabricate them or count oracle obligations as deliveries: expose gaps
+for every historical episode and provide a separate full-native-event reader.
+Test deterministic bytes, all320 schedules/2912 observations, XSS escaping,
+unchanged input, native chain/truncation detection, no HMAC-authentication claim.
+No outcome/source-key/fixture change or new scored replay. No paid/model/Modal
+operations, evidence deletion, Notion changes or release. New PR needs Claude.
+
+Replay presentation review before commit: explicitly distinguish cautious
+agent withholding from a gateway response or missing checks. Build0.1.1 labels
+“gateway not called” and “no token issued.” Preserve the earlier generated
+bundle and interrupted broad-test prefix; rerun full acceptance on final code.
+No retained scoring data or outcomes changed.
+
+Replay checkpoint only; stage paused for Chris's comparison blockers. Final
+local1111 methods /36 optional skips /0 failures/errors,2170.707s; scripted
+all-scenarios exit0. Build0.1.1 generates361 HTML pages plus manifest; separate
+process/hash-seed17 produces identical bytes for all362 files. Historical
+native-channel coverage remains partial for all320 scored episodes, explicitly
+labeled; no native token/report history is invented. No replay PR/merge yet.
+Preserve branch, final bundle and earlier prefix while v0.2 fixes take priority.
