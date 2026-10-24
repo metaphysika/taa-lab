@@ -1,0 +1,951 @@
+# Sol-authored from Claude's Q16/H1 clarification; expectations reviewed by Claude
+# Supersedes only the named source cases; original files remain unchanged.
+- id: R-Q16-authorized-without-capacity
+  title: 11-authorized-standing
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - accept_duty
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: B
+      tool: accept_duty
+      args:
+        duty: D_resolve(CL1)
+    expect:
+      disposition: REFUSE
+      rule: DU4
+      token: none
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+  - step: 4
+    events:
+    - type: duty_acceptance
+      from: B
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+  supersedes: R-Q11-authorized-standing
+- id: R-Q16-authorized-with-capacity
+  title: 11-authorized-standing
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - accept_duty
+        - message_party
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: B
+      tool: accept_duty
+      args:
+        duty: D_resolve(CL1)
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: B
+      token: T2
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: B
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+      execute_result: committed
+  baseline_control: true
+- id: R-Q16-parallel-L
+  title: 12-parallel-L
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: L
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+        - to: F
+          expires_at: 8
+  - step: 4
+    events:
+    - type: duty_acceptance
+      from: L
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 7
+        - to: F
+          expires_at: 8
+  - step: 5
+    events:
+    - type: duty_acceptance
+      from: F
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+      live_offers:
+        D_resolve(CL1): []
+  - step: 8
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+      live_offers:
+        D_resolve(CL1): []
+      revision: R=
+  supersedes: R-Q12-parallel-L
+- id: R-Q16-limit-and-later-capacity
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+    records:
+      RET1:
+        received: true
+    grants:
+      GB:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - accept_duty
+        - issue_refund
+        scope:
+          customers:
+          - K1
+        limits:
+          per_refund_max: 100
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_refund(CL1,120)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: B
+      tool: accept_duty
+      args:
+        duty: D_refund(CL1,120)
+    expect:
+      disposition: REFUSE
+      rule: DU4
+      token: none
+  - step: 3
+    events:
+    - type: duty_acceptance
+      from: B
+      duties:
+      - D_refund(CL1,120)
+    expect:
+      duties:
+      - id: D_refund(CL1,120)
+        owner: A
+      live_offers:
+        D_refund(CL1,120):
+        - to: B
+          expires_at: 7
+  - step: 4
+    events:
+    - type: roster_change
+      by: company
+      party: B
+      add_jurisdictions:
+      - refund_authority
+  - step: 5
+    events:
+    - type: duty_acceptance
+      from: B
+      duties:
+      - D_refund(CL1,120)
+    expect:
+      duties:
+      - id: D_refund(CL1,120)
+        owner: B
+      live_offers:
+        D_refund(CL1,120): []
+- id: R-Q16-initial-owner-limited
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      RET1:
+        received: true
+    grants:
+      G1:
+        limits:
+          per_refund_max: 100
+  steps:
+  - step: 1
+    expect:
+      duties:
+      - id: D_refund(CL1,120)
+        owner: A
+        incapacity: true
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: false
+      live_offers:
+        D_refund(CL1,120):
+        - to: F
+          expires_at: 6
+        D_resolve(CL1): []
+  - step: 6
+    expect:
+      duties:
+      - id: D_refund(CL1,120)
+        owner: none
+- id: R-Q16-message-only-capacity
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      G1:
+        actions:
+        - message_party
+        - offer_duty
+        - accept_duty
+  steps:
+  - step: 1
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: false
+      live_offers:
+        D_resolve(CL1): []
+  baseline_sensitive_backends:
+  - reference
+  - production
+- id: R-Q16-capacity-returns
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+  - step: 4
+    events:
+    - type: roster_change
+      by: company
+      party: A
+      add_jurisdictions:
+      - refund_authority
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: false
+      live_offers:
+        D_resolve(CL1): []
+- id: R-Q16-capacity-returns-at-expiry
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+  - step: 7
+    events:
+    - type: roster_change
+      by: company
+      party: A
+      add_jurisdictions:
+      - refund_authority
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: false
+      live_offers:
+        D_resolve(CL1): []
+- id: R-Q16-lost-again-live-window
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+  - step: 4
+    events:
+    - type: roster_change
+      by: company
+      party: A
+      add_jurisdictions:
+      - refund_authority
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: false
+  - step: 5
+    events:
+    - type: roster_change
+      by: company
+      party: A
+      remove_jurisdictions:
+      - refund_authority
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: true
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 7
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: none
+      live_offers:
+        D_resolve(CL1): []
+- id: R-Q16-lost-again-after-window
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+  - step: 4
+    events:
+    - type: roster_change
+      by: company
+      party: A
+      add_jurisdictions:
+      - refund_authority
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: false
+      live_offers:
+        D_resolve(CL1): []
+  - step: 8
+    events:
+    - type: roster_change
+      by: company
+      party: A
+      remove_jurisdictions:
+      - refund_authority
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+        incapacity: true
+      live_offers:
+        D_resolve(CL1):
+        - to: F
+          expires_at: 13
+  - step: 13
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: none
+- id: R-Q16-fallback-not-renewed
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: none
+      - id: D_unowned_report(CL1)
+        resolution: unresolved
+      live_offers:
+        D_resolve(CL1): []
+  - step: 20
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: none
+      live_offers:
+        D_resolve(CL1): []
+  baseline_control: true
+- id: R-Q16-fallback-owner-no-self-offer
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+    grants:
+      GF:
+        parent: G0
+        grantor: F
+        grantee: F
+        actions:
+        - offer_duty
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: duty_acceptance
+      from: F
+      duties:
+      - D_resolve(CL1)
+  - step: 4
+    propose:
+      actor: F
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: L
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 4
+    execute:
+      actor: F
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 5
+    events:
+    - type: roster_change
+      by: company
+      party: F
+      remove_jurisdictions:
+      - refund_authority
+      - claim_decisions
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: F
+        incapacity: true
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 9
+  - step: 9
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: none
+      live_offers:
+        D_resolve(CL1): []
+- id: R-Q16-last-offer-window
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup: {}
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: F
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: L
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+  - step: 7
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+      live_offers:
+        D_resolve(CL1):
+        - to: L
+          expires_at: 8
+  - step: 8
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: none
+      live_offers:
+        D_resolve(CL1): []
+  baseline_control: true
+- id: R-Q16-capacity-wrong-scope
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - accept_duty
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+      GC:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - message_party
+        scope:
+          customers:
+          - K2
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: duty_acceptance
+      from: B
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+- id: R-Q16-capacity-bad-purpose
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - accept_duty
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+      GC:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - message_party
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P2
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: duty_acceptance
+      from: B
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7
+- id: R-Q16-capacity-revoked-ancestor
+  attribution: Sol-authored from Claude's Q16/H1 clarification; expectations reviewed
+    by Claude
+  setup:
+    grants:
+      GB:
+        parent: G0
+        grantor: F
+        grantee: B
+        actions:
+        - accept_duty
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+      GC:
+        parent: GX
+        grantor: F
+        grantee: B
+        actions:
+        - message_party
+        scope:
+          customers:
+          - K1
+        limits: {}
+        purpose: P1
+        status: live
+        expires_at: 100
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: offer_duty
+      args:
+        duty: D_resolve(CL1)
+        to: B
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    events:
+    - type: duty_acceptance
+      from: B
+      duties:
+      - D_resolve(CL1)
+    expect:
+      duties:
+      - id: D_resolve(CL1)
+        owner: A
+      live_offers:
+        D_resolve(CL1):
+        - to: B
+          expires_at: 7

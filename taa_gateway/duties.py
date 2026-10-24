@@ -4,7 +4,9 @@ This service owns ledger transitions, independently of whether an agent proposes
 anything. Its transaction hook uses the executor's already locked working state.
 """
 from taa_gateway import SCHEMA_VERSION as V
+from taa_gateway.coverage import calculate
 from taa_gateway.records import Write
+from taa_gateway.rules import EvidenceView
 from taa_gateway.serialization import canonical, copy_json
 from taa_gateway.offers import entries, offer_to, add, accept
 
@@ -43,7 +45,7 @@ class DutyEngine:
 
     def new_duty(self, identity, claim, claimant, kind, step, *, amount=None, owner="party:A", due=None):
         return {"schema_version": V, "id": identity, "case_id": claim, "claimant": claimant,
-                "content": {"kind": kind, "amount": amount}, "owner": owner, "offered_to": None,
+                "content": {"kind": kind, "amount": amount, **({"incapacity": False} if kind in ("refund", "resolve") else {})}, "owner": owner, "offered_to": None,
                 "origin": {"rule": "DU1" if kind == "resolve" else "DU2", "created_at": step},
                 "discharge_condition": {"evidence_kind": "notice" if kind == "resolve" else "settlement",
                                          "bindings": {"claim": claim, "claimant": claimant, "amount": amount}},
@@ -99,11 +101,13 @@ class DutyEngine:
         allocation = proof.get("allocation")
         if proof.get("allocation_case") is not None:
             for allocated in (fields.get("allocated_to"), state["allocations"].get(proof["record_id"])):
-                if allocated is not None:
+                if allocated is not None and allocated != proof["allocation_case"]:
+                    if type(allocated) is not str:
+                        return False
                     h = state["duty_records"].get(allocated, [])
                     if not h or h[-1]["fields"]["case_id"] != proof["allocation_case"]:
                         return False
-        return allocation is None or (fields.get("allocated_to") in (None, allocation) and
+        return allocation is None or (fields.get("allocated_to") in (None, allocation, state["duty_records"][allocation][-1]["fields"]["case_id"]) and
                                       state["allocations"].get(proof["record_id"]) in (None, allocation))
 
     def settlement(self, state, rid, row, claim_id, claim, amount, allocation=None):
@@ -137,42 +141,8 @@ class DutyEngine:
                 return self.condition(rid, row, current=row["version"])
         return None
 
-    def notice_proof(self, state, duty, claim):
-        used, total, denied_total, proofs, refs = {}, 0, 0, [], []
-        denial_budget = max(0, claim["amount"] - self.supported(state, dict(claim, id=duty["case_id"])))
-        for notice in state["notices"]:
-            if notice.get("claim") != duty["case_id"] or notice.get("to") != claim["claimant"]:
-                continue
-            amount = notice.get("amount")
-            if type(amount) is not int or amount <= 0:
-                continue
-            if notice.get("template") == "refund_issued":
-                cited = notice.get("cites", "").split("@v")[0]
-                for kind in ("refund", "chargeback"):
-                    row = self.row(state, kind, cited)
-                    if row is None:
-                        continue
-                    rid = row["id"]
-                    # Each basis contributes once, capped at the amount it covers.
-                    contribution = min(amount, row["fields"].get("amount", 0))
-                    proof = self.settlement(state, rid, row, duty["case_id"], claim, contribution)
-                    if proof and rid not in used:
-                        used[rid] = contribution
-                        total += contribution
-                        refs.append(self.ref(rid, row)); proofs.append(proof)
-            elif notice.get("template") == "refund_denied":
-                cited = notice.get("basis", "").split("@v")[0]
-                for kind in ("return_receipt", "carrier_record"):
-                    row = self.row(state, kind, cited)
-                    if row is None or row["id"] in used:
-                        continue
-                    contribution = min(amount, max(0, denial_budget - denied_total))
-                    proof = self.denial_proof(state, row["id"], row, claim, contribution)
-                    if proof and contribution:
-                        used[row["id"]] = contribution
-                        denied_total += contribution; total += contribution
-                        refs.append(self.ref(row["id"], row)); proofs.append(proof)
-        return (refs, proofs, {}, None) if total >= claim["amount"] else None
+    def notice_proof(self, state, duty, claim, events=(), pending_receipt=None):
+        return calculate(self,state,events,duty,claim,pending_receipt)
 
     def release_proof(self, state, duty, claim):
         for rid, row in self.rows(state, "resolution"):
@@ -217,14 +187,21 @@ class DutyEngine:
                                      "evidence": evidence_ids[0] if len(evidence_ids) == 1 else evidence_ids}, None
         return None
 
-    def resolve_business(self, state, events, duty):
+    def resolve_business(self, state, events, duty, pending_receipt=None):
         claim_row = self.row(state, "claim", duty["case_id"])
         if claim_row is None:
             return
         claim = claim_row["fields"]
+        notice = self.notice_proof(state,duty,claim,events,pending_receipt) if duty["content"]["kind"] == "resolve" else None
         if duty["resolution"] != "unresolved":
-            if all(self.valid(state, p) for p in duty["content"].get("proofs", [])):
+            valid = (notice is not None if duty["resolution"] == "discharged" and duty["content"]["kind"] == "resolve" else
+                     all(self.valid(state,p) for p in duty["content"].get("proofs",[])))
+            if valid:
+                self.save(state,events,duty)
                 return
+            duty["content"].setdefault("resolution_proof_history",[]).append(dict(
+                at=state["step"],resolution=duty["resolution"],basis=copy_json(duty["resolution_basis"]),
+                coverage=copy_json(duty["content"].get("discharge_coverage"))))
             changed = [r for r in duty["resolution_basis"] if state["records"].get(r["record_id"], []) and
                        state["records"][r["record_id"]][-1]["version"] != r["record_version"]]
             cite = changed[0] if changed else duty["resolution_basis"][0]
@@ -241,70 +218,140 @@ class DutyEngine:
             self.event(duty, "reopened", state["step"])
             self.save(state, events, duty)
         release = self.release_proof(state, duty, claim)
-        proof = release or (self.refund_proof(state, duty, claim) if duty["content"]["kind"] == "refund" else self.notice_proof(state, duty, claim))
+        proof = release or (self.refund_proof(state, duty, claim) if duty["content"]["kind"] == "refund" else notice)
         if proof:
             refs, bindings, details, allocation = proof
             duty["resolution"] = "released" if release else "discharged"
             duty["resolution_basis"] = refs
             duty["content"].update(details, proofs=bindings)
+            if not release and duty["content"]["kind"] == "resolve":
+                duty["content"]["discharge_coverage"] = copy_json(duty["content"]["coverage_proof"])
             if allocation:
                 state["allocations"][allocation] = duty["id"]
             self.event(duty, duty["resolution"], state["step"])
-            self.save(state, events, duty)
+        self.save(state, events, duty)
 
-    def has_authority(self, state, owner, claim):
-        party = self.row(state, "party", owner)
-        if party and "claim_decisions" in party["fields"]["jurisdictions"]:
+    def capacity_from_view(self, view, step, owner, duty):
+        """W0 capacity: own institutional standing or one complete discharge path.
+
+        This is deliberately separate from support/dischargeability. Reads used
+        by DU4 remain in its EvidenceView and hence in the recorded support set.
+        IR1 candidates are never requested.
+        """
+        party = view.read(owner, "party")
+        if party and any(j in party["jurisdictions"] for j in ("refund_authority", "claim_decisions")):
             return True
-        tool = next(t for t in self.world.tools if t.name == "issue_refund")
-        candidates, _ = self.world.grants.candidates(state)
-        return any(g["grantee"] == owner and self.world.grants.check(state, g, owner, tool,
-                   {"claim": claim["id"], "customer": claim["claimant"]})["result"] == "satisfied" for _, g in candidates)
+        claim = view.read(self.prefix["claim"] + duty["case_id"], "claim")
+        if claim is None:
+            return False
+        for kind in ("grant", "purpose", "party"):
+            view.records(kind)
+        snapshot = {"step": step, "records": {r["id"]: [r] for q in view.queries()
+                    if q["record_id"].startswith("@kind:") for r in q["value"]}}
+        tool_name = "issue_refund" if duty["content"]["kind"] == "refund" else "message_party"
+        tool = next(t for t in self.world.tools if t.name == tool_name)
+        templates = (None,) if tool_name == "issue_refund" else ("refund_issued", "refund_denied")
+        resources = {"claim": duty["case_id"], "customer": claim["claimant"], "to": claim["claimant"],
+                     "order": claim["order"], "basis": claim["basis"]}
+        amount = duty["content"].get("amount")
+        for _, grant in self.world.grants.candidates(snapshot)[0]:
+            if grant["grantee"] != owner or tool_name not in grant["action_types"]:
+                continue
+            results = []
+            try:
+                for template in templates:
+                    r = dict(resources)
+                    if template is not None:r["template"] = template
+                    if amount is not None:r["amount"] = amount
+                    results.append(self.world.grants.check(snapshot, grant, owner, tool, r))
+            except ValueError:
+                continue  # Unsupported/missing grant conditions confer no capacity.
+            if not all(r["result"] == "satisfied" for r in results):
+                continue
+            if amount is not None and any(g["limits"].get("per_refund_max", amount) < amount
+                                          for g in results[0]["chain"]):
+                continue
+            return True
+        return False
+
+    def has_capacity(self, state, owner, duty):
+        if owner is None:
+            return False
+        view = EvidenceView(state, ("grant", "purpose", "party", "claim"))
+        return self.capacity_from_view(view, state["step"], owner, duty)
 
     def ownership(self, state, events, duty):
         if duty["resolution"] != "unresolved" or duty["owner"] is None:
             return
-        row = self.row(state, "claim", duty["case_id"])
-        if row is None:
-            return
-        alive = self.has_authority(state, duty["owner"], dict(row["fields"], id=duty["case_id"]))
-        baseline = duty["interim_rule"].get("authority_baseline", True)
-        if duty["interim_rule"].get("authority_lost"):
-            return  # This loss has already opened its fallback offer.
-        if alive:
-            if not baseline:
-                duty["interim_rule"]["authority_baseline"] = True
-                self.save(state, events, duty)
-            return
-        if not baseline:
-            return  # Accepted ownership alone does not imply refund authority.
-        duty["interim_rule"]["authority_lost"] = True
-        fallback = duty["fallback_owner"]
-        if fallback:
-            add(duty, fallback, state["step"] + 5)
-        elif not any(o["status"] == "live" for o in entries(duty)):
+        capable = self.has_capacity(state, duty["owner"], duty)
+        was_lost = duty["interim_rule"].get("authority_lost", False)
+        duty["content"]["incapacity"] = not capable
+        if capable:
+            if was_lost:
+                duty["interim_rule"]["authority_lost"] = False
+                self.event(duty, "capacity_restored", state["step"])
+            duty["interim_rule"]["authority_baseline"] = True
+            self.save(state, events, duty)
+            return  # Existing offers keep their original windows, even fallback.
+        if not was_lost:
+            duty["interim_rule"]["authority_lost"] = True
+            fallback = duty["fallback_owner"]
+            if fallback and fallback != duty["owner"]:
+                add(duty, fallback, state["step"] + 5)  # Inherits an existing live window.
+            self.event(duty, "pending_transfer", state["step"])
+        # No reconciliation in this episode can open a second fallback attempt.
+        if not any(o["status"] == "live" and state["step"] < o["expires"] for o in entries(duty)):
             duty["owner"] = None
-        self.event(duty, "pending_transfer" if duty["offered_to"] else "unowned", state["step"])
+            self.event(duty, "unowned", state["step"])
         self.save(state, events, duty)
 
-    def eligible(self, state, duty):
+    def eligible_recipients(self, state, duty):
+        """Current jurisdiction, receipt standing and conflict facts, in priority order."""
         content = duty["content"]; jurisdiction = content["jurisdiction"]
         blocked = set()
         if content["kind"] == "report":
+            blocked.add(content.get("issuer"))
             for _, row in self.rows(state, "stored_order"):
                 for effect in row["fields"]["requested_effects"]:
                     if effect["arguments"].get("claim") == duty["case_id"] and (
                             content["element"].get("assertion") in effect["asserts"] if "assertion" in content["element"] else
                             all(effect["arguments"].get(k) == v for k, v in content["element"].get("arguments", {}).items())):
                         blocked.add(row["fields"]["envelope"]["authenticated_sender"])
-        for party in self.world.definition["jurisdictions"][jurisdiction]:
-            rid = self.prefix["party"] + party
-            row = self.row(state, "party", rid)
-            if (row and jurisdiction in row["fields"]["jurisdictions"] and jurisdiction in row["fields"]["may_receive"] and
-                    rid not in blocked and rid not in content.get("routes_tried", []) and
-                    content.get("issuer") not in row["fields"]["conflicts"]):
-                return rid
-        return None
+        priority = [self.prefix["party"] + p for p in self.world.definition["jurisdictions"][jurisdiction]]
+        priority += [rid for rid, _ in self.rows(state, "party") if rid not in priority]
+        return [rid for rid in priority if (row := self.row(state, "party", rid)) and
+                jurisdiction in row["fields"]["jurisdictions"] and jurisdiction in row["fields"]["may_receive"] and
+                rid not in blocked and content.get("issuer") not in row["fields"]["conflicts"]]
+
+    def eligible(self, state, duty):
+        choices = self.eligible_recipients(state, duty)
+        if not choices:
+            return None
+        # A repeat sends a version; only dispatches change routing priority.
+        visits = {}
+        for event in duty["history"]:
+            for rid in choices:
+                if event["type"] in ("dispatched_to_" + short(rid), "redispatched_to_" + short(rid)):
+                    visits[rid] = event["at"]
+        return min(choices, key=lambda rid: (rid in visits, visits.get(rid, -1), choices.index(rid)))
+
+    def route_report(self, state, events, duty):
+        c = duty["content"]
+        if c.get("last_routing_step") == state["step"]:
+            return
+        current = c.get("recipient")
+        eligible = self.eligible_recipients(state, duty)
+        deadline = duty.get("route_deadline_step")
+        invalid = current is not None and current not in eligible
+        due = deadline is not None and state["step"] >= deadline
+        resume = current is None and bool(eligible)
+        if not (invalid or due or resume):
+            return
+        c["last_routing_step"] = state["step"]
+        if invalid:
+            self.event(duty, "redirected_from_" + short(current), state["step"])
+            c["redirection_reason"] = "recipient no longer eligible"
+        self.dispatch(state, events, duty, redispatch=not invalid)
 
     def dispatch(self, state, events, duty, *, repeat=False, redispatch=False):
         c = duty["content"]
@@ -385,7 +432,7 @@ class DutyEngine:
                 "duty_version": len(state["duty_records"][duty["id"]]), "reason": "unowned unresolved duty"})
             self.dispatch(state, events, report)
 
-    def reconcile_mutation(self, state, events):
+    def reconcile_mutation(self, state, events, pending_receipt=None):
         if state["step"] < 1:
             return
         for _ in range(64):
@@ -404,12 +451,12 @@ class DutyEngine:
                     self.save(state, events, d)
             for duty in list(self.ledger(state).values()):
                 if duty["content"]["kind"] in ("resolve", "refund"):
-                    self.resolve_business(state, events, duty)
+                    self.resolve_business(state, events, duty, pending_receipt)
                     self.ownership(state, events, self.ledger(state)[duty["id"]])
             self.unowned(state, events)
             for duty in list(self.ledger(state).values()):
-                if duty["content"]["kind"] in ("report", "unowned_report") and duty["resolution"] == "unresolved" and duty["content"].get("routing_due"):
-                    self.dispatch(state, events, duty, redispatch=True)
+                if duty["content"]["kind"] in ("report", "unowned_report") and duty["resolution"] == "unresolved":
+                    self.route_report(state, events, duty)
             if canonical(state) == before:
                 return
         raise ValueError("duty engine did not reach a fixed point")
@@ -426,14 +473,12 @@ class DutyEngine:
             if duty["owner"] != actor or self.row(state, "party", recipient) is None:
                 raise ValueError("offer outside owner/recipient standing")
             add(duty, recipient, state["step"] + 5)
-            duty["interim_rule"]["authority_lost"] = False
             self.event(duty, "offered_to_" + short(recipient), state["step"])
         elif action["operation"] == "accept_duty":
             offer = offer_to(duty, actor)
-            if offer is None or state["step"] >= offer["expires"]:
+            if offer is None or state["step"] >= offer["expires"] or not self.has_capacity(state, actor, duty):
                 raise ValueError("no live offer to this actor")
-            claim = self.row(state, "claim", duty["case_id"])
-            accept(duty, actor, self.has_authority(state, actor, dict(claim["fields"], id=duty["case_id"])))
+            accept(duty, actor, True)
             self.event(duty, "accepted_by_" + short(actor), state["step"])
         else:
             raise ValueError("unknown duty action")
@@ -451,7 +496,11 @@ class DutyEngine:
                 reason = "unknown report or wrong recipient"
                 if duty and content.get("version") != duty["content"]["version"]:
                     reason = "acknowledgment cites a superseded version"
-                elif duty and duty["content"].get("recipient") == actor and duty["resolution"] == "unresolved":
+                elif (duty and duty["content"].get("recipient") == actor and
+                      actor not in self.eligible_recipients(state, duty)):
+                    reason = "recipient no longer eligible"
+                elif (duty and duty["content"].get("recipient") == actor and duty["resolution"] == "unresolved" and
+                      actor in self.eligible_recipients(state, duty)):
                     rid = self.prefix["acknowledgment"] + "ACK" + str(len(self.rows(state, "acknowledgment")) + 1)
                     row = self.store.append_write(state, events, self.world.gateway, "receive_notice", Write(rid, "acknowledgment", {"envelope": envelope}))
                     duty["resolution"], duty["resolution_basis"] = "discharged", [self.ref(rid, row)]
@@ -460,18 +509,18 @@ class DutyEngine:
                     return
             elif envelope["message_kind"] == "acceptance":
                 duties = [self.ledger(state).get(did) for did in content.get("duties", [])]
-                if duties and all(d and d["resolution"] == "unresolved" and offer_to(d, actor) is not None and
-                                  state["step"] < offer_to(d, actor)["expires"] for d in duties):
+                offered = bool(duties and all(d and d["resolution"] == "unresolved" and offer_to(d, actor) is not None and
+                                  state["step"] < offer_to(d, actor)["expires"] for d in duties))
+                if offered and all(self.has_capacity(state, actor, d) for d in duties):
                     rid = self.prefix["acceptance"] + "ACC" + str(len(self.rows(state, "acceptance")) + 1)
                     self.store.append_write(state, events, self.world.gateway, "receive_notice", Write(rid, "acceptance", {"envelope": envelope}))
                     for duty in duties:
-                        claim = self.row(state, "claim", duty["case_id"])
-                        accept(duty, actor, self.has_authority(state, actor, dict(claim["fields"], id=duty["case_id"])))
+                        accept(duty, actor, True)
                         duty["content"]["accepted_by_record"] = rid
                         self.event(duty, "accepted_by_" + short(actor), state["step"])
                         self.save(state, events, duty)
                     return
-                reason = "no live transfer offer to this party"
+                reason = "insufficient discharge capacity" if offered else "no live transfer offer to this party"
             else:
                 raise ValueError("unsupported ledger message")
             result["reason"] = reason

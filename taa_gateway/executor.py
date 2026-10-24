@@ -191,7 +191,9 @@ class Runtime:
                     raise ExecutionRefused("refused_unimplemented_duty_action")
                 self.duty_engine.apply_action(state, events, action, actor, cert["warrant_id"])
             if self.duty_engine is not None:
-                self.duty_engine.reconcile_mutation(state, events)
+                projection = {"id": "receipt:" + str(len(state["receipts"])+1), "acting_party": actor,
+                              "effect": {"notices": copy_json(plan["notices"])}}
+                self.duty_engine.reconcile_mutation(state, events, pending_receipt=projection)
             at("during_duty_update")
             receipt = {"schema_version": V, "id": "receipt:" + str(len(state["receipts"]) + 1),
                        "warrant_id": cert["warrant_id"], "token_id": token_id, "acting_party": actor,

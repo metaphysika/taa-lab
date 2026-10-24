@@ -102,3 +102,43 @@ approval; current conservative behavior is retained. Only Q13 is implemented.
 The expanded Q13 controls also found missing production contradiction checks for
 an explicitly reallocated refund and a denial contradicted by its cited return.
 Those are corrected under Q13; native missing-citation behavior was already correct.
+
+
+Q15 implementation status (PR31 continuation,2026-10-23): the formerly open question
+about a repeated report's newly implicated recipient has a normative answer in
+approved Clarifications v0.3.2 revision3.1. Dynamic eligibility, ordered
+acknowledgments, one routing transition per step and least-recent dispatch are
+implemented in the draft core/reference/SQL alignment. See
+TAA_GATEWAY_Q15_AND_BUSINESS_FAULTS.md for source-derived regressions and actual
+delivery observations. Implementation review of this delta is pending; this is
+not approval of completed v0.3.2. Q14 remains unimplemented. TraceGrant
+scoring stays limited to ten predeclared development programs; no post-outcome
+contracts are authored. Final scoring remains held.
+
+
+Q16 implementation status (draft PR31 continuation, 2026-10-23): Q16 in approved
+Clarifications v0.3.2 revision3.1 now answers the third open question above.
+New acceptance requires capacity in addition to standing and (for a tool call)
+AU1 authority. L without capacity cannot take ownership. Customer-duty owners
+retain accountability during a bounded capacity-loss episode; recovery preserves
+live windows, and a renewed loss inherits any live fallback window. There is no
+self-offer or repeated fallback in one episode. Q16 supersedes the two explicitly
+named Q11/Q12 scenarios without deleting their original files. The complete
+clarification text remains verbatim in TAA_GATEWAY_SPEC_CLARIFICATIONS_v0.3.2.md.
+Implementation/expectation review is pending. Q14 and final scoring remain held.
+
+
+## Current v0.3.2 revision3.1 alignment candidate (PR31)
+
+The approved text in TAA_GATEWAY_SPEC_CLARIFICATIONS_v0.3.2.md remains verbatim.
+H1 and Q14–Q16 are now implemented independently in core/reference/SQL, with the
+common external oracle reading actual evidence. This supersedes historical
+implementation-pending entries above; it does not supersede preserved evidence
+or grant merge/scoring approval. See TAA_GATEWAY_Q14_RECEIPT_COVERAGE.md and the
+current implementation report for receipt projection, original/recomputed
+proofs, dynamic routing, capacity episodes and retained-source supersessions.
+The state-delta comparison guard and permanent regression acceptance remain.
+Frozen v0.2.2/W0, source outcomes, original Q11/Q12 files, controllers, matching
+function/protocol and frozen POEC contracts are unchanged. Final scoring waits
+for Claude's review of completed PR31, then its separate PR. No model calls,
+Modal operations, spending, deletions, Notion edits or public releases.

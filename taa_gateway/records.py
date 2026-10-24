@@ -259,12 +259,10 @@ class RecordStore:
                 duty["content"]["transfer_offers"] = offers
                 for offer in expired:
                     offer["status"] = "expired"
-                lost = duty["interim_rule"].get("authority_lost", False)
-                unowned = lost and not any(o["status"] == "live" for o in offers)
-                if unowned:
-                    duty["owner"] = None
+                # Ownership is reconciled in phase2, after all phase1 capacity
+                # changes. Expiring an offer never preempts same-step restoration.
                 project(duty)
-                transitions.extend({"type": "unowned" if unowned else "offer_lapsed", "at": o["expires"]} for o in expired)
+                transitions.extend({"type": "offer_lapsed", "at": o["expires"]} for o in expired)
             route = duty.get("route_deadline_step")
             if type(route) is int and old_step < route <= next_step and not duty["content"].get("routing_due"):
                 duty["content"]["routing_due"] = True

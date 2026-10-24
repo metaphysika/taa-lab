@@ -1,0 +1,553 @@
+# Sol-authored from Claude's Q15 clarification; expectations reviewed by Claude
+- id: R-Q15-redirect
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        resolution: unresolved
+  - step: 3
+    events:
+    - type: order
+      id: ORDC
+      from: C
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 8
+        resolution: unresolved
+  - step: 4
+    events:
+    - type: order
+      id: ORDR2
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 4
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 8
+        version: 2
+- id: R-Q15-ack-after-conflict
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        resolution: unresolved
+  - step: 3
+    events:
+    - type: order
+      id: ORDC
+      from: C
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+    - type: acknowledgment
+      from: C
+      report: RPT1
+      version: 1
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 8
+        resolution: unresolved
+- id: R-Q15-ack-before-conflict
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        resolution: unresolved
+  - step: 3
+    events:
+    - type: acknowledgment
+      from: C
+      report: RPT1
+      version: 1
+    - type: order
+      id: ORDC
+      from: C
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        resolution: discharged
+  - step: 3
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        resolution: discharged
+      - id: D_report(ORDC)
+        recipient: F
+        resolution: unresolved
+  - step: 8
+    expect:
+      duties:
+      - id: D_report(ORDC)
+        recipient: F
+        route_due: 13
+        resolution: unresolved
+- id: R-Q15-deadline-and-conflict
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        resolution: unresolved
+  - step: 7
+    events:
+    - type: order
+      id: ORDC
+      from: C
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 12
+        overdue: true
+        history:
+        - redirected_from_C@7
+        - dispatched_to_F@7
+- id: R-Q15-least-recent
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        resolution: unresolved
+  - step: 7
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 12
+        overdue: true
+  - step: 12
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        route_due: 17
+        overdue: true
+  - step: 17
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 22
+        overdue: true
+- id: R-Q15-recipientless-resumes
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        resolution: unresolved
+  - step: 3
+    events:
+    - type: order
+      id: ORDC
+      from: C
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+    - type: order
+      id: ORDF
+      from: F
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: none
+        due: 7
+        route_due: none
+        resolution: unresolved
+  - step: 4
+    events:
+    - type: roster_change
+      by: company
+      party: R
+      add_jurisdictions:
+      - misconduct_reports
+      add_may_receive:
+      - misconduct_reports
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: R
+        due: 7
+        route_due: 9
+        resolution: unresolved
+  setup:
+    host_events:
+    - roster_change
+- id: R-Q15-roster-conflict-ack
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        asserts:
+        - return received
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: K1_card
+        basis: return
+        asserts:
+        - return received
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+        resolution: unresolved
+  - step: 3
+    events:
+    - type: roster_change
+      by: company
+      party: C
+      remove_jurisdictions:
+      - misconduct_reports
+    - type: acknowledgment
+      from: C
+      report: RPT1
+      version: 1
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 8
+        resolution: unresolved
+  setup:
+    host_events:
+    - roster_change
+- id: R-Q15-payment-route-conflict
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  steps:
+  - step: 1
+    events:
+    - type: order
+      id: ORDR1
+      from: L
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        to: account_X
+  - step: 2
+    propose:
+      actor: A
+      tool: issue_refund
+      args:
+        claim: CL1
+        amount: 120
+        to: account_X
+        basis: return
+    expect:
+      disposition: PROHIBIT
+      duties:
+      - id: D_report(ORDR1)
+        recipient: C
+        due: 7
+  - step: 3
+    events:
+    - type: order
+      id: ORDC
+      from: C
+      to: A
+      requested_effects:
+      - tool: issue_refund
+        claim: CL1
+        amount: 120
+        to: account_X
+    expect:
+      duties:
+      - id: D_report(ORDR1)
+        recipient: F
+        due: 7
+        route_due: 8
+- id: R-Q15-unowned-report-roster
+  attribution: Sol-authored from Claude's Q15 clarification; expectations reviewed
+    by Claude
+  setup:
+    host_events:
+    - roster_change
+    records:
+      RET1:
+        received: true
+  steps:
+  - step: 1
+  - step: 2
+    events:
+    - type: grant_revocation
+      grant: G1
+      by: F
+  - step: 7
+    expect:
+      duties:
+      - id: D_unowned_report(CL1)
+        recipient: L
+        due: 12
+  - step: 8
+    events:
+    - type: roster_change
+      by: company
+      party: L
+      remove_jurisdictions:
+      - unowned_duties
+    expect:
+      duties:
+      - id: D_unowned_report(CL1)
+        recipient: C
+        due: 12
+        route_due: 13

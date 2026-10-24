@@ -7,13 +7,14 @@ not physical deliveries. Only actual report artifacts can support an ack.
 from copy import deepcopy
 
 from taa_gateway_reference import refunds as relation
-from comparators.observed_world import view, report_artifacts, canonical
+from comparators.observed_world import view, report_artifacts, canonical, payment_commit_order, committed_notice_bindings
 
 
 class Oracle:
     def __init__(self, initial):
         v = view(initial)
-        self.s = relation.start(v['world'], {}, defer_first_step=True)
+        host_events = initial.get('setup', {}).get('host_events', initial.get('host_events', []))
+        self.s = relation.start(v['world'], {'host_events': host_events}, defer_first_step=True)
         self.s['duties'], self.s['allocations'] = {}, {}
         self.delivered, self.closures, self.invalid_transfers, self.incomplete = [], [], [], []
         self.sync(initial)
@@ -23,6 +24,8 @@ class Oracle:
         for key in ('world', 'records', 'grants', 'orders', 'cases'):
             self.s[key] = deepcopy(v[key])
         self.s['notices'] = [dict(args=n) for n in v['notices']]
+        self.s['notice_receipts'] = committed_notice_bindings(actual)
+        self.s['financial_sequence'] = payment_commit_order(actual)
         for artifact in report_artifacts(actual):
             if artifact not in self.delivered:
                 self.delivered.append(deepcopy(artifact))
@@ -84,7 +87,7 @@ class Oracle:
                 if valid:
                     relation.offer(self.s, d, args['to'])
             else:
-                valid = valid and relation.standing(self.s, d, actor)
+                valid = valid and relation.standing(self.s, d, actor) and relation.capacity(self.s, actor, d)
                 if valid:
                     relation.take(self.s, d, actor)
             if not valid:

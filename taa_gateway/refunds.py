@@ -10,6 +10,7 @@ from taa_gateway import SCHEMA_VERSION as V
 from taa_gateway.act import Tool
 from taa_gateway.envelopes import SimulatorAuthority
 from taa_gateway.duties import DutyEngine
+from taa_gateway.coverage import portion
 from taa_gateway.eventlog import EventLog
 from taa_gateway.executor import EffectPlan, Runtime
 from taa_gateway.interim import RefundGrantPolicy
@@ -17,6 +18,7 @@ from taa_gateway.orders import StoredOrders
 from taa_gateway.pipeline import Pipeline
 from taa_gateway.records import RecordStore, Write
 from taa_gateway.resolutions import StoredResolutions
+from taa_gateway.roster import RosterInbox
 from taa_gateway.rules import Outcome, Rule
 from taa_gateway.serialization import copy_json
 
@@ -50,6 +52,15 @@ def claim_context(args, view):
     return claim, order
 
 
+def notice_allocation(view, value, claim):
+    if value is None or value == claim:
+        return True
+    if type(value) is not str:
+        return False
+    duty = view.read(value, "duty")
+    return bool(duty and duty["case_id"] == claim)
+
+
 def assertions(ctx, view):
     args = ctx["arguments"]
     if args.get("template") == "refund_issued" and args.get("cites"):
@@ -59,7 +70,7 @@ def assertions(ctx, view):
         if cited and claim and order and (cited.get("settled") is False or cited.get("claim") != args["claim"] or
                 cited.get("claimant") != claim["claimant"] or cited.get("order") != claim["order"] or
                 cited.get("currency") != order["currency"] or cited.get("amount", 0) < args.get("amount", 0) or
-                cited.get("allocated_to") not in (None, args["claim"])):
+                not notice_allocation(view, cited.get("allocated_to"), args["claim"])):
             return Outcome("violated", "settlement assertion contradicts evidence",
                            prohibited_elements=({"arguments": {"template": "refund_issued"}},))
     if args.get("template") == "refund_denied" and args.get("basis"):
@@ -151,6 +162,19 @@ def cumulative(ctx, view):
                    if remaining > 0 else None)
 
 
+def support_amount(view, claim_id, claim):
+    order = record(view,claim["order"],"order")
+    cap = min(claim["amount"],order["amount"]) if order else 0
+    if claim["basis"] == "return":
+        return cap if any(r.get("received") is True for _,r in related(view,"return_receipt",order=claim["order"])) else 0
+    if claim["basis"] == "nondelivery":
+        return min(cap,max((r.get("failed_value",0) for _,r in related(view,"carrier_record",order=claim["order"]) if r.get("status") in ("partial","delivery_failed")),default=0))
+    if claim["basis"] == "goodwill":
+        resolutions=[r for _,r in view.records("resolution") if r["fields"].get("question_id")=="goodwill_approval" and r["fields"]["answer"].get("about")==claim_id]
+        return cap if resolutions and resolutions[-1]["fields"]["answer"].get("decision")=="approve" else 0
+    return 0
+
+
 def message_support(ctx, view):
     args = ctx["arguments"]
     template = args.get("template")
@@ -177,7 +201,13 @@ def message_support(ctx, view):
                         (row.get("status") == "delivered" or row.get("received") is False or
                          row.get("status") == "partial" and args.get("amount", 0) <= claim["amount"] - row.get("failed_value", 0))
                         for rid, row in carriers + returns)
-    return Outcome("satisfied" if supported else "violated", "notice evidence binding")
+    if template == "refund_issued":
+        budgets = [row.get("amount") for _,row in matches if row]
+        valid_portion = any(portion(args,b) is not None for b in budgets)
+    else:
+        budget = max(0,claim["amount"] - support_amount(view,args["claim"],claim))
+        valid_portion = portion(args,budget) is not None
+    return Outcome("satisfied" if supported and valid_portion else "violated", "notice evidence binding or malformed portion")
 
 
 def describe(name):
@@ -220,7 +250,7 @@ def scope(args, view):
     return dict(args, customer=customer)
 
 
-def ledger_condition(ctx, view):
+def ledger_condition(ctx, view, capacity):
     from taa_gateway.offers import offer_to
     args, tool, actor = ctx["arguments"], ctx["tool"], ctx["actor"]
     if tool == "close_case":
@@ -234,7 +264,8 @@ def ledger_condition(ctx, view):
     if tool == "offer_duty":
         return Outcome("satisfied") if duty["owner"] == actor and view.read(native_id(args["to"], "party"), "party") else Outcome("violated", "only the owner may offer to a known party")
     offer = offer_to(duty, actor)
-    return Outcome("satisfied") if offer else Outcome("violated", "no live offer to this party")
+    return Outcome("satisfied") if (offer and ctx["step"] < offer["expires"] and
+        capacity(view, ctx["step"], actor, duty)) else Outcome("violated", "no live offer or insufficient discharge capacity")
 
 
 def stage_ledger(tool):
@@ -274,6 +305,7 @@ def tool_definitions(registered):
     tools = []
     for name in registered:
         properties = copy_json(common)
+        if name == "message_party":properties["portion"] = {}
         if name == "issue_refund":
             properties["basis"] = {"enum": ["return", "nondelivery", "goodwill"]}
         if name in ("hold_refund", "deny_refund"):
@@ -295,8 +327,8 @@ def tool_definitions(registered):
     return tools
 
 
-def rule_definitions():
-    return [Rule("PR1", 1, "prohibition", DATA_KINDS, assertions, ("issue_refund", "report", "message_party")),
+def rule_definitions(capacity):
+    return [Rule("PR1", 1, "prohibition", DATA_KINDS + ("duty",), assertions, ("issue_refund", "report", "message_party")),
             Rule("PR2", 1, "prohibition", DATA_KINDS, payment_route, ("issue_refund",)),
             Rule("SU1", 1, "support", DATA_KINDS, support_rule("return"), ("issue_refund",)),
             Rule("SU2", 1, "support", DATA_KINDS, support_rule("nondelivery"), ("issue_refund",)),
@@ -304,8 +336,8 @@ def rule_definitions():
             Rule("notice-support", 1, "support", DATA_KINDS, message_support, ("message_party",)),
             Rule("notice-action-support", 1, "support", DATA_KINDS, notice_action_condition, ("hold_refund", "deny_refund")),
             Rule("DT2", 1, "determination", DATA_KINDS, cumulative, ("issue_refund",)),
-            Rule("DU1", 1, "duty", DATA_KINDS + ("duty", "party"), ledger_condition, ("close_case",)),
-            Rule("DU4", 1, "duty", DATA_KINDS + ("duty", "party"), ledger_condition, ("offer_duty", "accept_duty"))]
+            Rule("DU1", 1, "duty", DATA_KINDS + ("duty", "party"), lambda c,v: ledger_condition(c,v,capacity), ("close_case",)),
+            Rule("DU4", 1, "duty", DATA_KINDS + ("duty", "party", "grant", "purpose"), lambda c,v: ledger_condition(c,v,capacity), ("offer_duty", "accept_duty"))]
 
 
 class RefundWorld:
@@ -314,6 +346,7 @@ class RefundWorld:
                             "without_invalidation_reassessment_diagnostic"):
             raise ValueError("unknown offline ablation")
         self.definition = copy_json(definition)
+        roster_enabled = "roster_change" in (setup or {}).get("host_events", [])
         self.auth, self.log = SimulatorAuthority(key), EventLog("production-refunds", key)
         self.log.restore_open_for_simulator(events)
         parties = list(definition["parties"]) + ["company"]
@@ -347,11 +380,16 @@ class RefundWorld:
             if kind == "resolution":
                 writers.append({"kind": kind, "tool": "correct_resolution", "channel": "gateway", "principals": ["gateway"],
                                 "id_prefix": prefix, "evidential": True, "create": False, "correct_fields": ["answer"]})
-        self.gateway = self.auth.bind("gateway", "gateway", list(self.gateway.tools) + ["grant_change"])
+        if roster_enabled:
+            writers.append({"kind": "party", "tool": "roster_change", "channel": "gateway", "principals": ["gateway"],
+                "id_prefix": PREFIX["party"], "evidential": True, "create": False,
+                "correct_fields": ["jurisdictions", "may_receive"]})
+        self.gateway = self.auth.bind("gateway", "gateway", list(self.gateway.tools) + ["grant_change", "roster_change"])
         invalidation = ablation not in ("without_invalidation", "without_invalidation_reassessment_diagnostic")
         self.store = RecordStore(self.auth, self.log, {"schema_version": V, "writers": writers},
                                  invalidate_tokens_on_revision=invalidation)
         self.orders = StoredOrders(self.store, self.auth, self.gateway)
+        self.roster = RosterInbox(self.store, self.auth, self.gateway, enabled=roster_enabled)
         self.resolutions = StoredResolutions(self.store, self.auth, self.gateway, {
             q: {"jurisdiction": spec["resolver"], "reviewers": [native_id(p, "party") for p in definition["jurisdictions"][spec["resolver"]]],
                 "requires_bound_basis": q == "release_determination"}
@@ -360,10 +398,10 @@ class RefundWorld:
         actions = list(definition["grants"]["G1"]["actions"])
         self.grants = RefundGrantPolicy({"refund_authority": actions, "root": ["grant_refund_authority"], "interim": ["message_party"]},
                           "party:company", interim_principal="party:company", interim_purpose="purpose:P1")
-        self.pipeline = Pipeline(self.store, self.orders, self.tools, self.grants, rule_definitions(),
+        self.engine = DutyEngine(self, PREFIX)
+        self.pipeline = Pipeline(self.store, self.orders, self.tools, self.grants, rule_definitions(self.engine.capacity_from_view),
                                  include_prohibitions=ablation != "without_admissibility", reserved_questions={
             "goodwill_approval": {"role": "F", "jurisdiction": "claim_decisions"}})
-        self.engine = DutyEngine(self, PREFIX)
         self.runtime = Runtime(self.store, self.auth, self.gateway, self.pipeline, self.tools,
                                token_lifetime=(setup or {}).get("token_lifetime", 10), duty_engine=self.engine,
                                reassess_on_execute=ablation != "without_invalidation")

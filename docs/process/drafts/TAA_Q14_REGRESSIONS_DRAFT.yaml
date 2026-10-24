@@ -1,0 +1,1174 @@
+# Sol-authored from Claude's Q14 clarification; expectations reviewed by Claude
+- id: R-Q14-default-complement
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: discharged
+  baseline_control: true
+- id: R-Q14-repeated-default
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T3
+  - step: 4
+    execute:
+      actor: A
+      token: T3
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+  baseline_control: true
+- id: R-Q14-distinct-paid-portions
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 150
+        cites: REF1
+        portion:
+          from: 100
+          to: 250
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T3
+  - step: 4
+    execute:
+      actor: A
+      token: T3
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: discharged
+        coverage: 400
+- id: R-Q14-distinct-denied-portions
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 100
+        basis: DEL2
+        portion:
+          from: 50
+          to: 150
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 50
+        basis: DEL2
+        portion:
+          from: 0
+          to: 50
+    expect:
+      disposition: PERMIT
+      token: T3
+  - step: 4
+    execute:
+      actor: A
+      token: T3
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: discharged
+        coverage: 400
+- id: R-Q14-malformed-length
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+        portion:
+          from: 0
+          to: 250
+    expect:
+      disposition: REFUSE
+      token: none
+      action_executed: false
+- id: R-Q14-malformed-float
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+        portion:
+          from: 0.0
+          to: 100
+    expect:
+      disposition: REFUSE
+      token: none
+      action_executed: false
+- id: R-Q14-malformed-boolean
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+        portion:
+          from: false
+          to: 100
+    expect:
+      disposition: REFUSE
+      token: none
+      action_executed: false
+- id: R-Q14-malformed-shape
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+        portion:
+        - 0
+        - 100
+    expect:
+      disposition: REFUSE
+      token: none
+      action_executed: false
+- id: R-Q14-malformed-budget
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+        portion:
+          from: 200
+          to: 300
+    expect:
+      disposition: REFUSE
+      token: none
+      action_executed: false
+- id: R-Q14-contradiction-outranks-portion
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 50
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: REF1
+        portion:
+          from: 0
+          to: 250
+    expect:
+      disposition: PROHIBIT
+      rule: PR1
+      token: none
+- id: R-Q14-missing-evidence-is-not-contradiction
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 100
+        cites: MISSING
+        portion:
+          from: 0
+          to: 250
+    expect:
+      disposition: REFUSE
+      token: none
+- id: R-Q14-cross-claim-reuse
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+        allocated_to: D_refund(CL1,120)
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PROHIBIT
+      rule: PR1
+      token: none
+  baseline_control: true
+- id: R-Q14-own-duty-binding
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+        allocated_to: D_refund(CL7,250)
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: discharged
+  baseline_sensitive_backends:
+  - production
+- id: R-Q14-support-rises
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    events:
+    - type: record_correction
+      record: DEL2
+      by: carrier
+      new:
+        failed_value: 300
+    expect:
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+        coverage: 350
+- id: R-Q14-support-falls
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    events:
+    - type: record_correction
+      record: DEL2
+      by: carrier
+      new:
+        failed_value: 200
+    expect:
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+        coverage: 350
+- id: R-Q14-same-coverage-no-reopening
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+  - step: 4
+    events:
+    - type: record_correction
+      record: DEL2
+      by: carrier
+      new:
+        signed: true
+    expect:
+      duties:
+      - id: D_resolve(CL7)
+        resolution: discharged
+  baseline_control: true
+- id: R-Q14-rolled-back-notice
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+      REF1:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 250
+        currency: USD
+        to: K2_card
+        settled: true
+  steps:
+  - step: 2
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 250
+        cites: REF1
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 2
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 3
+    execute:
+      actor: A
+      token: T2
+      inject_fault: during_receipt_write
+    expect:
+      execute_result: failed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+  baseline_control: true
+- id: R-Q14-first-commit-order
+  attribution: Sol-authored from Claude's Q14 clarification; expectations reviewed
+    by Claude
+  setup:
+    records:
+      CL7:
+        kind: claim
+        claimant: K2
+        order: ORD2
+        amount: 400
+        basis: nondelivery
+      ORD2:
+        amount: 400
+      PAY2:
+        amount: 400
+      DEL2:
+        status: partial
+        failed_value: 250
+  steps:
+  - step: 1
+    events:
+    - type: record_insert
+      record: REFZ
+      by: payment_processor
+      fields:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 100
+        currency: USD
+        to: K2_card
+        settled: true
+  - step: 2
+    events:
+    - type: record_insert
+      record: REFA
+      by: payment_processor
+      fields:
+        kind: refund
+        claim: CL7
+        claimant: K2
+        order: ORD2
+        amount: 150
+        currency: USD
+        to: K2_card
+        settled: true
+  - step: 3
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_issued
+        amount: 150
+        cites: REFA
+    expect:
+      disposition: PERMIT
+      token: T1
+  - step: 3
+    execute:
+      actor: A
+      token: T1
+    expect:
+      execute_result: committed
+  - step: 4
+    propose:
+      actor: A
+      tool: message_party
+      args:
+        claim: CL7
+        to: K2
+        template: refund_denied
+        amount: 150
+        basis: DEL2
+    expect:
+      disposition: PERMIT
+      token: T2
+  - step: 4
+    execute:
+      actor: A
+      token: T2
+    expect:
+      execute_result: committed
+      duties:
+      - id: D_resolve(CL7)
+        resolution: unresolved
+        coverage: 300
+        coverage_intervals:
+        - from: 100
+          to: 400

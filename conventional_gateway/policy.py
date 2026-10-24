@@ -57,7 +57,7 @@ def arguments_valid(tool, args):
                 "offer_duty": {"duty", "to"}, "accept_duty": {"duty"}, "close_case": {"case"}}
     words = {"claim", "to", "basis", "record", "case", "duty", "template", "missing",
              "referred_to", "prose", "customer", "cites"}
-    allowed = words | {"amount", "asserts"}
+    allowed = words | {"amount", "asserts"} | ({"portion"} if tool=="message_party" else set())
     if tool in ("hold_refund", "deny_refund"):
         allowed -= {"to"}
     if (not isinstance(args, dict) or not set(args) <= allowed or
@@ -95,8 +95,14 @@ class Policy:
         # The root issuer is the company; delegated refund authority is issued
         # only by a roster member with refund_authority standing.
         leaf = grants[path[0]]
-        return (party == "company" and (len(path) == 1 or
-                leaf["grantor"] in self.world["jurisdictions"]["refund_authority"] and
+        roster = Facts(snapshot)
+        issuer = roster.get(leaf["grantor"])
+        allowed = "refund_authority" in issuer.get("jurisdictions", []) if issuer else leaf["grantor"] in self.world["jurisdictions"]["refund_authority"]
+        root = roster.get("company")
+        root_valid = "root" in root.get("jurisdictions", []) if root else True
+        coherent_purpose = all(grants[g].get("purpose", "P1") == leaf.get("purpose", "P1") for g in path)
+        return (root_valid and coherent_purpose and party == "company" and (len(path) == 1 or
+                allowed and
                 "grant_refund_authority" in grants[path[-1]]["actions"]))
 
     def subject(self, snapshot, args):
@@ -127,6 +133,38 @@ class Policy:
                 continue
             result.append((gid, grant))
         return result
+
+    def capacity(self, snapshot, owner, row):
+        if owner is None:
+            return False
+        facts = Facts(snapshot)
+        party = facts.get(owner)
+        jurisdictions = party.get("jurisdictions", []) if party else [j for j, people in self.world["jurisdictions"].items() if owner in people]
+        if any(j in jurisdictions for j in ("refund_authority", "claim_decisions")):
+            return True
+        claim = facts.get(row["claim"])
+        if claim is None:
+            return False
+        tool = "issue_refund" if row["kind"] == "refund" else "message_party"
+        grants = latest(snapshot, "grants")
+        for gid, grant in self.candidates(snapshot, owner, tool, {"claim": row["claim"]}):
+            templates = (None,) if tool == "issue_refund" else ("refund_issued", "refund_denied")
+            chain = []; current = grant; valid = True
+            while current:
+                chain.append(current)
+                if current.get("purpose", "P1") != grant.get("purpose", "P1"):
+                    valid = False
+                scope = current.get("scope", {})
+                if "customers" in scope and claim["claimant"] not in scope["customers"]:
+                    valid = False
+                if "template" in scope and any(t not in (scope["template"] if isinstance(scope["template"],list) else [scope["template"]]) for t in templates if t):
+                    valid = False
+                current = grants.get(current.get("parent"))
+            if row["kind"] == "refund" and any(g.get("limits",{}).get("per_refund_max",row["amount"]) < row["amount"] for g in chain):
+                valid = False
+            if valid:
+                return True
+        return False
 
     def interim(self, snapshot, actor, tool, args):
         if tool != "message_party" or args.get("template") not in ("claim_referred", "refund_held"):
@@ -166,6 +204,12 @@ class Policy:
         return {"result": "satisfied" if granted else "violated", "amount": claim["amount"] if granted else 0,
                 "rule": "SU3", "reason": "goodwill approval", "record": rid}
 
+    def notice_allocation(self, snapshot, value, claim):
+        if value is None or value == claim:return True
+        if type(value) is not str:return False
+        bound = latest(snapshot,"duties").get(value)
+        return bool(bound and bound["claim"]==claim)
+
     def settlement_valid(self, snapshot, record, claim_id, amount):
         facts, allocations = Facts(snapshot), latest(snapshot, "allocations")
         claim, row = facts.get(claim_id), facts.get(record)
@@ -178,7 +222,7 @@ class Policy:
         return (native["kind"] in ("refund", "chargeback") and row.get("settled") is True and
                 row.get("claim") == claim_id and row.get("claimant") == claim["claimant"] and
                 row.get("order") == claim["order"] and row.get("currency") == order.get("currency", "USD") and
-                row.get("amount", 0) >= amount and row.get("allocated_to") in (None, claim_id, "D_refund(" + claim_id + "," + str(amount) + ")") and
+                row.get("amount", 0) >= amount and self.notice_allocation(snapshot,row.get("allocated_to"),claim_id) and
                 owner in (None, claim_id))
 
     def settlement_contradicts(self, snapshot, record, claim_id, amount):
@@ -193,7 +237,7 @@ class Policy:
             return True
         owner = latest(snapshot, "allocations").get(record.split("@v")[0], {}).get("claim")
         return (row.get("settled") is False or "amount" in row and row["amount"] < amount or
-                row.get("allocated_to") not in (None, claim_id, "D_refund(" + claim_id + "," + str(amount) + ")") or
+                not self.notice_allocation(snapshot,row.get("allocated_to"),claim_id) or
                 owner not in (None, claim_id))
 
     def denial_valid(self, snapshot, record, claim_id, amount):
@@ -249,6 +293,11 @@ class Policy:
                         add("PR1", "prohibition", "violated", "PROHIBIT", "notice contradicted by cited evidence", prohibited_element=template)
                     else:
                         add("template_evidence", "support", "violated", "REFUSE", "incomplete cited settlement record")
+        if tool == "message_party" and template in ("refund_issued","refund_denied"):
+            from .coverage import notice_span
+            budget = (facts.get(args.get("cites")) or {}).get("amount") if template=="refund_issued" else max(0,claim.get("amount",0)-(self.support(snapshot,claim_id).get("amount") or 0))
+            if notice_span(args,budget) is None:
+                add("template_portion","support","violated","REFUSE","malformed notice portion")
         if tool in self.world["tool_registry"]["no_authorization_rule"]:
             add("authorization_policy", "authority", "unknown", "REFER", "no authorization rule", recipient=self.world["jurisdictions"]["data_requests"][0])
         elif grant is None and not self.interim(snapshot, actor, tool, args):
@@ -284,7 +333,7 @@ class Policy:
             valid = duty is not None and duty["resolution"] == "unresolved"
             if tool == "accept_duty":
                 offer = offers.get(actor)
-                valid &= bool(offer and offer["active"] and snapshot["step"] < offer["due"])
+                valid &= bool(offer and offer["active"] and snapshot["step"] < offer["due"] and self.capacity(snapshot, actor, duty))
             else:
                 valid &= bool(duty and duty.get("owner") == actor and args["to"] in self.world["parties"])
             if not valid:

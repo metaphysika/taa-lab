@@ -65,8 +65,8 @@ class Installed:
             return StateFault(self.name)
         if self.name == 'P2':
             original = refunds.ledger_condition
-            def waive(ctx, view):
-                return Outcome('satisfied') if ctx['tool'] == 'close_case' else original(ctx, view)
+            def waive(ctx, view, capacity):
+                return Outcome('satisfied') if ctx['tool'] == 'close_case' else original(ctx, view, capacity)
             self.stack.enter_context(patch.object(refunds, 'ledger_condition', waive))
         elif self.name == 'P4':
             original = pipeline.strictest

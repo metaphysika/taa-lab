@@ -58,11 +58,21 @@ class RefundRuntimeTests(unittest.TestCase):
 
     def test_IR1_window_boundary_voids_tokens_without_resolving_the_duty(self):
         self.seed_duty(self.duty())
+        # Both claim duties originate before this loss episode. Otherwise the
+        # first phase-2 run correctly creates a new resolution duty/window (Q16).
+        resolve = self.context.engine.new_duty("D_resolve(CL1)", "CL1", "K1", "resolve", 0)
+        resolve["interim_rule"]["authority_lost"] = True
+        resolve.update(offered_to="party:F", offer_deadline_step=5)
+        self.seed_duty(resolve)
         self.revoke()
         message = {"to": "K1", "template": "refund_held", "claim": "CL1", "missing": "claim referral"}
         token = self.propose("message_party", message)["token"]
         before = self.context.store.revision
         self.context.store.publish(self.context.gateway, "advance_clock", step=5)
+        phase1 = self.context.store.snapshot()
+        self.assertEqual(phase1["duty_records"][self.duty()["id"]][-1]["fields"]["owner"], "party:A")
+        # Q16 ownership is phase 2, after all same-step capacity changes.
+        self.context.engine.reconcile()
         state = self.context.store.snapshot()
         self.assertGreater(state["revision"], before)
         self.assertEqual(state["tokens"][token]["status"], "void")

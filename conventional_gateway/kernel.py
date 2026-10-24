@@ -92,6 +92,7 @@ class Store:
     def __init__(self, key, *, checkpoint=None):
         if not isinstance(key, bytes) or len(key) < 32:
             raise ValueError("host checkpoint key required")
+        self._pending_receipt = None
         self._key, self._db = key, sqlite3.connect(":memory:", isolation_level=None)
         self._db.execute("PRAGMA foreign_keys = ON")
         self._db.execute("CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), step INTEGER, epoch INTEGER)")
@@ -368,10 +369,14 @@ class Kernel:
                 handle["status"] = "consumed"
                 store.append("handles", hid, handle, relevant=False)
                 hit("during_token_consumption")
-                if self.reconcile is not None:
-                    self.reconcile(store)
-                hit("during_duty_update")
                 receipt = {"handle": hid, "actor": actor, "pre_transaction_epoch": pre_epoch, "effects": plan}
+                if self.reconcile is not None:
+                    store._pending_receipt = copy(receipt)
+                    try:
+                        self.reconcile(store)
+                    finally:
+                        store._pending_receipt = None
+                hit("during_duty_update")
                 store.append("receipts", hid, receipt, relevant=False)
                 store.event("receipt", receipt)
                 hit("during_receipt_write")

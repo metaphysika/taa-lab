@@ -28,8 +28,11 @@ def records(state):
     aliases = {rid: 'RES' + str(i + 1) for i, rid in enumerate(
         rid for rid, rows in source.items() if rows[-1]['kind'] == 'resolution')}
     found = {}
+    roster_enabled = 'roster_change' in state.get('setup', {}).get('host_events', state.get('host_events', []))
     for rid, rows in source.items():
-        if rows[-1]['kind'] not in KINDS:
+        if rows[-1]['kind'] == 'party' and not roster_enabled:
+            continue
+        if rows[-1]['kind'] not in KINDS | {'party'}:
             if rows[-1]['kind'] not in {'grant', 'purpose', 'party', 'stored_order', 'report', 'acknowledgment', 'acceptance'}:
                 raise ValueError('unmapped actual record kind: ' + rows[-1]['kind'])
             continue
@@ -37,6 +40,9 @@ def records(state):
         history = []
         for row in rows:
             kind, f = row['kind'], deepcopy(row['fields'])
+            if kind == 'party':
+                f = {k: sorted(f[k]) if k in ('jurisdictions', 'may_receive') else f[k]
+                     for k in ('name', 'role', 'jurisdictions', 'conflicts', 'may_receive')}
             if kind == 'resolution' and 'question_id' in f:
                 answer = f['answer']
                 if set(answer) - {'about', 'decision', 'surviving', 'substantive_basis', 'correction_envelope'}:
@@ -136,8 +142,14 @@ def report_artifacts(state):
     elif 'relational_checkpoint' in state:
         # Versioned SQL report rows are the comparator's committed abstract
         # dispatch artifacts. Its duty and allocation relations are not read.
-        for rid, version, payload in state['relational_checkpoint']['relations']['reports']:
-            p = json.loads(payload)
+        previous = {}
+        for event in (entry['sql_event'] for entry in state['log'] if 'sql_event' in entry):
+            if event['kind'] != 'version_written' or event['payload']['relation'] != 'reports':
+                continue
+            rid, p = event['payload']['id'], event['payload']['payload']
+            prior = previous.get(rid); previous[rid] = p
+            if prior is not None and all(p.get(k) == prior.get(k) for k in ('recipient', 'version', 'dispatch_step')):
+                continue
             if not p['recipient']:
                 continue
             if p['matter'] is None:
@@ -154,4 +166,81 @@ def report_artifacts(state):
             found.append(dict(id=rid, version=p['version'], to=p['recipient'], key=key, incidents=deepcopy(p['incidents'])))
     # Ledger-free arms actually have no report artifact collection or dispatch
     # log. Agent report calls are business operations, not fabricated gateways.
+    for number, artifact in enumerate(found, 1):
+        artifact['delivery'] = number
+    return found
+
+
+def payment_commit_order(state):
+    """First actual financial writes, from persisted record/audit events only."""
+    result=[]
+    if 'intents' in state:
+        # The business store's version rows are its ordinary write journal.
+        financial=[(rid,r) for rid,history in state['records'].items() for r in history if r['kind'] in ('refund','chargeback')]
+        if any('commit_sequence' not in r or type(r['commit_sequence']) is not int or r['commit_sequence']<1 for rid,r in financial):
+            raise ValueError('business financial record lacks actual write provenance')
+        writes=sorted((r['commit_sequence'],rid) for rid,r in financial)
+        for sequence,rid in writes:
+            if short(rid) not in result:result.append(short(rid))
+        return result
+    for item in state['log']:
+        rid=None
+        if 'native_event' in item:
+            event=item['native_event']
+            if event['type']=='record_version' and event['payload']['record']['kind'] in ('refund','chargeback'):
+                rid=event['payload']['record']['id']
+        elif 'sql_event' in item:
+            event=item['sql_event']
+            if event['kind']=='version_written' and event['payload']['relation']=='records' and event['payload']['payload']['kind'] in ('refund','chargeback'):
+                rid=event['payload']['id']
+        elif item['type']=='financial_write':
+            rid=item['record']
+        if rid is not None and short(rid) not in result:result.append(short(rid))
+    return result
+
+
+def committed_notice_bindings(state):
+    """Pair actual notices with actual committed receipt effects, not decisions.
+
+    Only representation code is used. No arm's duty/ownership/proof ledger is
+    consulted. A receipt's argument body must match an actual physical notice.
+    """
+    physical=notices(state);unused=set(range(len(physical)));receipts=[]
+    if 'native' in state:
+        for receipt in state['native']['receipts']:
+            receipts.append((short(receipt['acting_party']),deepcopy(receipt['effect']['notices'])))
+    elif 'relational_checkpoint' in state:
+        stored={rid:json.loads(payload) for rid,version,payload in state['relational_checkpoint']['relations']['receipts']}
+        for item in state['log']:
+            event=item.get('sql_event')
+            if not event or event['kind']!='receipt':continue
+            receipt=event['payload']
+            if stored.get(receipt['handle'])!=receipt:continue
+            receipts.append((receipt['actor'],[deepcopy(e['payload']) for e in receipt['effects'] if e['relation']=='notices']))
+    else:
+        for receipt in state['receipts']:
+            candidates=[]
+            if 'intents' in state:
+                # Ordinary business receipts retain their executed operation.
+                if receipt['tool']=='message_party':candidates=[deepcopy(receipt['args'])]
+                actor=receipt['actor']
+            else:
+                token=state['tokens'].get(receipt.get('token'))
+                actor=receipt.get('actor')
+                if token and token['actor']==actor:
+                    a=deepcopy(token['args'])
+                    if token['tool']=='message_party':candidates=[a]
+                    elif token['tool'] in ('deny_refund','hold_refund'):
+                        claim=records(state)[a['claim']][-1]['fields']
+                        candidates=[dict(a,to=claim['claimant'],template='refund_denied' if token['tool']=='deny_refund' else 'refund_held')]
+            receipts.append((actor,candidates))
+    found=[]
+    for ordinal,(actor,candidates) in enumerate(receipts):
+        if actor is None:continue
+        for candidate in candidates:
+            for key in ('claim','to','customer','claimant'):
+                if key in candidate:candidate[key]=short(candidate[key])
+            index=next((i for i in sorted(unused) if canonical(physical[i])==canonical(candidate)),None)
+            if index is not None:
+                unused.remove(index);found.append(dict(receipt=ordinal,notice_index=index,actor=short(actor),args=deepcopy(physical[index])))
     return found

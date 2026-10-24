@@ -1,7 +1,7 @@
 """Sol-authored W0/Q1–Q13 component checks; independent review pending."""
 import unittest
 
-from conventional_gateway.kernel import Store
+from conventional_gateway.kernel import Store, Kernel, Authentication
 from conventional_gateway.ledger import Ledger
 from conventional_gateway.policy import Policy
 from tests.trace_support.bundle import world
@@ -72,17 +72,26 @@ class LedgerComponentTests(unittest.TestCase):
         self.settled()
         self.assertEqual("discharged", self.duty("D_refund(CL1,120)")["resolution"])
         self.assertEqual("unresolved", self.duty()["resolution"])
-        with self.store.transaction():
-            self.store.append("notices", "N1", {"to": "K1", "claim": "CL1", "amount": 120,
-                               "template": "refund_issued", "cites": "REF1"})
-            self.engine.stabilize(self.store)
+        auth = Authentication(b"independent-conventional-ledger-test")
+        session = auth.session("A", ("act",))
+        def stage(snapshot, actor, tool, args):
+            self.assertEqual(tool, "message_party")
+            return [{"relation": "notices", "id": "N" + str(len(snapshot["notices"]) + 1), "payload": dict(args)}]
+        kernel = Kernel(self.store, auth,
+            lambda snapshot, actor, tool, args: self.policy.evaluate(snapshot, actor, tool, args)["disposition"] == "PERMIT",
+            stage, self.engine.stabilize)
+        def committed_notice():
+            args = {"to": "K1", "claim": "CL1", "amount": 120, "template": "refund_issued", "cites": "REF1"}
+            handle = kernel.issue(session, "message_party", args)
+            self.assertIsNotNone(handle)
+            self.assertTrue(kernel.execute(session, handle)["committed"])
+        committed_notice()
         self.assertEqual("discharged", self.duty()["resolution"])
         self.record("CL1", {"amount": 240})
-        with self.store.transaction():
-            self.store.append("notices", "N2", {"to": "K1", "claim": "CL1", "amount": 120,
-                               "template": "refund_issued", "cites": "REF1"})
-            proof = self.engine._resolve_proof(self.store.snapshot(), self.duty())
+        committed_notice()
+        proof = self.engine._resolve_proof(self.store, self.duty())
         self.assertIsNone(proof)
+        self.assertEqual(120, self.duty()["coverage"])
 
     def test_settlement_correction_reopens_closed_case_immediately_overdue(self):
         self.settled()
@@ -130,7 +139,7 @@ class LedgerComponentTests(unittest.TestCase):
             self.engine.stabilize(self.store)
         self.assertEqual(before, self.store.snapshot())
 
-    def test_parallel_offers_first_acceptance_closes_both_without_ability_fallback(self):
+    def test_q16_incapable_offeree_refused_then_capable_acceptance_closes_both(self):
         self.tick(2)
         self.offer("L")
         self.tick(3)
@@ -139,13 +148,13 @@ class LedgerComponentTests(unittest.TestCase):
         self.assertEqual(7, row["offers"]["L"]["due"])
         self.assertEqual(8, row["offers"]["F"]["due"])
         with self.store.transaction():
-            self.assertTrue(self.engine.accept(self.store, "L", row["id"]))
-            self.assertFalse(self.engine.accept(self.store, "F", row["id"]))
+            self.assertFalse(self.engine.accept(self.store, "L", row["id"]))
+            self.assertTrue(self.engine.accept(self.store, "F", row["id"]))
             self.engine.stabilize(self.store)
-        self.assertEqual("L", self.duty()["owner"])
+        self.assertEqual("F", self.duty()["owner"])
         self.assertFalse(any(o["active"] for o in self.duty()["offers"].values()))
         self.tick(8)
-        self.assertEqual("L", self.duty()["owner"])
+        self.assertEqual("F", self.duty()["owner"])
 
     def test_parallel_offers_wait_for_last_window_before_unowned(self):
         self.tick(2)

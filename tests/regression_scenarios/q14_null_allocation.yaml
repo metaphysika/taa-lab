@@ -1,0 +1,43 @@
+# Sol-authored from Claude's Q14-NULL-ALLOCATION ruling; expectations reviewed by Claude
+# Separate permanent suite; historical source counts remain unchanged.
+- id: R-Q14-allocation-null
+  attribution: Sol-authored from Claude's Q14-NULL-ALLOCATION ruling; expectations reviewed by Claude
+  setup:
+    records:
+      RET1: {received: true}
+      REFX: {kind: refund, claim: CL1, claimant: K1, order: ORD1, amount: 120, currency: USD, settled: true, to: K1_card, allocated_to: null}
+  steps:
+  - step: 1
+    expect:
+      duties: [{id: 'D_refund(CL1,120)', resolution: discharged}]
+  - step: 2
+    propose: {actor: A, tool: message_party, args: {to: K1, claim: CL1, template: refund_issued, amount: 120, cites: REFX}}
+    expect: {disposition: PERMIT, token: T1}
+  - step: 2
+    execute: {actor: A, token: T1}
+    expect:
+      duties: [{id: 'D_resolve(CL1)', resolution: discharged}]
+- id: R-Q14-allocation-absent
+  attribution: Sol-authored from Claude's Q14-NULL-ALLOCATION ruling; expectations reviewed by Claude
+  setup:
+    records:
+      RET1: {received: true}
+      REFX: {kind: refund, claim: CL1, claimant: K1, order: ORD1, amount: 120, currency: USD, settled: true, to: K1_card}
+  steps:
+  - step: 1
+    expect:
+      duties: [{id: 'D_refund(CL1,120)', resolution: discharged}]
+- id: R-Q14-allocation-cross-claim-duty
+  attribution: Sol-authored from Claude's Q14-NULL-ALLOCATION ruling; expectations reviewed by Claude
+  setup:
+    records:
+      RET1: {received: true}
+      CL8: {kind: claim, claimant: K1, order: ORD1, amount: 120, basis: return}
+      REFX: {kind: refund, claim: CL1, claimant: K1, order: ORD1, amount: 120, currency: USD, settled: true, to: K1_card, allocated_to: 'D_refund(CL8,120)'}
+  steps:
+  - step: 1
+    expect:
+      duties: [{id: 'D_refund(CL1,120)', resolution: unresolved}, {id: 'D_refund(CL8,120)', resolution: unresolved}]
+  - step: 2
+    propose: {actor: A, tool: message_party, args: {to: K1, claim: CL1, template: refund_issued, amount: 120, cites: REFX}}
+    expect: {disposition: PROHIBIT, rule: PR1, token: none}

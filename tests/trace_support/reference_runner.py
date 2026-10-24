@@ -45,6 +45,12 @@ def contains(actual, expected, field=None):
 
 
 def observe(key, expected, s, result, ctx, final=False):
+    if key == "roster":
+        # Read the actual latest version, including absence; never model descriptions.
+        return {party: {k: sorted(v) if k in ("jurisdictions", "may_receive") else deepcopy(v)
+                        for k, v in s["records"][party][-1]["fields"].items()}
+                for party in expected if party in s["records"] and
+                s["records"][party][-1]["kind"] == "party"}
     if key == "live_offers":
         found = {}
         for did in expected:

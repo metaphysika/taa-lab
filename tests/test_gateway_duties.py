@@ -163,13 +163,13 @@ class DutyEngineTests(unittest.TestCase):
         self.assertEqual(duty["resolution"], "unresolved")
         self.assertTrue(any(e["type"] == "reopened" for e in duty["history"]))
 
-    def test_report_repeats_preserve_deadlines_and_the_assigned_recipient(self):
+    def test_report_repeats_preserve_deadlines_and_the_eligible_recipient(self):
         self.order(1, "O1"); self.step(2); self.wrong()
         self.order(3, "OC", "C"); self.wrong()
         before = self.native("D_report(O1)")
         self.order(4, "O2"); self.wrong()
         after = self.native("D_report(O1)")
-        self.assertEqual(after["content"]["recipient"], "party:C")
+        self.assertEqual(after["content"]["recipient"], "party:F")
         self.assertEqual((after["deadline_step"], after["route_deadline_step"]),
                          (before["deadline_step"], before["route_deadline_step"]))
         self.assertEqual(after["content"]["version"], 2)

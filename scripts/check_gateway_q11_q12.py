@@ -27,7 +27,7 @@ from tests.trace_support import reference_runner as runner, production_backend, 
 from worlds.refunds.token_bindings import prepare
 for package in (taa_gateway, model):
     assert Path(package.__file__).resolve().is_relative_to(implementation)
-inputs = [c for c in regressions.cases() if c['id'].startswith(('R-Q11-', 'R-Q12-'))]
+inputs = [c for c in regressions.cases(include_superseded=a.expect_baseline) if c.get('historical_id',c['id']).startswith(('R-Q11-', 'R-Q12-'))]
 required = {
     'reference': {'R-Q11-no-standing', 'R-Q11-out-of-scope', 'R-Q12-fallback-accept',
                   'R-Q12-fallback-lapse', 'R-Q12-parallel-L', 'R-Q12-parallel-F',
@@ -37,6 +37,7 @@ required = {
 }
 report = {'implementation_root': str(implementation), 'baseline': a.expect_baseline,
           'scenario_sha256': hashlib.sha256((regressions.ROOT / 'q11_q12.yaml').read_bytes()).hexdigest(),
+          'supersessions': {} if a.expect_baseline else {c['historical_id']: c['id'] for c in inputs if 'historical_id' in c},
           'source_hashes': {str(f.relative_to(implementation)): hashlib.sha256(f.read_bytes()).hexdigest()
                             for base in ('taa_gateway', 'taa_gateway_reference')
                             for f in sorted((implementation / base).rglob('*.py'))}, 'backends': {}}

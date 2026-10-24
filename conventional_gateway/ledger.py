@@ -3,6 +3,7 @@
 The engine runs on host events and clock boundaries, not only actor proposals.
 No core/reference authorization, discharge or transaction code is shared.
 """
+from .coverage import compute
 from .kernel import copy, encode
 from .policy import Facts, latest
 
@@ -24,7 +25,7 @@ class Ledger:
                "owner": "A", "fallback": self.world["jurisdictions"]["claim_decisions"][0],
                "resolution": "unresolved", "due": store.step + 20, "overdue": False,
                "history": ["opened@" + str(store.step)], "offers": {}, "offered_to": None,
-               "ownership_interrupted": False, "authority_baseline": True}
+               "ownership_interrupted": False, "authority_baseline": True, "incapacity": False}
         if amount is not None:
             row["amount"] = amount
         save(store, "duties", did, row)
@@ -44,12 +45,7 @@ class Ledger:
         row["offered_to"] = active[0][0] if active else None
 
     def can_act(self, snapshot, owner, row):
-        if owner is None:
-            return False
-        if owner in self.world["jurisdictions"]["claim_decisions"]:
-            return True
-        tool = "issue_refund" if row["kind"] == "refund" else "message_party"
-        return bool(self.policy.candidates(snapshot, owner, tool, {"claim": row["claim"]}))
+        return self.policy.capacity(snapshot, owner, row)
 
     def offer(self, store, actor, duty, party):
         row = store.current("duties").get(duty)
@@ -63,9 +59,9 @@ class Ledger:
         row = store.current("duties").get(duty)
         offer = row.get("offers", {}).get(actor) if row else None
         if (not row or row["resolution"] != "unresolved" or not offer or not offer["active"] or
-                store.step >= offer["due"]):
+                store.step >= offer["due"] or not self.can_act(store.snapshot(), actor, row)):
             return False
-        row["owner"], row["ownership_interrupted"] = actor, False
+        row["owner"], row["ownership_interrupted"], row["incapacity"] = actor, False, False
         row["authority_baseline"] = self.can_act(store.snapshot(), actor, row)
         for other in row["offers"].values():
             other["active"] = False
@@ -81,6 +77,8 @@ class Ledger:
         if row["version"] != version:
             return {"acknowledgment_rejected": True, "reason": "acknowledgment cites a superseded version"}
         duty = store.current("duties")[row["duty"]]
+        if sender not in self._report_eligible(store, duty["jurisdiction"], duty.get("matter")):
+            return {"acknowledgment_rejected": True, "reason": "recipient no longer eligible"}
         if duty["resolution"] != "discharged":
             duty["resolution"] = "discharged"
             duty["acknowledged_version"] = version
@@ -130,42 +128,13 @@ class Ledger:
                 allocation = allocations.get(rid)
                 if allocation and allocation.get("active", True) and allocation.get("duty") != duty["id"]:
                     continue
-                if self.policy.settlement_valid(snapshot, rid, duty["claim"], duty["amount"]):
+                if (row.get("allocated_to") in (None,duty["claim"],duty["id"]) and
+                    self.policy.settlement_valid(snapshot, rid, duty["claim"], duty["amount"])):
                     return [{"record": rid, "amount": duty["amount"], "kind": "settlement"}]
         return None
 
-    def _resolve_proof(self, snapshot, duty):
-        facts = Facts(snapshot)
-        claim = facts.get(duty["claim"])
-        if claim is None:
-            return None
-        covered, denial, seen, proof = 0, 0, set(), []
-        support = self.policy.support(snapshot, duty["claim"])
-        remainder = max(0, claim["amount"] - support["amount"]) if support["result"] != "unknown" else 0
-        notices = latest(snapshot, "notices")
-        for nid in sorted(notices, key=lambda n: (len(n), n)):
-            notice = notices[nid]
-            if notice.get("claim") != duty["claim"] or notice.get("to") != duty["claimant"]:
-                continue
-            issued = notice.get("template") == "refund_issued"
-            reference = notice.get("cites") if issued else notice.get("basis")
-            if not reference or reference.split("@v")[0] in seen:
-                continue
-            rid = reference.split("@v")[0]
-            amount = notice.get("amount", claim["amount"])
-            if issued and self.policy.settlement_valid(snapshot, rid, duty["claim"], amount):
-                seen.add(rid)
-                covered += amount
-                proof.append({"record": rid, "amount": amount, "kind": "settlement"})
-            elif notice.get("template") == "refund_denied" and self.policy.denial_valid(snapshot, reference, duty["claim"], amount):
-                seen.add(rid)
-                # Q14 remains pending: denial bases share one unsupported
-                # remainder; repeated, unportioned notices do not add coverage.
-                if amount > denial:
-                    denial = amount
-                    proof = [p for p in proof if p["kind"] != "denial"]
-                    proof.append({"record": rid, "amount": amount, "kind": "denial"})
-        return proof if covered + min(denial, remainder) >= claim["amount"] else None
+    def _resolve_proof(self, store, duty):
+        return compute(store,self.policy,duty)
 
     def _old_proof_valid(self, snapshot, duty):
         facts = Facts(snapshot)
@@ -192,14 +161,18 @@ class Ledger:
         refs = [duty["basis"]] if duty.get("by_rule") in ("DU5", "DU6") else [p["record"] for p in duty.get("proof", [])]
         if duty.get("evidence"):
             refs.insert(0, duty["evidence"].split("@v")[0])
-        for rid in refs:
+        changed = [p["record"] for p in duty.get("proof",[]) if p.get("version") and p["record"] in snapshot["records"] and p["version"] != len(snapshot["records"][p["record"]])]
+        for rid in changed + refs:
             if rid in snapshot["records"]:
                 return rid + "@v" + str(len(snapshot["records"][rid]))
         return None
 
     def _customer_duty(self, store, row):
         snapshot = store.snapshot()
-        if row["resolution"] != "unresolved" and not self._old_proof_valid(snapshot, row):
+        notice = self._resolve_proof(store,row) if row["kind"] == "resolve" else None
+        valid_old = bool(notice) if row["kind"] == "resolve" and row["resolution"] == "discharged" else self._old_proof_valid(snapshot,row)
+        if row["resolution"] != "unresolved" and not valid_old:
+            row.setdefault("resolution_proof_history",[]).append(dict(at=store.step,resolution=row["resolution"],proof=copy(row.get("proof")),coverage=copy(row.get("discharge_coverage"))))
             row["reopening_cites"] = self._reopening_reference(snapshot, row)
             row["resolution"] = "unresolved"
             self._history(row, "reopened", store.step)
@@ -212,12 +185,13 @@ class Ledger:
                 row.pop(name, None)
         if row["resolution"] == "unresolved":
             released = self._release(store.snapshot(), row)
-            proof = self._refund_proof(store.snapshot(), row) if row["kind"] == "refund" else self._resolve_proof(store.snapshot(), row)
+            proof = self._refund_proof(store.snapshot(), row) if row["kind"] == "refund" else notice
             if released:
                 row.update(resolution="released", **released)
                 self._history(row, "released", store.step)
             elif proof:
                 row.update(resolution="discharged", proof=proof)
+                if row["kind"] == "resolve":row["discharge_coverage"] = copy(row["coverage_proof"])
                 if row["kind"] == "refund":
                     row["by"] = proof[0]["record"]
                     save(store, "allocations", row["by"], {"claim": row["claim"], "duty": row["id"], "active": True})
@@ -229,11 +203,13 @@ class Ledger:
                 if offer["active"] and store.step >= offer["due"]:
                     offer["active"] = False
             capable = self.can_act(store.snapshot(), row["owner"], row)
+            row["incapacity"] = not capable
             if capable:
                 row["ownership_interrupted"] = False
-            if row["owner"] is not None and row["authority_baseline"] and not capable and not row["ownership_interrupted"]:
+            if row["owner"] is not None and not capable and not row["ownership_interrupted"]:
                 row["ownership_interrupted"] = True
-                self._offer(row, row["fallback"], store.step)
+                if row["fallback"] != row["owner"]:
+                    self._offer(row, row["fallback"], store.step)
             if row["owner"] is not None and row["ownership_interrupted"] and not any(o["active"] for o in row["offers"].values()):
                 row["owner"] = None
                 self._history(row, "unowned", store.step)
@@ -249,7 +225,12 @@ class Ledger:
             for order in store.current("orders").values():
                 if any(self._requested(effect, claim, element) for effect in order["requested_effects"]):
                     excluded.add(order["from"])
-        return [p for p in self.world["jurisdictions"][jurisdiction] if p not in excluded]
+        roster = {rid: row["fields"] for rid, row in store.current("records").items() if row["kind"] == "party"}
+        ordered = list(self.world["jurisdictions"][jurisdiction])
+        ordered.extend(p for p in sorted(roster) if p not in ordered)
+        return [p for p in ordered if p not in excluded and (p not in roster or
+                jurisdiction in roster[p].get("jurisdictions", []) and
+                jurisdiction in roster[p].get("may_receive", []))]
 
     def _requested(self, effect, claim, element):
         if effect.get("claim") != claim:
@@ -324,19 +305,33 @@ class Ledger:
             return False
         if store.step >= row["due"]:
             row["overdue"] = True
-        if row["route_due"] is not None and store.step >= row["route_due"]:
-            eligible = self._report_eligible(store, row["jurisdiction"], row.get("matter"))
-            current = row["recipient"]
-            following = eligible[eligible.index(current) + 1:] if current in eligible else eligible
+        eligible = self._report_eligible(store, row["jurisdiction"], row.get("matter"))
+        current = row["recipient"]
+        invalid = current is not None and current not in eligible
+        at_deadline = row["route_due"] is not None and store.step >= row["route_due"]
+        returning = current is None and bool(eligible)
+        if (invalid or at_deadline or returning) and row.get("routing_step") != store.step:
+            row["routing_step"] = store.step
+            last = {}
+            for item in row["history"]:
+                event, at = item.rsplit("@", 1)
+                for p in eligible:
+                    if event in ("dispatched_to_" + p, "redispatched_to_" + p):
+                        last[p] = int(at)
+            following = min(eligible, key=lambda p: (last.get(p, -1), eligible.index(p))) if eligible else None
+            row["recipient"] = following
+            row["route_due"] = store.step + 5 if following else None
+            if invalid:
+                self._history(row, "redirected_from_" + current, store.step)
+                row["redirection_reason"] = "recipient no longer eligible"
             if following:
-                row["recipient"] = following[0]
-                row["route_due"] = store.step + 5
-                self._history(row, "redispatched_to_" + following[0], store.step)
-                report = store.current("reports")[row["report_id"]]
-                report["recipient"] = following[0]
-                save(store, "reports", row["report_id"], report)
-            else:
-                row["route_due"] = None
+                self._history(row, ("dispatched_to_" if invalid else "redispatched_to_") + following, store.step)
+            report = store.current("reports")[row["report_id"]]
+            report["recipient"] = following
+            # A resend to the same recipient is a real delivery/versioned write.
+            if following == current:
+                report["dispatch_step"] = store.step
+            save(store, "reports", row["report_id"], report)
         return save(store, "duties", row["id"], row)
 
     def stabilize(self, store):

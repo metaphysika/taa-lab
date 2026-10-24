@@ -103,7 +103,7 @@ class Pipeline:
                 authority["queries"] = discovery + authority["queries"]
             checks = copy_json(prohibitions) + [authority]
             context = dict(effects_context, actor=identity["actor"], grant=authority["grant"],
-                           purpose=authority["purpose"])
+                           purpose=authority["purpose"], step=snapshot["step"])
             for stage in STAGES[2:]:
                 if stage == "determination":
                     checks.extend(self._limits(tool, identity["arguments"], authority["chain"]))
