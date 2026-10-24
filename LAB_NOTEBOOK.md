@@ -8376,6 +8376,56 @@ all cell/observation contributions, independent pre-states, sources, controls,
 logs and checksummed11.2MB archive retained. No model/Modal/spend/deletion/
 Notion/release. PR32 remains draft/unmerged pending Claude's corrected-run review.
 
+2026-10-23 America/Chicago — Owner relayed Claude approval of PR32/eb5213b9;
+mark ready and merge only after every exact-head CI run is green. Begin separate
+replay/audit-window PR. Read-only generator uses immutable v0.1 archive plus
+hash-pinned input schedules; it executes no backend, policy or oracle. Historical
+scored data lacks complete native token/duty/report/correction event streams.
+Do not fabricate them or count oracle obligations as deliveries: expose gaps
+for every historical episode and provide a separate full-native-event reader.
+Test deterministic bytes, all320 schedules/2912 observations, XSS escaping,
+unchanged input, native chain/truncation detection, no HMAC-authentication claim.
+No outcome/source-key/fixture change or new scored replay. No paid/model/Modal
+operations, evidence deletion, Notion changes or release. New PR needs Claude.
+
+Replay presentation review before commit: explicitly distinguish cautious
+agent withholding from a gateway response or missing checks. Build0.1.1 labels
+“gateway not called” and “no token issued.” Preserve the earlier generated
+bundle and interrupted broad-test prefix; rerun full acceptance on final code.
+No retained scoring data or outcomes changed.
+
+Replay checkpoint only; stage paused for Chris's comparison blockers. Final
+local1111 methods /36 optional skips /0 failures/errors,2170.707s; scripted
+all-scenarios exit0. Build0.1.1 generates361 HTML pages plus manifest; separate
+process/hash-seed17 produces identical bytes for all362 files. Historical
+native-channel coverage remains partial for all320 scored episodes, explicitly
+labeled; no native token/report history is invented. No replay PR/merge yet.
+Preserve branch, final bundle and earlier prefix while v0.2 fixes take priority.
+
+
+## 2026-10-24 — comparison review fixes, v0.2 preparation (offline)
+
+Chris relayed Astra's review and Claude's confirmation. Separate regressions reproduce the conventional parent-scope omission, duplicate-delivery acknowledgment ambiguity, and injected TraceGrant notice-argument drift. Fixes enforce the complete selected grant chain, deduplicate acknowledgment candidates by duty identity, and verify actual full canonical invocation plus postconditions before issuing a receipt. Receiptless floor/static closure and transfer writes are explicitly assessed under the post-v0 reference-policy measure and marked not scored under the unchanged receipt-based operation metrics. Full actual state changes and native log additions are retained for inspection; owned duties are never scoring inputs.
+
+The conventional template/action audit also found the core W0 converter drops template restrictions. This separate discrepancy is recorded for Claude's ruling; the ten declared programs have no template-restricted grant. Historical v0/v0.1 reports and evidence, frozen fixtures, controllers, contracts and matching protocol remain unchanged. No new TraceGrant contracts, model calls, Modal, spend or releases. Scoring v0.2 awaits the frozen implementation and checks; the exact requested Astra limitations list is pending from Chris.
+
+
+## 2026-10-24 — comparison v0.2 retained, PR33
+
+[DESCRIPTIVE] The three Astra/Claude blockers are fixed at `4bb6d23c` with separate regressions. Full 1,114 tests pass (36 optional skips); scripted scenarios and all 8 runtime-head CI checks pass. A single 320-episode run retains39,072 state audits and 117 source-key checks, 0 discrepancies/incomplete, 2,041 unassessed observations. All 200 protocol, 72 supplementary and1088 controller-level metric cells match v0.1. All 320 final worlds and common oracle boards are identical. The post-v0 supplementary measure is now named committed acts disallowed by the reference policy; ALTERNATIVE stays separate. No interpretation beyond the committed definitions follows.
+
+Four financial partial-write audit discrepancies remain explicit in the separate engineering supplement, with 8 non-applicable boundaries. The 24 added closure/transfer fault probes retain12 receiptless operations, explicitly not scored by the unchanged receipt-based protocol metrics, with 246 state audits passing. TraceGrant remains limited to ten fixed-contract programs; 127 wider no-contract replays stay unrun. All 15 protected v0/v0.1 files remain byte-identical. A report-formatting syntax failure was corrected on the same retained journal; no episode rerun.
+
+Evidence and full zero-delta tables are in TAA_CROSS_ARM_SCORING_v02.md and evidence/gateway-cross-arm-scoring-v02/. PR33 stays draft pending Claude review, Astra's exact missing limitations text, and the separately logged core template-conversion question. Runtime source remains frozen; frontend work resumes separately. No model calls, Modal operations, spending, deletions, Notion edits or public releases.
+
+
+## 2026-10-24 — retained-state audit window v0.2.0
+
+The v0.2 archive supplies actual initial channels and phase changes; the viewer validates before-values and renders token, record, duty, report, receipt and projected log transitions without executing a policy or oracle. The conventional projected ending checkpoint is shown as a tail replacement, with its original failed append-only-assumption diagnostic retained. No HMAC or independent native ending-checkpoint verification is claimed for scored journals. Legacy v0.1 partial coverage and the original artifact remain preserved.
+
+Full 1,122 tests pass (36 optional skips), scripted scenarios pass, and eight replay component methods pass. Two independent processes, including PYTHONHASHSEED=17, reproduce all 362 files exactly. Node filter controls pass; no browser-layout claim. Evidence: TAA_GATEWAY_REPLAY_v020.md and evidence/gateway-replay-v02/. Source scoring records, frozen expectations and all normative runtime code remain unchanged. Claude review and green CI precede any merge; no models, Modal, spend, deletion or release.
+
+
 2026-10-23 America/Chicago — Begin separate thin MCP front PR under Chris's
 approved next-stage instruction. Offline stdio, pinned protocol2025-06-18;
 trusted host supplies SimulatorAuthority.Session. No caller-selected actor,
@@ -8398,22 +8448,13 @@ or incomplete. No MCP PR or merge yet. Preserve this branch and scratch
 evidence while comparison fixes and v0.2 take priority.
 
 
-## 2026-10-24 — comparison review fixes, v0.2 preparation (offline)
-
-Chris relayed Astra's review and Claude's confirmation. Separate regressions reproduce the conventional parent-scope omission, duplicate-delivery acknowledgment ambiguity, and injected TraceGrant notice-argument drift. Fixes enforce the complete selected grant chain, deduplicate acknowledgment candidates by duty identity, and verify actual full canonical invocation plus postconditions before issuing a receipt. Receiptless floor/static closure and transfer writes are explicitly assessed under the post-v0 reference-policy measure and marked not scored under the unchanged receipt-based operation metrics. Full actual state changes and native log additions are retained for inspection; owned duties are never scoring inputs.
-
-The conventional template/action audit also found the core W0 converter drops template restrictions. This separate discrepancy is recorded for Claude's ruling; the ten declared programs have no template-restricted grant. Historical v0/v0.1 reports and evidence, frozen fixtures, controllers, contracts and matching protocol remain unchanged. No new TraceGrant contracts, model calls, Modal, spend or releases. Scoring v0.2 awaits the frozen implementation and checks; the exact requested Astra limitations list is pending from Chris.
-
-
-## 2026-10-24 — comparison v0.2 retained, PR33
-
-[DESCRIPTIVE] The three Astra/Claude blockers are fixed at `4bb6d23c` with separate regressions. Full 1,114 tests pass (36 optional skips); scripted scenarios and all 8 runtime-head CI checks pass. A single 320-episode run retains39,072 state audits and 117 source-key checks, 0 discrepancies/incomplete, 2,041 unassessed observations. All 200 protocol, 72 supplementary and1088 controller-level metric cells match v0.1. All 320 final worlds and common oracle boards are identical. The post-v0 supplementary measure is now named committed acts disallowed by the reference policy; ALTERNATIVE stays separate. No interpretation beyond the committed definitions follows.
-
-Four financial partial-write audit discrepancies remain explicit in the separate engineering supplement, with 8 non-applicable boundaries. The 24 added closure/transfer fault probes retain12 receiptless operations, explicitly not scored by the unchanged receipt-based protocol metrics, with 246 state audits passing. TraceGrant remains limited to ten fixed-contract programs; 127 wider no-contract replays stay unrun. All 15 protected v0/v0.1 files remain byte-identical. A report-formatting syntax failure was corrected on the same retained journal; no episode rerun.
-
-Evidence and full zero-delta tables are in TAA_CROSS_ARM_SCORING_v02.md and evidence/gateway-cross-arm-scoring-v02/. PR33 stays draft pending Claude review, Astra's exact missing limitations text, and the separately logged core template-conversion question. Runtime source remains frozen; frontend work resumes separately. No model calls, Modal operations, spending, deletions, Notion edits or public releases.
-
-
 ## 2026-10-24 — offline MCP front v0.1, comparison-fix integration
 
 Thin stdio MCP exposes proposals, explicit execution/withdrawal and the existing session event rows through the authenticated host-selected Session. No decision, authorization, discharge or transaction code is replaced. No host write/reviewer/clock/fault endpoint is exposed. Full 1,121 tests pass (36 optional skips), scripted scenarios pass, and the common runner records 140 scenarios, 1,062 source assertions, 3,907 state audits and 4,972 checks with 0 discrepancies/incomplete items; all 3 hidden-state controls are detected. Includes the two comparison-review traces, unchanged frozen fixtures and all permanent Q/H1 acceptance. Evidence: TAA_GATEWAY_MCP_v01.md and evidence/gateway-mcp-v01/. No model calls, Modal, spending, deletion or launch.
+
+
+## 2026-10-24 — audit-window CI fixture cleanup and approved MCP integration
+
+Claude approved PR #35 at e86fd9a8; PR #33 then #34 merged on green CI. PR #35's broad GitHub tests exposed retained replay-class archive memory in two unchanged historical CPU-admission tests, while its gateway workflow passed. Release class fixture references and collect garbage after each replay class; do not loosen admission limits or change policy, renderer, source journals or generated pages. Eight replay controls plus both admission controls pass in one process (10 tests). Integrated full discovery and scripted evidence is recorded separately before the repair commit; no model calls, Modal operations, spending or public release.
+
+Integrated verification completes: 1,129 repository tests pass (36 optional skips); scripted scenarios pass. The 10 replay/admission controls pass together. See evidence/gateway-replay-v02/validation.json and ci-integration-repair.zip for retained logs and the separate cleanup hash.

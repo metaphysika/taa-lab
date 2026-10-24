@@ -24,6 +24,8 @@ jobs:
         run: python -m unittest tests.test_gateway_mcp -v
       - name: Scripted MCP client on frozen and permanent acceptance with common state audits
         run: python -I scripts/check_gateway_mcp.py --report "$RUNNER_TEMP/gateway-mcp.json"
+      - name: Deterministic retained-log replay and evidence attribution controls
+        run: python -m unittest tests.test_gateway_replay -v
       - name: Q15 routing and ordered-acknowledgment regressions
         run: python -I scripts/check_gateway_v032.py --suite q15 --report "$RUNNER_TEMP/gateway-q15.json"
       - name: Q16 capacity, bounded episodes and source supersessions
