@@ -578,7 +578,7 @@ This is a draft correction report for Claude’s review. No merge, model connect
 
 ## Actual partial-write observations — detailed supplement
 
-These probes are outside the320 episodes. The financial replay retains four receipt-mismatch state-audit discrepancies as observed non-atomic behavior, never as unsupported cases. The24 closure/transfer probes pass246 state audits; twelve have actual changes but no receipt and are explicitly not scored by receipt-based protocol operation metrics.
+These probes are outside the 320 episodes. The financial replay retains four receipt-mismatch state-audit discrepancies as observed non-atomic behavior, never as unsupported cases. The 24 closure/transfer probes pass 246 state audits; twelve have actual changes but no receipt and are explicitly not scored by receipt-based protocol operation metrics.
 
 | Arm | Tool | Boundary | Actual change | New receipts | Protocol operation status |
 |---|---|---|---|---:|---|
