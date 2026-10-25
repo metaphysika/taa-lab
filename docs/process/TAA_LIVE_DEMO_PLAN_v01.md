@@ -1,6 +1,6 @@
 # Live-demo harness v0.1 — offline build for review
 
-[Descriptive] PR37 review update: [harness v0.1.1 changes](TAA_LIVE_DEMO_PR37_REVIEW_FIXES.md) supersede the original reasoning replay, identity, output-ceiling and read-denominator behavior below. The proposed system prompt is accepted by Claude. The neutral entry point is prepared but no real check is authorized. The earlier local results/archives below remain historical evidence.
+[Descriptive] PR37 review update: [harness v0.1.1 changes](TAA_LIVE_DEMO_PR37_REVIEW_FIXES.md) supersede the original reasoning replay, identity, output-ceiling and read-denominator behavior below. The proposed system prompt is accepted by Claude. The [v0.1.2 staff amendment](TAA_LIVE_DEMO_PR37_STAFF_v012.md) records Chris's 2026-10-24 approval of the exact neutral staff field and Claude's acceptance of the two-receipt flow. The neutral entry point is prepared but no real check is authorized. The earlier local results/archives below remain historical evidence.
 
 [Descriptive] Chris authorized Step 3 offline preparation on 2026-10-24, starting from PR #36 merge `436fbf002d3e0f9e84a41206fe3c4c43b0d71ed7`. This document records the implementation choices under the supplied plan. No model call, including a neutral check, is authorized. No launch approval receipt is supplied. Each paid launch requires Chris's approval of the exact final commit after Claude's review; this PR must not merge before that review is recorded.
 

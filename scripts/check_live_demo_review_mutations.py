@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove all three surviving Claude mutations fail their targeted controls.
+"""Prove all four surviving Claude mutations fail their targeted controls.
 
 In-memory mutants only. No fixture, measure, runtime file or evidence is edited.
 """
@@ -42,7 +42,11 @@ def main():
          patch.object(driver,'actual_commit',altered(driver.actual_commit,
              " or\n        after['notices'] != before['notices']",''))),
         ('extra_output_type','test_output_allowlist_is_exact_and_rejects_every_other_type',
-         patch.object(adapter,'ALLOWED_OUTPUT_TYPES',adapter.ALLOWED_OUTPUT_TYPES|{'file_search_call'}))]
+         patch.object(adapter,'ALLOWED_OUTPUT_TYPES',adapter.ALLOWED_OUTPUT_TYPES|{'file_search_call'})),
+        ('run_adapter_accepts_null_identity','test_run_adapter_per_attempt_authorization_rejects_null_model_returned',
+         patch.object(adapter.Adapter,'_authorize',altered(adapter.Adapter._authorize,
+             'authorized(self.launch, self.approved_commit, self.approval)',
+             'authorized(self.launch, self.approved_commit, self.approval, allow_model_discovery=True)')))]
     rows=[]
     for name,method,mutation in controls:
         before=run_test(method)
@@ -53,7 +57,7 @@ def main():
             raise AssertionError('sensitivity failed: '+json.dumps(row))
     args.report.parent.mkdir(parents=True,exist_ok=True)
     with args.report.open('x') as f:json.dump(dict(status='PASS',controls=rows),f,indent=2);f.write('\n')
-    print('PASS: all three mutants fail one assertion each; baseline and restored controls pass')
+    print('PASS: all four mutants fail one assertion each; baseline and restored controls pass')
 
 
 if __name__=='__main__':main()
