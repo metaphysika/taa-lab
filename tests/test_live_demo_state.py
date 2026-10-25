@@ -118,7 +118,7 @@ class DurableStateTests(unittest.TestCase):
             with self.assertRaisesRegex(Stop,'launch_not_approved'):
                 authorized(True,head,dict(base,model_returned=config.MODEL,check_attempt=3))
 
-    def test_http_error_evidence_contains_only_type_and_code_from_body(self):
+    def test_http_error_evidence_contains_only_safe_error_fields(self):
         fake_key='OFFLINE_FAKE_CREDENTIAL'
         payload=dict(error=dict(type='invalid_request_error',code='invalid_api_key',
                                message='Never retain '+fake_key,param='secret',nested={'key':fake_key}))
@@ -134,8 +134,8 @@ class DurableStateTests(unittest.TestCase):
         self.assertNotIn(fake_key.encode(),raw);self.assertNotIn(b'Never retain',raw)
         rows=[json.loads(p.read_bytes()) for p in evidence.directory.glob('[0-9]*.json')]
         failure=next(r['value'] for r in rows if r['kind']=='transport_failure')
-        self.assertEqual(failure['error'],dict(type='invalid_request_error',code='invalid_api_key'))
-        self.assertEqual(set(failure['error']),{'type','code'})
+        self.assertEqual(failure['error'],dict(type='invalid_request_error',code='invalid_api_key',param='secret'))
+        self.assertEqual(set(failure['error']),{'type','code','param'})
         self.assertEqual(failure['partial_base64'],'');self.assertEqual(send.call_count,1)
 
     def test_unknown_or_malformed_http_errors_cannot_log_arbitrary_strings(self):
@@ -143,7 +143,23 @@ class DurableStateTests(unittest.TestCase):
         for raw in (b'not json containing FAKE_KEY',json.dumps({'error':{'type':'FAKE_KEY','code':'FAKE_KEY','message':'FAKE_KEY'}}).encode(),b'{"error":[]}'):
             e=urllib.error.HTTPError('https://api.openai.com',401,'no',{},io.BytesIO(raw))
             fields=http_error_fields(e)
-            self.assertEqual(set(fields),{'type','code'});self.assertNotIn('FAKE_KEY',json.dumps(fields))
+            self.assertEqual(set(fields),{'type','code','param'});self.assertNotIn('FAKE_KEY',json.dumps(fields))
+
+    def test_error_param_pattern_withholds_unsafe_values_and_never_keeps_message(self):
+        from live_demo.adapter import http_error_fields
+        for parameter in ('tools[0].function.strict', 'messages[1].content', 'A_09', 'x'*128,
+                          '', 'x'*129, 'contains spaces', 'bad/value', 'bad-value',
+                          'line\nbreak', 'ending\n', '\u00e9', None, 12, True, []):
+            payload = dict(error=dict(type='invalid_request_error', code=None, param=parameter,
+                                      message='NEVER_RETAIN_MESSAGE_OR_FAKE_CREDENTIAL', other='private'))
+            error = urllib.error.HTTPError('https://api.openai.com', 400, 'bad request', {},
+                                           io.BytesIO(json.dumps(payload).encode()))
+            fields = http_error_fields(error)
+            expected = parameter if parameter in ('tools[0].function.strict', 'messages[1].content',
+                                                  'A_09', 'x'*128) else 'withheld'
+            self.assertEqual(fields, dict(type='invalid_request_error', code=None, param=expected))
+            self.assertNotIn('NEVER_RETAIN', json.dumps(fields))
+            self.assertNotIn('private', json.dumps(fields))
 
     def test_imported_markers_are_required_and_state_inside_checkout_is_rejected(self):
         marker=self.durable/'check-attempt-000001.once'

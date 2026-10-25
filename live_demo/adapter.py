@@ -9,6 +9,7 @@ from decimal import Decimal
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import time
 import urllib.error
@@ -173,14 +174,15 @@ def retry_delay(value):
 
 
 def http_error_fields(error):
-    # Error messages can echo a key. Never retain raw bytes, message or param.
+    # Error messages can echo a key. Keep only controlled fields; never raw
+    # bytes or message text. Parameter paths must match the owner's pattern.
     # Unknown strings are withheld rather than logging arbitrary server data.
     types = {'invalid_request_error','authentication_error','permission_error',
              'server_error','insufficient_quota'}
     codes = {'invalid_api_key','missing_required_parameter','invalid_organization',
              'invalid_project','project_not_found','organization_deactivated',
              'insufficient_permissions','insufficient_quota','access_terminated'}
-    fields = dict(type=None, code=None)
+    fields = dict(type=None, code=None, param='withheld')
     try:
         payload = parse_json(error.read(65536).decode('utf-8'))
         value = payload.get('error') if type(payload) is dict else None
@@ -189,6 +191,9 @@ def http_error_fields(error):
                 candidate = value.get(name)
                 fields[name] = candidate if type(candidate) is str and candidate in allowed else (
                     None if candidate is None else 'withheld')
+            parameter = value.get('param')
+            if type(parameter) is str and re.fullmatch(r'[A-Za-z0-9_.\[\]]{1,128}', parameter):
+                fields['param'] = parameter
     except (ValueError, UnicodeError, OSError, HTTPException):
         pass
     return fields
