@@ -1,7 +1,8 @@
 """Native Chat Completions tools, fail-closed approval and paid-attempt guards.
 
-No SDK retries, metadata probes, key-file reads, sampling/effort overrides or
-quality retries. All uncertainty retains the full attempt reservation.
+No SDK retries, metadata probes, key-file reads or quality retries. The only
+settings override is owner-approved reasoning_effort, identical across arms.
+All uncertainty retains the full attempt reservation.
 """
 import base64
 from http.client import IncompleteRead, HTTPException, RemoteDisconnected
@@ -256,7 +257,8 @@ class Adapter:
 
     def body(self, history):
         return dict(model=config.MODEL, messages=chat.messages((config.FROZEN/'system.txt').read_text(),history),
-                    tools=chat.tools(manifest()), max_completion_tokens=config.OUTPUT_TOKENS, store=False)
+                    tools=chat.tools(manifest()), max_completion_tokens=config.OUTPUT_TOKENS, store=False,
+                    reasoning_effort=config.REASONING_EFFORT)
 
     def expected_model(self, reply):
         return self.approval['model_returned'] if self.approval is not None else config.MODEL

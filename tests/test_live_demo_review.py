@@ -111,6 +111,10 @@ class LiveDemoReviewTests(unittest.TestCase):
         requests = sorted([r for r in rows if r['kind'] == 'request'], key=lambda r:r['sequence'])
         self.assertEqual(len(requests), 2)
         self.assertTrue(all(r['value']['body']['tools'] == check.chat.tools(TOOLS) for r in requests))
+        for request in requests:
+            self.assertEqual(set(request['value']['body']),
+                             {'model','messages','tools','max_completion_tokens','store','reasoning_effort'})
+            self.assertEqual(request['value']['body']['reasoning_effort'], 'none')
         self.assertEqual([t['name'] for t in TOOLS], ['echo'])
         messages = requests[1]['value']['body']['messages']
         self.assertEqual(messages[-2]['role'],'assistant')

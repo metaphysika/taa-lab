@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FROZEN = Path(__file__).parent/'frozen'
 ARMS = ('floor', 'static', 'taa')
 MODEL = 'gpt-6-luna'
+REASONING_EFFORT = 'none'
 OUTPUT_TOKENS = 4096
 MAX_TURNS = 12
 SEED = 2026102403

@@ -21,12 +21,29 @@ class ChatWireTests(unittest.TestCase):
     def test_frozen_system_and_function_schemas_have_only_required_chat_wrapping(self):
         a=Adapter(Budget(self.ledger,Evidence(self.root/'body')),Evidence(self.root/'unused'))
         body=a.body([dict(role='user',content='neutral fixture')])
-        self.assertEqual(set(body),{'model','messages','tools','max_completion_tokens','store'})
+        self.assertEqual(set(body),{'model','messages','tools','max_completion_tokens','store','reasoning_effort'})
+        self.assertEqual(body['reasoning_effort'],'none')
         self.assertEqual(body['max_completion_tokens'],4096);self.assertIs(body['store'],False)
         self.assertEqual(body['messages'][0],dict(role='system',content=(config.FROZEN/'system.txt').read_text()))
         self.assertEqual([{'type':'function',**t['function']} for t in body['tools']],manifest())
         measures=config.load('measures.json')['reasoning_carry_over']
         self.assertIs(measures['enabled'],False);self.assertIs(measures['identical_across_arms'],True)
+
+    def test_live_and_neutral_allow_only_owner_selected_reasoning_override(self):
+        from live_demo.check import CheckAdapter
+        allowed={'model','messages','tools','max_completion_tokens','store','reasoning_effort'}
+        for cls in (Adapter, CheckAdapter):
+            a=cls(None,None)
+            for history in ([],[dict(role='user',content='neutral fixture')]):
+                body=a.body(history)
+                self.assertEqual(set(body),allowed)
+                self.assertEqual(body['reasoning_effort'],'none')
+                self.assertEqual(body['max_completion_tokens'],4096)
+        settings=config.load('measures.json')['reasoning_effort']
+        self.assertEqual(settings['value'],'none')
+        self.assertIs(settings['deviation_from_provider_defaults'],True)
+        self.assertIs(settings['identical_across_arms'],True)
+        self.assertEqual(settings['selection_order'],['medium','low','none'])
 
     def test_assistant_multi_calls_and_tool_messages_preserve_ids_arguments_and_order(self):
         first=function('read_record',{'record':'CL1'},1);second=function('read_record',{'record':'ORD1'},2)

@@ -33,7 +33,7 @@ class CheckAdapter(Adapter):
 
     def body(self, history):
         return dict(model=config.MODEL, messages=chat.messages(INSTRUCTION,history), tools=chat.tools(TOOLS),
-                    max_completion_tokens=config.OUTPUT_TOKENS, store=False)
+                    max_completion_tokens=config.OUTPUT_TOKENS, store=False, reasoning_effort=config.REASONING_EFFORT)
 
     def expected_model(self, reply):
         returned = reply.get('model')

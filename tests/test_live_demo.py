@@ -63,7 +63,8 @@ class LiveDemoTests(unittest.TestCase):
             self.assertEqual(encoded(host.surface.request('tools/list')), encoded(manifest()))
         self.assertEqual(bodies, [bodies[0]]*3)
         body = json.loads(bodies[0])
-        self.assertFalse({'temperature','reasoning','tool_choice','parallel_tool_calls'} & body.keys())
+        self.assertEqual(set(body), {'model','messages','tools','max_completion_tokens','store','reasoning_effort'})
+        self.assertEqual(body['reasoning_effort'], 'none')
         self.assertEqual(body['max_completion_tokens'],4096)
 
     def test_same_refused_act_same_short_string_no_diagnostics(self):
