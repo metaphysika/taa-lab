@@ -55,7 +55,7 @@ class LiveDemoReviewTests(unittest.TestCase):
                 a = StandIn(Budget(self.ledger, self.evidence), self.evidence, script=lambda *_: [done()])
                 episode(dict(program=name, arm=arm, repeat=1), a, self.evidence)
                 body = self.rows('request')[-1]['body']
-                brief = json.loads(body['input'][0]['content'])
+                brief = json.loads(body['messages'][1]['content'])
                 self.assertEqual(brief['staff'].encode('utf-8'), expected)
                 self.assertEqual(brief, program['brief'])
                 first_bodies.append(encoded(body))
@@ -82,7 +82,7 @@ class LiveDemoReviewTests(unittest.TestCase):
         with patch('subprocess.check_output', side_effect=[head+'\n', '']), patch('live_demo.config.verify'):
             a._authorize()
 
-    def test_encrypted_reasoning_and_summary_replayed_identically_across_arms(self):
+    def test_reasoning_is_never_carried_over_identically_across_arms(self):
         reasoning = dict(type='reasoning', id='rs_fixture', encrypted_content='opaque-fixture-ciphertext',
                          summary=[dict(type='summary_text', text='Fixture summary.')])
         original = encoded(reasoning)
@@ -93,9 +93,10 @@ class LiveDemoReviewTests(unittest.TestCase):
             a = StandIn(Budget(self.ledger, self.evidence), self.evidence, script=script)
             episode(dict(program='T02', arm=arm, repeat=1), a, self.evidence)
             requests = self.rows('request')[-2:]
-            self.assertTrue(all(r['body']['include'] == ['reasoning.encrypted_content'] for r in requests))
-            carried = [i for i in requests[1]['body']['input'] if i.get('type') == 'reasoning']
-            self.assertEqual([encoded(i) for i in carried], [original])
+            self.assertTrue(all('include' not in r['body'] for r in requests))
+            carried = requests[1]['body']['messages']
+            self.assertNotIn('Canned reasoning',encoded(carried).decode())
+            self.assertTrue(all(not {'reasoning_content','reasoning','encrypted_content','summary'} & i.keys() for i in carried))
             bodies.append(encoded(requests[1]['body']))
         self.assertEqual(bodies, [bodies[0]]*3)
         self.assertEqual(encoded(reasoning), original)
@@ -109,17 +110,19 @@ class LiveDemoReviewTests(unittest.TestCase):
         rows = [json.loads(p.read_bytes()) for p in (self.root/'neutral').glob('[0-9]*.json')]
         requests = sorted([r for r in rows if r['kind'] == 'request'], key=lambda r:r['sequence'])
         self.assertEqual(len(requests), 2)
-        self.assertTrue(all(r['value']['body']['tools'] == TOOLS for r in requests))
+        self.assertTrue(all(r['value']['body']['tools'] == check.chat.tools(TOOLS) for r in requests))
         self.assertEqual([t['name'] for t in TOOLS], ['echo'])
-        first_output = requests[1]['value']['body']['input'][1:-1]
-        self.assertEqual(first_output[0]['encrypted_content'], 'canned-encrypted-1')
-        self.assertEqual(first_output[0]['summary'], [dict(type='summary_text',text='Canned neutral fixture.')])
-        self.assertEqual(requests[1]['value']['body']['input'][-1]['type'], 'function_call_output')
+        messages = requests[1]['value']['body']['messages']
+        self.assertEqual(messages[-2]['role'],'assistant')
+        self.assertEqual(messages[-2]['tool_calls'][0]['function']['name'],'echo')
+        self.assertEqual(messages[-1]['role'],'tool')
+        self.assertEqual(messages[-1]['tool_call_id'],messages[-2]['tool_calls'][0]['id'])
         formats = [r['value'] for r in rows if r['kind'] == 'native_format']
         self.assertEqual(len(formats), 2)
         self.assertEqual(formats[0]['model_returned'], config.MODEL)
-        self.assertEqual(formats[0]['usage_shape']['input_tokens'], 'int')
-        self.assertEqual(formats[0]['reasoning_items'][0]['encrypted_content'], 'str')
+        self.assertEqual(formats[0]['usage_shape']['prompt_tokens'], 'int')
+        self.assertEqual(formats[0]['reasoning_items'],[])
+        self.assertFalse(formats[0]['reasoning_carry_over'])
         self.assertEqual((config.ROOT/'results/formation-spending-v021/openai.json').read_bytes(), before)
 
     def test_neutral_transport_failure_never_retries(self):
@@ -195,7 +198,7 @@ class LiveDemoReviewTests(unittest.TestCase):
         durable=create_state_fixture(self.root/'durable',ledgers/'openai.json')
         def response(body):
             output = [function('echo',{'value':'neutral-check'})] if not any(
-                x.get('type') == 'function_call_output' for x in body['input']) else [done()]
+                x.get('role') == 'tool' for x in body['messages']) else [done()]
             return native(output)
         with patch('live_demo.state.STATE_ROOT',durable),patch('live_demo.config.ROOT',fake_root),patch('live_demo.config.verify',return_value={}),\
              patch('live_demo.adapter.authorized'),patch('live_demo.check.authorized'),\
@@ -224,8 +227,8 @@ class LiveDemoReviewTests(unittest.TestCase):
 
     def test_output_ceiling_charged_no_calls_executed_and_schedule_continues(self):
         incomplete = json.loads(native([function('close_case',{'case':'CL1'})]))
-        incomplete.update(status='incomplete',incomplete_details={'reason':'max_output_tokens'})
-        incomplete['usage'].update(output_tokens=4096,total_tokens=4196)
+        incomplete['choices'][0]['finish_reason']='length'
+        incomplete['usage'].update(completion_tokens=4096,total_tokens=4196)
         responses = [encoded(incomplete),native([done()])]
         factory = lambda b,e,**kwargs:Adapter(b,e,transport=lambda _:responses.pop(0))
         schedule = [dict(program='T02',arm='floor',repeat=1),dict(program='T02',arm='taa',repeat=1)]
@@ -241,9 +244,9 @@ class LiveDemoReviewTests(unittest.TestCase):
         self.assertEqual(responses,[])
 
     def test_other_noncompleted_statuses_stop_whole_schedule(self):
-        for status in ('incomplete','failed','cancelled','in_progress'):
+        for status in (None,'content_filter','function_call','unknown'):
             r=json.loads(native([function('close_case',{'case':'CL1'})]))
-            r.update(status=status,incomplete_details={'reason':'other'})
+            r['choices'][0]['finish_reason']=status
             a=Adapter(Budget(self.ledger,self.evidence),self.evidence,transport=lambda _:encoded(r))
             with patch('live_demo.adapter.authorized'),self.assertRaisesRegex(Stop,'unknown_output'):
                 episode(dict(program='T02',arm='floor',repeat=1),a,self.evidence)
@@ -270,7 +273,7 @@ class LiveDemoReviewTests(unittest.TestCase):
         self.assertTrue(driver.actual_commit(proposed,after))
 
     def test_output_allowlist_is_exact_and_rejects_every_other_type(self):
-        self.assertEqual(api.ALLOWED_OUTPUT_TYPES,frozenset(('function_call','message','reasoning')))
+        self.assertEqual(api.ALLOWED_OUTPUT_TYPES,frozenset(('function_call','message')))
         for kind in ('computer_call','file_search_call','web_search_call','image_generation_call','future_type'):
             r=json.loads(native([dict(type=kind)]))
             a=Adapter(Budget(self.ledger,self.evidence),self.evidence,transport=lambda _:encoded(r))

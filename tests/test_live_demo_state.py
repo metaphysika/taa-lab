@@ -59,7 +59,7 @@ class DurableStateTests(unittest.TestCase):
         from live_demo.standin import native,function,done
         expected = Decimal('0.008324')
         def response(body):
-            output = [done()] if any(i.get('type') == 'function_call_output' for i in body['input']) else [function('echo',{'value':'neutral-check'})]
+            output = [done()] if any(i.get('role') == 'tool' for i in body['messages']) else [function('echo',{'value':'neutral-check'})]
             return native(output)
         for number in (3,4):
             checkout = self.root/('checkout-%d'%number);checkout.mkdir()

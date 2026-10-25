@@ -1,4 +1,4 @@
-"""Native Responses function calls, fail-closed approval and paid-attempt guards.
+"""Native Chat Completions tools, fail-closed approval and paid-attempt guards.
 
 No SDK retries, metadata probes, key-file reads, sampling/effort overrides or
 quality retries. All uncertainty retains the full attempt reservation.
@@ -16,14 +16,14 @@ import urllib.request
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
-from live_demo import config
+from live_demo import config, chat
 from live_demo.evidence import encoded
 from live_demo.surface import manifest
 from taa_gateway.serialization import parse_json
 
 D = Decimal
 WAITS = (10, 30, 60, 120)
-ALLOWED_OUTPUT_TYPES = frozenset(('function_call', 'message', 'reasoning'))
+ALLOWED_OUTPUT_TYPES = frozenset(('function_call', 'message'))
 
 
 class Stop(RuntimeError):
@@ -135,7 +135,7 @@ class Budget:
         self.attempts += 1
         return reserve, prompt_bound
 
-    def settle(self, reservation, prompt_bound, reply, expected_model=config.MODEL):
+    def settle(self, reservation, prompt_bound, reply, expected_model=config.MODEL, native_usage=None):
         if reply.get('model') != expected_model:
             raise Stop('model_identity')
         u = reply.get('usage')
@@ -155,7 +155,7 @@ class Budget:
                   D(u['output_tokens'])*D(str(self.prices['output_per_million'])))/1000000
         if actual > reservation:
             raise Stop('usage_bound')
-        self.evidence.write('usage', dict(native=u, charged=str(actual), retained_reserve='0'))
+        self.evidence.write('usage', dict(native=native_usage if native_usage is not None else u, charged=str(actual), retained_reserve='0'))
         self._book(actual-reservation)
         self.spent += actual-reservation
         self.phase_spent += actual-reservation
@@ -198,7 +198,7 @@ def http(body):
     key = os.environ.get('TAA_OPENAI_API_KEY')
     if not key:
         raise Stop('missing_configured_key')
-    request = urllib.request.Request('https://api.openai.com/v1/responses', data=encoded(body),
+    request = urllib.request.Request('https://api.openai.com/v1/chat/completions', data=encoded(body),
         headers={'Content-Type': 'application/json', 'Authorization': 'Bearer '+key})
     chunks = []
     try:
@@ -250,9 +250,8 @@ class Adapter:
                     input_tokens=self.budget.input_tokens, output_tokens=self.budget.output_tokens)
 
     def body(self, history):
-        return dict(model=config.MODEL, instructions=(config.FROZEN/'system.txt').read_text(),
-                    input=history, tools=manifest(), max_output_tokens=config.OUTPUT_TOKENS, store=False,
-                    include=['reasoning.encrypted_content'])
+        return dict(model=config.MODEL, messages=chat.messages((config.FROZEN/'system.txt').read_text(),history),
+                    tools=chat.tools(manifest()), max_completion_tokens=config.OUTPUT_TOKENS, store=False)
 
     def expected_model(self, reply):
         return self.approval['model_returned'] if self.approval is not None else config.MODEL
@@ -293,10 +292,11 @@ class Adapter:
                 raise Stop('unknown_output')
             self.evidence.write('native_format', dict(model_returned=reply.get('model'),
                 usage_shape=shape(reply.get('usage')),
-                reasoning_items=[shape(item) for item in reply.get('output', [])
-                                 if type(item) is dict and item.get('type') == 'reasoning']
-                    if type(reply.get('output')) is list else []))
-            self.budget.settle(reservation, bound, reply, expected_model=self.expected_model(reply))
+                reasoning_items=[], reasoning_carry_over=False, reasoning_fields=chat.reasoning_fields(reply)))
+            native_usage = reply.get('usage')
+            expected_model = self.expected_model(reply)
+            reply = chat.canonical(reply)
+            self.budget.settle(reservation, bound, reply, expected_model=expected_model, native_usage=native_usage)
             details = reply.get('incomplete_details')
             if reply.get('status') == 'incomplete' and type(details) is dict and details.get('reason') == 'max_output_tokens':
                 raise OutputCeiling()

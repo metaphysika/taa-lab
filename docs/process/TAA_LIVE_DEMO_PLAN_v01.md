@@ -90,3 +90,6 @@ python scripts/check_live_demo_preservation.py --report /tmp/new-preservation.js
 
 
 [Descriptive] The [v0.1.3 durable-state repair](TAA_LIVE_DEMO_DURABLE_STATE_v013.md) supersedes checkout-local live once/budget paths and adds check_attempt to neutral receipts only. Old command/receipt examples above are historical; they do not authorize another attempt. No further model calls are approved.
+
+
+[Descriptive] Owner-directed [v0.1.4 Chat Completions fallback](TAA_LIVE_DEMO_CHAT_COMPLETIONS_v014.md) supersedes the original Responses wire format and reasoning carry-over only, after the separately approved200/401/400free probe comparison. No additional inference execution is approved.

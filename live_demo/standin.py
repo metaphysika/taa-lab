@@ -6,9 +6,21 @@ from live_demo.config import MODEL
 
 
 def native(output):
-    return encoded(dict(model=MODEL, status='completed', output=output,
-                        usage=dict(input_tokens=100, output_tokens=30, total_tokens=130,
-                                   input_tokens_details=dict(cached_tokens=0))))
+    calls=[];texts=[];extra={}
+    for item in output:
+        if item['type']=='function_call':
+            calls.append(dict(id=item['call_id'],type='function',function=dict(name=item['name'],arguments=item['arguments'])))
+        elif item['type']=='message':
+            texts.extend(p['text'] for p in item['content'] if p.get('type')=='output_text')
+        elif item['type']=='reasoning':
+            extra['reasoning_content']='Canned reasoning fixture: never forwarded.'
+        else:
+            calls.append(dict(id='unknown-fixture',type=item['type'],function=dict(name='unknown',arguments='{}')))
+    message=dict(role='assistant',content=''.join(texts) if texts else None,**extra)
+    if calls:message['tool_calls']=calls
+    return encoded(dict(model=MODEL,choices=[dict(index=0,finish_reason='tool_calls' if calls else 'stop',message=message)],
+                        usage=dict(prompt_tokens=100,completion_tokens=30,total_tokens=130,
+                                   prompt_tokens_details=dict(cached_tokens=0))))
 
 
 def function(name, args, serial=0):

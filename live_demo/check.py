@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 
-from live_demo import config
+from live_demo import config, chat
 from live_demo.state import LiveState
 from live_demo.adapter import Adapter, Budget, Stop, authorized
 from live_demo.evidence import Evidence, encoded
@@ -32,9 +32,8 @@ class CheckAdapter(Adapter):
         authorized(self.launch, self.approved_commit, self.approval, allow_model_discovery=True)
 
     def body(self, history):
-        return dict(model=config.MODEL, instructions=INSTRUCTION, input=history, tools=TOOLS,
-                    max_output_tokens=config.OUTPUT_TOKENS, store=False,
-                    include=['reasoning.encrypted_content'])
+        return dict(model=config.MODEL, messages=chat.messages(INSTRUCTION,history), tools=chat.tools(TOOLS),
+                    max_completion_tokens=config.OUTPUT_TOKENS, store=False)
 
     def expected_model(self, reply):
         returned = reply.get('model')
@@ -54,10 +53,7 @@ class CheckStandIn(CheckAdapter):
             raise Stop('standin_transport_only')
 
     def respond(self, history, spec, turn):
-        reasoning = dict(type='reasoning', id='neutral-reasoning-%s'%turn,
-                         encrypted_content='canned-encrypted-%s'%turn,
-                         summary=[dict(type='summary_text', text='Canned neutral fixture.')])
-        self.transport.output = [reasoning, function('echo', {'value':'neutral-check'}, 1) if turn == 1 else done()]
+        self.transport.output = [function('echo', {'value':'neutral-check'}, 1) if turn == 1 else done()]
         return super().respond(history, spec, turn)
 
 

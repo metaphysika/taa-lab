@@ -64,7 +64,7 @@ class LiveDemoTests(unittest.TestCase):
         self.assertEqual(bodies, [bodies[0]]*3)
         body = json.loads(bodies[0])
         self.assertFalse({'temperature','reasoning','tool_choice','parallel_tool_calls'} & body.keys())
-        self.assertEqual(body['max_output_tokens'],4096)
+        self.assertEqual(body['max_completion_tokens'],4096)
 
     def test_same_refused_act_same_short_string_no_diagnostics(self):
         strings=[]
@@ -123,7 +123,7 @@ class LiveDemoTests(unittest.TestCase):
         r=episode(dict(program='T03',arm='taa',repeat=1),adapter,self.evidence)
         self.assertEqual((r['turns'],r['stop']),(12,'turn_limit'))
         requests=self.rows('request')
-        self.assertEqual([json.loads(r['body']['input'][-1]['content'])['step'] for r in requests],list(range(1,13)))
+        self.assertEqual([json.loads(r['body']['messages'][-1]['content'])['step'] for r in requests],list(range(1,13)))
         steps=self.rows('host_step')
         self.assertEqual(steps[2]['inputs']['events'][0]['type'],'record_correction')
         results=self.rows('visible_result')
@@ -185,9 +185,9 @@ class LiveDemoTests(unittest.TestCase):
         good=json.loads(native([done()]))
         bad=deepcopy(good);bad['model']='other';fixtures.append((bad,'model_identity'))
         bad=deepcopy(good);bad.pop('usage');fixtures.append((bad,'missing_usage'))
-        bad=deepcopy(good);bad['usage']['input_tokens_details']=None;fixtures.append((bad,'missing_usage'))
-        bad=deepcopy(good);bad['status']='incomplete';fixtures.append((bad,'unknown_output'))
-        bad=deepcopy(good);bad['output']=[{'type':'computer_call'}];fixtures.append((bad,'unknown_output'))
+        bad=deepcopy(good);bad['usage']['prompt_tokens_details']=None;fixtures.append((bad,'missing_usage'))
+        bad=deepcopy(good);bad['choices'][0]['finish_reason']=None;fixtures.append((bad,'unknown_output'))
+        bad=deepcopy(good);bad['choices'][0]['message']['tool_calls']=[{'type':'computer_call'}];fixtures.append((bad,'unknown_output'))
         for response,reason in fixtures:
             sent=[]
             a=Adapter(Budget(self.ledger,self.evidence),self.evidence,
@@ -256,9 +256,9 @@ class LiveDemoTests(unittest.TestCase):
 
     def test_budget_reserves_every_schema_and_history_byte(self):
         b=Budget(self.ledger,self.evidence)
-        small=dict(input=[dict(role='user',content='hello')],tools=manifest())
+        small=dict(messages=[dict(role='user',content='hello')],tools=manifest())
         r1,n1=b.reserve(small)
-        bigger=deepcopy(small);bigger['input'][0]['content']+='x'*5000
+        bigger=deepcopy(small);bigger['messages'][0]['content']+='x'*5000
         r2,n2=b.reserve(bigger)
         self.assertEqual(n2-n1,5000)
         self.assertEqual(r2-r1,D('0.000625'))
