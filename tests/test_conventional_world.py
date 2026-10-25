@@ -59,7 +59,7 @@ class SQLWorldTests(unittest.TestCase):
             rows[0]["payload"].update(template="refund_issued", claim="CL1", amount=120, cites="MISSING")
             return rows
         host.kernel.stage = wrong
-        answer = host.propose("A", "report", {"to": "K1"})
+        answer = host.propose("A", "report", {"to": "K1", "claim": "CL1"})
         self.assertEqual("REFUSE", answer["disposition"])
         self.assertEqual("effect_plan_invalid", answer["reason"])
         self.assertEqual({}, host.store.current("handles"))

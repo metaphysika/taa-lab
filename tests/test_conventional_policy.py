@@ -121,6 +121,8 @@ class FlatPolicyTests(unittest.TestCase):
         self.assertEqual("AU1", result["rule"])
 
     def test_acceptance_needs_standing_separately_from_grant(self):
+        # Q18: isolate standing on an existing primary object, not missing scope.
+        self.state["duties"]["D_resolve(CL1)"] = [{"kind": "resolve", "claim": "CL1", "owner": "B", "resolution": "unresolved", "offers": {}}]
         result = self.evaluate({"duty": "D_resolve(CL1)"}, tool="accept_duty")
         self.assertEqual("REFUSE", result["disposition"])
         self.assertEqual("DU4", result["rule"])
