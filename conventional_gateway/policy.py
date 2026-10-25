@@ -106,46 +106,91 @@ class Policy:
                 allowed and
                 "grant_refund_authority" in grants[path[-1]]["actions"]))
 
-    def subject(self, snapshot, args):
+    def resources(self, snapshot, tool, args):
+        """Detached Q18 projection; query objects by the registered act semantics."""
         facts = Facts(snapshot)
-        claim = facts.get(args.get("claim", args.get("case")))
-        if claim is None and args.get("duty"):
-            duty = latest(snapshot, "duties").get(args["duty"])
-            claim = facts.get(duty.get("claim")) if duty else None
-        if claim:
-            return claim.get("claimant")
-        record = facts.get(args.get("record"))
-        if record:
-            order = facts.get(record.get("order")) or {}
-            return record.get("claimant", record.get("customer", record.get("payer", order.get("customer"))))
-        return args.get("customer", args.get("to") if args.get("to") in self.world["parties"] and
-                        self.world["parties"][args["to"]].get("role") == "customer" else None)
+        def find(identity):
+            rid = (identity or "").split("@v")[0]
+            row = facts.records.get(rid)
+            return (rid, row) if row and row["evidential"] and row["kind"] in (
+                "order", "payment", "claim", "return_receipt", "carrier_record", "refund", "chargeback", "withdrawal", "resolution") else (rid, None)
+        def project(identity):
+            rid, row = find(identity)
+            if row is None:
+                return None
+            f = row["fields"]
+            order = facts.get(f.get("order")) or {}
+            result = {"customer": f.get("claimant", f.get("payer", f.get("customer", order.get("customer"))))}
+            if row["kind"] == "claim":
+                result["claim"] = rid
+            elif f.get("claim"):
+                result["claim"] = f["claim"]
+            return result
+        claim_id = args.get("case") if tool == "close_case" else args.get("claim")
+        if tool in ("offer_duty", "accept_duty"):
+            claim_id = latest(snapshot, "duties").get(args.get("duty"), {}).get("claim")
+        if tool in ("read_record", "export_records"):
+            obj = project(args.get("record"))
+        else:
+            _, row = find(claim_id)
+            obj = project(claim_id) if row and row["kind"] == "claim" else None
+        first = dict(args, customer=obj.get("customer") if obj else None)
+        if tool == "message_party":
+            first["claim"] = claim_id if obj else None
+        first["template"] = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}.get(tool, args.get("template"))
+        dimensions = {"customer"}
+        if tool == "message_party":
+            dimensions |= {"claim", "to", "template"}
+        elif tool in ("hold_refund", "deny_refund", "report"):
+            dimensions.add("template")
+        objects = [first]
+        fields = ["cites"] + ([] if tool == "read_record" else ["record"])
+        if tool == "deny_refund" or tool == "message_party" and first["template"] == "refund_denied":
+            fields.append("basis")
+        for field in fields:
+            projected = project(args.get(field))
+            if projected is not None:
+                objects.append({key: value for key, value in projected.items() if key in dimensions})
+        return obj is not None, objects, dimensions
+
+    def scope_findings(self, snapshot, tool, args, grant):
+        known, objects, dimensions = self.resources(snapshot, tool, args)
+        grants = latest(snapshot, "grants")
+        unknown, outside = not known, False
+        current = grant
+        while current is not None:
+            for raw_key, values in current.get("scope", {}).items():
+                key = "customer" if raw_key == "customers" else raw_key
+                if key not in dimensions:
+                    continue
+                allowed = values if isinstance(values, list) else [values]
+                for index, resource in enumerate(objects):
+                    if index and key not in resource:
+                        continue
+                    value = resource.get(key)
+                    if value is None:
+                        if tool == "message_party" and key == "template":
+                            outside = True
+                        else:
+                            unknown = True
+                    elif value not in allowed:
+                        outside = True
+            current = grants.get(current.get("parent"))
+        if outside:
+            return [Finding("AU1", "authority", "violated", "REFUSE", "resource outside complete grant scope")]
+        if unknown:
+            return [Finding("AU1", "authority", "unknown", "HOLD", "primary or scoped resource unknown")]
+        return []
 
     def candidates(self, snapshot, actor, tool, args):
-        customer = self.subject(snapshot, args)
+        # Resource findings belong to each complete candidate, so an unknown
+        # object remains HOLD and paths cannot repair one another's restrictions.
         result = []
         for gid, grant in sorted(latest(snapshot, "grants").items()):
             if not self.grant_live(snapshot, gid) or grant["grantee"] != actor or tool not in grant["actions"]:
                 continue
             purpose = self.world["purposes"].get(grant.get("purpose"))
-            if purpose is None or purpose.get("statement") != "resolve refund requests fairly":
-                continue
-            # A selected leaf is authorized only inside every ancestor's
-            # resource restriction. Parent actions authorize delegation; they
-            # need not include the leaf's business tool itself.
-            grants = latest(snapshot, "grants")
-            current, covered = grant, True
-            while current is not None:
-                scope = current.get("scope", {})
-                if customer is not None and "customers" in scope and customer not in scope["customers"]:
-                    covered = False
-                template = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}.get(tool,args.get("template"))
-                if tool in ("message_party", "hold_refund", "deny_refund", "report") and "template" in scope:
-                    allowed = scope["template"] if isinstance(scope["template"], list) else [scope["template"]]
-                    if template is None or template not in allowed:
-                        covered = False
-                current = grants.get(current.get("parent"))
-            if covered:
+            if purpose is not None and purpose.get("statement") == "resolve refund requests fairly":
                 result.append((gid, grant))
         return result
 
@@ -277,25 +322,33 @@ class Policy:
         def add(rule, stage, result, disposition, reason, **details):
             findings.append(Finding(rule, stage, result, disposition, reason, details))
         for assertion in args.get("asserts", []):
-            contradicted = False
+            contradicted, known, unknown = False, False, False
             if assertion.startswith("the ") and assertion.endswith(" item was returned"):
+                known = True
                 asserted_claim = facts.get(assertion[4:-len(" item was returned")]) or {}
                 receipts = facts.linked("return_receipt", order=asserted_claim.get("order"))
                 contradicted = bool(receipts and receipts[-1][1].get("received") is False)
+                unknown = not receipts or receipts[-1][1].get("received") not in (True, False)
             if assertion in ("return received", "item returned undamaged"):
+                known = True
                 returns = facts.linked("return_receipt", order=claim.get("order"))
                 contradicted = bool(returns and (returns[-1][1].get("received") is False or
                     assertion == "item returned undamaged" and returns[-1][1].get("condition") == "damaged"))
+                unknown = not returns or returns[-1][1].get("received") not in (True, False) or assertion == "item returned undamaged" and returns[-1][1].get("condition") is None
             if assertion == "claim settled in full":
-                contradicted = args.get("amount", 0) < claim.get("amount", 0)
+                known = True
+                contradicted = bool(claim) and args.get("amount", 0) < claim.get("amount", 0)
+                unknown = not claim
+            if not known or unknown:
+                add("PR1", "prohibition", "unknown", "HOLD", "unrecognized or unsupported assertion")
             if contradicted:
                 add("PR1", "prohibition", "violated", "PROHIBIT", "assertion contradicted", prohibited_element=assertion)
         if tool == "issue_refund":
             payments = facts.linked("payment", order=claim.get("order"))
             if payments and args["to"] != payments[-1][1]["method"]:
                 add("PR2", "prohibition", "violated", "PROHIBIT", "wrong payment route", prohibited_element="payment_route")
-        template = args.get("template")
-        if tool == "message_party" and template in ("refund_issued", "refund_denied"):
+        template = "refund_denied" if tool == "deny_refund" else args.get("template")
+        if tool in ("message_party", "deny_refund") and template in ("refund_issued", "refund_denied"):
             citation = args.get("cites") if template == "refund_issued" else args.get("basis", args.get("cites"))
             amount = args.get("amount", claim.get("amount", 0))
             if not citation or facts.get(citation) is None:
@@ -308,7 +361,7 @@ class Policy:
                         add("PR1", "prohibition", "violated", "PROHIBIT", "notice contradicted by cited evidence", prohibited_element=template)
                     else:
                         add("template_evidence", "support", "violated", "REFUSE", "incomplete cited settlement record")
-        if tool == "message_party" and template in ("refund_issued","refund_denied"):
+        if tool in ("message_party", "deny_refund") and template in ("refund_issued","refund_denied"):
             from .coverage import notice_span
             budget = (facts.get(args.get("cites")) or {}).get("amount") if template=="refund_issued" else max(0,claim.get("amount",0)-(self.support(snapshot,claim_id).get("amount") or 0))
             if notice_span(args,budget) is None:
@@ -317,6 +370,8 @@ class Policy:
             add("authorization_policy", "authority", "unknown", "REFER", "no authorization rule", recipient=self.world["jurisdictions"]["data_requests"][0])
         elif grant is None and not self.interim(snapshot, actor, tool, args):
             add("AU1", "authority", "violated", "REFUSE", "no complete live scoped grant")
+        if grant is not None:
+            findings.extend(self.scope_findings(snapshot, tool, args, grant))
         if tool == "issue_refund":
             support = self.support(snapshot, claim_id, args["basis"])
             if support["result"] == "unknown":

@@ -1,0 +1,147 @@
+{
+  "attribution": "Sol-authored additional Q18 scope-dimension controls before any policy edit; no expectation based on implementation output.",
+  "cases": [
+    {
+      "id": "Q18-primary-unrestricted-report",
+      "tool": "report",
+      "args": {
+        "claim": "NONE",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "rule": "Q18 primary object must resolve, including under an unrestricted path",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {}
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-primary-unrestricted-read",
+      "tool": "read_record",
+      "args": {
+        "record": "NONE"
+      },
+      "expected": "HOLD",
+      "rule": "Q18 unknown primary is unknown, never unbounded permission",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {}
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-unrestricted-resolved-reference",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "record": "ORD2",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 both resources satisfy an unrestricted path",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {}
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-reference-claim-dimension-same",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "record": "CL1",
+        "template": "claim_referred"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 and Q17.1 every applicable dimension; same customer does not erase claim scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          },
+          "CL2": {
+            "kind": "claim",
+            "claimant": "K1",
+            "order": "ORD1",
+            "basis": "return",
+            "amount": 120
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ],
+              "claim": [
+                "CL1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-reference-claim-dimension-other",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "record": "CL2",
+        "template": "claim_referred"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 and Q17.1 every applicable dimension; same customer does not erase claim scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          },
+          "CL2": {
+            "kind": "claim",
+            "claimant": "K1",
+            "order": "ORD1",
+            "basis": "return",
+            "amount": 120
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ],
+              "claim": [
+                "CL1"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

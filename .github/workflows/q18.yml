@@ -1,0 +1,31 @@
+name: Q18 offline policy regressions
+on: [push, pull_request]
+jobs:
+  q18:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-gateway.txt
+      - name: Ruling-derived cases and trust/invalidation controls without network
+        run: sudo unshare --net "$(command -v python)" -m unittest tests.test_gateway_q18 tests.test_q18_preservation_guard -v
+      - uses: actions/checkout@v4
+        with:
+          ref: a3e77d561e596c5456bb416cb7362dcca3114ae2
+          path: q18-before
+          persist-credentials: false
+      - name: Exact live cases expose each pre-change implementation defect
+        run: sudo unshare --net "$(command -v python)" -I scripts/check_gateway_q18.py --implementation-root q18-before --expect-baseline --report "$RUNNER_TEMP/q18-before.json"
+      - name: Insertion/recheck guard fails by assertion on all four pre-change paths
+        run: sudo unshare --net "$(command -v python)" -I scripts/check_gateway_q18_boundary_baseline.py --implementation-root q18-before --report "$RUNNER_TEMP/q18-boundary-before.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: q18-offline-regressions
+          path: |
+            ${{ runner.temp }}/q18-before.json
+            ${{ runner.temp }}/q18-boundary-before.json

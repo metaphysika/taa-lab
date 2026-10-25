@@ -126,7 +126,7 @@ def member(s, party, jurisdiction):
     return party == "company" and jurisdiction == "root" or party in s["world"]["jurisdictions"].get(jurisdiction, [])
 
 
-def discharge_path(s, gid, actor, tool, claim, template=None):
+def discharge_path(s, gid, actor, tool, claim, template=None, *, check_resources=True):
     """Independent complete-path relation; never combines grant fragments."""
     leaf = s["grants"].get(gid)
     if not leaf or leaf["grantee"] != actor or tool not in leaf["actions"] or not grant_live(s, gid):
@@ -140,10 +140,10 @@ def discharge_path(s, gid, actor, tool, claim, template=None):
         if g.get("purpose", "P1") != purpose:
             return None
         scope = g.get("scope", {})
-        if claim and "customers" in scope and claim["claimant"] not in scope["customers"]:
+        if check_resources and claim and "customers" in scope and claim["claimant"] not in scope["customers"]:
             return None
         effective_template = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}.get(tool, template)
-        if tool in ("message_party", "hold_refund", "deny_refund", "report") and "template" in scope and (effective_template is None or effective_template not in (scope["template"] if isinstance(scope["template"], list) else [scope["template"]])):
+        if check_resources and tool in ("message_party", "hold_refund", "deny_refund", "report") and "template" in scope and (effective_template is None or effective_template not in (scope["template"] if isinstance(scope["template"], list) else [scope["template"]])):
             return None
         if g["grantor"] == "company":
             if not member(s, "company", "root") or any(a != "grant_refund_authority" for a in g["actions"]):
@@ -179,17 +179,87 @@ def capacity(s, actor, duty):
     return False
 
 
-def authority(s, actor, tool, args):
-    claim_id = args.get("claim", args.get("case", s["duties"].get(args.get("duty"), {}).get("claim")))
-    claim = facts(s, claim_id)
+def resource_objects(s, tool, args):
+    """Independent Q18 finite relation over primary and referenced objects."""
+    def lookup(identity):
+        row = current(s, str(identity or "").split("@v")[0])
+        return row if row and row["evidential"] and row["kind"] in (
+            "order", "payment", "claim", "return_receipt", "carrier_record", "refund", "chargeback", "withdrawal", "resolution") else None
+    def customer(row):
+        if row is None:
+            return None
+        f = row["fields"]
+        return f.get("claimant", f.get("payer", f.get("customer", facts(s, f.get("order")).get("customer"))))
+    claim_id = args.get("case") if tool == "close_case" else args.get("claim")
+    if tool in ("offer_duty", "accept_duty"):
+        claim_id = s["duties"].get(args.get("duty"), {}).get("claim")
+    primary = lookup(args.get("record")) if tool in ("read_record", "export_records") else lookup(claim_id)
+    if tool not in ("read_record", "export_records") and primary and primary["kind"] != "claim":
+        primary = None
+    resources = dict(args, customer=customer(primary))
+    if tool == "message_party":
+        resources["claim"] = claim_id if primary else None
+    resources["template"] = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}.get(tool, args.get("template"))
+    objects = [resources]
+    fields = ["cites"] + ([] if tool == "read_record" else ["record"])
+    if tool == "deny_refund" or tool == "message_party" and args.get("template") == "refund_denied":
+        fields.append("basis")
+    for field in fields:
+        row = lookup(args.get(field))
+        if row is None:
+            continue
+        resource = {"customer": customer(row)}
+        if tool == "message_party":
+            if row["kind"] == "claim":
+                resource["claim"] = args[field].split("@v")[0]
+            elif row["fields"].get("claim"):
+                resource["claim"] = row["fields"]["claim"]
+        objects.append(resource)
+    dimensions = {"customer"}
+    if tool == "message_party":
+        dimensions.update(("claim", "to", "template"))
+    elif tool in ("hold_refund", "deny_refund", "report"):
+        dimensions.add("template")
+    return primary is not None, objects, dimensions
+
+
+def authority_assessment(s, actor, tool, args):
+    known, objects, dimensions = resource_objects(s, tool, args)
+    possibilities = []
     for gid in sorted(s["grants"]):
-        if discharge_path(s, gid, actor, tool, claim, args.get("template")):
-            return gid
+        chain = discharge_path(s, gid, actor, tool, None, check_resources=False)
+        if not chain:
+            continue
+        unknown, violated = not known, False
+        for grant in chain:
+            for raw_key, allowed in grant.get("scope", {}).items():
+                key = "customer" if raw_key == "customers" else raw_key
+                if key not in dimensions:
+                    continue
+                allowed = allowed if isinstance(allowed, list) else [allowed]
+                for index, obj in enumerate(objects):
+                    if index and key not in obj:
+                        continue
+                    value = obj.get(key)
+                    if value is None:
+                        if tool == "message_party" and key == "template":
+                            violated = True
+                        else:
+                            unknown = True
+                    elif value not in allowed:
+                        violated = True
+        status = "violated" if violated else "unknown" if unknown else "satisfied"
+        possibilities.append((gid, status))
     if tool == "message_party" and args.get("template") in ("claim_referred", "refund_held"):
         if any(d["owner"] == actor and d.get("ownership_interrupted") and any(standing(s, d, p) for p in transfer_offers(d)) and
                d["claim"] == args.get("claim") and d["resolution"] == "unresolved" for d in s["duties"].values()):
-            return "IR1"
-    return None
+            possibilities.append(("IR1", "satisfied"))
+    return max(possibilities, key=lambda p: ("violated", "unknown", "satisfied").index(p[1])) if possibilities else (None, "violated")
+
+
+def authority(s, actor, tool, args):
+    gid, status = authority_assessment(s, actor, tool, args)
+    return gid if status == "satisfied" else None
 
 
 def supporting(s, claim_id):
@@ -300,8 +370,14 @@ def constraints(s, actor, tool, args):
     contradicted = []
     for assertion in args.get("asserts", []):
         f = facts(s, "RET1")
+        recognized = assertion in ("return received", "the CL1 item was returned", "item returned undamaged", "claim settled in full")
+        unknown = not recognized or (assertion == "claim settled in full" and not c)
+        if assertion in ("return received", "the CL1 item was returned", "item returned undamaged"):
+            unknown = unknown or f.get("received") not in (True, False) or assertion == "item returned undamaged" and f.get("condition") is None
+        if unknown:
+            require("PR1", "unknown", "HOLD", reason="assertion not established by recognized evidence")
         if ((assertion in ("return received", "the CL1 item was returned") and f.get("received") is False) or
-                (assertion == "item returned undamaged" and f.get("condition") == "damaged") or
+                (assertion == "item returned undamaged" and (f.get("condition") == "damaged" or f.get("received") is False)) or
                 (assertion == "claim settled in full" and c and args.get("amount", 0) < c["amount"])):
             contradicted.append(assertion)
     if tool == "message_party" and args.get("template") == "refund_issued":
@@ -320,7 +396,7 @@ def constraints(s, actor, tool, args):
                 contradicted.append("refund_issued")
             elif f.get("settled") is not True:
                 require("templates", "violated", "REFUSE", reason="settlement not established")
-    if tool == "message_party" and args.get("template") == "refund_denied":
+    if tool == "deny_refund" or tool == "message_party" and args.get("template") == "refund_denied":
         citation = current(s, str(args.get("basis", "")).split("@v")[0])
         if citation and citation["evidential"] and c:
             f = citation["fields"]
@@ -335,11 +411,11 @@ def constraints(s, actor, tool, args):
         payments = [f for _, f in records(s, "payment") if f.get("order") == c["order"] and f.get("payer") == c["claimant"]]
         if payments and args.get("to") != payments[-1]["method"]:
             require("PR2", "violated", "PROHIBIT", prohibited_effects=["to:" + str(args.get("to"))], decided_at_stage="prohibitions")
-    gid = authority(s, actor, tool, args)
+    gid, authority_status = authority_assessment(s, actor, tool, args)
     if tool in s["world"]["tool_registry"]["no_authorization_rule"]:
         require("AU1", "unknown", "REFER", recipient=s["world"]["jurisdictions"]["data_requests"][0])
-    elif not gid:
-        require("AU1", "violated", "REFUSE", failed_stage="authority")
+    elif authority_status != "satisfied":
+        require("AU1", authority_status, "HOLD" if authority_status == "unknown" else "REFUSE", failed_stage="authority")
     if tool == "issue_refund":
         result, supported, rule, dependency = supporting(s, args.get("claim"))
         if result == "unknown":
@@ -360,15 +436,16 @@ def constraints(s, actor, tool, args):
             for rule_id, maximum in ((rule, supported if result == "satisfied" else None), ("DT1", cap), ("DT2", room)):
                 if maximum is not None and amount > maximum:
                     require(rule_id, "violated", "ALTERNATIVE" if bound > 0 else "REFUSE", suggested=alternative if bound > 0 else None)
-    if tool == "message_party":
-        template = args.get("template")
+    if tool in ("message_party", "deny_refund"):
+        template = "refund_denied" if tool == "deny_refund" else args.get("template")
         if template in ("refund_issued","refund_denied"):
             budget = facts(s,str(args.get("cites","")).split("@v")[0]).get("amount") if template=="refund_issued" else max(0,c.get("amount",0)-(supporting(s,args.get("claim"))[1] or 0))
             if span(args,budget) is None:
                 require("templates","violated","REFUSE",reason="malformed notice portion")
         if template not in s["world"]["message_templates"] or template == "free_prose":
             require("templates", "unknown", "REFER")
-        if template == "refund_denied" and not denial_basis(s, args):
+        denial_args = dict(args, to=c.get("claimant")) if tool == "deny_refund" else args
+        if template == "refund_denied" and not denial_basis(s, denial_args):
             require("templates", "violated", "REFUSE", reason="no bound denial evidence")
     if tool == "close_case":
         unresolved = [d["id"] for d in s["duties"].values() if d["claim"] == args.get("case") and d["resolution"] == "unresolved"]

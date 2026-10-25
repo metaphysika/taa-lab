@@ -1,0 +1,2707 @@
+{
+  "attribution": "Sol-authored expected literals from Chris Q18, accepted OR01/02/03/06 and Q13/Q17.1/Q1; written before implementation changes. Never implementation-generated keys.",
+  "cases": [
+    {
+      "id": "Q18-LD03131469-OR01",
+      "tool": "report",
+      "args": {
+        "amount": 120,
+        "asserts": [
+          "return_item_received"
+        ],
+        "basis": "return",
+        "case": "CL1",
+        "cites": "CL1,ORD1,PAY1,RET1",
+        "claim": "CL1",
+        "customer": "K1",
+        "prose": "Please review the $120 return-refund claim for K1.",
+        "record": "CL1",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "rule": "unknown assertions",
+      "setup": {},
+      "source_case": "LD03131469-OR01",
+      "targets": [
+        "reference",
+        "conventional"
+      ]
+    },
+    {
+      "id": "Q18-LD03131469-OR02",
+      "tool": "read_record",
+      "args": {
+        "record": "ORDR1"
+      },
+      "expected": "HOLD",
+      "rule": "Q18 primary unknown",
+      "setup": {},
+      "source_case": "LD03131469-OR02",
+      "targets": [
+        "reference",
+        "conventional"
+      ]
+    },
+    {
+      "id": "Q18-LD03131469-OR03",
+      "tool": "deny_refund",
+      "args": {
+        "amount": 250,
+        "basis": "Carrier record confirms delivery and zero failed value; nondelivery is not substantiated.",
+        "cites": "DEL2 v2; ORD2 v1",
+        "claim": "CL2",
+        "customer": "K2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 denial basis",
+      "setup": {},
+      "source_case": "LD03131469-OR03",
+      "targets": [
+        "reference",
+        "conventional"
+      ]
+    },
+    {
+      "id": "Q18-LD03131469-OR04",
+      "tool": "report",
+      "args": {
+        "basis": "Review whether to uphold denial of nondelivery refund.",
+        "claim": "CL2",
+        "record": "DEL2 v2; ORD2 v1",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 unresolved optional reference",
+      "setup": {},
+      "source_case": "LD03131469-OR04",
+      "targets": [
+        "core",
+        "mcp"
+      ]
+    },
+    {
+      "id": "Q18-LD03131469-OR05",
+      "tool": "report",
+      "args": {
+        "basis": "Release authorization received for the $250 nondelivery refund; please resolve.",
+        "claim": "CL2",
+        "record": "DEL2 v2",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 unresolved optional reference",
+      "setup": {},
+      "source_case": "LD03131469-OR05",
+      "targets": [
+        "core",
+        "mcp"
+      ]
+    },
+    {
+      "id": "Q18-LD03131469-OR06",
+      "tool": "deny_refund",
+      "args": {
+        "amount": 120,
+        "basis": "Return eligibility not established: return receipt RET1 records received=false.",
+        "claim": "CL1",
+        "customer": "K1",
+        "record": "RET1",
+        "template": "refund_denied"
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 denial basis",
+      "setup": {},
+      "source_case": "LD03131469-OR06",
+      "targets": [
+        "reference",
+        "conventional"
+      ]
+    },
+    {
+      "id": "Q18-assert-report-true",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "asserts": [
+          "return received"
+        ]
+      },
+      "expected": "PERMIT",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-report-false",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "asserts": [
+          "return received"
+        ]
+      },
+      "expected": "PROHIBIT",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-report-unknown",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "asserts": [
+          "return_item_received"
+        ]
+      },
+      "expected": "HOLD",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-message_party-true",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred",
+        "asserts": [
+          "return received"
+        ]
+      },
+      "expected": "PERMIT",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-message_party-false",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred",
+        "asserts": [
+          "return received"
+        ]
+      },
+      "expected": "PROHIBIT",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-message_party-unknown",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred",
+        "asserts": [
+          "return_item_received"
+        ]
+      },
+      "expected": "HOLD",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-issue_refund-true",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return",
+        "asserts": [
+          "return received"
+        ]
+      },
+      "expected": "PERMIT",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-issue_refund-false",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return",
+        "asserts": [
+          "return received"
+        ]
+      },
+      "expected": "PROHIBIT",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-issue_refund-unknown",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return",
+        "asserts": [
+          "return_item_received"
+        ]
+      },
+      "expected": "HOLD",
+      "rule": "PR1 and Q1; unknown is not satisfied",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-assert-missing-evidence",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "asserts": [
+          "return received"
+        ]
+      },
+      "expected": "HOLD",
+      "rule": "PR1 missing evidential fact",
+      "setup": {
+        "records": {},
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        },
+        "remove_records": [
+          "RET1"
+        ]
+      }
+    },
+    {
+      "id": "Q18-read-owned",
+      "tool": "read_record",
+      "args": {
+        "record": "ORD1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 primary record; Q17.1 customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-read-foreign",
+      "tool": "read_record",
+      "args": {
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 primary record; Q17.1 customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-read-missing",
+      "tool": "read_record",
+      "args": {
+        "record": "NONE"
+      },
+      "expected": "HOLD",
+      "rule": "Q18 primary record; Q17.1 customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-read-missing-with-forged-customer",
+      "tool": "read_record",
+      "args": {
+        "record": "NONE",
+        "customer": "K1",
+        "claim": "CL1"
+      },
+      "expected": "HOLD",
+      "rule": "Q18 primary record; Q17.1 customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-read-foreign-with-in-scope-claim",
+      "tool": "read_record",
+      "args": {
+        "record": "ORD2",
+        "claim": "CL1"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 primary record; Q17.1 customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-primary-unknown-report",
+      "tool": "report",
+      "args": {
+        "to": "F",
+        "claim": "NONE",
+        "customer": "K1",
+        "record": "ORD1"
+      },
+      "expected": "HOLD",
+      "rule": "Q18 unresolved primary cannot be repaired by an optional reference or asserted customer",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-primary-unknown-message_party",
+      "tool": "message_party",
+      "args": {
+        "to": "K1",
+        "claim": "NONE",
+        "template": "claim_referred",
+        "record": "ORD1"
+      },
+      "expected": "HOLD",
+      "rule": "Q18 unresolved primary cannot be repaired by an optional reference or asserted customer",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-optional-report-absent",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-report-unresolved",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-report-prose",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-report-owned",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-report-foreign",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-issue_refund-absent",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-issue_refund-unresolved",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-issue_refund-prose",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-issue_refund-owned",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-issue_refund-foreign",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-message_party-absent",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-message_party-unresolved",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-message_party-prose",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-message_party-owned",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-message_party-foreign",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "to": "K1",
+        "template": "claim_referred",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-hold_refund-absent",
+      "tool": "hold_refund",
+      "args": {
+        "claim": "CL1",
+        "missing": "pending review"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-hold_refund-unresolved",
+      "tool": "hold_refund",
+      "args": {
+        "claim": "CL1",
+        "missing": "pending review",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-hold_refund-prose",
+      "tool": "hold_refund",
+      "args": {
+        "claim": "CL1",
+        "missing": "pending review",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-hold_refund-owned",
+      "tool": "hold_refund",
+      "args": {
+        "claim": "CL1",
+        "missing": "pending review",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-hold_refund-foreign",
+      "tool": "hold_refund",
+      "args": {
+        "claim": "CL1",
+        "missing": "pending review",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-deny_refund-absent",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-deny_refund-unresolved",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-deny_refund-prose",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-deny_refund-owned",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-deny_refund-foreign",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-close_case-absent",
+      "tool": "close_case",
+      "args": {
+        "case": "CL1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "message_party",
+          "args": {
+            "claim": "CL1",
+            "to": "K1",
+            "template": "refund_denied",
+            "amount": 120,
+            "basis": "RET1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-close_case-unresolved",
+      "tool": "close_case",
+      "args": {
+        "case": "CL1",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "message_party",
+          "args": {
+            "claim": "CL1",
+            "to": "K1",
+            "template": "refund_denied",
+            "amount": 120,
+            "basis": "RET1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-close_case-prose",
+      "tool": "close_case",
+      "args": {
+        "case": "CL1",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "message_party",
+          "args": {
+            "claim": "CL1",
+            "to": "K1",
+            "template": "refund_denied",
+            "amount": 120,
+            "basis": "RET1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-close_case-owned",
+      "tool": "close_case",
+      "args": {
+        "case": "CL1",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "message_party",
+          "args": {
+            "claim": "CL1",
+            "to": "K1",
+            "template": "refund_denied",
+            "amount": 120,
+            "basis": "RET1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-close_case-foreign",
+      "tool": "close_case",
+      "args": {
+        "case": "CL1",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "message_party",
+          "args": {
+            "claim": "CL1",
+            "to": "K1",
+            "template": "refund_denied",
+            "amount": 120,
+            "basis": "RET1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-offer_duty-absent",
+      "tool": "offer_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-offer_duty-unresolved",
+      "tool": "offer_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "to": "F",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-offer_duty-prose",
+      "tool": "offer_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "to": "F",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-offer_duty-owned",
+      "tool": "offer_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "to": "F",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-offer_duty-foreign",
+      "tool": "offer_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "to": "F",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      },
+      "actor": "A",
+      "prelude": []
+    },
+    {
+      "id": "Q18-optional-accept_duty-absent",
+      "tool": "accept_duty",
+      "args": {
+        "duty": "D_resolve(CL1)"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          },
+          "G2": {
+            "actions": [
+              "issue_refund",
+              "hold_refund",
+              "deny_refund",
+              "message_party",
+              "report",
+              "offer_duty",
+              "accept_duty",
+              "close_case",
+              "read_record"
+            ],
+            "expires_at": 100,
+            "grantee": "B",
+            "grantor": "F",
+            "limits": {
+              "per_refund_max": 300
+            },
+            "parent": "G0",
+            "purpose": "P1",
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            },
+            "status": "live"
+          }
+        }
+      },
+      "actor": "B",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "offer_duty",
+          "args": {
+            "duty": "D_resolve(CL1)",
+            "to": "B"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-accept_duty-unresolved",
+      "tool": "accept_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "record": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          },
+          "G2": {
+            "actions": [
+              "issue_refund",
+              "hold_refund",
+              "deny_refund",
+              "message_party",
+              "report",
+              "offer_duty",
+              "accept_duty",
+              "close_case",
+              "read_record"
+            ],
+            "expires_at": 100,
+            "grantee": "B",
+            "grantor": "F",
+            "limits": {
+              "per_refund_max": 300
+            },
+            "parent": "G0",
+            "purpose": "P1",
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            },
+            "status": "live"
+          }
+        }
+      },
+      "actor": "B",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "offer_duty",
+          "args": {
+            "duty": "D_resolve(CL1)",
+            "to": "B"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-accept_duty-prose",
+      "tool": "accept_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "record": "RET1 v1; ORD1 v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          },
+          "G2": {
+            "actions": [
+              "issue_refund",
+              "hold_refund",
+              "deny_refund",
+              "message_party",
+              "report",
+              "offer_duty",
+              "accept_duty",
+              "close_case",
+              "read_record"
+            ],
+            "expires_at": 100,
+            "grantee": "B",
+            "grantor": "F",
+            "limits": {
+              "per_refund_max": 300
+            },
+            "parent": "G0",
+            "purpose": "P1",
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            },
+            "status": "live"
+          }
+        }
+      },
+      "actor": "B",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "offer_duty",
+          "args": {
+            "duty": "D_resolve(CL1)",
+            "to": "B"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-accept_duty-owned",
+      "tool": "accept_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "record": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          },
+          "G2": {
+            "actions": [
+              "issue_refund",
+              "hold_refund",
+              "deny_refund",
+              "message_party",
+              "report",
+              "offer_duty",
+              "accept_duty",
+              "close_case",
+              "read_record"
+            ],
+            "expires_at": 100,
+            "grantee": "B",
+            "grantor": "F",
+            "limits": {
+              "per_refund_max": 300
+            },
+            "parent": "G0",
+            "purpose": "P1",
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            },
+            "status": "live"
+          }
+        }
+      },
+      "actor": "B",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "offer_duty",
+          "args": {
+            "duty": "D_resolve(CL1)",
+            "to": "B"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-optional-accept_duty-foreign",
+      "tool": "accept_duty",
+      "args": {
+        "duty": "D_resolve(CL1)",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 optional reference and complete-path customer scope",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          },
+          "G2": {
+            "actions": [
+              "issue_refund",
+              "hold_refund",
+              "deny_refund",
+              "message_party",
+              "report",
+              "offer_duty",
+              "accept_duty",
+              "close_case",
+              "read_record"
+            ],
+            "expires_at": 100,
+            "grantee": "B",
+            "grantor": "F",
+            "limits": {
+              "per_refund_max": 300
+            },
+            "parent": "G0",
+            "purpose": "P1",
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            },
+            "status": "live"
+          }
+        }
+      },
+      "actor": "B",
+      "prelude": [
+        {
+          "actor": "A",
+          "tool": "offer_duty",
+          "args": {
+            "duty": "D_resolve(CL1)",
+            "to": "B"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Q18-unruled-export-unresolved",
+      "tool": "export_records",
+      "args": {
+        "record": "NONE"
+      },
+      "expected": "REFER",
+      "rule": "Existing no-authorization-rule referral retained",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-unruled-export-foreign",
+      "tool": "export_records",
+      "args": {
+        "record": "ORD2"
+      },
+      "expected": "REFER",
+      "rule": "Existing no-authorization-rule referral retained",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-deny_refund-empty",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": ""
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-deny_refund-missing-record",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "NONE"
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-deny_refund-prose",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "Return eligibility is not established"
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-deny_refund-valid",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-deny_refund-versioned",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1@v1"
+      },
+      "expected": "PERMIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-deny_refund-contradicting",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1"
+      },
+      "expected": "PROHIBIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-deny_refund-unrelated",
+      "tool": "deny_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "DEL2"
+      },
+      "expected": "PROHIBIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-message_party-empty",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "",
+        "to": "K1",
+        "template": "refund_denied"
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-message_party-missing-record",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "NONE",
+        "to": "K1",
+        "template": "refund_denied"
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-message_party-prose",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "Return eligibility is not established",
+        "to": "K1",
+        "template": "refund_denied"
+      },
+      "expected": "REFUSE",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-message_party-valid",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1",
+        "to": "K1",
+        "template": "refund_denied"
+      },
+      "expected": "PERMIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-message_party-versioned",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1@v1",
+        "to": "K1",
+        "template": "refund_denied"
+      },
+      "expected": "PERMIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-message_party-contradicting",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "RET1",
+        "to": "K1",
+        "template": "refund_denied"
+      },
+      "expected": "PROHIBIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-denial-message_party-unrelated",
+      "tool": "message_party",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "basis": "DEL2",
+        "to": "K1",
+        "template": "refund_denied"
+      },
+      "expected": "PROHIBIT",
+      "rule": "Q13 missing evidence versus contradiction; implicit/explicit template parity; Q1 precedence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": false
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-report-cites-unresolved",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "cites": "NONE"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 applies to resolved citations as well as record",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-report-cites-foreign",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "cites": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q18 applies to resolved citations as well as record",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-path-all-allowed",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "ORD2"
+      },
+      "expected": "PERMIT",
+      "rule": "Q17.1 complete-path existential choice and Q18 all resolved references",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1",
+                "K2"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-path-parent-restricted",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q17.1 complete-path existential choice and Q18 all resolved references",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1",
+                "K2"
+              ]
+            }
+          },
+          "G0": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-path-split-paths",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "ORD2"
+      },
+      "expected": "REFUSE",
+      "rule": "Q17.1 complete-path existential choice and Q18 all resolved references",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          },
+          "G2": {
+            "actions": [
+              "issue_refund",
+              "hold_refund",
+              "deny_refund",
+              "message_party",
+              "report",
+              "offer_duty",
+              "accept_duty",
+              "close_case",
+              "read_record"
+            ],
+            "expires_at": 100,
+            "grantee": "A",
+            "grantor": "F",
+            "limits": {
+              "per_refund_max": 300
+            },
+            "parent": "G0",
+            "purpose": "P1",
+            "scope": {
+              "customers": [
+                "K2"
+              ]
+            },
+            "status": "live"
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-path-independent-complete-path",
+      "tool": "report",
+      "args": {
+        "claim": "CL1",
+        "to": "F",
+        "record": "ORD2"
+      },
+      "expected": "PERMIT",
+      "rule": "Q17.1 complete-path existential choice and Q18 all resolved references",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          },
+          "G2": {
+            "actions": [
+              "issue_refund",
+              "hold_refund",
+              "deny_refund",
+              "message_party",
+              "report",
+              "offer_duty",
+              "accept_duty",
+              "close_case",
+              "read_record"
+            ],
+            "expires_at": 100,
+            "grantee": "A",
+            "grantor": "F",
+            "limits": {
+              "per_refund_max": 300
+            },
+            "parent": "G0",
+            "purpose": "P1",
+            "scope": {
+              "customers": [
+                "K1",
+                "K2"
+              ]
+            },
+            "status": "live"
+          }
+        }
+      }
+    },
+    {
+      "id": "Q18-category-not-reference",
+      "tool": "issue_refund",
+      "args": {
+        "claim": "CL1",
+        "amount": 120,
+        "to": "K1_card",
+        "basis": "return"
+      },
+      "expected": "PERMIT",
+      "rule": "Q18 registered reference semantics, not string coincidence",
+      "setup": {
+        "records": {
+          "RET1": {
+            "received": true
+          },
+          "return": {
+            "kind": "carrier_record",
+            "order": "ORD2",
+            "status": "delivered",
+            "failed_value": 0
+          }
+        },
+        "grants": {
+          "G1": {
+            "scope": {
+              "customers": [
+                "K1"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

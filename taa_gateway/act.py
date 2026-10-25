@@ -21,6 +21,7 @@ class Tool:
     stage: object = None
     scope_absent_is_violation: tuple = ()
     scope_dimensions: object = None
+    scope_references: object = None
 
 
 class ToolRegistry:
@@ -30,6 +31,7 @@ class ToolRegistry:
             if (not isinstance(tool.name, str) or not tool.name or tool.name in self.__tools or
                     not callable(tool.describe) or (tool.scope is not None and not callable(tool.scope)) or
                     (tool.stage is not None and not callable(tool.stage)) or
+                    (tool.scope_references is not None and not callable(tool.scope_references)) or
                     (tool.authorization_rule is not None and
                      (not isinstance(tool.authorization_rule, str) or not tool.authorization_rule))):
                 raise ValueError("invalid or duplicate registered tool")
@@ -78,6 +80,19 @@ class ToolRegistry:
         resources = (tool.scope(copy_json(arguments), view) if tool.scope else copy_json(arguments))
         if type(resources) is not dict:
             raise ValueError("trusted resource projection must be an object")
+        # Only trusted registration can add referenced resource objects. A
+        # submitted field never becomes scope context by using a reserved name.
+        resources.pop("__scope_references", None)
+        if tool.scope is None:
+            resources.pop("__primary_unknown", None)
+        if tool.scope_references is not None:
+            references = tool.scope_references(copy_json(arguments), view)
+            if type(references) is not list or any(type(r) is not dict for r in references):
+                raise ValueError("trusted referenced resources must be objects")
+            if any(not set(r) <= set(tool.scope_dimensions) for r in references):
+                raise ValueError("referenced resource has an unregistered dimension")
+            if references:
+                resources["__scope_references"] = copy_json(references)
         # Dimensions come from trusted registration, never a submitted key set.
         for key in tool.scope_dimensions:
             resources.setdefault(key, None)

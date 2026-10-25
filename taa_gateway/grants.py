@@ -40,6 +40,8 @@ class GrantPolicy:
                 raise ValueError("roster record identity mismatch")
             roster[rid] = party
         reasons, unknown, chain = [], [], []
+        if resources.get("__primary_unknown"):
+            unknown.append("primary object could not be resolved")
         current = grant
         seen = set()
         while current is not None:
@@ -60,14 +62,21 @@ class GrantPolicy:
                 dimensions = tuple(tool.arguments_schema.get("properties", {})) if tool.scope_dimensions is None else tool.scope_dimensions
                 if key not in dimensions:
                     continue  # Q17.1: dimensions are fixed by registration, not call keys.
-                if resources.get(key) is None:
-                    if key in tool.scope_absent_is_violation:
-                        reasons.append("absent scope value: " + key)
-                    else:
-                        unknown.append("missing scope resource: " + key)
-                elif not any(canonical(resources[key]) == canonical(value)
-                             for value in (allowed if type(allowed) is list else [allowed])):
-                    reasons.append("outside scope: " + key)
+                # A complete path must cover the primary object AND every
+                # resolved optional reference. An extra object cannot repair an
+                # unknown primary, nor can another path supply a missing part.
+                objects = [resources] + resources.get("__scope_references", [])
+                for resource in objects:
+                    if resource is not resources and key not in resource:
+                        continue  # This dimension does not belong to that object.
+                    if resource.get(key) is None:
+                        if key in tool.scope_absent_is_violation:
+                            reasons.append("absent scope value: " + key)
+                        else:
+                            unknown.append("missing scope resource: " + key)
+                    elif not any(canonical(resource[key]) == canonical(value)
+                                 for value in (allowed if type(allowed) is list else [allowed])):
+                        reasons.append("outside scope: " + key)
             for condition in current["live_conditions"]:
                 if set(condition) != {"record_id", "kind", "field", "equals"}:
                     raise ValueError("unsupported live-condition form")

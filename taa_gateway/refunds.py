@@ -62,7 +62,9 @@ def notice_allocation(view, value, claim):
 
 
 def assertions(ctx, view):
-    args = ctx["arguments"]
+    args = dict(ctx["arguments"])
+    if ctx["tool"] == "deny_refund":
+        args["template"] = "refund_denied"
     if args.get("template") == "refund_issued" and args.get("cites"):
         claim, order = claim_context(args, view)
         cited = next((row for kind in ("refund", "chargeback")
@@ -239,29 +241,76 @@ def native_scope(value):
     return result
 
 
+def referenced_record(view, identity):
+    if not identity:
+        return None, None
+    for kind in DATA_KINDS:
+        row = record(view, identity, kind)
+        if row is not None:
+            return kind, row
+    return None, None
+
+
+def record_customer(view, row):
+    if row is None:
+        return None
+    customer = row.get("claimant", row.get("payer", row.get("customer")))
+    if customer is None and row.get("order"):
+        order = record(view, row["order"], "order")
+        customer = order.get("customer") if order else None
+    return customer
+
+
 def scope(args, view, *, tool_name=None):
-    claim_id = args.get("claim", args.get("case"))
-    if "duty" in args:
+    # Q18: the registered act's primary object is authoritative. Incidental
+    # references never replace it, including when the primary is unknown.
+    claim_id = args.get("case") if tool_name == "close_case" else args.get("claim")
+    if tool_name in ("offer_duty", "accept_duty"):
         duty = view.read(args["duty"], "duty")
         claim_id = duty["case_id"] if duty else None
-    claim = record(view, claim_id, "claim") if claim_id is not None else None
-    customer = claim["claimant"] if claim else args.get("customer")
-    if "record" in args:
-        rows = [record(view, args["record"], kind) for kind in DATA_KINDS]
-        row = next((row for row in rows if row is not None), {})
-        customer = row.get("claimant", row.get("payer", row.get("customer")))
-        if customer is None and "order" in row:
-            order = record(view, row["order"], "order")
-            customer = order.get("customer") if order else None
+    claim = record(view, claim_id, "claim") if claim_id else None
+    if tool_name in ("read_record", "export_records"):
+        _, primary = referenced_record(view, args.get("record"))
+        customer = record_customer(view, primary)
+    else:
+        primary = claim
+        customer = claim["claimant"] if claim else None
     resources = dict(args, customer=customer)
+    if tool_name == "message_party":
+        resources["claim"] = claim_id if claim else None
+    if primary is None:
+        resources["__primary_unknown"] = True
     implicit_templates = {"hold_refund": "refund_held", "deny_refund": "refund_denied", "report": "agent_report"}
     if tool_name in implicit_templates:
         resources["template"] = implicit_templates[tool_name]
     elif tool_name == "message_party":
-        resources["template"] = args.get("template")  # None is known free prose, not unknown evidence.
+        resources["template"] = args.get("template")
     else:
         resources.pop("template", None)
     return resources
+
+
+def scope_references(args, view, *, tool_name):
+    # These fields are references by registered semantics. issue_refund.basis
+    # is a category and report.basis is prose, so neither is dereferenced.
+    fields = ["cites"]
+    if tool_name != "read_record":
+        fields.append("record")
+    if tool_name == "deny_refund" or tool_name == "message_party" and args.get("template") == "refund_denied":
+        fields.append("basis")
+    references = []
+    for field in fields:
+        kind, row = referenced_record(view, args.get(field))
+        if row is None:
+            continue  # Q18.2: missing optional references add no resource.
+        resource = {"customer": record_customer(view, row)}
+        if tool_name == "message_party":
+            if kind == "claim":
+                resource["claim"] = args[field].split("@v")[0]
+            elif row.get("claim"):
+                resource["claim"] = row["claim"]
+        references.append(resource)
+    return references
 
 
 def ledger_condition(ctx, view, capacity):
@@ -336,6 +385,7 @@ def tool_definitions(registered):
         tools.append(Tool(name, {"type": "object", "properties": properties, "required": required.get(name, []),
                                  "additionalProperties": False}, describe(name), reads=DATA_KINDS + ("duty",),
                           purposes=("purpose:P1",), scope=lambda args, view, name=name: scope(args, view, tool_name=name),
+                          scope_references=lambda args, view, name=name: scope_references(args, view, tool_name=name),
                           scope_absent_is_violation=("template",) if name == "message_party" else (),
                           scope_dimensions=("customer", "claim", "to", "template") if name == "message_party" else (("customer", "template") if name in ("hold_refund", "deny_refund", "report") else ("customer",)), amount_argument="amount" if name == "issue_refund" else None,
                           authorization_rule=None if name == "export_records" else "AU1",
@@ -344,7 +394,7 @@ def tool_definitions(registered):
 
 
 def rule_definitions(capacity):
-    return [Rule("PR1", 1, "prohibition", DATA_KINDS + ("duty",), assertions, ("issue_refund", "report", "message_party")),
+    return [Rule("PR1", 1, "prohibition", DATA_KINDS + ("duty",), assertions, ("issue_refund", "report", "message_party", "deny_refund")),
             Rule("PR2", 1, "prohibition", DATA_KINDS, payment_route, ("issue_refund",)),
             Rule("SU1", 1, "support", DATA_KINDS, support_rule("return"), ("issue_refund",)),
             Rule("SU2", 1, "support", DATA_KINDS, support_rule("nondelivery"), ("issue_refund",)),
