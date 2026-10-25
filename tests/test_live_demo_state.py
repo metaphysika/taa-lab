@@ -158,3 +158,45 @@ class DurableStateTests(unittest.TestCase):
         with patch('live_demo.config.ROOT',self.root/'checkout-b'):
             with self.assertRaisesRegex(Stop,'run_already_used'):
                 state.LiveState().claim_run('a'*40,self.root/'run-b')
+
+    def test_launched_run_claims_before_request_and_refuses_repeat_across_checkouts(self):
+        from live_demo.standin import native, done
+        marker = self.durable/'run.once'
+        requests = []
+        def respond(body):
+            self.assertTrue(marker.is_file())
+            self.assertEqual(json.loads(marker.read_bytes())['commit'], 'a'*40)
+            requests.append(body)
+            return native([done()])
+        spec = dict(program='T02', arm='floor', repeat=1)
+        for index, folder in enumerate(('checkout-a', 'checkout-a', 'checkout-b')):
+            checkout = self.root/folder
+            checkout.mkdir(exist_ok=True)
+            subprocess.run(['git', 'init', '-q', str(checkout)], check=True)
+            output = self.root/('launch-%d'%index)
+            with patch('live_demo.config.ROOT', checkout), patch('live_demo.config.verify', return_value={}), \
+                    patch('live_demo.config.schedule', return_value=[spec]), \
+                    patch('live_demo.run.authorized'), patch('live_demo.adapter.authorized'), \
+                    patch('live_demo.adapter.http', side_effect=respond) as send:
+                if index == 0:
+                    result = run(output, launch=True, approved_commit='a'*40,
+                                 approval={'model_returned': config.MODEL})
+                    self.assertEqual(result['stop'], 'complete')
+                    self.assertEqual(result['totals']['attempts'], 1)
+                    self.assertEqual(send.call_count, 1)
+                    original = marker.read_bytes()
+                else:
+                    with self.assertRaisesRegex(Stop, '^run_already_used$'):
+                        run(output, launch=True, approved_commit='a'*40,
+                            approval={'model_returned': config.MODEL})
+                    send.assert_not_called()
+                    self.assertFalse(output.exists())
+                    self.assertEqual(marker.read_bytes(), original)
+        self.assertEqual(len(requests), 1)
+
+    def test_valid_state_inside_git_working_tree_is_refused(self):
+        # Prove all other state checks pass before adding only a Git boundary.
+        state.LiveState()
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
+        with self.assertRaisesRegex(Stop, '^durable_state_missing_or_invalid$'):
+            state.LiveState()

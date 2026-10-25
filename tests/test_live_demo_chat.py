@@ -90,3 +90,26 @@ class ChatWireTests(unittest.TestCase):
         with patch.dict(os.environ,{'TAA_OPENAI_API_KEY':'OFFLINE_FAKE_KEY'}),patch('urllib.request.urlopen',side_effect=opener):
             self.assertEqual(http({'messages':[]}),raw)
         self.assertEqual(len(captured),1)
+
+    def test_tool_calls_finish_without_calls_stops_whole_run(self):
+        from live_demo.run import run
+        reply = json.loads(native([done()]))
+        reply['choices'][0]['finish_reason'] = 'tool_calls'
+        requests = []
+        def adapter(budget, evidence, **kwargs):
+            return Adapter(budget, evidence,
+                           transport=lambda body: (requests.append(body) or encoded(reply)))
+        schedule = [dict(program='T02', arm='floor', repeat=1),
+                    dict(program='T02', arm='taa', repeat=1)]
+        with patch('live_demo.config.verify', return_value={}), \
+                patch('live_demo.run.StandIn', side_effect=adapter), \
+                patch('live_demo.config.schedule', return_value=schedule), \
+                patch('live_demo.adapter.authorized'):
+            result = run(self.root/'empty-tool-calls')
+        self.assertEqual(result['stop'], 'unknown_output')
+        self.assertEqual(len(result['episodes']), 1)
+        self.assertEqual(result['episodes'][0]['stop'], 'unknown_output')
+        self.assertNotEqual(result['episodes'][0]['stop'], 'model_done')
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(result['totals']['attempts'], 1)
+        self.assertEqual(Decimal(result['totals']['dollars']), Decimal('0.000025'))
