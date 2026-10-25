@@ -171,7 +171,7 @@ class LiveDemoReviewTests(unittest.TestCase):
         with patch('subprocess.check_output',side_effect=[head+'\n','']),patch('live_demo.config.verify'):
             with self.assertRaisesRegex(Stop,'launch_not_approved'):api.authorized(True,head,receipt)
         with patch('subprocess.check_output',side_effect=[head+'\n','']),patch('live_demo.config.verify'):
-            api.authorized(True,head,receipt,allow_model_discovery=True)
+            api.authorized(True,head,dict(receipt,check_attempt=3),allow_model_discovery=True)
 
     def test_neutral_and_run_share_step_spend_and_pending_write_blocks_both(self):
         step = self.root/'step.txt'
@@ -191,29 +191,34 @@ class LiveDemoReviewTests(unittest.TestCase):
         fake_root = self.root/'repo'
         ledgers = fake_root/'results/formation-spending-v021';ledgers.mkdir(parents=True)
         (ledgers/'openai.json').write_bytes(self.ledger.read_bytes())
+        from tests.test_live_demo_state import create_state_fixture
+        durable=create_state_fixture(self.root/'durable',ledgers/'openai.json')
         def response(body):
             output = [function('echo',{'value':'neutral-check'})] if not any(
                 x.get('type') == 'function_call_output' for x in body['input']) else [done()]
             return native(output)
-        with patch('live_demo.config.ROOT',fake_root),patch('live_demo.config.verify',return_value={}),\
+        with patch('live_demo.state.STATE_ROOT',durable),patch('live_demo.config.ROOT',fake_root),patch('live_demo.config.verify',return_value={}),\
              patch('live_demo.adapter.authorized'),patch('live_demo.check.authorized'),\
              patch('live_demo.adapter.http',side_effect=response):
             result = check.run(self.root/'paid-fixture',launch=True,approved_commit='a'*40,
-                               approval={'model_returned':None})
+                               approval={'model_returned':None,'check_attempt':3})
             self.assertEqual(result['stop'],'complete')
-            self.assertTrue((fake_root/'results/live-demo-check-v01.once').exists())
-            self.assertFalse((fake_root/'results/live-demo-v01.once').exists())
-            self.assertTrue((fake_root/'results/live-demo-v01-budget.txt').exists())
-            with self.assertRaises(FileExistsError):
-                check.run(self.root/'other',launch=True,approved_commit='a'*40,approval={'model_returned':None})
+            self.assertTrue((durable/'check-attempt-000003.once').exists())
+            self.assertFalse((durable/'run.once').exists())
+            self.assertTrue((durable/'step-budget.txt').exists())
+            with self.assertRaisesRegex(Stop,'check_attempt_used'):
+                check.run(self.root/'other',launch=True,approved_commit='a'*40,approval={'model_returned':None,'check_attempt':3})
         self.assertFalse((ledgers/'run.lock').exists())
 
     def test_existing_provider_lock_stops_neutral_before_request(self):
         fake_root = self.root/'repo';ledgers=fake_root/'results/formation-spending-v021';ledgers.mkdir(parents=True)
         (ledgers/'run.lock').write_text('other-run')
-        with patch('live_demo.config.ROOT',fake_root),patch('live_demo.config.verify',return_value={}),\
+        (ledgers/'openai.json').write_bytes(self.ledger.read_bytes())
+        from tests.test_live_demo_state import create_state_fixture
+        durable=create_state_fixture(self.root/'durable',ledgers/'openai.json')
+        with patch('live_demo.state.STATE_ROOT',durable),patch('live_demo.config.ROOT',fake_root),patch('live_demo.config.verify',return_value={}),\
              patch('live_demo.check.authorized'),patch('live_demo.adapter.http') as send:
-            r=check.run(self.root/'blocked',launch=True,approved_commit='a'*40,approval={'model_returned':None})
+            r=check.run(self.root/'blocked',launch=True,approved_commit='a'*40,approval={'model_returned':None,'check_attempt':3})
             self.assertEqual(r['stop'],'shared_lock_exists');send.assert_not_called()
         self.assertEqual((ledgers/'run.lock').read_text(),'other-run')
 
@@ -297,10 +302,11 @@ class LiveDemoReviewTests(unittest.TestCase):
         self.assertEqual(r['metrics']['read_record_calls'],dict(attempted=3,completed=1,refused=2))
         self.assertEqual(r['metrics']['reference_policy']['actual_committed_acts'],0)
 
-    def test_tracked_step_accounting_can_change_but_tracked_source_cannot(self):
+    def test_provider_accounting_can_change_but_tracked_source_cannot(self):
         import subprocess
         repo=self.root/'git-repo';repo.mkdir();(repo/'results').mkdir()
-        budget=repo/'results/live-demo-v01-budget.txt';budget.write_text('0')
+        (repo/'results/formation-spending-v021').mkdir()
+        budget=repo/'results/formation-spending-v021/openai.json';budget.write_text('0')
         source=repo/'source.py';source.write_text('original\n')
         subprocess.run(['git','init','-q',str(repo)],check=True)
         subprocess.run(['git','-C',str(repo),'add','.'],check=True)

@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from live_demo import config
+from live_demo.state import LiveState
 from live_demo.adapter import Adapter, Budget, Stop, TransportFailure, authorized
 from live_demo.driver import episode
 from live_demo.evidence import Evidence, encoded
@@ -15,18 +16,15 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
     config.verify()
     if launch:
         authorized(launch, approved_commit, approval)
-        # Global, durable once claim; a new output directory cannot restart it.
-        marker = config.ROOT/'results/live-demo-v01.once'
-        with marker.open('xb') as stream:
-            stream.write(encoded(dict(commit=approved_commit, output=str(output))))
-            stream.flush(); os.fsync(stream.fileno())
+        state = LiveState()
+        state.claim_run(approved_commit, output)
     elif approved_commit or approval:
         raise Stop('approval_supplied_without_launch')
     evidence = Evidence(output)
     evidence.write('run', dict(mode='live' if launch else 'SCRIPTED ENGINEERING ONLY',
         pins=config.verify(), schedule=config.schedule(), measures=config.load('measures.json')))
-    ledger = config.ROOT/'results/formation-spending-v021/openai.json'
-    lock = config.ROOT/'results/formation-spending-v021/run.lock'
+    ledger = state.ledger if launch else None
+    lock = state.lock if launch else None
     descriptor = None
     if launch:
         # Existing provider-wide lock, shared with historical formation adapters.
@@ -43,7 +41,7 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
         ledger.write_bytes((config.ROOT/'results/formation-spending-v021/openai.json').read_bytes())
     rows, stop = [], 'complete'
     try:
-        budget = Budget(ledger, evidence, step_ledger=config.ROOT/'results/live-demo-v01-budget.txt' if launch else None)
+        budget = Budget(ledger, evidence, step_ledger=state.step_ledger if launch else None)
         adapter = Adapter(budget, evidence, launch=launch, approved_commit=approved_commit, approval=approval) if launch else StandIn(
             budget, evidence, faults=[TransportFailure(503)])
         for index, spec in enumerate(config.schedule()):

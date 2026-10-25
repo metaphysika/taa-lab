@@ -38,8 +38,9 @@ class OutputCeiling(Stop):
 
 
 class TransportFailure(Exception):
-    def __init__(self, status=None, partial=b'', retry_after=0):
+    def __init__(self, status=None, partial=b'', retry_after=0, error_fields=None):
         self.status, self.partial, self.retry_after = status, partial, retry_after
+        self.error_fields = error_fields
 
 
 def authorized(launch, approved_commit, approval, *, allow_model_discovery=False):
@@ -50,7 +51,7 @@ def authorized(launch, approved_commit, approval, *, allow_model_discovery=False
     # Accounting ledgers legitimately change under our exclusive run lock. All
     # tracked source/input changes remain forbidden on every attempt.
     dirty = subprocess.check_output(['git', 'diff', '--name-only', 'HEAD', '--', '.',
-        ':!results/formation-spending-v021/openai.json', ':!results/live-demo-v01-budget.txt'],
+        ':!results/formation-spending-v021/openai.json'],
         cwd=config.ROOT, text=True)
     if dirty or head != approved_commit or len(approved_commit) != 40:
         raise Stop('launch_commit_mismatch')
@@ -59,8 +60,14 @@ def authorized(launch, approved_commit, approval, *, allow_model_discovery=False
     returned = approval.get('model_returned')
     if not (type(returned) is str and returned or allow_model_discovery and returned is None):
         raise Stop('launch_not_approved')
-    if approval != dict(owner='Chris', commit=head, step='live-demo-v01', launch_approved=True,
-                        model_returned=returned):
+    expected = dict(owner='Chris', commit=head, step='live-demo-v01', launch_approved=True,
+                    model_returned=returned)
+    if allow_model_discovery:
+        number = approval.get('check_attempt')
+        if type(number) is not int or number < 1:
+            raise Stop('launch_not_approved')
+        expected['check_attempt'] = number
+    if approval != expected:
         raise Stop('launch_not_approved')
     config.verify()
 
@@ -165,6 +172,28 @@ def retry_delay(value):
             return 0
 
 
+def http_error_fields(error):
+    # Error messages can echo a key. Never retain raw bytes, message or param.
+    # Unknown strings are withheld rather than logging arbitrary server data.
+    types = {'invalid_request_error','authentication_error','permission_error',
+             'server_error','insufficient_quota'}
+    codes = {'invalid_api_key','missing_required_parameter','invalid_organization',
+             'invalid_project','project_not_found','organization_deactivated',
+             'insufficient_permissions','insufficient_quota','access_terminated'}
+    fields = dict(type=None, code=None)
+    try:
+        payload = parse_json(error.read(65536).decode('utf-8'))
+        value = payload.get('error') if type(payload) is dict else None
+        if type(value) is dict:
+            for name, allowed in (('type',types),('code',codes)):
+                candidate = value.get(name)
+                fields[name] = candidate if type(candidate) is str and candidate in allowed else (
+                    None if candidate is None else 'withheld')
+    except (ValueError, UnicodeError, OSError, HTTPException):
+        pass
+    return fields
+
+
 def http(body):
     key = os.environ.get('TAA_OPENAI_API_KEY')
     if not key:
@@ -182,8 +211,9 @@ def http(body):
                 if sum(map(len, chunks)) > 16*1024*1024:
                     raise TransportFailure(partial=b''.join(chunks))
     except urllib.error.HTTPError as error:
-        # Error body is deliberately not echoed; no model reply was read.
-        raise TransportFailure(error.code, retry_after=retry_delay(error.headers.get('Retry-After'))) from None
+        # Only sanitized type/code enter evidence; never message text or raw bytes.
+        raise TransportFailure(error.code, retry_after=retry_delay((error.headers or {}).get('Retry-After')),
+                               error_fields=http_error_fields(error)) from None
     except IncompleteRead as error:
         raise TransportFailure(partial=b''.join(chunks)+error.partial) from None
     except RemoteDisconnected:
@@ -237,7 +267,8 @@ class Adapter:
                 raw = self.transport(body)
             except TransportFailure as error:
                 self.evidence.write('transport_failure', dict(status=error.status,
-                    partial_base64=base64.b64encode(error.partial).decode(), reservation_retained=str(reservation)))
+                    partial_base64=base64.b64encode(error.partial).decode(), reservation_retained=str(reservation),
+                    error=error.error_fields))
                 if error.partial:
                     raise Stop('partial_reply') from None
                 if error.status is not None and error.status != 429 and not 500 <= error.status <= 599:

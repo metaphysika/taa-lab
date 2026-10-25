@@ -87,3 +87,6 @@ python scripts/check_live_demo_preservation.py --report /tmp/new-preservation.js
 [Descriptive] Complete normative acceptance repeats 153 scenarios and 1,079 source assertions on each of reference/core/conventional, audits 3,939 / 4,055 / 17,925, zero discrepancies/incomplete. The 140-file preservation proof and original 320-episode scored journal remain unchanged; no viewed scientific/scored experiment is rerun. All four actual provider ledgers are byte-identical to the approved base.
 
 [Descriptive] [Validation and source hashes](evidence/gateway-live-demo-v01/validation.json) bind the final code, logs, evidence checkpoints and23,370,781-byte `acceptance.zip` (8,574 members), SHA256 `2948f878df3d5647e26de8f09d3f7e3fe9c46cfa7fd00057bb49a0f9b10cfce9`. Earlier diagnostics and the session-limit checkpoint are retained separately, not overwritten. Current-head GitHub CI and Claude review are not implied by local success. No merge, model/neutral call, spending or launch is authorized.
+
+
+[Descriptive] The [v0.1.3 durable-state repair](TAA_LIVE_DEMO_DURABLE_STATE_v013.md) supersedes checkout-local live once/budget paths and adds check_attempt to neutral receipts only. Old command/receipt examples above are historical; they do not authorize another attempt. No further model calls are approved.

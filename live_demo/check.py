@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 from live_demo import config
+from live_demo.state import LiveState
 from live_demo.adapter import Adapter, Budget, Stop, authorized
 from live_demo.evidence import Evidence, encoded
 from live_demo.standin import ScriptedTransport, function, done
@@ -90,16 +91,15 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
         # Null model_returned is permitted only for first-check discovery. Its
         # returned string is pinned immediately for the second request.
         authorized(launch, approved_commit, approval, allow_model_discovery=True)
-        with (config.ROOT/'results/live-demo-check-v01.once').open('xb') as stream:
-            stream.write(encoded(dict(commit=approved_commit, output=str(output))))
-            stream.flush(); os.fsync(stream.fileno())
+        state = LiveState()
+        state.claim_check(approval, output)
     elif approved_commit or approval:
         raise Stop('approval_supplied_without_launch')
     evidence = Evidence(output)
     evidence.write('neutral_check', dict(mode='live' if launch else 'CANNED ENGINEERING ONLY',
         instruction=INSTRUCTION, tools=TOOLS, pins=config.verify()))
-    lock = config.ROOT/'results/formation-spending-v021/run.lock'
-    ledger = config.ROOT/'results/formation-spending-v021/openai.json'
+    lock = state.lock if launch else None
+    ledger = state.ledger if launch else None
     descriptor = None
     adapter = None
     try:
@@ -113,7 +113,7 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
         else:
             ledger = evidence.directory/'scripted-ledger.txt'
             ledger.write_bytes((config.ROOT/'results/formation-spending-v021/openai.json').read_bytes())
-        budget = Budget(ledger, evidence, step_ledger=config.ROOT/'results/live-demo-v01-budget.txt' if launch else None)
+        budget = Budget(ledger, evidence, step_ledger=state.step_ledger if launch else None)
         adapter = (CheckAdapter if launch else CheckStandIn)(budget, evidence,
             launch=launch, approved_commit=approved_commit, approval=approval)
         report = exchange(adapter, evidence)

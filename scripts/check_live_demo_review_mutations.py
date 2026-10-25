@@ -44,9 +44,9 @@ def main():
         ('extra_output_type','test_output_allowlist_is_exact_and_rejects_every_other_type',
          patch.object(adapter,'ALLOWED_OUTPUT_TYPES',adapter.ALLOWED_OUTPUT_TYPES|{'file_search_call'})),
         ('run_adapter_accepts_null_identity','test_run_adapter_per_attempt_authorization_rejects_null_model_returned',
-         patch.object(adapter.Adapter,'_authorize',altered(adapter.Adapter._authorize,
-             'authorized(self.launch, self.approved_commit, self.approval)',
-             'authorized(self.launch, self.approved_commit, self.approval, allow_model_discovery=True)')))]
+         patch.object(adapter,'authorized',altered(adapter.authorized,
+             'type(returned) is str and returned',
+             '(type(returned) is str and returned) or returned is None')))]
     rows=[]
     for name,method,mutation in controls:
         before=run_test(method)

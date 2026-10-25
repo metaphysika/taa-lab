@@ -23,7 +23,7 @@ def main():
     def blocked(*args,**kwargs):raise AssertionError('offline test attempted outbound connection')
     with patch.object(socket.socket,'connect',blocked),patch.object(socket.socket,'connect_ex',blocked):
         result=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(
-            ['tests.test_live_demo', 'tests.test_live_demo_review']))
+            ['tests.test_live_demo', 'tests.test_live_demo_review', 'tests.test_live_demo_state']))
     raise SystemExit(0 if result.wasSuccessful() else 1)
 
 
