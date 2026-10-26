@@ -1,0 +1,1697 @@
+{
+  "cases": [
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "expected_pr1": "satisfied",
+      "id": "AB2-received-true",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-received-false",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "expected_pr1": "satisfied",
+      "id": "AB2-received-damaged",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "damaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-received-absent",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-received-received_null",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": null
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "expected_pr1": "satisfied",
+      "id": "AB2-received-condition_null",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": null,
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-received-missing_claim",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference",
+        "core",
+        "mcp"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "claim": "NO_CLAIM",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-received-unknown_claim",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "return received"
+        ],
+        "case": "CL1",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-received-case_not_claim",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference",
+        "core",
+        "mcp"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "expected_pr1": "satisfied",
+      "id": "AB2-undamaged-true",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-undamaged-false",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-undamaged-damaged",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "damaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-undamaged-absent",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-undamaged-received_null",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": null
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-undamaged-condition_null",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": null,
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-undamaged-missing_claim",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference",
+        "core",
+        "mcp"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "NO_CLAIM",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-undamaged-unknown_claim",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "case": "CL1",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-undamaged-case_not_claim",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "PAY_BIND": {
+            "amount": 80,
+            "kind": "payment",
+            "method": "K1_card",
+            "order": "ORD_BIND",
+            "payer": "K1",
+            "settled": true
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET_BIND": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD_BIND",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference",
+        "core",
+        "mcp"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 80,
+        "asserts": [
+          "claim settled in full"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "expected_pr1": "satisfied",
+      "id": "AB2-settled-full",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 70,
+        "asserts": [
+          "claim settled in full"
+        ],
+        "claim": "CL_BIND",
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-settled-short",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 80,
+        "asserts": [
+          "claim settled in full"
+        ],
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-settled-missing",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 80,
+        "asserts": [
+          "claim settled in full"
+        ],
+        "case": "CL1",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-settled-case_not_claim",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp",
+        "conventional"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 80,
+        "asserts": [
+          "claim settled in full"
+        ],
+        "claim": "NO_CLAIM",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-settled-unknown",
+      "rule": "Explicit named claim takes precedence; otherwise args.claim; Q1/PR1 true, contradiction or unknown",
+      "setup": {
+        "records": {
+          "CL_BIND": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD_BIND"
+          },
+          "ORD_BIND": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL1 item was returned"
+        ],
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-named-CL1_no_act_false",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET10": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": true
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL1 item was returned"
+        ],
+        "claim": "CL10",
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-named-CL1_act_CL10_false",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET10": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL1 item was returned"
+        ],
+        "claim": "CL10",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "expected_pr1": "satisfied",
+      "id": "AB2-named-CL1_act_CL10_true",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET10": {
+            "condition": "damaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL1 item was returned"
+        ],
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "satisfied",
+      "id": "AB2-named-CL1_no_act_true",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET10": {
+            "condition": "damaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": false
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL10 item was returned"
+        ],
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-named-CL10_no_act_false",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET10": {
+            "condition": "damaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp",
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL10 item was returned"
+        ],
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "satisfied",
+      "id": "AB2-named-CL10_no_act_true",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET10": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp",
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL10 item was returned"
+        ],
+        "claim": "CL1",
+        "to": "F"
+      },
+      "expected": "PROHIBIT",
+      "expected_pr1": "violated",
+      "id": "AB2-named-CL10_act_CL1_false",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET10": {
+            "condition": "damaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": false
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp",
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL10 item was returned"
+        ],
+        "claim": "CL1",
+        "to": "F"
+      },
+      "expected": "PERMIT",
+      "expected_pr1": "satisfied",
+      "id": "AB2-named-CL10_act_CL1_true",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "damaged",
+            "received": false
+          },
+          "RET10": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "core",
+        "mcp",
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL_MISSING item was returned"
+        ],
+        "claim": "CL10",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-named-unknown_no_fallback",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET10": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": true
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the ORD10 item was returned"
+        ],
+        "claim": "CL10",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-named-nonclaim_no_fallback",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          },
+          "RET10": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": true
+          }
+        }
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "asserts": [
+          "the CL1 item was returned"
+        ],
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-named-CL1_absent_receipt",
+      "rule": "Recognized named claim overrides absent or different act claim; never fallback if named claim fails",
+      "setup": {
+        "records": {
+          "CL10": {
+            "amount": 80,
+            "basis": "return",
+            "claimant": "K1",
+            "kind": "claim",
+            "order": "ORD10"
+          },
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET10": {
+            "condition": "undamaged",
+            "kind": "return_receipt",
+            "order": "ORD10",
+            "received": true
+          }
+        },
+        "remove_records": [
+          "RET1"
+        ]
+      },
+      "targets": [],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 80,
+        "asserts": [
+          "return received"
+        ],
+        "claim": "ORD10",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-received-nonclaim_argument",
+      "rule": "An order record cannot resolve an assertion claim",
+      "setup": {
+        "records": {
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 80,
+        "asserts": [
+          "item returned undamaged"
+        ],
+        "claim": "ORD10",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-undamaged-nonclaim_argument",
+      "rule": "An order record cannot resolve an assertion claim",
+      "setup": {
+        "records": {
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference"
+      ],
+      "tool": "report"
+    },
+    {
+      "args": {
+        "amount": 80,
+        "asserts": [
+          "claim settled in full"
+        ],
+        "claim": "ORD10",
+        "to": "F"
+      },
+      "expected": "HOLD",
+      "expected_pr1": "unknown",
+      "id": "AB2-settled-nonclaim_argument",
+      "rule": "An order record cannot resolve an assertion claim",
+      "setup": {
+        "records": {
+          "ORD10": {
+            "amount": 80,
+            "currency": "USD",
+            "customer": "K1",
+            "kind": "order"
+          },
+          "RET1": {
+            "condition": "undamaged",
+            "received": true
+          }
+        }
+      },
+      "targets": [
+        "reference",
+        "conventional"
+      ],
+      "tool": "report"
+    }
+  ],
+  "claim": "[Descriptive] New owner-corrected rule expectations, authored before corrected implementation edits; earlier fixture retained as superseded."
+}

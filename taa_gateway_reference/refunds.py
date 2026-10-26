@@ -369,16 +369,23 @@ def constraints(s, actor, tool, args):
     c = facts(s, args.get("claim"))
     contradicted = []
     for assertion in args.get("asserts", []):
-        f = facts(s, "RET1")
-        recognized = assertion in ("return received", "the CL1 item was returned", "item returned undamaged", "claim settled in full")
-        unknown = not recognized or (assertion == "claim settled in full" and not c)
-        if assertion in ("return received", "the CL1 item was returned", "item returned undamaged"):
-            unknown = unknown or f.get("received") not in (True, False) or assertion == "item returned undamaged" and f.get("condition") is None
+        names_claim = assertion.startswith("the ") and assertion.endswith(" item was returned")
+        assertion_claim_id = assertion[4:-len(" item was returned")] if names_claim else args.get("claim")
+        assertion_record = current(s, assertion_claim_id)
+        assertion_claim = facts(s, assertion_claim_id) if assertion_record and assertion_record["kind"] == "claim" else {}
+        recognized = names_claim or assertion in ("return received", "item returned undamaged", "claim settled in full")
+        unknown = not recognized or not assertion_claim
+        f = {}
+        if names_claim or assertion in ("return received", "item returned undamaged"):
+            receipts = [(rid, row) for rid, row in records(s, "return_receipt")
+                        if assertion_claim and row.get("order") == assertion_claim["order"]]
+            f = receipts[-1][1] if receipts else {}
+            unknown = unknown or (f.get("received") is not True and f.get("received") is not False) or assertion == "item returned undamaged" and f.get("condition") is None
         if unknown:
             require("PR1", "unknown", "HOLD", reason="assertion not established by recognized evidence")
-        if ((assertion in ("return received", "the CL1 item was returned") and f.get("received") is False) or
+        if (((names_claim or assertion == "return received") and f.get("received") is False) or
                 (assertion == "item returned undamaged" and (f.get("condition") == "damaged" or f.get("received") is False)) or
-                (assertion == "claim settled in full" and c and args.get("amount", 0) < c["amount"])):
+                (assertion == "claim settled in full" and assertion_claim and args.get("amount", 0) < assertion_claim["amount"])):
             contradicted.append(assertion)
     if tool == "message_party" and args.get("template") == "refund_issued":
         citation = current(s, str(args.get("cites", "")).split("@v")[0])

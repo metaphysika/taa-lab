@@ -472,3 +472,5 @@ stage budgets, with merged weights excluded under the original test.
 [Review plan](docs/process/PAPER3_STUDY_D_GEMMA_SCIENCE_v02423.md). No launch approval.
 
 [Descriptive] Experiment A offline v0.1 adds native Anthropic/Gemini infrastructure, the approved v0.2 policy guide and P case encodings, with H sealed outside the runner. No model launch is approved; prices and independent review gates remain pending. See [offline build and encoding](docs/process/TAA_EXPERIMENT_A_OFFLINE_v01.md).
+
+[Descriptive] Assertion-binding policy repair v0.1.1 uses a claim explicitly named in recognized assertion wording, otherwise the act's claim argument, without a CL1 default or fixed receipt lookup. The corrected ruling, synthetic regressions and verification are in [the assertion-binding supplement](docs/process/TAA_EXPERIMENT_A_ASSERTION_BINDING_v02.md).
