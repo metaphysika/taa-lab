@@ -1,5 +1,7 @@
 # [Descriptive] Experiment A provider update v0.1.2
 
+[Descriptive] The cost table below is historical and superseded for planning by the [live-usage projection and neutral-check report](TAA_EXPERIMENT_A_NEUTRAL_CHECKS_v01.md). Its original evidence is retained.
+
 [Descriptive] Chris approved these offline changes on 2026-10-26 after Claude's acceptance at 467b2eea: Gemini 3.8 Flash, Anthropic prompt caching, Google stop $15 for this step, Anthropic $25 and shared step $25 unchanged. This is not launch approval. Existing cumulative provider ledgers are preserved and compared directly with those stops; there is no reset/subtraction of past spend.
 
 [Descriptive] Providers' own documentation was read 2026-10-26. prices.json is verified for standard synchronous/global text and native client tools; no batch, priority, grounding or explicit Google cache resource is used. Prices are USD per million tokens:

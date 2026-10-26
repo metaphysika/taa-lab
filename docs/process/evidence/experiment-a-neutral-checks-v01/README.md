@@ -1,0 +1,5 @@
+# [Descriptive] Experiment A neutral checks and revised projection
+
+[Descriptive] [Review report](../../TAA_EXPERIMENT_A_NEUTRAL_CHECKS_v01.md), check-summary.json and verification.json record both approved attempts. Anthropic401, no retry; Google2requests complete. Native usage/finish/carry-over/checkpoint facts retained. The replacement projection uses actual live-demo episode/turn counts and explicit guide-token proxies; Sonnet thinking ratio is unobserved, so no empirical Sonnet range is claimed.
+
+[Descriptive] neutral-checks.zip SHA256 `126542755cc452fae08072dd328fa4f37854f944586b10e546596bae64198d1c`; CRC/all member hashes pass, credential scan zero matches. Raw H inputs/outcomes and once markers excluded; markers remain in canonical state. No keys.env access, new model/provider calls after checks, or pilot. Metadata/key-focused245tests, scripted scenarios and preservation pass; runtime implementation unchanged. Prior full1809tests/36skips at approved runtime remain the full-suite result.
