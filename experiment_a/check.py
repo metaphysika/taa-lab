@@ -39,7 +39,6 @@ def run(provider, output, *, launch=False, approved_commit=None, approval=None):
     if launch:
         authorized(provider, launch, approved_commit, approval, neutral=True)
         state = State()
-        state.claim_check(provider, approval, output)
     elif approved_commit or approval:
         raise Stop('approval_supplied_without_launch')
     evidence = Evidence(output)
@@ -49,13 +48,14 @@ def run(provider, output, *, launch=False, approved_commit=None, approval=None):
     try:
         with state.locked(output) if launch else nullcontext():
             if launch:
+                state.claim_check(provider, approval, output)
                 ledger, step = state.ledgers[provider], state.step_ledger
                 price = None
             else:
                 ledger, step = evidence.directory/'fixture-provider.txt', evidence.directory/'fixture-step.txt'
                 ledger.write_text('{"estimated_api_dollars":0}')
                 step.write_text('0'); price = prices()
-            budget = Budget(provider, ledger, step, evidence, prices=price)
+            budget = Budget(provider, ledger, step, evidence, prices=price, state=state if launch else None)
             transport = None if launch else ScriptedTransport([reply(provider,name='echo',args={'value':'neutral-check'}),reply(provider)])
             adapter = Adapter(provider,budget,evidence,system=INSTRUCTION,tools=TOOLS,transport=transport,
                 launch=launch,approved_commit=approved_commit,approval=approval,neutral=True,standin=not launch)

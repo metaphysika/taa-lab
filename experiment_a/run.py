@@ -20,7 +20,6 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
         for provider in config.MODELS:
             authorized(provider,launch,approved_commit,approval)
         state=State()
-        state.claim_run(approval,output)
     elif approved_commit or approval:
         raise Stop('approval_supplied_without_launch')
     evidence=Evidence(output)
@@ -30,6 +29,8 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
     rows,stop=[], 'complete'
     try:
         with state.locked(output) if launch else nullcontext():
+            if launch:
+                state.claim_run(approval,output)
             adapters={}
             retry_tracker={'retry_needed':0}
             if not launch:
@@ -40,7 +41,7 @@ def run(output, *, launch=False, approved_commit=None, approval=None):
                 else:
                     ledger=evidence.directory/('fixture-'+provider+'.txt');ledger.write_text('{"estimated_api_dollars":0}')
                     price=prices()
-                budget=Budget(provider,ledger,step,evidence,prices=price)
+                budget=Budget(provider,ledger,step,evidence,prices=price,state=state if launch else None)
                 transport=None if launch else ScriptedTransport([reply(provider)]*sum(s['provider']==provider for s in schedule))
                 adapters[provider]=Adapter(provider,budget,evidence,transport=transport,standin=not launch,
                     launch=launch,approved_commit=approved_commit,approval=approval,retry_tracker=retry_tracker)

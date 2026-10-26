@@ -136,6 +136,9 @@ class Adapter:
             authorized(self.provider, self.launch, self.commit, self.approval, neutral=self.neutral)
             if self.budget.prices != config.load('prices.json')[self.provider]:
                 raise Stop('prices_unverified')
+            if self.budget.state is None:
+                raise Stop('durable_state_required')
+            self.budget.state.before_request(self.provider, self.approval, self.neutral)
 
     def body(self, history):
         return native.body(self.provider, self.system, self.tools, history)
@@ -150,6 +153,8 @@ class Adapter:
             self._authorize()
             reservation, bound = self.budget.reserve(body)
             self.evidence.write('request', dict(provider=self.provider, spec=spec, turn=turn, attempt=attempt, body=body))
+            if not self.standin:
+                self.budget.state.before_request(self.provider, self.approval, self.neutral)
             try:
                 raw = self.transport(body) if self.transport is not None else http(self.provider, body)
             except TransportFailure as error:

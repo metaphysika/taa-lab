@@ -8,6 +8,18 @@ from live_demo.evidence import encoded
 from experiment_a import config
 
 
+def encode_program(definition):
+    """Canonical bytes for an owner-supplied, fully specified program document.
+
+    This serializes definitions; it never infers facts, rules or outcomes.
+    Sealed definitions are supplied only at a separately approved unsealing.
+    """
+    if type(definition) is not dict or set(definition) != {'brief', 'events', 'rung', 'setup'}:
+        raise ValueError('complete program definition required')
+    return (json.dumps(definition, sort_keys=True, indent=2, ensure_ascii=False,
+                       allow_nan=False) + '\n').encode('utf-8')
+
+
 def pair_check(directory, pairs):
     directory = Path(directory)
     results = []

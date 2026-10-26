@@ -18,6 +18,7 @@ from experiment_a.adapter import Adapter, authorized
 from experiment_a.budget import Budget
 from experiment_a.driver import episode, Host, program
 from experiment_a.state import State
+from tests.experiment_state_support import GitStateFixture
 from experiment_a.standin import ScriptedTransport, prices, reply
 from experiment_a.run import run
 
@@ -30,26 +31,25 @@ class Guards(unittest.TestCase):
         self.stack.enter_context(patch.object(socket,'socket',side_effect=AssertionError('network forbidden')))
 
     def state(self):
-        root=self.root/'state';root.mkdir()
-        accounting=self.root/'accounting';accounting.mkdir()
-        for name in ('claude.json','google.json'):(accounting/name).write_text('{"estimated_api_dollars":0}')
-        (root/'step-budget.txt').write_text('0')
-        manifest=dict(version=1,step=config.STEP,provider_ledgers={p:str(accounting/n) for p,n in
-                      [('anthropic','claude.json'),('google','google.json')]},provider_lock=str(accounting/'run.lock'))
-        (root/'state.json').write_text(json.dumps(manifest))
-        self.stack.enter_context(patch('experiment_a.state.STATE_ROOT',root))
-        self.stack.enter_context(patch('experiment_a.state.ACCOUNTING_ROOT',accounting))
+        self.fixture=GitStateFixture(self.root/'state-fixture')
+        self.stack.enter_context(patch('experiment_a.state.STATE_ROOT',self.fixture.state))
+        self.stack.enter_context(patch('experiment_a.state.RUN_ROOT',self.fixture.repo))
         return State()
 
     def evidence(self,name):return Evidence(self.root/name)
 
     def test_used_check_cannot_repeat_across_checkout_roots(self):
         state=self.state();receipt={'check_attempt':1}
-        state.claim_check('anthropic',receipt,self.root/'one')
+        with state.locked(self.root/'out'):
+            state.claim_check('anthropic',receipt,self.root/'one')
         with patch.object(config,'ROOT',self.root/'different-checkout'):
-            with self.assertRaisesRegex(Stop,'check_attempt_used'):State().claim_check('anthropic',receipt,self.root/'two')
+            second=State()
+            with second.locked(self.root/'out2'):
+                with self.assertRaisesRegex(Stop,'check_attempt_used'):second.claim_check('anthropic',receipt,self.root/'two')
         # Separate providers have their own numbered neutral attempts.
-        State().claim_check('google',receipt,self.root/'three')
+        second=State()
+        with second.locked(self.root/'out3'):
+            second.claim_check('google',receipt,self.root/'three')
 
     def test_launched_run_claims_before_request_and_second_checkout_stops(self):
         state=self.state()
@@ -64,38 +64,41 @@ class Guards(unittest.TestCase):
                 target=fresh/name;target.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copyfile(config.ROOT/name,target)
             with patch.object(config,'ROOT',fresh):
-                with self.assertRaisesRegex(Stop,'run_already_used'):run(self.root/'second',launch=True,approved_commit='a'*40,approval={'owner':'Chris'})
+                again=run(self.root/'second',launch=True,approved_commit='a'*40,approval={'owner':'Chris'})
+                self.assertEqual('run_already_used',again['stop'])
             transport.assert_not_called()
 
     def test_shared_step_spend_survives_checkout_and_provider_change(self):
         state=self.state();e=self.evidence('account')
-        a=Budget('anthropic',state.ledgers['anthropic'],state.step_ledger,e,prices=prices())
+        a=Budget('anthropic',state.ledgers['anthropic'],state.step_ledger,e,prices=prices(),state=state)
         with state.locked(self.root/'out'):a.reserve({'fixture':True})
         prior=a.read_step()
         with patch.object(config,'ROOT',self.root/'another-checkout'):
-            second=State();g=Budget('google',second.ledgers['google'],second.step_ledger,e,prices=prices(),step_cap=str(prior))
-            with self.assertRaisesRegex(Stop,'cap_stop'):g.reserve({'fixture':True})
+            second=State();g=Budget('google',second.ledgers['google'],second.step_ledger,e,prices=prices(),step_cap=str(prior),state=second)
+            with second.locked(self.root/'out2'):
+                with self.assertRaisesRegex(Stop,'cap_stop'):g.reserve({'fixture':True})
             self.assertEqual(prior,g.read_step());self.assertEqual(Decimal(0),g.read_provider())
 
     def test_existing_shared_lock_blocks_both_providers(self):
-        state=self.state();state.lock.write_text('another run')
-        for provider in config.MODELS:
-            with self.assertRaisesRegex(Stop,'shared_lock_exists'):
-                with state.locked(self.root/provider):self.fail('lock bypassed')
-        self.assertEqual('another run',state.lock.read_text())
+        state=self.state()
+        with state.locked(self.root/'first'):
+            for provider in config.MODELS:
+                second=State()
+                with self.assertRaisesRegex(Stop,'shared_lock_exists'):
+                    with second.locked(self.root/provider):self.fail('lock bypassed')
+        self.assertFalse((state.root/'active-run.json').exists())
 
     def test_pending_write_and_noncanonical_ledger_refused(self):
         state=self.state();state.step_ledger.with_suffix('.pending').write_text('0.1')
         with self.assertRaisesRegex(Stop,'durable_state_missing_or_invalid'):State()
-        state.step_ledger.with_suffix('.pending').rename(state.root/'retained-fixture-pending')
+        state.step_ledger.with_suffix('.pending').unlink()
         spec=json.loads((state.root/'state.json').read_text());spec['provider_ledgers']['google']=str(state.ledgers['anthropic'])
         (state.root/'state.json').write_text(json.dumps(spec))
         with self.assertRaisesRegex(Stop,'durable_state_missing_or_invalid'):State()
 
     def test_state_inside_git_tree_refused_even_with_valid_manifest(self):
         state=self.state()
-        subprocess.run(['git','init',str(state.root)],check=True,capture_output=True)
-        with self.assertRaisesRegex(Stop,'durable_state_missing_or_invalid'):State()
+        with self.assertRaisesRegex(Stop,'durable_state_missing_or_invalid'):State(self.fixture.repo,run_root=self.fixture.repo)
 
     def test_exact_receipt_and_nonempty_run_identity_per_attempt(self):
         head='a'*40
@@ -145,7 +148,7 @@ class Guards(unittest.TestCase):
         p=prices();p['long_context_threshold']=1
         for i,k in enumerate(('input','cache_read','cache_write_5m','cache_write_1h','output','thinking'),1):
             p['rates']['long_context_'+k+'_per_million']=str(i)
-        b=Budget('google',state.ledgers['google'],state.step_ledger,e,prices=p)
+        b=Budget('google',state.ledgers['google'],state.step_ledger,e,prices=p,state=state)
         with state.locked(self.root/'out'):
             reserved,bound=b.reserve({'fixture':True})
             buckets=dict(input=10,cache_read=5,cache_write_5m=0,cache_write_1h=0,output=7,thinking=3,input_total=15,output_total=10)
@@ -169,22 +172,24 @@ class Guards(unittest.TestCase):
         adapters=[]
         for provider in config.MODELS:
             transport=ScriptedTransport([TransportFailure(503),reply(provider)])
-            adapters.append(Adapter(provider,Budget(provider,state.ledgers[provider],state.step_ledger,e,prices=prices()),
+            adapters.append(Adapter(provider,Budget(provider,state.ledgers[provider],state.step_ledger,e,prices=prices(),state=state),
                 e,transport=transport,standin=True,sleeper=lambda x:None,retry_tracker=tracker))
-        adapters[0].respond([dict(kind='user',text='fixture')],{},1)
-        self.assertEqual(10,adapters[1].retry_needed)
-        with self.assertRaisesRegex(Stop,'transport_exhaustion'):adapters[1].respond([dict(kind='user',text='fixture')],{},1)
-        self.assertEqual(1,len(adapters[1].transport.requests));self.assertEqual(11,tracker['retry_needed'])
+        with state.locked(self.root/'retry-out'):
+            adapters[0].respond([dict(kind='user',text='fixture')],{},1)
+            self.assertEqual(10,adapters[1].retry_needed)
+            with self.assertRaisesRegex(Stop,'transport_exhaustion'):adapters[1].respond([dict(kind='user',text='fixture')],{},1)
+            self.assertEqual(1,len(adapters[1].transport.requests));self.assertEqual(11,tracker['retry_needed'])
 
     def test_authorization_rechecked_before_every_physical_attempt(self):
         state=self.state();e=self.evidence('reauthorize')
-        for provider in config.MODELS:
-            transport=ScriptedTransport([TransportFailure(429),reply(provider)])
-            a=Adapter(provider,Budget(provider,state.ledgers[provider],state.step_ledger,e,prices=prices()),e,
-                      transport=transport,standin=True,sleeper=lambda x:None)
-            with patch.object(a,'_authorize',wraps=a._authorize) as guard:
-                a.respond([dict(kind='user',text='fixture')],{},1)
-            self.assertEqual(2,guard.call_count);self.assertEqual(encoded(transport.requests[0]),encoded(transport.requests[1]))
+        with state.locked(self.root/'reauthorize-out'):
+            for provider in config.MODELS:
+                transport=ScriptedTransport([TransportFailure(429),reply(provider)])
+                a=Adapter(provider,Budget(provider,state.ledgers[provider],state.step_ledger,e,prices=prices(),state=state),e,
+                          transport=transport,standin=True,sleeper=lambda x:None)
+                with patch.object(a,'_authorize',wraps=a._authorize) as guard:
+                    a.respond([dict(kind='user',text='fixture')],{},1)
+                self.assertEqual(2,guard.call_count);self.assertEqual(encoded(transport.requests[0]),encoded(transport.requests[1]))
 
     def test_actual_first_requests_all_development_and_pilot_programs(self):
         # Exercise the real episode path, not three calls to a shared formatter.
