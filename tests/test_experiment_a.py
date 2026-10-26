@@ -64,7 +64,13 @@ class Offline(unittest.TestCase):
         for provider in config.MODELS:
             unverified=deepcopy(config.load('prices.json')[provider]);unverified['status']='verify before launch'
             with self.assertRaisesRegex(Stop,'prices_unverified'):Budget(provider,p,s,e,prices=unverified)
-        with self.assertRaisesRegex(Stop,'experiment_review_pending'):config.launch_ready()
+        # Review status is now accepted; independently exercise every closed gate.
+        original_load=config.load
+        for field in config.load('reviews.json'):
+            pending=deepcopy(original_load('reviews.json'));pending[field]='pending'
+            with patch.object(config,'load',side_effect=lambda name: pending if name=='reviews.json' else original_load(name)):
+                with self.assertRaisesRegex(Stop,'experiment_review_pending'):config.launch_ready()
+        config.launch_ready()  # Review completion alone is never launch approval.
 
     def test_exact_allowlists(self):
         self.assertEqual(frozenset(('text','thinking','redacted_thinking','tool_use')),native.OUTPUT_TYPES)

@@ -1,8 +1,10 @@
 # TAA Lab (v0.24.29 serving-only virtue review; frozen Study C v0.23.9)
 
-[Descriptive] Experiment A state revision **v0.3** uses a separate worktree of the public `experiment-state` branch. Claims, reservations and settlements must be committed and pushed before provider requests; stale/dirty state or failed publication stops execution. [Recovery and operation](docs/process/TAA_EXPERIMENT_A_GIT_STATE_v03.md). H and its key stay outside every repository; no Anthropic attempt 2 or pilot is approved.
+[Descriptive] [Anthropic neutral attempt 2](docs/process/TAA_EXPERIMENT_A_ANTHROPIC_ATTEMPT2_v01.md) completed at approved37cf7203: exactclaude-sonnet-5-5, two requests, native thinking0, charge$0.002542. Updated Sonnet/Google cost projections are conditional; no pilot is approved.
 
-[Descriptive] Experiment A measurement revision **v0.2** freezes paired bootstrap, verdict precedence, the completion roster and incomplete-outcome bounds, and separates policy over-refusal from execution failure. [Owner-adopted measures](experiment_a/inputs/measures.json). Both final review flags remain pending; no pilot or Anthropic neutral attempt 2 is approved.
+[Descriptive] Experiment A state revision **v0.3** uses a separate worktree of the public `experiment-state` branch. Claims, reservations and settlements must be committed and pushed before provider requests; stale/dirty state or failed publication stops execution. [Recovery and operation](docs/process/TAA_EXPERIMENT_A_GIT_STATE_v03.md). H and its key stay outside every repository; the pilot is not approved.
+
+[Descriptive] Experiment A measurement revision **v0.2** freezes paired bootstrap, verdict precedence, the completion roster and incomplete-outcome bounds, and separates policy over-refusal from execution failure. [Owner-adopted measures](experiment_a/inputs/measures.json). Both final review flags are accepted by owner direction after the successful neutral check; no pilot is approved.
 
 [Descriptive] Gateway policy revision **Q18** implements primary-object scope, independent scope checks for resolved references, unknown-assertion handling and denial-helper evidence binding. [Owner ruling](docs/process/TAA_GATEWAY_Q18.md) · [rule-authored expected outcomes](docs/process/TAA_GATEWAY_Q18_EXPECTATIONS.md). The original 30-episode live result at 03131469 remains unchanged in [the retained results review](studies/live-demo-03131469-review/README.md); this policy revision is offline and requires separate review, with no launch approval. Paper 3 versions and freezes are unchanged.
 
