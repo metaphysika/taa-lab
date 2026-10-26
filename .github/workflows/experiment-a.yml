@@ -1,0 +1,33 @@
+name: Experiment A offline infrastructure
+on: [push, pull_request]
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-gateway.txt
+      - name: Native protocols, persistent guards, P twins and cross-arm request equality
+        run: sudo unshare --net "$(command -v python)" -m unittest tests.test_experiment_a tests.test_experiment_a_guards tests.test_experiment_a_provider_update tests.test_experiment_a_measures tests.test_experiment_a_git_state -v
+      - name: Claim-bound assertion rules across reference, core, MCP, SQL and oracle
+        run: sudo unshare --net "$(command -v python)" -m unittest tests.test_assertion_binding -v
+      - uses: actions/checkout@v4
+        with:
+          ref: be2c3e34b0f66c9305c418c4249e9d6d7ccd8b98
+          path: assertion-binding-before
+          persist-credentials: false
+      - name: New rule cases expose the pre-change lookup/default defects
+        run: sudo unshare --net "$(command -v python)" -I scripts/check_assertion_binding.py --implementation-root assertion-binding-before --expect-baseline --report "$RUNNER_TEMP/assertion-binding-before.json"
+      - name: Two-request canned echo checks (no provider credentials)
+        run: |
+          sudo unshare --net "$(command -v python)" -m experiment_a.check --provider anthropic --output "$RUNNER_TEMP/experiment-a-anthropic"
+          sudo unshare --net "$(command -v python)" -m experiment_a.check --provider google --output "$RUNNER_TEMP/experiment-a-google"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experiment-a-canned-neutral-evidence
+          path: ${{ runner.temp }}/experiment-a-*/

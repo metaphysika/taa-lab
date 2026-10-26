@@ -1,0 +1,75 @@
+{
+  "anthropic": {
+    "borrowed_google_ratio_sensitivity": {
+      "disabled": "11.6226132",
+      "first_cold_then_prefix_hits": "5.39885082",
+      "no_hits": "13.5222681"
+    },
+    "output_ceiling_envelope": {
+      "disabled": "603.8200872",
+      "first_cold_then_prefix_hits": "597.59632482",
+      "no_hits": "605.7197421"
+    },
+    "status": "No empirically calibrated thinking range: approved attempt failed401 before model reply.",
+    "visible_only_floor": {
+      "disabled": "9.6861732",
+      "first_cold_then_prefix_hits": "3.47133072",
+      "no_hits": "11.5831056"
+    }
+  },
+  "assumptions": [
+    "Every historical episode contributes its actual input/output and turn count; extrapolate30 to198 by6.6, not20-token fixtures.",
+    "Add guide proxy533\u2013536 tokens to EVERY turn. These are offline o200k/cl100k counts, not exact native Anthropic/Gemini counts; UTF8 fallback bound2536 recorded separately.",
+    "Live source uses Luna/floor/static/TAA and old D programs; pooled usage is an engineering anchor, not conventional-arm behavior or a forecast for new P cases/providers.",
+    "No-hit caching charges the initial stable-prefix writes each turn for Sonnet; Google misses use normal input. Hit scenario has first turn cold, later same-episode initial-prefix hits; growing history stays ordinary input. No cross-episode cache savings assumed.",
+    "Google thinking/visible ratios are from only2neutral replies; multiplying historical visible output by1+ratio assumes visible lengths/turns transfer. Hidden-signature/input-tokenization/history changes are not measured.",
+    "Sonnet ratio is unavailable. Borrowed-Google sensitivity is explicitly not observed Sonnet behavior. Ceiling envelope assumes same historical turns each returning32768totaloutputtokens; it would exceed caps and stop before pilot completion, not authorize spending.",
+    "All pilot-only projections exclude already-booked reservations/check costs and transport failures. Actual shared/provider caps remain controlling."
+  ],
+  "claim": "[Interpretive] Pilot projection anchored to actual 30-episode live usage, not synthetic stand-in usage or a performance prediction.",
+  "google": {
+    "central": {
+      "disabled": "4.3543962",
+      "first_cold_then_prefix_hits": "2.072959515",
+      "no_hits": "4.3543962"
+    },
+    "high": {
+      "disabled": "4.47401295",
+      "first_cold_then_prefix_hits": "2.18930184",
+      "no_hits": "4.47401295"
+    },
+    "low": {
+      "disabled": "4.1233302",
+      "first_cold_then_prefix_hits": "1.841893515",
+      "no_hits": "4.1233302"
+    }
+  },
+  "guide": {
+    "claim": "[Descriptive] Offline OpenAI tokenizer proxies, not provider-exact Anthropic/Gemini token counts.",
+    "guide_sha256": "8e47b55a72ab329500d2ccc76939328e026a6a4440033c832c42cff5ff51afd0",
+    "package": "4.1.0",
+    "tokens": {
+      "cl100k_base": 536,
+      "o200k_base": 533
+    },
+    "utf8_bytes": 2536
+  },
+  "observed_ratios": {
+    "anthropic": null,
+    "google": {
+      "aggregate": "75/24 = 3.125",
+      "first": "58/16 = 3.625",
+      "second": "17/8 = 2.125"
+    }
+  },
+  "pilot_episodes_per_provider": 198,
+  "scale": "6.6",
+  "source": {
+    "archive_sha256": "f81bc694de29b968d864404d114c50c0775134e8e17d15a6126a0be0e8c9dfb0",
+    "csv_sha256": "25d2f8dacd04650c7097346224d89604a77895ee8b9b389a15fe665a383c156c",
+    "episodes": 30,
+    "input_tokens": 540546,
+    "turns": 275,
+    "visible_output_tokens": 9336
+  }
+}

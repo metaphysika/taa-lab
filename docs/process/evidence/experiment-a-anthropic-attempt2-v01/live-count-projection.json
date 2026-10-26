@@ -1,0 +1,106 @@
+{
+  "already_booked": {
+    "anthropic": "6.203793249999988",
+    "google": "3.6689896000000046",
+    "state_head": "472d761352715650f1746982843e80340b6052ee",
+    "step": "0.39869225"
+  },
+  "anthropic": {
+    "borrowed_google_ratio_sensitivity_not_observed_sonnet": {
+      "disabled": "11.6226132",
+      "first_cold_then_prefix_hits": "5.39885082",
+      "no_hits": "13.5222681"
+    },
+    "observed_ratio_guide533": {
+      "disabled": "9.6861732",
+      "first_cold_then_prefix_hits": "3.47133072",
+      "no_hits": "11.5831056"
+    },
+    "observed_ratio_guide536": {
+      "disabled": "9.6970632",
+      "first_cold_then_prefix_hits": "3.47330082",
+      "no_hits": "11.5967181"
+    },
+    "output_ceiling_scenario": {
+      "disabled": "603.8200872",
+      "first_cold_then_prefix_hits": "597.59632482",
+      "no_hits": "605.7197421"
+    }
+  },
+  "assumptions": [
+    "Each episode retains its actual input/output/turn count; scale30 to198 by6.6.",
+    "Add533\u2013536 guide proxy tokens on EVERY turn. Offline o200k/cl100k counts are not native Sonnet/Gemini counts; no extra provider count request.",
+    "The30source episodes used Luna/floor/static/TAA on D; conventional/newP/provider behavior is not measured by this anchor.",
+    "Without hits Sonnet writes marked initial prefix on each turn at5m rates; Google misses cost ordinary input. Hit scenario assumes first turn cold then only that initial prefix hits in the SAME episode; growing history remains normal input. No cross-episode savings assumed.",
+    "Observed Sonnet thinking/visible ratio is0/74=0 in this short echo. It is not evidence future refund episodes have zero thinking; no signed/thinking continuity was exercised.",
+    "Google per-reply ratios2.125\u20133.625 and pooled3.125 come from its retained attempt1, not a new check. These ranges are proxy/sensitivity ranges, not statistical confidence intervals.",
+    "Neither provider check observed cache reads/writes. Cache-hit savings are hypothetical. Input/signature tokenization, cache eligibility/expiry, longer turns and retries can change costs.",
+    "Pilot-only forecasts exclude existing spend/checks. Output-ceiling scenarios hold historical turns/input fixed and would exceed caps, not complete pilots at those totals. Current provider/shared stops govern; no pilot is approved."
+  ],
+  "claim": "[Interpretive] Conditional pilot-only costs from historical live usage and two neutral replies per provider; not affordability/completion guarantees.",
+  "google": {
+    "central": {
+      "disabled": "4.3543962",
+      "first_cold_then_prefix_hits": "2.072959515",
+      "no_hits": "4.3543962"
+    },
+    "high": {
+      "disabled": "4.47401295",
+      "first_cold_then_prefix_hits": "2.18930184",
+      "no_hits": "4.47401295"
+    },
+    "low": {
+      "disabled": "4.1233302",
+      "first_cold_then_prefix_hits": "1.841893515",
+      "no_hits": "4.1233302"
+    },
+    "output_ceiling_scenario": {
+      "disabled": "449.4597327",
+      "first_cold_then_prefix_hits": "447.17502159",
+      "no_hits": "449.4597327"
+    }
+  },
+  "guide": {
+    "claim": "[Descriptive] Offline OpenAI tokenizer proxies, not provider-exact Anthropic/Gemini token counts.",
+    "guide_sha256": "8e47b55a72ab329500d2ccc76939328e026a6a4440033c832c42cff5ff51afd0",
+    "package": "4.1.0",
+    "tokens": {
+      "cl100k_base": 536,
+      "o200k_base": 533
+    },
+    "utf8_bytes": 2536
+  },
+  "observed_ratios": {
+    "anthropic": {
+      "native_field": "output_tokens_details.thinking_tokens",
+      "per_reply": [
+        "0/50 = 0",
+        "0/24 = 0"
+      ],
+      "pooled": "0",
+      "thinking": 0,
+      "total_output": 74,
+      "visible_output": 74
+    },
+    "google": {
+      "per_reply": [
+        "3.625",
+        "2.125"
+      ],
+      "pooled": "3.125",
+      "thinking": 75,
+      "visible_output": 24
+    }
+  },
+  "pilot_episodes_per_provider": 198,
+  "scale": "6.6",
+  "source": {
+    "archive_sha256": "f81bc694de29b968d864404d114c50c0775134e8e17d15a6126a0be0e8c9dfb0",
+    "csv_sha256": "25d2f8dacd04650c7097346224d89604a77895ee8b9b389a15fe665a383c156c",
+    "episodes": 30,
+    "input_tokens": 540546,
+    "reconstructed_rows_match_prior": true,
+    "turns": 275,
+    "visible_output_tokens": 9336
+  }
+}

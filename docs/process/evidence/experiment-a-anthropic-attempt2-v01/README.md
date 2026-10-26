@@ -1,0 +1,18 @@
+# [Descriptive] Anthropic neutral attempt 2 evidence
+
+[Descriptive] [Full report](../../TAA_EXPERIMENT_A_ANTHROPIC_ATTEMPT2_v01.md), [native/check summary](check-summary.json), [cost projection](live-count-projection.json), and [verification](verification.json). Exactly one approved CLI invocation from clean detached37cf72031f3ff82fb74f004334217504de592652;2physical requests, complete, exactclaude-sonnet-5-5, tool_use/end_turn. Charge0.002542, Anthropicafter6.203793249999988, stepafter0.39869225. No retry/extra model/provider request/pilot/H access/merge.
+
+[Descriptive] Native inputs417/484, outputs50/24, all cache reads/creation/5m/1h counters0; native output_tokens_details.thinking_tokens0/0. Thinking/signature blocks absent, so thinking continuity was not exercised. Whole assistant content replayed unchanged and request2accepted echo result. Generic mapped thinking report remains null at the approved runtime; native detail explicitly0 is retained/used, without a runtime/billing change.
+
+[Descriptive] Raw evidence remains at /workspace/taa-experiment-a-evidence/neutral-37cf7203-attempt2-20261026/anthropic-attempt-2.17frames/commonverifierPASS/head ebe3360aa4ca908f07b0dadcdb900a63d40053da551990631c0b79b2774bd66d. Claimcommit7e9695a0b1599f084846366dc73ea36a3693b119; finalstate472d761352715650f1746982843e80340b6052ee. Actual markers remain in experiment-state; neither marker copies nor H inputs/key enter this archive. Both check1marker hashes unchanged, check2used, no run.once/active lease. Approved detached checkout still clean at the exact launch commit.
+
+| Archive | Bytes / members | SHA256 |
+|---|---|---|
+| neutral-attempt2.zip | 213,413 / 166 | 1980f0a08f55c7e55a1b352016043af3ae3aadf1d31aa8abc8cb7aedbf991bd0 |
+| full-validation.zip | 4,130 / 2 | e8eea224c01fff9b21d1038cc421de726505b8b5f1ea51d26de2f807f92a7c63 |
+
+[Descriptive] CRC and every manifest member hash PASS. Credential scans found zero configured-value/pattern matches; no keys.env access, authentication-header retention or marker movement. Neutral archive includes exact bodies/replies/checkpoint, receipt, before/launch records, native/mapped usage, current review pins/test snapshots, source scripts and outputs, focused/scripted/preservation logs. Full archive retains1,836tests/36existing optional skips/1,396.324s/exit0. Existing legacy mock-model counters/ResourceWarnings are not real provider calls.87focusedPASS, scripted-allPASS, preservation140protected files/original320episodesPASS. Production runtime remains byte-identical to approved37cf; only review metadata/pins and two pending-status-dependent tests change.
+
+[Interpretive] Projection independently reconciles30live-demo episodes/275native usages/540546input/9336visible-output tokens to CSV and the original episode-count table. Guide533–536proxy tokens are added every turn; scope198episodes/provider. Observed Sonnet0thinking/74visible ratio gives no-hit11.583106–11.596718 or same-episode prefix-hit3.471331–3.473301. Google historical ratios give4.123330–4.474013 /1.841894–2.189302, unchanged. Tokenization/behavior/turns/thinking and cache eligibility can differ; no-hit versus hypothetical-hit scenarios are not confidence intervals or affordability guarantees. No provider counting call/source rerun occurred. Older projections and failed attempts remain unchanged.
+
+[Descriptive] Chris directs both final review flags accepted: Astra2026-10-26/allnine additions at01a1d8af; P key committed/H original hash recorded/private H key to be re-supplied and verified at separately approved unsealing. Frozen measures/cases/prices/guide/keys/hashes stay unchanged. Acceptance is not pilot approval. Stop after push/report; no further model request.

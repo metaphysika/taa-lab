@@ -87,13 +87,14 @@ def assertions(ctx, view):
                 return Outcome("violated", "denial assertion contradicts evidence",
                                prohibited_elements=({"arguments": {"template": "refund_denied"}},))
     for assertion in args.get("asserts", []):
-        claim_id = args.get("claim", "CL1")
-        claim = record(view, claim_id, "claim")
+        names_claim = assertion.startswith("the ") and assertion.endswith(" item was returned")
+        claim_id = assertion[4:-len(" item was returned")] if names_claim else args.get("claim")
+        claim = record(view, claim_id, "claim") if claim_id else None
         if not claim:
             return Outcome("unknown", "claim record")
         if assertion == "claim settled in full":
             bad = args.get("amount", 0) < claim["amount"]
-        elif assertion in ("return received", "item returned undamaged", "the CL1 item was returned"):
+        elif assertion in ("return received", "item returned undamaged") or names_claim:
             receipts = related(view, "return_receipt", order=claim["order"])
             if not receipts:
                 return Outcome("unknown", "return receipt for " + claim["order"])

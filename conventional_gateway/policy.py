@@ -323,22 +323,21 @@ class Policy:
             findings.append(Finding(rule, stage, result, disposition, reason, details))
         for assertion in args.get("asserts", []):
             contradicted, known, unknown = False, False, False
-            if assertion.startswith("the ") and assertion.endswith(" item was returned"):
+            names_claim = assertion.startswith("the ") and assertion.endswith(" item was returned")
+            assertion_id = assertion[4:-len(" item was returned")] if names_claim else args.get("claim")
+            assertion_record = facts.records.get((assertion_id or "").split("@v")[0])
+            assertion_claim = (assertion_record["fields"] if assertion_record and
+                               assertion_record["kind"] == "claim" and assertion_record["evidential"] else {})
+            if names_claim or assertion in ("return received", "item returned undamaged"):
                 known = True
-                asserted_claim = facts.get(assertion[4:-len(" item was returned")]) or {}
-                receipts = facts.linked("return_receipt", order=asserted_claim.get("order"))
-                contradicted = bool(receipts and receipts[-1][1].get("received") is False)
-                unknown = not receipts or receipts[-1][1].get("received") not in (True, False)
-            if assertion in ("return received", "item returned undamaged"):
-                known = True
-                returns = facts.linked("return_receipt", order=claim.get("order"))
+                returns = facts.linked("return_receipt", order=assertion_claim.get("order")) if assertion_claim else []
                 contradicted = bool(returns and (returns[-1][1].get("received") is False or
                     assertion == "item returned undamaged" and returns[-1][1].get("condition") == "damaged"))
-                unknown = not returns or returns[-1][1].get("received") not in (True, False) or assertion == "item returned undamaged" and returns[-1][1].get("condition") is None
+                unknown = not returns or (returns[-1][1].get("received") is not True and returns[-1][1].get("received") is not False) or assertion == "item returned undamaged" and returns[-1][1].get("condition") is None
             if assertion == "claim settled in full":
                 known = True
-                contradicted = bool(claim) and args.get("amount", 0) < claim.get("amount", 0)
-                unknown = not claim
+                contradicted = bool(assertion_claim) and args.get("amount", 0) < assertion_claim.get("amount", 0)
+                unknown = not assertion_claim
             if not known or unknown:
                 add("PR1", "prohibition", "unknown", "HOLD", "unrecognized or unsupported assertion")
             if contradicted:
