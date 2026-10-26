@@ -15,7 +15,7 @@ from experiment_a import config, native
 
 RETRYABLE = frozenset((429, 500, 502, 503, 504))
 ENDPOINTS = {'anthropic': 'https://api.anthropic.com/v1/messages',
-             'google': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent'}
+             'google': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'}
 
 
 def authorized(provider, launch, commit, approval, *, neutral=False):

@@ -1,5 +1,6 @@
-"""Shared $25 step cap; independently pinned Anthropic $25 / Google $8 stops."""
+"""Shared $25 step cap; Anthropic $25 / Google $15 provider stops for this step."""
 from decimal import Decimal
+from datetime import date
 import json
 import os
 from pathlib import Path
@@ -41,6 +42,13 @@ class Budget:
         self.prices = prices if prices is not None else config.load('prices.json')[provider]
         if self.prices.get('status') != 'verified':
             raise Stop('prices_unverified')
+        expires = self.prices.get('valid_until')
+        if expires is not None:
+            try:
+                if date.today() > date.fromisoformat(expires):
+                    raise Stop('prices_unverified')
+            except (TypeError, ValueError):
+                raise Stop('prices_unverified') from None
         if type(self.prices.get('context_window_tokens')) is not int or self.prices['context_window_tokens'] < 1:
             raise Stop('prices_unverified')
         self.rates = {k: amount(v) for k, v in self.prices['rates'].items()}

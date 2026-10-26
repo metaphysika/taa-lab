@@ -474,3 +474,6 @@ stage budgets, with merged weights excluded under the original test.
 [Descriptive] Experiment A offline v0.1 adds native Anthropic/Gemini infrastructure, the approved v0.2 policy guide and P case encodings, with H sealed outside the runner. No model launch is approved; prices and independent review gates remain pending. See [offline build and encoding](docs/process/TAA_EXPERIMENT_A_OFFLINE_v01.md).
 
 [Descriptive] Assertion-binding policy repair v0.1.1 uses a claim explicitly named in recognized assertion wording, otherwise the act's claim argument, without a CL1 default or fixed receipt lookup. The corrected ruling, synthetic regressions and verification are in [the assertion-binding supplement](docs/process/TAA_EXPERIMENT_A_ASSERTION_BINDING_v02.md).
+# Experiment A offline update v0.1.2
+
+[Descriptive] The [2026-10-26 owner-approved update](docs/process/TAA_EXPERIMENT_A_PROVIDER_UPDATE_v012.md) selects Gemini 3.8 Flash, enables Anthropic 5-minute prompt caching identically across arms, pins the rendered prompt and $25 step / $25 Anthropic / $15 Google stops, and records verified provider prices. H stays sealed outside model run paths. This is not launch approval.

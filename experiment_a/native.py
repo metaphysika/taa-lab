@@ -20,7 +20,13 @@ def body(provider, system, tools, history):
         messages = []
         for event in history:
             if event['kind'] == 'user':
-                messages.append(dict(role='user', content=event['text']))
+                content = event['text']
+                if not messages:
+                    # The initial brief is the stable conversation prefix. Three
+                    # 5m breakpoints total; never annotate signed assistant blocks.
+                    content = [dict(type='text', text=content,
+                                    cache_control=dict(type='ephemeral'))]
+                messages.append(dict(role='user', content=content))
             elif event['kind'] == 'assistant':
                 messages.append(deepcopy(event['native']))
             elif event['kind'] == 'tool_results':
@@ -28,9 +34,14 @@ def body(provider, system, tools, history):
                     tool_use_id=r['id'], content=encoded(r['result']).decode()) for r in event['results']]))
             else:
                 raise Stop('unknown_history')
-        return dict(model=config.MODELS[provider], system=system, messages=messages,
-                    tools=[dict(name=t['name'], description=t['description'],
-                                input_schema=deepcopy(t['parameters'])) for t in tools],
+        definitions = [dict(name=t['name'], description=t['description'],
+                            input_schema=deepcopy(t['parameters'])) for t in tools]
+        if definitions:
+            # A breakpoint on the last tool caches the whole definitions prefix.
+            definitions[-1]['cache_control'] = dict(type='ephemeral')
+        return dict(model=config.MODELS[provider],
+                    system=[dict(type='text', text=system, cache_control=dict(type='ephemeral'))],
+                    messages=messages, tools=definitions,
                     max_tokens=config.OUTPUT_TOKENS[provider])
     if provider == 'google':
         contents = []
@@ -44,8 +55,11 @@ def body(provider, system, tools, history):
                 parts = []
                 for r in event['results']:
                     response = dict(name=r['name'], response=deepcopy(r['result']))
-                    if r.get('native_id') is not None:
-                        response['id'] = r['native_id']
+                    if type(r.get('native_id')) is not str or not r['native_id']:
+                        raise Stop('unknown_history')
+                    # Migration notes call this call_id. generateContent's REST
+                    # FunctionResponse schema spells the wire field "id".
+                    response['id'] = r['native_id']
                     parts.append(dict(functionResponse=response))
                 contents.append(dict(role='user', parts=parts))
             else:
@@ -148,15 +162,18 @@ def parse(provider, reply, turn):
                 raise Stop('unknown_output')
             if 'thought' in part and type(part['thought']) is not bool:
                 raise Stop('unknown_output')
+            if set(part) == {'thoughtSignature'} and part['thoughtSignature']:
+                # Metadata-only parts are opaque history, not executable output.
+                continue
             if ('text' in part) == ('functionCall' in part):
                 raise Stop('unknown_output')
             if 'functionCall' in part:
                 call = part['functionCall']
                 if (type(call) is not dict or type(call.get('name')) is not str or not call['name'] or
                         type(call.get('args')) is not dict or
-                        ('id' in call and (type(call['id']) is not str or not call['id']))):
+                        type(call.get('id')) is not str or not call['id']):
                     raise Stop('unknown_output')
-                calls.append(dict(id=call.get('id', 'turn-%d-call-%d' % (turn, i)), native_id=call.get('id'),
+                calls.append(dict(id=call['id'], native_id=call['id'],
                                   name=call['name'], args=deepcopy(call['args'])))
             elif type(part['text']) is not str:
                 raise Stop('unknown_output')

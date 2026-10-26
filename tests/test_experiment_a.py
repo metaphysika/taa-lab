@@ -62,7 +62,8 @@ class Offline(unittest.TestCase):
         e=Evidence(self.root/'blocked');p=e.directory/'p.json';p.write_text('{"estimated_api_dollars":0}')
         s=e.directory/'s.txt';s.write_text('0')
         for provider in config.MODELS:
-            with self.assertRaisesRegex(Stop,'prices_unverified'):Budget(provider,p,s,e)
+            unverified=deepcopy(config.load('prices.json')[provider]);unverified['status']='verify before launch'
+            with self.assertRaisesRegex(Stop,'prices_unverified'):Budget(provider,p,s,e,prices=unverified)
         with self.assertRaisesRegex(Stop,'experiment_review_pending'):config.launch_ready()
 
     def test_exact_allowlists(self):

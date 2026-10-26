@@ -12,7 +12,7 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install -r requirements-gateway.txt
       - name: Native protocols, persistent guards, P twins and cross-arm request equality
-        run: sudo unshare --net "$(command -v python)" -m unittest tests.test_experiment_a tests.test_experiment_a_guards -v
+        run: sudo unshare --net "$(command -v python)" -m unittest tests.test_experiment_a tests.test_experiment_a_guards tests.test_experiment_a_provider_update -v
       - name: Claim-bound assertion rules across reference, core, MCP, SQL and oracle
         run: sudo unshare --net "$(command -v python)" -m unittest tests.test_assertion_binding -v
       - uses: actions/checkout@v4

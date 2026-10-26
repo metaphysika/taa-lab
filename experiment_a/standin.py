@@ -12,7 +12,7 @@ def reply(provider, *, name=None, args=None, text='Done.', ceiling=False, thinki
                     stop_reason='max_tokens' if ceiling else 'tool_use' if name else 'end_turn',
                     usage=dict(input_tokens=20, output_tokens=10, cache_read_input_tokens=0, cache_creation_input_tokens=0))
     parts = [dict(text='Canned protocol fixture.', thought=True, thoughtSignature='canned-thought-signature')] if thinking else []
-    parts += ([dict(functionCall=dict(name=name, args=args), thoughtSignature='canned-call-signature')] if name else [dict(text=text)])
+    parts += ([dict(functionCall=dict(id='canned-call', name=name, args=args), thoughtSignature='canned-call-signature')] if name else [dict(text=text)])
     return dict(modelVersion=config.MODELS[provider], candidates=[dict(content=dict(role='model', parts=parts),
                 finishReason='MAX_TOKENS' if ceiling else 'STOP')],
                 usageMetadata=dict(promptTokenCount=20, candidatesTokenCount=7, thoughtsTokenCount=3, totalTokenCount=30))
