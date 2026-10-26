@@ -199,6 +199,44 @@ class GitState(unittest.TestCase):
                 transport.assert_not_called()
             self.assertEqual(0,self.remote_amount('step-budget.txt'))
 
+    def test_published_push_with_lost_acknowledgement_continues_without_repush(self):
+        state=self.state();original=state._git;pushes=[]
+        def lose_ack(*args,**kwargs):
+            result=original(*args,**kwargs)
+            if args[0]=='push':
+                pushes.append(args)
+                self.assertFalse(any(arg.startswith('--force') for arg in args))
+                raise Stop('state_git_failure')
+            return result
+        with patch.object(state,'_git',side_effect=lose_ack):
+            with state.locked(self.root/'out'):
+                state.claim_check('anthropic',self.approval(),self.root/'out')
+                adapter=self.adapter(state)
+                with patch('experiment_a.adapter.authorized'),patch('experiment_a.adapter.http',return_value=encoded(reply('anthropic'))) as transport:
+                    adapter.respond([dict(kind='user',text='synthetic')],{},1)
+                    adapter.respond([dict(kind='user',text='synthetic')],{},2)
+                    self.assertEqual(2,transport.call_count)
+                    self.assertEqual(adapter.budget.read_provider(),self.remote_amount('ledgers/claude.json'))
+        self.assertFalse(state.failed)
+        self.assertEqual(7,len(pushes)) # lease, claim, two reserve/settle, release
+
+    def test_post_push_confirmation_failure_recovers_only_exact_commit(self):
+        state=self.state();original=state._git;fail_fetch=[False];pushes=[]
+        def confirmation(*args,**kwargs):
+            if args[0]=='fetch' and fail_fetch[0]:
+                fail_fetch[0]=False
+                raise Stop('state_git_failure')
+            result=original(*args,**kwargs)
+            if args[0]=='push':
+                pushes.append(args);fail_fetch[0]=True
+            return result
+        with patch.object(state,'_git',side_effect=confirmation):
+            with state.locked(self.root/'out'):
+                state.claim_check('anthropic',self.approval(),self.root/'out')
+        self.assertFalse(state.failed)
+        self.assertEqual(3,len(pushes))
+        self.assertEqual(state.base,self.fixture.git('rev-parse','experiment-state',cwd=self.fixture.remote))
+
     def test_remote_tip_race_rejects_reservation_push_before_request(self):
         state=self.state()
         with state.locked(self.root/'out'):

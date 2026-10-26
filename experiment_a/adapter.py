@@ -39,6 +39,14 @@ def authorized(provider, launch, commit, approval, *, neutral=False):
                 any(type(v) is not str or not v for v in returned.values())):
             raise Stop('launch_not_approved')
         expected.update(model_returned=returned)
+        if 'continuation' in approval:
+            number, checkpoints, start = (approval.get(k) for k in ('continuation','source_checkpoints','start_index'))
+            if (type(number) is not int or number < 1 or type(checkpoints) is not list or
+                    len(checkpoints) != number or len(set(x for x in checkpoints if type(x) is str)) != number or
+                    any(type(x) is not str or not re.fullmatch('[0-9a-f]{64}',x) for x in checkpoints) or
+                    type(start) is not int or not 0 < start < len(config.schedule())):
+                raise Stop('launch_not_approved')
+            expected.update(continuation=number, source_checkpoints=checkpoints, start_index=start)
     if approval != expected or approval.get('launch_approved') is not True:
         raise Stop('launch_not_approved')
     config.verify()
