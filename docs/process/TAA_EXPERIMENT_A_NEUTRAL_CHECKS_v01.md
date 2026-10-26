@@ -1,6 +1,6 @@
 # [Descriptive] Experiment A neutral attempts 1 — approved 7ec90c71
 
-[Descriptive] Chris approved one two-request neutral check per provider on 2026-10-26 at exact commit 7ec90c71811acc54f92508e3995fc2c67bac6639. Both ran once from a clean detached checkout, using only configured key variables and canonical shared accounting. The durable directory previously contained only sealed H; its operational manifest and zero Experiment A step ledger were initialized without resetting provider ledgers. This is not pilot approval. No retry or further provider request followed either result.
+[Descriptive] Chris approved one two-request neutral check per provider on 2026-10-26 at exact commit 7ec90c71811acc54f92508e3995fc2c67bac6639. Both ran once from a clean detached checkout, using only configured key variables and canonical shared accounting. The durable directory previously contained only sealed H; its operational manifest and zero Experiment A step ledger were initialized without resetting provider ledgers. This is not pilot approval. Neither provider was retried. The independently approved Google check followed Anthropic's stop; no further provider requests followed the pair.
 
 | Provider | Before cumulative | Stop | Requests/replies | Returned model | After cumulative |
 |---|---:|---|---:|---|---:|
