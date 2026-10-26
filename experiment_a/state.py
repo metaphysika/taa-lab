@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 import uuid
 
 from live_demo.adapter import Stop
@@ -29,11 +30,13 @@ def allowed(name):
 
 
 class State:
-    def __init__(self, root=None, *, run_root=None):
+    def __init__(self, root=None, *, run_root=None, sleeper=None):
         self.root = Path(root or os.environ.get('TAA_EXPERIMENT_STATE_WORKTREE', STATE_ROOT)).resolve()
         self.run_root = Path(run_root or RUN_ROOT).resolve()
         self.lease, self.failed, self.base = None, False, None
         self.continuation_guard = None
+        self.evidence = None
+        self.sleeper = time.sleep if sleeper is None else sleeper
         try:
             if (self.root.is_relative_to(self.run_root) or self.run_root.is_relative_to(self.root)
                     or not (self.root / '.git').is_file()):
@@ -116,6 +119,38 @@ class State:
         self.require_current()
         self.require_lease()
 
+    def confirm_publication(self, commit):
+        """Three delayed observations, never a second push or a guessed success."""
+        if self.evidence is None:
+            # Recovery cannot proceed without a durable record of each attempt.
+            raise Stop('state_publication_failed')
+        for attempt, delay in enumerate((10, 30, 60), 1):
+            fields = dict(commit=commit, attempt=attempt, delay_seconds=delay)
+            self.evidence.write('state_confirmation_wait', fields)
+            self.sleeper(delay)
+            try:
+                self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + BRANCH)
+                remote = self._git('rev-parse', 'FETCH_HEAD')
+            except Stop:
+                self.evidence.write('state_confirmation', dict(fields, outcome='unavailable'))
+                continue
+            if remote != commit:
+                self.evidence.write('state_confirmation', dict(fields, outcome='different_tip'))
+                raise Stop('state_publication_failed')
+            try:
+                if self._git('status', '--porcelain', '--untracked-files=all'):
+                    raise Stop('state_worktree_dirty')
+                if self._git('rev-parse', 'HEAD') != commit:
+                    raise Stop('state_worktree_stale')
+                self.validate_files()
+            except (Stop, OSError, ValueError, KeyError, TypeError, InvalidOperation):
+                self.evidence.write('state_confirmation', dict(fields, outcome='local_guard_stop'))
+                raise Stop('state_publication_failed') from None
+            self.evidence.write('state_confirmation', dict(fields, outcome='exact_commit'))
+            self.base = commit
+            return
+        raise Stop('state_publication_failed')
+
     def publish(self, description, paths):
         """Publish one fixed direct child; recover only an exact remote acknowledgement."""
         if self.failed or self.base is None:
@@ -146,16 +181,21 @@ class State:
                 self.require_current()
                 if self.base != commit:
                     raise Stop('state_publication_failed')
-            except Stop:
-                # One read-only confirmation, never another push. A server can
-                # accept a commit even when its acknowledgement is lost.
-                self.require_current()
-                if self.base != commit:
-                    raise Stop('state_publication_failed')
-        except Stop:
+            except Stop as error:
+                if error.reason != 'state_git_failure':
+                    # A successfully observed different tip, or a local guard,
+                    # is final; do not wait in hope it will change back.
+                    if self.evidence is not None:
+                        self.evidence.write('state_confirmation', dict(commit=commit,
+                            attempt=0, delay_seconds=0, outcome='guard_stop', reason=error.reason))
+                    raise
+                self.confirm_publication(commit)
+        except BaseException as error:
             # Preserve dirty files/ahead commits and any remote lease. No rollback.
             self.failed = True
-            raise Stop('state_publication_failed') from None
+            if isinstance(error, (Stop, OSError)):
+                raise Stop('state_publication_failed') from None
+            raise
 
     def _write(self, path, payload):
         with path.open('xb') as stream:

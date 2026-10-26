@@ -6,7 +6,7 @@ from pathlib import Path
 import socket
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from experiment_a import config
 from experiment_a.adapter import Adapter
@@ -17,7 +17,7 @@ from experiment_a.driver import program
 from experiment_a.state import State
 from experiment_a.standin import reply
 from live_demo.adapter import Stop
-from live_demo.evidence import Evidence, encoded
+from live_demo.evidence import Evidence, encoded, verify
 from tests.experiment_state_support import GitStateFixture
 
 
@@ -27,10 +27,13 @@ class GitState(unittest.TestCase):
         self.root=Path(self.temp.name)
         self.network=patch.object(socket,'socket',side_effect=AssertionError('network forbidden'))
         self.network.start();self.addCleanup(self.network.stop)
+        self.sleeper=Mock()
         self.fixture=GitStateFixture(self.root/'fixture')
 
     def state(self, root=None):
-        return State(root or self.fixture.state,run_root=self.fixture.repo)
+        state=State(root or self.fixture.state,run_root=self.fixture.repo,sleeper=self.sleeper)
+        state.evidence=Evidence(self.root/('state-evidence-%d'%len(list(self.root.glob('state-evidence-*')))))
+        return state
 
     def approval(self):
         return dict(owner='Chris',commit='a'*40,step=config.STEP,launch_approved=True,
@@ -255,6 +258,97 @@ class GitState(unittest.TestCase):
                     adapter.respond([dict(kind='user',text='synthetic')],{},1)
                 transport.assert_not_called()
             self.assertEqual(0,self.remote_amount('step-budget.txt'))
+
+    def confirmation_events(self,state):
+        return [json.loads(p.read_bytes())['value'] for p in sorted(state.evidence.directory.glob('[0-9]*.json'))
+                if json.loads(p.read_bytes())['kind']=='state_confirmation']
+
+    def test_confirmation_success_on_second_observation_records_both_attempts(self):
+        state=self.state();original=state._git;pushes=[];pending=[0]
+        with state.locked(self.root/'out'):
+            def transient(*args,**kwargs):
+                if args[0]=='fetch' and pending[0]:
+                    pending[0]-=1;raise Stop('state_git_failure')
+                result=original(*args,**kwargs)
+                if args[0]=='push':
+                    pushes.append(args);pending[0]=1;raise Stop('state_git_failure')
+                return result
+            with patch.object(state,'_git',side_effect=transient):
+                state.claim_check('anthropic',self.approval(),self.root/'out')
+            self.assertEqual(1,len(pushes))
+            self.assertEqual([10,30],[c.args[0] for c in self.sleeper.call_args_list])
+            events=self.confirmation_events(state)
+            self.assertEqual([(1,'unavailable'),(2,'exact_commit')],[(v['attempt'],v['outcome']) for v in events])
+            self.assertEqual(events[0]['commit'],events[1]['commit'])
+            self.assertEqual(events[1]['commit'],self.fixture.git('rev-parse','experiment-state',cwd=self.fixture.remote))
+        state.evidence.close({'fixture':'second confirmation'});verify(state.evidence.directory)
+
+    def test_confirmation_different_tip_stops_immediately_without_second_push(self):
+        state=self.state();original=state._git;pushes=[]
+        with state.locked(self.root/'out'):
+            def rejected(*args,**kwargs):
+                if args[0]=='push':
+                    pushes.append(args);raise Stop('state_git_failure')
+                return original(*args,**kwargs)
+            with patch.object(state,'_git',side_effect=rejected),patch('experiment_a.adapter.http') as transport:
+                with self.assertRaisesRegex(Stop,'state_publication_failed'):
+                    state.claim_check('anthropic',self.approval(),self.root/'out')
+                transport.assert_not_called()
+        self.assertEqual(1,len(pushes))
+        self.assertEqual([10],[c.args[0] for c in self.sleeper.call_args_list])
+        self.assertEqual([(1,'different_tip')],[(v['attempt'],v['outcome']) for v in self.confirmation_events(state)])
+        self.assertTrue((state.root/'active-run.json').exists())
+        state.evidence.close({'fixture':'different tip'});verify(state.evidence.directory)
+
+    def test_three_unavailable_confirmations_stop_and_preserve_attempts(self):
+        state=self.state();original=state._git;pushes=[];failed_push=[False]
+        with state.locked(self.root/'out'):
+            def unavailable(*args,**kwargs):
+                if args[0]=='push':
+                    pushes.append(args);failed_push[0]=True;raise Stop('state_git_failure')
+                if args[0]=='fetch' and failed_push[0]:raise Stop('state_git_failure')
+                return original(*args,**kwargs)
+            with patch.object(state,'_git',side_effect=unavailable),patch('experiment_a.adapter.http') as transport:
+                with self.assertRaisesRegex(Stop,'state_publication_failed'):
+                    state.claim_check('anthropic',self.approval(),self.root/'out')
+                transport.assert_not_called()
+        self.assertEqual(1,len(pushes))
+        self.assertEqual([10,30,60],[c.args[0] for c in self.sleeper.call_args_list])
+        self.assertEqual([(n,'unavailable') for n in (1,2,3)],[(v['attempt'],v['outcome']) for v in self.confirmation_events(state)])
+        self.assertTrue(state.failed)
+        self.assertTrue((state.root/'active-run.json').exists())
+        state.evidence.close({'fixture':'three failed confirmations'});verify(state.evidence.directory)
+
+    def test_confirmation_evidence_write_failure_stops_before_observation(self):
+        state=self.state();original=state._git;pushes=[]
+        with state.locked(self.root/'out'):
+            def rejected(*args,**kwargs):
+                if args[0]=='push':
+                    pushes.append(args);raise Stop('state_git_failure')
+                return original(*args,**kwargs)
+            with patch.object(state,'_git',side_effect=rejected),patch.object(state.evidence,'write',side_effect=OSError('withheld')),patch('experiment_a.adapter.http') as transport:
+                with self.assertRaisesRegex(Stop,'state_publication_failed'):
+                    state.claim_check('anthropic',self.approval(),self.root/'out')
+                transport.assert_not_called()
+        self.assertEqual(1,len(pushes))
+        self.sleeper.assert_not_called()
+        self.assertTrue(state.failed)
+        self.assertTrue((state.root/'active-run.json').exists())
+
+    def test_interrupted_confirmation_preserves_lease_without_cleanup_push(self):
+        state=self.state();original=state._git;pushes=[]
+        with self.assertRaises(KeyboardInterrupt):
+            with state.locked(self.root/'out'):
+                def rejected(*args,**kwargs):
+                    if args[0]=='push':
+                        pushes.append(args);raise Stop('state_git_failure')
+                    return original(*args,**kwargs)
+                with patch.object(state,'_git',side_effect=rejected),patch.object(state,'sleeper',side_effect=KeyboardInterrupt):
+                    state.claim_check('anthropic',self.approval(),self.root/'out')
+        self.assertEqual(1,len(pushes))
+        self.assertTrue(state.failed)
+        self.assertTrue((state.root/'active-run.json').exists())
+        state.evidence.close({'fixture':'interrupted confirmation'});verify(state.evidence.directory)
 
     def test_live_adapter_cannot_use_an_unpublished_fixture_budget(self):
         state=self.state()

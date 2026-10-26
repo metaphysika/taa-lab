@@ -42,6 +42,8 @@ def run(provider, output, *, launch=False, approved_commit=None, approval=None):
     elif approved_commit or approval:
         raise Stop('approval_supplied_without_launch')
     evidence = Evidence(output)
+    if launch:
+        state.evidence = evidence
     evidence.write('neutral_check', dict(provider=provider, mode='live' if launch else 'CANNED ENGINEERING ONLY',
         instruction=INSTRUCTION, tools=TOOLS, pins=config.verify()))
     adapter = None

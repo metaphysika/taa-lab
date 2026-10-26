@@ -33,6 +33,8 @@ def run(output, *, launch=False, approved_commit=None, approval=None, continue_f
     elif approved_commit or approval:
         raise Stop('approval_supplied_without_launch')
     evidence=Evidence(output)
+    if launch:
+        state.evidence=evidence
     schedule=config.load('pilot-order.json')
     evidence.write('run',dict(mode='live' if launch else 'CANNED ENGINEERING ONLY',pins=config.verify(),
                              schedule=schedule,measures=config.load('measures.json'),approved_commit=approved_commit,
