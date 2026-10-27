@@ -487,3 +487,6 @@ stage budgets, with merged weights excluded under the original test.
 [Descriptive] The [2026-10-26 owner-approved update](docs/process/TAA_EXPERIMENT_A_PROVIDER_UPDATE_v012.md) selects Gemini 3.8 Flash, enables Anthropic 5-minute prompt caching identically across arms, pins the rendered prompt and $25 step / $25 Anthropic / $15 Google stops, and records verified provider prices. H stays sealed outside model run paths. This is not launch approval.
 
 [Descriptive] [Experiment A neutral checks and live-usage cost projection](docs/process/TAA_EXPERIMENT_A_NEUTRAL_CHECKS_v01.md): Google attempt1 completes; Anthropic attempt1 stops401 with reservation retained. No retry/pilot. Astra P key is public, H key stays sealed; blind-key/measures reviews remain pending.
+
+
+[Descriptive] Experiment A continuation 2 is closed with guard stop `executor_outage`; it is not running and must never be resumed. The retained evidence and accounting verified without new provider requests. See [the status and closure report](docs/process/TAA_EXPERIMENT_A_CONTINUATION2_OUTAGE_v01.md). PR #41 remains draft and unmerged for review.
