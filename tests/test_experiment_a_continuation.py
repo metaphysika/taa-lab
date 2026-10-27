@@ -40,7 +40,7 @@ class ContinuationTests(unittest.TestCase):
         ):
             context.start();self.addCleanup(context.stop)
 
-    def state(self):return State(self.fixture.state,run_root=self.fixture.repo)
+    def state(self, **kwargs):return State(self.fixture.state,run_root=self.fixture.repo,sleeper=lambda seconds:None,**kwargs)
 
     def approval(self, number=None, sources=None, start=None):
         a=dict(owner='Chris',commit='a'*40,step=config.STEP,launch_approved=True,model_returned=dict(config.MODELS))
@@ -112,11 +112,80 @@ class ContinuationTests(unittest.TestCase):
                 run(self.root/'repeat-first',launch=True,approved_commit='a'*40,approval=a,continue_from=[source],continuation=1)
             transport.assert_not_called()
         second_approval=self.approval(2,[source,first],3)
-        with patch('experiment_a.adapter.http',side_effect=lambda p,b:encoded(reply(p))) as transport:
+        binding=dict(commit=state._git('rev-parse','HEAD'),parent=state._git('rev-parse','HEAD^'),checkpoint=verify(first)['head'],start_index=3,provider='anthropic')
+        with patch('experiment_a.continuation.STRANDED_SETTLEMENT',binding),patch('experiment_a.adapter.http',side_effect=lambda p,b:encoded(reply(p))) as transport:
             result=run(self.root/'second',launch=True,approved_commit='a'*40,approval=second_approval,continue_from=[source,first],continuation=2)
         self.assertEqual([self.schedule[3]],[r['spec'] for r in result['episodes']])
         self.assertEqual(1,transport.call_count)
         self.assertTrue((self.fixture.state/'continuation-000002.once').exists())
+
+    def stranded_sources(self):
+        # Engineering-only replies over the exact first 56 schedule indices.
+        # Stops bind index22 and index53; neither outcome is scientifically scored.
+        self.schedule[:] = self.original_load('pilot-order.json')[:56]
+        state=self.state();original_publish=state.publish;calls=[]
+        def first_stop(description,paths):
+            original_publish(description,paths)
+            if len(calls)==23 and description.startswith('settlement '):
+                state.failed=True;raise Stop('state_publication_failed')
+        def canned(provider,body):calls.append(provider);return encoded(reply(provider))
+        source=self.root/'source-23'
+        with patch('experiment_a.run.State',return_value=state),patch.object(state,'publish',side_effect=first_stop),patch('experiment_a.adapter.http',side_effect=canned):
+            result=run(source,launch=True,approved_commit='a'*40,approval=self.approval())
+        self.assertEqual(23,len(result['episodes']))
+        state=self.state();git=state._git;calls.clear();blocked=[]
+        def strand(*args,**kwargs):
+            if args[0]=='push' and len(calls)==31 and git('log','-1','--format=%s')=='Experiment A: settlement google':
+                blocked.append(args);raise Stop('state_git_failure')
+            return git(*args,**kwargs)
+        first=self.root/'source-54'
+        with patch('experiment_a.run.State',return_value=state),patch.object(state,'_git',side_effect=strand),patch('experiment_a.adapter.http',side_effect=canned):
+            result=run(first,launch=True,approved_commit='a'*40,approval=self.approval(1,[source],23),continue_from=[source],continuation=1)
+        self.assertEqual(31,len(result['episodes']));self.assertEqual(4,len(blocked))
+        self.assertEqual(self.schedule[53],result['episodes'][-1]['spec'])
+        self.assertEqual('state_publication_failed',result['episodes'][-1]['stop'])
+        commit=git('rev-parse','HEAD');parent=git('rev-parse',commit+'^')
+        self.assertEqual(parent,self.fixture.git('rev-parse','experiment-state',cwd=self.fixture.remote))
+        binding=dict(commit=commit,parent=parent,checkpoint=verify(first)['head'],start_index=54,provider='google')
+        return [source,first],binding
+
+    def test_stranded_settlement_published_before_request_and_index53_never_repeated(self):
+        sources,binding=self.stranded_sources()
+        hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for root in sources for p in root.rglob('*.json')}
+        observed=[]
+        def transport(provider,body):
+            remote=self.fixture.git('rev-parse','experiment-state',cwd=self.fixture.remote)
+            self.assertEqual(0,__import__('subprocess').run(['git','-C',str(self.fixture.remote),'merge-base','--is-ancestor',binding['commit'],remote],capture_output=True).returncode)
+            self.assertEqual(self.fixture.git('show',remote+':step-budget.txt',cwd=self.fixture.remote),(self.fixture.state/'step-budget.txt').read_text().strip())
+            observed.append(provider);return encoded(reply(provider))
+        out=self.root/'second'
+        with patch('experiment_a.continuation.STRANDED_SETTLEMENT',binding),patch('experiment_a.adapter.http',side_effect=transport):
+            report=run(out,launch=True,approved_commit='a'*40,approval=self.approval(2,sources,54),continue_from=sources,continuation=2)
+        self.assertEqual('complete',report['stop']);self.assertEqual(2,len(observed))
+        self.assertEqual(self.schedule[54:],[r['spec'] for r in report['episodes']])
+        self.assertEqual(hashes,{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for root in sources for p in root.rglob('*.json')})
+        fs=[json.loads(p.read_bytes()) for p in sorted(out.glob('[0-9]*.json'))]
+        settled=next(i for i,f in enumerate(fs) if f['kind']=='state_confirmation' and f['value']['outcome']=='exact_commit')
+        request=next(i for i,f in enumerate(fs) if f['kind']=='request')
+        self.assertLess(settled,request)
+        self.assertEqual([binding['commit']],[f['value']['commit'] for f in fs if f['kind']=='state_repush'])
+        self.assertTrue((self.fixture.state/'continuation-000002.once').exists());verify(out)
+
+    def test_stranded_foreign_tip_refuses_without_push_or_request(self):
+        sources,binding=self.stranded_sources();second=self.fixture.second()
+        (second/'reconstruction.json').write_text('{"fixture":"foreign"}\n')
+        self.fixture.git('add','reconstruction.json',cwd=second);self.fixture.git('commit','-m','Foreign fixture writer',cwd=second)
+        self.fixture.git('push','origin','HEAD:refs/heads/experiment-state',cwd=second)
+        original=State._git;pushes=[]
+        def observed(state,*args,**kwargs):
+            if args[0]=='push':pushes.append(args)
+            return original(state,*args,**kwargs)
+        with patch('experiment_a.continuation.STRANDED_SETTLEMENT',binding),patch.object(State,'_git',observed),patch('experiment_a.adapter.http') as transport:
+            with self.assertRaisesRegex(Stop,'state_publication_failed'):
+                run(self.root/'bad-second',launch=True,approved_commit='a'*40,approval=self.approval(2,sources,54),continue_from=sources,continuation=2)
+            transport.assert_not_called()
+        self.assertEqual([],pushes)
+        self.assertFalse((self.fixture.state/'continuation-000002.once').exists())
 
     def test_source_tampering_after_one_new_reply_blocks_next_request(self):
         source,_=self.source();calls=[]
