@@ -1,0 +1,47 @@
+# Experiment A operational revision v0.4
+
+[Descriptive] Chris (2026-10-26) accepts Claude's review that the stopped pilot's publication guard behaved correctly and authorizes this offline repair. No model request, continuation launch, H access, marker cleanup or accounting adjustment is authorized. The results-only [PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains unmerged pending Claude and Astra's review of the completed pilot. This implementation is a separate PR.
+
+[Descriptive] The approved pilot at `b871cee50ef87e4d4b7c629653401daf302872d7` stopped with `state_publication_failed` during P10/taa/Anthropic repeat 1, after receiving its first reply and recording its usage, before parsing/executing its proposed calls. There are 22 complete episodes, one stopped episode and 373 untouched cells. In the retained schedule the stopped episode is index **22** (23rd episode); the next untouched episode is index **23** (24th), **P10/taa/Google repeat 1**. Cursor derivation uses the actual schedule and retained rows, not the episode number in a review message.
+
+[Descriptive] Original evidence root: `/workspace/taa-experiment-a-evidence/pilot-b871cee5-20261026/pilot`; checkpoint `e93bf0e39fd5c00bc2ee0438e9504a5597578b0dff0de36484cf5781543bfc05`. Pilot claim `587c720f834b29567ffbcea5eb0972b9a1d40cec` stays used. The final settlement `dd3b118d5f929cac9c0b7b8b1ea56546738d947e` was independently observed on origin with matching local ledger bytes. Anthropic total `6.479043849999988`, Google `4.1960106250000046`, step `1.200963875`; the old 401 reserve remains. No operational state file is changed by this offline task.
+
+[Descriptive] Cause analysis is bounded: the sanitized old publisher does not retain which Git operation failed, so the precise transport/acknowledgement failure is unknown. It could report publication failure even when origin accepted the exact settlement. The exception interrupted in-memory counter updates, leaving raw Sonnet phase cost higher by `0.4325771` and omitting the last reply's token counters. Retained native usage and the committed ledger agree. The original reply, guard-stop row, raw counters and all evidence remain unchanged; no request is repeated to diagnose this.
+
+[Descriptive] Publication now uses a normal fast-forward push of the exact validated direct-child commit; no force option is used. If the push or confirmation raises a stop, the publisher makes up to three read-only fetch-and-compare confirmations, waiting 10, 30 and 60 seconds before them. Each wait and result is recorded in the run evidence. A fetched different tip stops immediately; an unavailable observation permits the next delayed confirmation. It continues only if the clean local checkout and origin both equal that exact new commit. Three unavailable confirmations, dirty/ahead state or a concurrent foreign commit remain hard stops with the failed evidence and lease retained. The normal post-push observation also stops immediately on a known different tip. Recovery requires a durable evidence journal, attached before lease publication by both live CLIs; evidence-write failure or interruption preserves the lease without a cleanup push. It never re-pushes on confirmation failure, rewrites origin, resets an ahead commit, or substitutes a different commit. Once exact publication is confirmed, the existing budget update completes and the received reply is processed once.
+
+[Descriptive] A continuation is a new output directory and a new, separately approved numbered marker, `continuation-000001.once`. It does not reuse or move `run.once`. Its receipt binds the new exact code commit, ordinal, ordered source checkpoint hashes, derived zero-based start index, unchanged models and step. The second continuation needs ordinal 2, both prior roots, and a new receipt; the first receipt cannot authorize it. CLI does not offer a cursor override or an in-place resume. A supplied receipt cursor must equal the derived first untouched index, or the run refuses.
+
+[Descriptive] Before claiming and before every physical request, continuation validation re-reads every prior root and every completed/stopped child chain. Root summaries must exactly match child `episode_end` rows, all attempted specs must form one contiguous prefix of the committed order, and unreported touched child directories are rejected. New roots retain their original schedule indices. Previously completed or stopped indices cannot be selected again. Input pins, measures and order must match the committed specifications. The stopped Sonnet episode remains a guard stop and follows the existing incomplete-episode rule; no call, oracle result or scientific score is reconstructed or changed.
+
+[Descriptive] Accounting validation starts from the immutable state commit immediately before the original pilot claim, preserving all previous spend and reserves. It verifies each retained reservation/settlement against the linked ledger deltas, validates native usage and frozen-price arithmetic for settlements, includes unsettled reservations, and requires exact provider/step equality with current durable state. It uses journal transactions, not the interrupted phase counters. Before requests it includes the current continuation journal and re-verifies newly completed child chains too. The original transport retry-needed counter carries forward: partial replies and non-retryable statuses stop before incrementing, exactly as in the existing adapter; eligible first-attempt failures increment once. Caps and provider-default reasoning remain unchanged.
+
+[Descriptive] Only a future approved continuation, under the common repository flock and after successful provenance/accounting validation, may supersede a retained lease. The old lease must match the prior used marker's lease, step and output-path hash. Its bytes remain in state Git history; all once markers remain. The new lease and continuation claim are published before reservation/provider use. There is no standalone cleanup command. A direct Adapter cannot bypass continuation verification or reuse an earlier lease's claim. This task runs tests on disposable local bare remotes only, leaving the real active lease intact.
+
+[Proposal] Receipt shape for Chris's future approval (placeholder is not an approval and must be replaced by the reviewed full commit):
+
+```json
+{
+  "owner": "Chris",
+  "commit": "<reviewed full fix commit>",
+  "step": "experiment-a-v01",
+  "launch_approved": true,
+  "model_returned": {"anthropic": "claude-sonnet-5-5", "google": "gemini-3.8-flash"},
+  "continuation": 1,
+  "source_checkpoints": ["e93bf0e39fd5c00bc2ee0438e9504a5597578b0dff0de36484cf5781543bfc05"],
+  "start_index": 23
+}
+```
+
+[Proposal] After review and exact-commit launch approval only, the CLI accepts `python -m experiment_a.run --launch --approved-commit <reviewed-commit> --approval <new-receipt> --continuation 1 --continue-from <original-pilot-root> --output <new-output-directory>`. A clean detached approved checkout and current separate state worktree remain mandatory. This command has **not** been run with live transport in this task.
+
+[Descriptive] Tests use denied Python sockets and local bare Git remotes, with canned replies only. They cover lost push acknowledgements and failed confirmation with the exact commit present, absence/divergence stopping before another request, unchanged stopped evidence, frozen incomplete treatment, the exact untouched suffix, reuse/index/approval rejection, ledger mismatch, unreported children, source tampering between provider requests and an independently approved second continuation. Full/focused/scripted/preservation and standalone engineering checks are recorded with the retained validation evidence after completion. No verdicts or H encoding are computed.
+
+
+[Descriptive] Final validation: **1,846 tests / 36 existing optional skips**, **97 focused tests**, scripted-all, preservation of140protectedfiles/original320episodes, and396cannedepisodes/397chains PASS. All396canonical request bodies and complete episode rows equal the prior stand-in. Real-source preflight confirms23retainedrows and nextindex23=P10/taa/Google/r1, with all realstatebytes unchanged and no continuationmarker. See [verification and retained logs](evidence/experiment-a-continuation-v04/verification.json). Initial diagnostics and the first passing full run before the transport-counter edge correction are retained separately. Source stayed unchanged throughout final discovery. No model call or launch occurred.
+
+
+[Descriptive] Chris2026-10-26 accepts4edb88c2 in design and requests this v0.4.1 bounded confirmation extension. The earlier single-confirmation validation remains historical; new focused/full/stand-in results and evidence are recorded separately. No continuation launch is approved.
+
+
+[Descriptive] v0.4.1 validation PASS:1,851tests/36existingoptional skips;102focused;scripted-all;396cannedepisodes/397chains;140protectedfiles/original320episodes preserved. All396canonical request bodies and episode rows equal accepted4edb88c2; real-state bytes/markers/lease unchanged. Tests prove second-confirmation success, immediate different-tip stop, three-unavailable stop, no re-push, and safe stop on evidence-write failure/interruption. [New logs, snapshots and archives](evidence/experiment-a-confirmations-v041/verification.json). No model call or continuation launch.

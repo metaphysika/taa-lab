@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 import uuid
 
 from live_demo.adapter import Stop
@@ -24,14 +25,18 @@ BASE_FILES = frozenset(('state.json', 'step-budget.txt', *LEDGER_NAMES.values())
 
 def allowed(name):
     return (name in BASE_FILES or name in ('reconstruction.json', 'active-run.json', 'run.once') or
-            re.fullmatch(r'check-(anthropic|google)-[0-9]{6,}\.once', name) is not None)
+            re.fullmatch(r'check-(anthropic|google)-[0-9]{6,}\.once', name) is not None or
+            re.fullmatch(r'continuation-[0-9]{6,}\.once', name) is not None)
 
 
 class State:
-    def __init__(self, root=None, *, run_root=None):
+    def __init__(self, root=None, *, run_root=None, sleeper=None):
         self.root = Path(root or os.environ.get('TAA_EXPERIMENT_STATE_WORKTREE', STATE_ROOT)).resolve()
         self.run_root = Path(run_root or RUN_ROOT).resolve()
         self.lease, self.failed, self.base = None, False, None
+        self.continuation_guard = None
+        self.evidence = None
+        self.sleeper = time.sleep if sleeper is None else sleeper
         try:
             if (self.root.is_relative_to(self.run_root) or self.run_root.is_relative_to(self.root)
                     or not (self.root / '.git').is_file()):
@@ -114,8 +119,40 @@ class State:
         self.require_current()
         self.require_lease()
 
+    def confirm_publication(self, commit):
+        """Three delayed observations, never a second push or a guessed success."""
+        if self.evidence is None:
+            # Recovery cannot proceed without a durable record of each attempt.
+            raise Stop('state_publication_failed')
+        for attempt, delay in enumerate((10, 30, 60), 1):
+            fields = dict(commit=commit, attempt=attempt, delay_seconds=delay)
+            self.evidence.write('state_confirmation_wait', fields)
+            self.sleeper(delay)
+            try:
+                self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + BRANCH)
+                remote = self._git('rev-parse', 'FETCH_HEAD')
+            except Stop:
+                self.evidence.write('state_confirmation', dict(fields, outcome='unavailable'))
+                continue
+            if remote != commit:
+                self.evidence.write('state_confirmation', dict(fields, outcome='different_tip'))
+                raise Stop('state_publication_failed')
+            try:
+                if self._git('status', '--porcelain', '--untracked-files=all'):
+                    raise Stop('state_worktree_dirty')
+                if self._git('rev-parse', 'HEAD') != commit:
+                    raise Stop('state_worktree_stale')
+                self.validate_files()
+            except (Stop, OSError, ValueError, KeyError, TypeError, InvalidOperation):
+                self.evidence.write('state_confirmation', dict(fields, outcome='local_guard_stop'))
+                raise Stop('state_publication_failed') from None
+            self.evidence.write('state_confirmation', dict(fields, outcome='exact_commit'))
+            self.base = commit
+            return
+        raise Stop('state_publication_failed')
+
     def publish(self, description, paths):
-        """One fast-forward commit and an exact old-tip lease on the remote ref."""
+        """Publish one fixed direct child; recover only an exact remote acknowledgement."""
         if self.failed or self.base is None:
             raise Stop('state_publication_failed')
         names = [str(Path(path).relative_to(self.root)) for path in paths]
@@ -137,13 +174,28 @@ class State:
             delta = self._git('diff-tree', '--no-commit-id', '--name-only', '-r', commit).splitlines()
             if any(not allowed(name) for name in tree) or not set(delta) <= set(names):
                 raise Stop('state_file_forbidden')
-            self._git('push', '--force-with-lease=refs/heads/' + BRANCH + ':' + self.base,
-                      'origin', commit + ':refs/heads/' + BRANCH)
-            self.require_current()
-        except Stop:
+            try:
+                # The commit was checked above to be a direct child of our tip.
+                # A normal push rejects divergence, without any force option.
+                self._git('push', 'origin', commit + ':refs/heads/' + BRANCH)
+                self.require_current()
+                if self.base != commit:
+                    raise Stop('state_publication_failed')
+            except Stop as error:
+                if error.reason != 'state_git_failure':
+                    # A successfully observed different tip, or a local guard,
+                    # is final; do not wait in hope it will change back.
+                    if self.evidence is not None:
+                        self.evidence.write('state_confirmation', dict(commit=commit,
+                            attempt=0, delay_seconds=0, outcome='guard_stop', reason=error.reason))
+                    raise
+                self.confirm_publication(commit)
+        except BaseException as error:
             # Preserve dirty files/ahead commits and any remote lease. No rollback.
             self.failed = True
-            raise Stop('state_publication_failed') from None
+            if isinstance(error, (Stop, OSError)):
+                raise Stop('state_publication_failed') from None
+            raise
 
     def _write(self, path, payload):
         with path.open('xb') as stream:
@@ -159,7 +211,12 @@ class State:
     def claim_run(self, approval, output):
         self.claim(self.root / 'run.once', approval, output, 'run_already_used')
 
-    def claim(self, path, approval, output, reason):
+    def claim_continuation(self, approval, output, plan):
+        self.claim(self.root / ('continuation-%06d.once' % plan.number), approval, output,
+                   'continuation_already_used', extra=dict(continuation=plan.number,
+                   source_checkpoints=plan.checkpoints, start_index=plan.start_index))
+
+    def claim(self, path, approval, output, reason, *, extra=None):
         self.before_change()
         if path.exists():
             raise Stop(reason)
@@ -168,22 +225,28 @@ class State:
             raise Stop('launch_not_approved')
         # No raw request, response, key, arbitrary receipt field or local path is public.
         self._write(path, dict(used=True, step=config.STEP, approved_commit=commit, lease=self.lease,
-                    output_sha256=hashlib.sha256(str(output).encode()).hexdigest()))
+                    output_sha256=hashlib.sha256(str(output).encode()).hexdigest(), **(extra or {})))
         self.publish('claim ' + path.name, [path])
 
     def before_request(self, provider, approval, neutral):
         self.before_change()
-        name = ('check-%s-%06d.once' % (provider, approval['check_attempt'])
-                if neutral else 'run.once')
+        name = ('check-%s-%06d.once' % (provider, approval['check_attempt']) if neutral else
+                'continuation-%06d.once' % approval['continuation'] if 'continuation' in approval else 'run.once')
         try:
             marker = json.loads((self.root / name).read_bytes())
         except (OSError, ValueError):
             raise Stop('state_claim_required') from None
         if marker.get('lease') != self.lease or marker.get('approved_commit') != approval.get('commit'):
             raise Stop('state_claim_required')
+        if 'continuation' in approval:
+            if any(marker.get(k) != approval[k] for k in ('continuation','source_checkpoints','start_index')):
+                raise Stop('state_claim_required')
+            if self.continuation_guard is None:
+                raise Stop('continuation_verification_required')
+            self.continuation_guard()
 
     @contextmanager
-    def locked(self, output):
+    def locked(self, output, *, continuation=None):
         fd = os.open(self.lock, os.O_CREAT | os.O_RDWR, 0o600)
         try:
             try:
@@ -192,12 +255,27 @@ class State:
                 raise Stop('shared_lock_exists') from None
             self.require_current()
             active = self.root / 'active-run.json'
-            if active.exists():
+            if continuation is not None:
+                continuation.validate(self)
+            if active.exists() and continuation is None:
                 raise Stop('shared_lock_exists')
+            if active.exists():
+                prior = json.loads(active.read_bytes())
+                marker = continuation.previous_marker(self)
+                if any(prior.get(k) != marker.get(k) for k in ('lease', 'output_sha256', 'step')):
+                    raise Stop('continuation_lease_mismatch')
             self.lease = uuid.uuid4().hex
-            self._write(active, dict(step=config.STEP, lease=self.lease,
-                        output_sha256=hashlib.sha256(str(output).encode()).hexdigest()))
-            self.publish('acquire run lease', [active])
+            payload = dict(step=config.STEP, lease=self.lease,
+                           output_sha256=hashlib.sha256(str(output).encode()).hexdigest())
+            if active.exists():
+                # The old lease remains in Git history; only an approved,
+                # evidence-verified continuation can supersede it.
+                pending = self.root / 'active-run.pending'
+                self._write(pending, payload)
+                os.replace(pending, active)
+            else:
+                self._write(active, payload)
+            self.publish('acquire continuation lease' if continuation else 'acquire run lease', [active])
             try:
                 yield
             finally:
