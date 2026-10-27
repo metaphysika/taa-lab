@@ -53,6 +53,9 @@ class Guards(unittest.TestCase):
 
     def test_launched_run_claims_before_request_and_second_checkout_stops(self):
         state=self.state()
+        from experiment_a.publication import Publisher
+        self.stack.enter_context(patch('experiment_a.run.Publisher',side_effect=lambda:Publisher(
+            self.fixture.evidence_worktree(),run_root=self.fixture.repo,sleeper=lambda seconds:None)))
         with patch('experiment_a.run.authorized'), patch('experiment_a.run.Budget',side_effect=Stop('prices_unverified')), patch('experiment_a.adapter.http',side_effect=AssertionError('request forbidden')) as transport:
             observed=run(self.root/'first',launch=True,approved_commit='a'*40,approval={'owner':'Chris'})
             self.assertTrue((state.root/'run.once').is_file())

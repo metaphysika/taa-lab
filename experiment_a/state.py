@@ -30,6 +30,7 @@ def allowed(name):
 
 
 class State:
+    branch = BRANCH
     def __init__(self, root=None, *, run_root=None, sleeper=None, continuation=None):
         self.root = Path(root or os.environ.get('TAA_EXPERIMENT_STATE_WORKTREE', STATE_ROOT)).resolve()
         self.run_root = Path(run_root or RUN_ROOT).resolve()
@@ -96,7 +97,7 @@ class State:
         if self._git('status', '--porcelain', '--untracked-files=all'):
             raise Stop('state_worktree_dirty')
         # Fetch only observes. Never merge, reset, drop an ahead commit or clean up.
-        self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + BRANCH)
+        self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + self.branch)
         head = self._git('rev-parse', 'HEAD')
         remote = self._git('rev-parse', 'FETCH_HEAD')
         if continuation is not None:
@@ -135,7 +136,7 @@ class State:
 
     def observe_publication(self, commit, parent, fields):
         try:
-            self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + BRANCH)
+            self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + self.branch)
             remote = self._git('rev-parse', 'FETCH_HEAD')
         except Stop:
             self.evidence.write('state_confirmation', dict(fields, outcome='unavailable'))
@@ -170,7 +171,7 @@ class State:
             repushes += 1
             self.evidence.write('state_repush', dict(fields, repush=repushes))
             try:
-                self._git('push', 'origin', commit + ':refs/heads/' + BRANCH)
+                self._git('push', 'origin', commit + ':refs/heads/' + self.branch)
                 result = 'acknowledged'
             except Stop:
                 result = 'unavailable'
@@ -225,7 +226,7 @@ class State:
             try:
                 # The commit was checked above to be a direct child of our tip.
                 # A normal push rejects divergence, without any force option.
-                self._git('push', 'origin', commit + ':refs/heads/' + BRANCH)
+                self._git('push', 'origin', commit + ':refs/heads/' + self.branch)
                 self.require_current()
                 if self.base != commit:
                     raise Stop('state_publication_failed')
@@ -269,7 +270,8 @@ class State:
     def claim_continuation(self, approval, output, plan):
         self.claim(self.root / ('continuation-%06d.once' % plan.number), approval, output,
                    'continuation_already_used', extra=dict(continuation=plan.number,
-                   source_checkpoints=plan.checkpoints, start_index=plan.start_index))
+                   source_checkpoints=plan.checkpoints, start_index=plan.start_index,
+                   **plan.standing_marker()))
 
     def claim(self, path, approval, output, reason, *, extra=None):
         self.before_change()
@@ -296,6 +298,12 @@ class State:
         if 'continuation' in approval:
             if any(marker.get(k) != approval[k] for k in ('continuation','source_checkpoints','start_index')):
                 raise Stop('state_claim_required')
+            if 'standing' in approval:
+                from experiment_a.standing import binding
+                authority=binding(approval)
+                if (marker.get('standing_receipt_sha256')!=authority['receipt_sha256'] or
+                        marker.get('standing_segment')!=authority['segment']):
+                    raise Stop('state_claim_required')
             if self.continuation_guard is None:
                 raise Stop('continuation_verification_required')
             self.continuation_guard()
