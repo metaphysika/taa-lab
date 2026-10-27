@@ -17,6 +17,15 @@ from live_demo.adapter import Stop
 from live_demo.evidence import encoded, verify
 
 
+# Owner-approved operational recovery binding, not a scientific fixture.
+# Continuation 2 still requires a new receipt for the reviewed code commit.
+STRANDED_SETTLEMENT = dict(provider='google',
+    commit='a162e12295d6003de2341569e4fe47bffe79583d',
+    parent='6d5523ad58aebdc74b0071b1e423efe7ba731220',
+    checkpoint='e83d50ea84f019ba14438af8d870dcac29b243a21a8f89acb8643844fe786d32',
+    start_index=54)
+
+
 def marker_name(number):
     return 'run.once' if number == 0 else 'continuation-%06d.once' % number
 
@@ -60,6 +69,27 @@ class Continuation:
                 len(set(self.checkpoints)) != self.number or type(self.start_index) is not int):
             raise Stop('continuation_not_approved')
         self.rows, self.retry_needed = [], 0
+
+    def prepare_state(self, state, head, remote):
+        """Only the owner-bound C2 settlement may be one commit ahead."""
+        if self.number != 2:
+            if head != remote:
+                raise Stop('state_worktree_stale')
+            return None
+        expected = STRANDED_SETTLEMENT
+        if (self.start_index != expected['start_index'] or self.checkpoints[-1] != expected['checkpoint'] or
+                head != expected['commit'] or state._git('rev-parse', head+'^') != expected['parent'] or
+                remote not in (head, expected['parent'])):
+            raise Stop('state_publication_failed')
+        self.validate(state)
+        # Accounting already matches every retained native settlement. Also
+        # exclude any unrelated file, lease or marker from the stranded commit.
+        ledger = 'ledgers/' + ('claude.json' if expected['provider']=='anthropic' else 'google.json')
+        if (state._git('log', '-1', '--format=%s', head) != 'Experiment A: settlement '+expected['provider'] or
+                set(state._git('diff-tree', '--no-commit-id', '--name-only', '-r', head).splitlines()) !=
+                {ledger, 'step-budget.txt'}):
+            raise Stop('state_publication_failed')
+        return (head, expected['parent']) if head != remote else None
 
     def previous_marker(self, state):
         return json.loads((state.root / marker_name(self.number-1)).read_bytes())

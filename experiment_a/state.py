@@ -30,10 +30,11 @@ def allowed(name):
 
 
 class State:
-    def __init__(self, root=None, *, run_root=None, sleeper=None):
+    def __init__(self, root=None, *, run_root=None, sleeper=None, continuation=None):
         self.root = Path(root or os.environ.get('TAA_EXPERIMENT_STATE_WORKTREE', STATE_ROOT)).resolve()
         self.run_root = Path(run_root or RUN_ROOT).resolve()
         self.lease, self.failed, self.base = None, False, None
+        self.pending_settlement = None
         self.continuation_guard = None
         self.evidence = None
         self.sleeper = time.sleep if sleeper is None else sleeper
@@ -56,7 +57,7 @@ class State:
             self.validate_files()
         except (OSError, ValueError, KeyError, TypeError, InvalidOperation):
             raise Stop('durable_state_missing_or_invalid') from None
-        self.require_current()
+        self.require_current(continuation=continuation)
 
     def _git(self, *args, cwd=None):
         try:
@@ -89,7 +90,7 @@ class State:
             if name.endswith('.once') and json.loads((self.root / name).read_bytes()).get('used') is not True:
                 raise ValueError('invalid marker')
 
-    def require_current(self):
+    def require_current(self, *, continuation=None):
         if self.failed:
             raise Stop('state_publication_failed')
         if self._git('status', '--porcelain', '--untracked-files=all'):
@@ -97,7 +98,10 @@ class State:
         # Fetch only observes. Never merge, reset, drop an ahead commit or clean up.
         self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + BRANCH)
         head = self._git('rev-parse', 'HEAD')
-        if head != self._git('rev-parse', 'FETCH_HEAD'):
+        remote = self._git('rev-parse', 'FETCH_HEAD')
+        if continuation is not None:
+            self.pending_settlement = continuation.prepare_state(self, head, remote)
+        elif head != remote:
             raise Stop('state_worktree_stale')
         try:
             self.validate_files()
@@ -119,37 +123,80 @@ class State:
         self.require_current()
         self.require_lease()
 
-    def confirm_publication(self, commit):
-        """Three delayed observations, never a second push or a guessed success."""
-        if self.evidence is None:
-            # Recovery cannot proceed without a durable record of each attempt.
+    def publication_local(self, commit, parent):
+        try:
+            if (self._git('status', '--porcelain', '--untracked-files=all') or
+                    self._git('rev-parse', 'HEAD') != commit or
+                    self._git('rev-parse', commit + '^') != parent):
+                raise Stop('state_publication_failed')
+            self.validate_files()
+        except (Stop, OSError, ValueError, KeyError, TypeError, InvalidOperation):
+            raise Stop('state_publication_failed') from None
+
+    def observe_publication(self, commit, parent, fields):
+        try:
+            self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + BRANCH)
+            remote = self._git('rev-parse', 'FETCH_HEAD')
+        except Stop:
+            self.evidence.write('state_confirmation', dict(fields, outcome='unavailable'))
+            return 'unavailable'
+        outcome = ('exact_commit' if remote == commit else
+                   'parent_commit' if remote == parent else 'different_tip')
+        self.evidence.write('state_confirmation', dict(fields, remote_commit=remote, outcome=outcome))
+        if outcome == 'different_tip':
             raise Stop('state_publication_failed')
+        self.publication_local(commit, parent)
+        if outcome == 'exact_commit':
+            self.base = commit
+        return outcome
+
+    def confirm_publication(self, commit, parent):
+        """Bounded same-commit recovery; foreign tips never authorize a push."""
+        if self.evidence is None:
+            raise Stop('state_publication_failed')
+        repushes = 0
         for attempt, delay in enumerate((10, 30, 60), 1):
-            fields = dict(commit=commit, attempt=attempt, delay_seconds=delay)
+            fields = dict(commit=commit, parent=parent, attempt=attempt, delay_seconds=delay)
             self.evidence.write('state_confirmation_wait', fields)
             self.sleeper(delay)
-            try:
-                self._git('fetch', '--no-tags', 'origin', 'refs/heads/' + BRANCH)
-                remote = self._git('rev-parse', 'FETCH_HEAD')
-            except Stop:
-                self.evidence.write('state_confirmation', dict(fields, outcome='unavailable'))
+            outcome = self.observe_publication(commit, parent, dict(fields, phase='before_repush'))
+            if outcome == 'exact_commit':
+                return
+            if outcome != 'parent_commit':
                 continue
-            if remote != commit:
-                self.evidence.write('state_confirmation', dict(fields, outcome='different_tip'))
-                raise Stop('state_publication_failed')
+            # One re-push per delayed round, at most three. Pin the same SHA,
+            # recheck local state, and record intent durably before attempting it.
+            self.publication_local(commit, parent)
+            repushes += 1
+            self.evidence.write('state_repush', dict(fields, repush=repushes))
             try:
-                if self._git('status', '--porcelain', '--untracked-files=all'):
-                    raise Stop('state_worktree_dirty')
-                if self._git('rev-parse', 'HEAD') != commit:
-                    raise Stop('state_worktree_stale')
-                self.validate_files()
-            except (Stop, OSError, ValueError, KeyError, TypeError, InvalidOperation):
-                self.evidence.write('state_confirmation', dict(fields, outcome='local_guard_stop'))
-                raise Stop('state_publication_failed') from None
-            self.evidence.write('state_confirmation', dict(fields, outcome='exact_commit'))
-            self.base = commit
-            return
+                self._git('push', 'origin', commit + ':refs/heads/' + BRANCH)
+                result = 'acknowledged'
+            except Stop:
+                result = 'unavailable'
+            self.evidence.write('state_repush_result', dict(fields, repush=repushes, outcome=result))
+            # Observe even if the acknowledgement failed. Never infer arrival.
+            outcome = self.observe_publication(commit, parent,
+                dict(fields, delay_seconds=0, phase='after_repush'))
+            if outcome == 'exact_commit':
+                return
         raise Stop('state_publication_failed')
+
+    def publish_stranded(self):
+        """Called under flock, with verified sources and a new approved receipt."""
+        if self.pending_settlement is None:
+            return
+        commit, parent = self.pending_settlement
+        try:
+            self.evidence.write('stranded_settlement', dict(commit=commit, parent=parent))
+            self.confirm_publication(commit, parent)
+            self.require_current()
+            self.pending_settlement = None
+        except BaseException as error:
+            self.failed = True
+            if isinstance(error, (Stop, OSError)):
+                raise Stop('state_publication_failed') from None
+            raise
 
     def publish(self, description, paths):
         """Publish one fixed direct child; recover only an exact remote acknowledgement."""
@@ -158,6 +205,7 @@ class State:
         names = [str(Path(path).relative_to(self.root)) for path in paths]
         if any(not allowed(name) for name in names):
             raise Stop('state_file_forbidden')
+        parent = self.base
         try:
             if self._git('rev-parse', 'HEAD') != self.base:
                 raise Stop('state_worktree_stale')
@@ -182,14 +230,21 @@ class State:
                 if self.base != commit:
                     raise Stop('state_publication_failed')
             except Stop as error:
-                if error.reason != 'state_git_failure':
-                    # A successfully observed different tip, or a local guard,
-                    # is final; do not wait in hope it will change back.
+                if error.reason == 'state_worktree_stale':
+                    # require_current already observed a tip. A known foreign
+                    # tip is final; an unchanged parent may use delayed recovery.
+                    remote = self._git('rev-parse', 'FETCH_HEAD')
+                    if remote not in (commit, parent):
+                        if self.evidence is not None:
+                            self.evidence.write('state_confirmation', dict(commit=commit, parent=parent,
+                                attempt=0, delay_seconds=0, remote_commit=remote, outcome='different_tip'))
+                        raise
+                elif error.reason != 'state_git_failure':
                     if self.evidence is not None:
-                        self.evidence.write('state_confirmation', dict(commit=commit,
+                        self.evidence.write('state_confirmation', dict(commit=commit, parent=parent,
                             attempt=0, delay_seconds=0, outcome='guard_stop', reason=error.reason))
                     raise
-                self.confirm_publication(commit)
+                self.confirm_publication(commit, parent)
         except BaseException as error:
             # Preserve dirty files/ahead commits and any remote lease. No rollback.
             self.failed = True
@@ -253,7 +308,7 @@ class State:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 raise Stop('shared_lock_exists') from None
-            self.require_current()
+            self.require_current(continuation=continuation)
             active = self.root / 'active-run.json'
             if continuation is not None:
                 continuation.validate(self)
@@ -264,6 +319,7 @@ class State:
                 marker = continuation.previous_marker(self)
                 if any(prior.get(k) != marker.get(k) for k in ('lease', 'output_sha256', 'step')):
                     raise Stop('continuation_lease_mismatch')
+            self.publish_stranded()
             self.lease = uuid.uuid4().hex
             payload = dict(step=config.STEP, lease=self.lease,
                            output_sha256=hashlib.sha256(str(output).encode()).hexdigest())
