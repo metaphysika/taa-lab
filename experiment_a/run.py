@@ -27,7 +27,7 @@ def run(output, *, launch=False, approved_commit=None, approval=None, continue_f
     if launch:
         for provider in config.MODELS:
             authorized(provider,launch,approved_commit,approval)
-        state=State()
+        state=State(continuation=plan) if plan is not None else State()
         if plan is not None:
             plan.validate(state)
     elif approved_commit or approval:

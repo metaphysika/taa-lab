@@ -283,7 +283,7 @@ class GitState(unittest.TestCase):
             self.assertEqual(events[1]['commit'],self.fixture.git('rev-parse','experiment-state',cwd=self.fixture.remote))
         state.evidence.close({'fixture':'second confirmation'});verify(state.evidence.directory)
 
-    def test_confirmation_different_tip_stops_immediately_without_second_push(self):
+    def test_parent_tip_allows_at_most_three_same_commit_repushes(self):
         state=self.state();original=state._git;pushes=[]
         with state.locked(self.root/'out'):
             def rejected(*args,**kwargs):
@@ -294,11 +294,66 @@ class GitState(unittest.TestCase):
                 with self.assertRaisesRegex(Stop,'state_publication_failed'):
                     state.claim_check('anthropic',self.approval(),self.root/'out')
                 transport.assert_not_called()
-        self.assertEqual(1,len(pushes))
-        self.assertEqual([10],[c.args[0] for c in self.sleeper.call_args_list])
-        self.assertEqual([(1,'different_tip')],[(v['attempt'],v['outcome']) for v in self.confirmation_events(state)])
+        self.assertEqual(4,len(pushes)) # initial push + at most three re-pushes
+        self.assertEqual(1,len(set(pushes)))
+        self.assertEqual([10,30,60],[c.args[0] for c in self.sleeper.call_args_list])
+        self.assertEqual([(n,'parent_commit') for n in (1,1,2,2,3,3)],[(v['attempt'],v['outcome']) for v in self.confirmation_events(state)])
         self.assertTrue((state.root/'active-run.json').exists())
         state.evidence.close({'fixture':'different tip'});verify(state.evidence.directory)
+
+    def test_same_commit_repush_succeeds_when_origin_is_parent(self):
+        state=self.state();original=state._git;pushes=[]
+        with state.locked(self.root/'out'):
+            def lost_initial(*args,**kwargs):
+                if args[0]=='push':
+                    pushes.append(args)
+                    if len(pushes)==1:raise Stop('state_git_failure')
+                return original(*args,**kwargs)
+            with patch.object(state,'_git',side_effect=lost_initial):
+                state.claim_check('anthropic',self.approval(),self.root/'out')
+            self.assertEqual(2,len(pushes));self.assertEqual(pushes[0],pushes[1])
+            self.assertFalse(any(a.startswith('--force') for a in pushes[1]))
+            self.assertEqual([10],[c.args[0] for c in self.sleeper.call_args_list])
+            self.assertEqual(['parent_commit','exact_commit'],[v['outcome'] for v in self.confirmation_events(state)])
+            self.assertEqual(state.base,self.fixture.git('rev-parse','experiment-state',cwd=self.fixture.remote))
+        state.evidence.close({'fixture':'same commit re-push'});verify(state.evidence.directory)
+
+    def test_third_repush_with_lost_acknowledgement_confirms_exact_commit(self):
+        state=self.state();original=state._git;pushes=[]
+        with state.locked(self.root/'out'):
+            def last_arrives(*args,**kwargs):
+                if args[0]=='push':
+                    pushes.append(args)
+                    if len(pushes)<4:raise Stop('state_git_failure')
+                    original(*args,**kwargs);raise Stop('state_git_failure')
+                return original(*args,**kwargs)
+            with patch.object(state,'_git',side_effect=last_arrives):
+                state.claim_check('anthropic',self.approval(),self.root/'out')
+            self.assertEqual(4,len(pushes));self.assertEqual(1,len(set(pushes)))
+            self.assertEqual([10,30,60],[c.args[0] for c in self.sleeper.call_args_list])
+            self.assertEqual(['parent_commit']*5+['exact_commit'],[v['outcome'] for v in self.confirmation_events(state)])
+        state.evidence.close({'fixture':'third same commit re-push lost acknowledgement'});verify(state.evidence.directory)
+
+    def test_foreign_tip_stops_without_any_repush(self):
+        state=self.state();original=state._git;pushes=[]
+        with state.locked(self.root/'out'):
+            second=self.fixture.second()
+            def foreign(*args,**kwargs):
+                if args[0]=='push':
+                    pushes.append(args)
+                    (second/'reconstruction.json').write_text('{"fixture":"foreign"}\n')
+                    self.fixture.git('add','reconstruction.json',cwd=second)
+                    self.fixture.git('commit','-m','Foreign fixture writer',cwd=second)
+                    self.fixture.git('push','origin','HEAD:refs/heads/experiment-state',cwd=second)
+                    raise Stop('state_git_failure')
+                return original(*args,**kwargs)
+            with patch.object(state,'_git',side_effect=foreign),patch('experiment_a.adapter.http') as transport:
+                with self.assertRaisesRegex(Stop,'state_publication_failed'):
+                    state.claim_check('anthropic',self.approval(),self.root/'out')
+                transport.assert_not_called()
+        self.assertEqual(1,len(pushes));self.assertEqual([10],[c.args[0] for c in self.sleeper.call_args_list])
+        self.assertEqual(['different_tip'],[v['outcome'] for v in self.confirmation_events(state)])
+        state.evidence.close({'fixture':'foreign tip'});verify(state.evidence.directory)
 
     def test_three_unavailable_confirmations_stop_and_preserve_attempts(self):
         state=self.state();original=state._git;pushes=[];failed_push=[False]

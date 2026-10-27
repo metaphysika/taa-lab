@@ -1,8 +1,6 @@
 # TAA Lab (v0.24.29 serving-only virtue review; frozen Study C v0.23.9)
 
-[Descriptive] [Combined pilot and continuation1 report](docs/process/TAA_EXPERIMENT_A_CONTINUATION1_STOP_v01.md): 52complete/2stopped/342untouched. Latest stop index53; stranded localsettlementa162e122 has parent/publishedtip6d5523ad. No continuation2 launch approved; both markers/lease retained.
-
-[Descriptive] Experiment A operational revision **v0.4.1** adds up to three delayed read-only exact-commit publication confirmations, recorded in evidence, and separately approved, evidence-verified continuations. [Design and stop record](docs/process/TAA_EXPERIMENT_A_CONTINUATION_v04.md). The pilot remains stopped; no continuation launch is approved. [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) awaits completed-pilot review.
+[Descriptive] Experiment A operational revision **v0.4.2** adds bounded re-pushes of the same fixed state commit only when origin equals its exact parent, with all observations/re-pushes recorded. Continuation2 must first publish the owner-bound stranded settlement, then start untouched index54 under a new exact-commit approval. [Recovery design](docs/process/TAA_EXPERIMENT_A_RECOVERY_v042.md). Chris approved continuation2 atbe2b7c8e on2026-10-27; it is running from index54, preserving stopped indices22/53. The stranded settlement was published before its first request. [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains unmerged pending completed-pilot review.
 
 [Descriptive] [Anthropic neutral attempt 2](docs/process/TAA_EXPERIMENT_A_ANTHROPIC_ATTEMPT2_v01.md) completed at approved37cf7203: exactclaude-sonnet-5-5, two requests, native thinking0, charge$0.002542. Updated Sonnet/Google cost projections are conditional; the later approved pilot stopped for review.
 

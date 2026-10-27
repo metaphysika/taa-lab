@@ -45,3 +45,6 @@
 
 
 [Descriptive] v0.4.1 validation PASS:1,851tests/36existingoptional skips;102focused;scripted-all;396cannedepisodes/397chains;140protectedfiles/original320episodes preserved. All396canonical request bodies and episode rows equal accepted4edb88c2; real-state bytes/markers/lease unchanged. Tests prove second-confirmation success, immediate different-tip stop, three-unavailable stop, no re-push, and safe stop on evidence-write failure/interruption. [New logs, snapshots and archives](evidence/experiment-a-confirmations-v041/verification.json). No model call or continuation launch.
+
+
+[Descriptive] Chris2026-10-27 supersedes the no-re-push rule prospectively with [v0.4.2 bounded same-commit recovery](TAA_EXPERIMENT_A_RECOVERY_v042.md), after accepting the index53 guard stop. Earlier design/tests remain historical; original runs and scores are unchanged. No continuation2 execution is approved.
