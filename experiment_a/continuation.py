@@ -68,11 +68,14 @@ class Continuation:
                 any(type(x) is not str or not re.fullmatch('[0-9a-f]{64}',x) for x in self.checkpoints) or
                 len(set(self.checkpoints)) != self.number or type(self.start_index) is not int):
             raise Stop('continuation_not_approved')
+        from experiment_a.standing import binding
+        self.approval = approval
+        self.standing = binding(approval)
         self.rows, self.retry_needed = [], 0
 
     def prepare_state(self, state, head, remote):
         """Only the owner-bound C2 settlement may be one commit ahead."""
-        if self.number != 2:
+        if self.number != 2 or self.standing is not None:
             if head != remote:
                 raise Stop('state_worktree_stale')
             return None
@@ -90,6 +93,10 @@ class Continuation:
                 {ledger, 'step-budget.txt'}):
             raise Stop('state_publication_failed')
         return (head, expected['parent']) if head != remote else None
+
+    def standing_marker(self):
+        return {} if self.standing is None else dict(standing_receipt_sha256=self.standing['receipt_sha256'],
+                    standing_segment=self.standing['segment'])
 
     def previous_marker(self, state):
         return json.loads((state.root / marker_name(self.number-1)).read_bytes())
@@ -118,7 +125,7 @@ class Continuation:
                   for p,path in state.ledgers.items()}
         return totals, amount(state._git('show',ref+':step-budget.txt'))
 
-    def _account(self, fs, totals, step):
+    def _account(self, fs, totals, step, *, require_settled=False):
         expected, reserve, request, reply = None, None, None, None
         ready = False
         retry_needed = 0
@@ -165,12 +172,16 @@ class Continuation:
                     raise ValueError('accounting chain')
                 totals[provider] += delta; step += delta; expected = None
         if expected is not None: raise ValueError('unfinished accounting publication')
+        if require_settled and (reserve is not None or request is not None or ready):
+            raise ValueError('open reservation')
         return step, retry_needed
 
     def _segment(self, root, fs, start, checkpoints, live=None):
         first = fs[0]
         if first['kind'] != 'run': raise ValueError('not a pilot root')
         header = first['value']; schedule = config.load('pilot-order.json')
+        if live is None and (root/'publication').exists():
+            frames(root/'publication')
         if (header['mode'] != 'live' or header['pins'] != config.verify() or
                 header['schedule'] != schedule or header['measures'] != config.load('measures.json')):
             raise ValueError('changed pilot design')
@@ -180,7 +191,19 @@ class Continuation:
         elif header.get('continuation') is not None:
             raise ValueError('not the original root')
         summaries = [f['value'] for f in fs if f['kind']=='summary']
-        if live is None:
+        outage = live is None and fs[-1]['kind']=='closure' and fs[-1]['value'].get('stop')=='executor_outage'
+        if outage:
+            complete = [f['value'] for f in fs if f['kind']=='episode_summary']
+            index = start+len(complete)
+            child = root/('episode-%04d'%index)
+            cf, _ = frames(child)
+            if (summaries or fs[-1]['value'].get('interrupted_index')!=index or
+                    cf[-1]['kind']!='closure' or cf[-1]['value'].get('stop')!='executor_outage' or
+                    any(f['kind']=='episode_end' for f in cf)):
+                raise ValueError('outage closure boundary')
+            # Operational cursor only. No metrics, score, oracle or cost is inferred.
+            rows = complete+[dict(spec=schedule[index],stop='executor_outage',score_available=False)]
+        elif live is None:
             if len(summaries) != 1 or fs[-1]['kind'] != 'closure': raise ValueError('not closed')
             rows = summaries[0]['episodes']
             if not rows or summaries[0]['stop'] == 'complete': raise ValueError('no stopped suffix')
@@ -196,6 +219,7 @@ class Continuation:
             raise ValueError('episodes after a stop')
         for index,row in enumerate(rows,start):
             child = root/('episode-%04d'%index); verify(child)
+            if outage and index==start+len(rows)-1: continue
             ends = [json.loads(p.read_bytes())['value'] for p in sorted(child.glob('[0-9]*.json'))
                     if json.loads(p.read_bytes())['kind']=='episode_end']
             if ends != [row]: raise ValueError('child/summary disagreement')
@@ -223,9 +247,9 @@ class Continuation:
                 if checkpoint['head'] != self.checkpoints[n]: raise ValueError('unapproved checkpoint')
                 segment = self._segment(root,fs,cursor,self.checkpoints[:n])
                 rows.extend(segment); cursor += len(segment)
-                step, retries = self._account(fs,totals,step); retry_needed += retries
-                summary = next(f['value'] for f in fs if f['kind']=='summary')
-                if summary['retry_needed'] != retry_needed: raise ValueError('retry counter')
+                step, retries = self._account(fs,totals,step,require_settled=self.standing is not None); retry_needed += retries
+                summaries = [f['value'] for f in fs if f['kind']=='summary']
+                if summaries and summaries[0]['retry_needed'] != retry_needed: raise ValueError('retry counter')
                 if n:
                     marker = json.loads((state.root/marker_name(n)).read_bytes())
                     if marker.get('start_index') != cursor-len(segment): raise ValueError('marker index')
@@ -238,6 +262,19 @@ class Continuation:
             actual = {p: amount(json.loads(path.read_bytes())['estimated_api_dollars']) for p,path in state.ledgers.items()}
             if totals != actual or step != amount(state.step_ledger.read_text()):
                 raise ValueError('state totals disagree with retained settlements/reserves')
+            if self.standing is not None and self.standing['segment']>1:
+                lastfs,_=frames(self.sources[-1])
+                if (lastfs[-1]['value']['stop'] not in self.approval['standing']['allowed_stop_reasons'] or
+                        lastfs[0]['value'].get('approved_commit')!=self.approval['commit']):
+                    raise ValueError('standing stop or commit')
+                from experiment_a.standing import successor
+                prior=lastfs[0]['value'].get('approval')
+                if successor(prior,self.sources)!=self.approval:
+                    raise ValueError('standing derivation')
+                marker=self.previous_marker(state)
+                if (marker.get('standing_receipt_sha256')!=self.standing['receipt_sha256'] or
+                        marker.get('standing_segment')!=self.standing['segment']-1):
+                    raise ValueError('standing marker binding')
             self.rows, self.retry_needed = rows, retry_needed
         except (OSError, ValueError, TypeError, KeyError, IndexError, InvalidOperation):
             raise Stop('continuation_evidence_or_accounting_mismatch') from None

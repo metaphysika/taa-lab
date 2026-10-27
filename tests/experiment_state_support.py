@@ -46,3 +46,14 @@ class GitStateFixture:
     def refresh(self, path):
         self.git('fetch','origin','refs/heads/experiment-state',cwd=path)
         self.git('merge','--ff-only','FETCH_HEAD',cwd=path)
+
+    def evidence_worktree(self):
+        from experiment_a.publication import SPEC
+        path=self.root/'evidence'
+        if not path.exists():
+            self.git('worktree','add','--orphan','-b','experiment-a-evidence',str(path))
+            (path/'evidence.json').write_text(json.dumps(SPEC,sort_keys=True)+'\n')
+            self.git('add','evidence.json',cwd=path)
+            self.git('commit','-m','Offline evidence fixture',cwd=path)
+            self.git('push','origin','HEAD:refs/heads/experiment-a-evidence',cwd=path)
+        return path
