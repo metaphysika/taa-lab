@@ -76,12 +76,22 @@ class ActionsTests(unittest.TestCase):
 
     def test_environment_and_actual_Chris_run_approval_required(self):
         env=dict(protection_rules=[dict(type='required_reviewers', reviewers=[dict(type='User',reviewer=dict(login='metaphysika'))])])
-        approved=[dict(state='approved',user=dict(login='metaphysika'),environments=[dict(name='experiment-a-live')])]
-        with patch.dict('os.environ', {'GITHUB_RUN_ID':'12'}):
-            actions.environment_review('metaphysika/taa-lab','test',opener=lambda req,**kw:io.BytesIO(json.dumps(approved if '/approvals' in req.full_url else env).encode()))
-            for bad in [[], [dict(state='approved',user=dict(login='someone-else'),environments=[dict(name='experiment-a-live')])]]:
+        phrase=actions.approval_phrase(self.receipt,'2')
+        approved=[dict(state='approved',user=dict(login='metaphysika'),comment='ok, '+phrase,environments=[dict(name='experiment-a-live')])]
+        def call(reviews, receipt=self.receipt):
+            return actions.environment_review('metaphysika/taa-lab','test',receipt,opener=lambda req,**kw:io.BytesIO(json.dumps(reviews if '/approvals' in req.full_url else env).encode()))
+        with patch.dict('os.environ', {'GITHUB_RUN_ID':'12','GITHUB_RUN_ATTEMPT':'2'}):
+            call(approved)
+            other_receipt=dict(self.receipt,check_attempt=2)
+            stale_attempt=[dict(approved[0],comment=actions.approval_phrase(self.receipt,'1'))]
+            for bad,receipt in [([],self.receipt),
+                                ([dict(approved[0],user=dict(login='someone-else'))],self.receipt),
+                                ([dict(approved[0],comment=None)],self.receipt),
+                                (stale_attempt,self.receipt),
+                                (approved,other_receipt),
+                                (approved,None)]:
                 with self.assertRaisesRegex(Stop, 'runner_environment_unverified'):
-                    actions.environment_review('metaphysika/taa-lab','test',opener=lambda req,**kw:io.BytesIO(json.dumps(bad if '/approvals' in req.full_url else env).encode()))
+                    call(bad,receipt)
 
     def test_real_local_git_worktrees_use_same_state_and_evidence_history(self):
         f=GitStateFixture(self.base/'git');f.evidence_worktree()
@@ -124,7 +134,9 @@ class ActionsTests(unittest.TestCase):
         def git(repo,*args):
             return 'a'*40 if args==('rev-parse','HEAD') else 'closure-commit' if args[0]=='log' else ''
         env=dict(GITHUB_ACTIONS='true',TAA_ACTIONS_APPROVED_ENVIRONMENT='experiment-a-live',
-                 ANTHROPIC_API_KEY='engineering-placeholder-only',GEMINI_API_KEY='engineering-placeholder-only')
+                 ANTHROPIC_API_KEY='engineering-placeholder-only',GEMINI_API_KEY='engineering-placeholder-only',
+                 GITHUB_WORKFLOW_SHA='a'*40,GITHUB_REPOSITORY='metaphysika/taa-lab',
+                 GITHUB_WORKFLOW_REF='metaphysika/taa-lab/.github/workflows/experiment-a-live.yml@refs/heads/x')
         with patch.object(actions,'git',side_effect=git),patch.object(actions,'environment_review'),patch.object(actions,'worktrees',return_value=(self.base/'state',self.base/'evidence')),patch.object(actions,'restore_sources')as restore,patch.object(actions,'dispatch')as dispatch,patch.dict('os.environ',env):
             result=actions.execute('a'*40,self.receipt,'pilot continuation',self.base/'closed')
         self.assertEqual('pilot_closed',result['stop']);restore.assert_not_called();dispatch.assert_not_called()
@@ -134,3 +146,78 @@ class ActionsTests(unittest.TestCase):
         with patch.object(actions,'git',side_effect=git),patch.dict('os.environ',{'GITHUB_ACTIONS':'false'}),patch.object(actions,'worktrees')as prepare,patch.object(actions,'dispatch')as dispatch:
             result=actions.execute('a'*40,self.receipt,'neutral check',self.base/'unapproved')
         self.assertEqual('runner_environment_unverified',result['stop']);prepare.assert_not_called();dispatch.assert_not_called()
+
+    def test_workflow_identity_must_be_the_approved_commit(self):
+        good={'GITHUB_WORKFLOW_SHA':'a'*40,'GITHUB_REPOSITORY':'metaphysika/taa-lab',
+              'GITHUB_WORKFLOW_REF':'metaphysika/taa-lab/.github/workflows/experiment-a-live.yml@refs/heads/x'}
+        actions.workflow_identity('a'*40,good)
+        for change in [{'GITHUB_WORKFLOW_SHA':'b'*40},{'GITHUB_WORKFLOW_SHA':''},
+                       {'GITHUB_WORKFLOW_REF':'metaphysika/taa-lab/.github/workflows/other.yml@refs/heads/x'},
+                       {'GITHUB_WORKFLOW_REF':'someone/fork/.github/workflows/experiment-a-live.yml@refs/heads/x'}]:
+            with self.assertRaisesRegex(Stop,'runner_workflow_mismatch'):
+                actions.workflow_identity('a'*40,dict(good,**change))
+
+    def test_mismatched_workflow_stops_before_review_state_or_dispatch(self):
+        def git(repo,*args):return 'a'*40 if args==('rev-parse','HEAD') else ''
+        env=dict(GITHUB_ACTIONS='true',TAA_ACTIONS_APPROVED_ENVIRONMENT='experiment-a-live',GITHUB_WORKFLOW_SHA='b'*40)
+        with patch.object(actions,'git',side_effect=git),patch.dict('os.environ',env),patch.object(actions,'environment_review')as review,patch.object(actions,'worktrees')as prepare,patch.object(actions,'dispatch')as dispatch:
+            result=actions.execute('a'*40,self.receipt,'neutral check',self.base/'wf')
+        self.assertEqual('runner_workflow_mismatch',result['stop']);review.assert_not_called();prepare.assert_not_called();dispatch.assert_not_called()
+
+    def test_third_party_actions_are_pinned_and_scan_sees_github_token(self):
+        text=(actions.config.ROOT/'.github/workflows/experiment-a-live.yml').read_text()
+        import re
+        uses=re.findall(r'uses:\s*(\S+)',text)
+        self.assertTrue(uses)
+        for u in uses:
+            self.assertRegex(u,r'@[0-9a-f]{40}$')
+        import yaml
+        workflow=yaml.load(text,Loader=yaml.BaseLoader)
+        scan=[s for s in workflow['jobs']['live']['steps'] if s.get('id')=='scan'][0]
+        self.assertIn('GITHUB_TOKEN',scan['env'])
+        self.assertEqual('announce',workflow['jobs']['live']['needs'])
+        self.assertNotIn('secrets.',json.dumps(workflow['jobs']['announce']))
+
+    def test_github_tokens_are_caught_by_pattern_and_exact_value(self):
+        from experiment_a.credentials import scan
+        for raw in [b'x github_pat_'+b'A'*30, b'x ghs_'+b'B'*30]:
+            with self.assertRaisesRegex(Stop,'evidence_credential_scan_failed'):
+                scan('process.log',raw)
+        value='opaque-token-value-without-known-prefix'
+        with patch.dict('os.environ',{'GITHUB_TOKEN':value}):
+            with self.assertRaisesRegex(Stop,'evidence_credential_scan_failed'):
+                scan('process.log',b'leak '+value.encode())
+            scan('process.log',b'no leak here')
+
+    def test_run_kind_marker_is_restored_after_execute(self):
+        import os
+        def git(repo,*args):return 'a'*40 if args==('rev-parse','HEAD') else ''
+        with patch.object(actions,'git',side_effect=git),patch.dict('os.environ',{'GITHUB_ACTIONS':'false'}):
+            os.environ.pop('TAA_RUN_KIND',None)
+            actions.execute('a'*40,self.receipt,'held-out run',self.base/'kind')
+            self.assertNotIn('TAA_RUN_KIND',os.environ)
+
+    def test_held_out_kind_refuses_public_publication(self):
+        from experiment_a.publication import Publisher
+        with patch.dict('os.environ',{'TAA_RUN_KIND':'held-out run'}):
+            with self.assertRaisesRegex(Stop,'held_out_public_publication_refused'):
+                Publisher(self.base/'anywhere')
+
+    def test_private_destination_check_fails_closed(self):
+        from experiment_a.private_evidence import verify_private_destination
+        def opener(data):
+            return lambda req,**kw:io.BytesIO(json.dumps(data).encode())
+        ok=dict(private=True,visibility='private',full_name='metaphysika/taa-lab-private')
+        self.assertEqual('metaphysika/taa-lab-private',verify_private_destination('metaphysika/taa-lab-private','t','metaphysika/taa-lab',opener(ok)))
+        for repo,data in [('metaphysika/taa-lab',ok),('metaphysika/taa-lab-private',dict(ok,private=False,visibility='public')),
+                          ('metaphysika/taa-lab-private',dict(ok,full_name='someone/else')),('bad name',ok)]:
+            with self.assertRaisesRegex(Stop,'held_out_private_destination_unverified'):
+                verify_private_destination(repo,'t','metaphysika/taa-lab',opener(data))
+        def broken(req,**kw):raise OSError('down')
+        with self.assertRaisesRegex(Stop,'held_out_private_destination_unverified'):
+            verify_private_destination('metaphysika/taa-lab-private','t','metaphysika/taa-lab',broken)
+
+
+if __name__ == '__main__':
+    unittest.main()
+

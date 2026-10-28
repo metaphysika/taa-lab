@@ -46,8 +46,29 @@ def validate(commit, receipt, kind, head, *, dry_run=False):
             raise Stop('runner_source_binding')
 
 
-def environment_review(repository, token, opener=urllib.request.urlopen):
-    """Fail closed if the named environment lacks Chris as required reviewer."""
+WORKFLOW_PATH = '.github/workflows/experiment-a-live.yml'
+
+
+def receipt_digest(receipt):
+    return hashlib.sha256(json.dumps(receipt, sort_keys=True).encode()).hexdigest()
+
+
+def approval_phrase(receipt, attempt):
+    """Text Chris types in the environment approval comment for this exact receipt and attempt."""
+    return 'approve receipt ' + receipt_digest(receipt)[:16] + ' attempt ' + str(attempt)
+
+
+def workflow_identity(commit, environ=os.environ):
+    """The executed workflow file must come from the approved commit itself."""
+    ref = environ.get('GITHUB_WORKFLOW_REF', '')
+    if (environ.get('GITHUB_WORKFLOW_SHA') != commit or
+            not ref.startswith(environ.get('GITHUB_REPOSITORY', '') + '/' + WORKFLOW_PATH + '@')):
+        raise Stop('runner_workflow_mismatch')
+
+
+def environment_review(repository, token, receipt=None, opener=urllib.request.urlopen):
+    """Fail closed if the named environment lacks Chris as required reviewer, or if Chris's
+    approval of this run does not name this receipt's digest and this run attempt."""
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
         raise Stop('runner_environment_unverified')
     req = urllib.request.Request('https://api.github.com/repos/' + repository +
@@ -62,13 +83,16 @@ def environment_review(repository, token, opener=urllib.request.urlopen):
         if len(reviewers) != 1 or reviewers[0].get('type') != 'User' or reviewers[0]['reviewer'].get('login') != 'metaphysika':
             raise ValueError('reviewer')
         run_id = os.environ.get('GITHUB_RUN_ID', '')
-        if not run_id.isdecimal():
+        attempt = os.environ.get('GITHUB_RUN_ATTEMPT', '')
+        if not run_id.isdecimal() or not attempt.isdecimal() or type(receipt) is not dict:
             raise ValueError('run')
+        phrase = approval_phrase(receipt, attempt)
         approval_request = urllib.request.Request('https://api.github.com/repos/' + repository +
             '/actions/runs/' + run_id + '/approvals', headers=dict(req.headers))
         with opener(approval_request, timeout=30) as response:
             reviews = json.load(response)
         if not any(r.get('state') == 'approved' and r.get('user', {}).get('login') == 'metaphysika' and
+                   phrase in (r.get('comment') or '') and
                    any(e.get('name') == 'experiment-a-live' for e in r.get('environments', [])) for r in reviews):
             raise ValueError('run approval')
     except Exception:
@@ -161,20 +185,24 @@ def execute(commit, receipt, kind, base, *, dry_run=False, seconds=18000):
     base.mkdir(parents=True, exist_ok=False)
     journal = Evidence(base / 'automation')
     journal.write('runner', dict(commit=commit, kind=kind, dry_run=dry_run,
-                                receipt_sha256=hashlib.sha256(json.dumps(receipt, sort_keys=True).encode()).hexdigest(),
+                                receipt_sha256=receipt_digest(receipt),
                                 maximum_seconds=seconds))
     sources = []
     old_deadline = runtime_guard.deadline
+    old_kind = os.environ.get('TAA_RUN_KIND')
     runtime_guard.deadline = time.monotonic() + seconds
     stop = 'runner_failure'
     try:
         with (base / 'process.log').open('x') as log, redirect_stdout(log), redirect_stderr(log):
+            # Downstream publishers refuse public publication whenever this names held-out.
+            os.environ['TAA_RUN_KIND'] = kind
             if not dry_run:
                 if kind == 'held-out run':
                     raise Stop('held_out_sealed')
                 if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('TAA_ACTIONS_APPROVED_ENVIRONMENT') != 'experiment-a-live':
                     raise Stop('runner_environment_unverified')
-                environment_review(os.environ.get('GITHUB_REPOSITORY', ''), os.environ.get('GITHUB_TOKEN', ''))
+                workflow_identity(commit)
+                environment_review(os.environ.get('GITHUB_REPOSITORY', ''), os.environ.get('GITHUB_TOKEN', ''), receipt)
                 providers = [receipt['provider']] if kind == 'neutral check' else config.MODELS
                 if any(not os.environ.get(config.KEY_VARIABLES[p]) for p in providers):
                     raise Stop('runner_environment_secret_missing')
@@ -194,6 +222,10 @@ def execute(commit, receipt, kind, base, *, dry_run=False, seconds=18000):
         stop = 'runner_failure'
     finally:
         runtime_guard.deadline = old_deadline
+        if old_kind is None:
+            os.environ.pop('TAA_RUN_KIND', None)
+        else:
+            os.environ['TAA_RUN_KIND'] = old_kind
     journal.close(dict(stop=stop))
     count = scan_files(base)
     summary = dict(stop=stop, dry_run=dry_run, scanned_files=count, credential_matches=0,
