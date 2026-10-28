@@ -37,10 +37,15 @@ class ContinuationTests(unittest.TestCase):
             patch('experiment_a.adapter.authorized'),
             patch('experiment_a.run.authorized'),
             patch('experiment_a.run.State',side_effect=self.state),
+            patch('experiment_a.run.Publisher',side_effect=self.publisher),
         ):
             context.start();self.addCleanup(context.stop)
 
     def state(self, **kwargs):return State(self.fixture.state,run_root=self.fixture.repo,sleeper=lambda seconds:None,**kwargs)
+
+    def publisher(self):
+        from experiment_a.publication import Publisher
+        return Publisher(self.fixture.evidence_worktree(),run_root=self.fixture.repo,sleeper=lambda seconds:None)
 
     def approval(self, number=None, sources=None, start=None):
         a=dict(owner='Chris',commit='a'*40,step=config.STEP,launch_approved=True,model_returned=dict(config.MODELS))

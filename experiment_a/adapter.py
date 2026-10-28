@@ -47,6 +47,12 @@ def authorized(provider, launch, commit, approval, *, neutral=False):
                     type(start) is not int or not 0 < start < len(config.schedule())):
                 raise Stop('launch_not_approved')
             expected.update(continuation=number, source_checkpoints=checkpoints, start_index=start)
+    if not neutral and ('standing' in approval or 'standing_authorization' in approval):
+        from experiment_a.standing import binding
+        binding(approval)
+        expected['standing'] = approval['standing']
+        if 'standing_authorization' in approval:
+            expected['standing_authorization'] = approval['standing_authorization']
     if approval != expected or approval.get('launch_approved') is not True:
         raise Stop('launch_not_approved')
     config.verify()
