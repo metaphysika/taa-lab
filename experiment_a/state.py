@@ -286,6 +286,8 @@ class State:
         self.publish('claim ' + path.name, [path])
 
     def before_request(self, provider, approval, neutral):
+        from experiment_a.runtime_guard import check
+        check()
         self.before_change()
         name = ('check-%s-%06d.once' % (provider, approval['check_attempt']) if neutral else
                 'continuation-%06d.once' % approval['continuation'] if 'continuation' in approval else 'run.once')
@@ -307,6 +309,7 @@ class State:
             if self.continuation_guard is None:
                 raise Stop('continuation_verification_required')
             self.continuation_guard()
+        check()
 
     @contextmanager
     def locked(self, output, *, continuation=None):

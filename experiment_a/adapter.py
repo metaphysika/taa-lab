@@ -164,6 +164,8 @@ class Adapter:
         body = self.body(history)
         maximum = 1 if self.neutral else 5
         for attempt in range(1, maximum+1):
+            from experiment_a.runtime_guard import check
+            check()
             self._authorize()
             reservation, bound = self.budget.reserve(body)
             self.evidence.write('request', dict(provider=self.provider, spec=spec, turn=turn, attempt=attempt, body=body))

@@ -1,0 +1,110 @@
+name: Experiment A approved runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      approved_commit:
+        description: Exact reviewed 40-character commit (must contain this runner)
+        type: string
+        required: true
+      receipt_json:
+        description: Chris's receipt JSON; never include credentials
+        type: string
+        required: true
+      run_kind:
+        description: Approved run kind (held-out remains sealed until separately implemented)
+        type: choice
+        options: [neutral check, pilot continuation, held-out run]
+        required: true
+      dry_run:
+        description: Canned engineering only; no environment secrets or provider calls
+        type: boolean
+        default: true
+
+concurrency:
+  group: taa-experiment-a-live
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  EVIDENCE_DIRECTORY: /tmp/taa-experiment-a-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  dry-run:
+    if: inputs.dry_run
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.approved_commit }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-gateway.txt
+      - name: Canned run with network namespace disabled
+        env:
+          APPROVED_COMMIT: ${{ inputs.approved_commit }}
+          EXPERIMENT_A_RECEIPT_JSON: ${{ inputs.receipt_json }}
+          RUN_KIND: ${{ inputs.run_kind }}
+        run: sudo --preserve-env=APPROVED_COMMIT,EXPERIMENT_A_RECEIPT_JSON,RUN_KIND,EVIDENCE_DIRECTORY unshare --net "$(command -v python)" -m experiment_a.actions --dry-run --approved-commit "$APPROVED_COMMIT" --kind "$RUN_KIND" --output "$EVIDENCE_DIRECTORY"
+      - name: Scan logs and evidence before artifact upload
+        id: scan
+        if: always()
+        run: python -m experiment_a.actions --scan-only --output "$EVIDENCE_DIRECTORY"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.scan.outcome == 'success'
+        with:
+          name: experiment-a-dry-run-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIRECTORY }}
+          include-hidden-files: true
+          if-no-files-found: error
+
+  live:
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    environment: experiment-a-live
+    timeout-minutes: 345
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.approved_commit }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-gateway.txt
+      - name: Configure state commit identity
+        run: |
+          git config user.name 'Experiment A approved runner'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Approved run with 300-minute internal guard
+        env:
+          APPROVED_COMMIT: ${{ inputs.approved_commit }}
+          EXPERIMENT_A_RECEIPT_JSON: ${{ inputs.receipt_json }}
+          RUN_KIND: ${{ inputs.run_kind }}
+          TAA_ACTIONS_APPROVED_ENVIRONMENT: experiment-a-live
+          GITHUB_TOKEN: ${{ github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m experiment_a.actions --approved-commit "$APPROVED_COMMIT" --kind "$RUN_KIND" --output "$EVIDENCE_DIRECTORY"
+      - name: Scan captured logs and evidence before artifact upload
+        id: scan
+        if: always()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m experiment_a.actions --scan-only --output "$EVIDENCE_DIRECTORY"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.scan.outcome == 'success'
+        with:
+          name: experiment-a-live-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIRECTORY }}
+          include-hidden-files: true
+          if-no-files-found: error
