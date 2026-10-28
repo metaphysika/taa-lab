@@ -1,6 +1,6 @@
 # TAA Lab (v0.24.29 serving-only virtue review; frozen Study C v0.23.9)
 
-[Descriptive] Experiment A operational revision **v0.5** ran at approved `36ceb050`. The pilot is now stopped for review: **145 complete, five stopped, 246 untouched**. Standing continuation 4 stopped with `state_git_failure`, outside the allowed automatic reasons; no successor was started. [Combined descriptive report](docs/process/TAA_EXPERIMENT_A_STANDING_PILOT_STOP_v01.md). [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains draft and unmerged for Claude/Astra review. H stays sealed.
+[Descriptive] Experiment A operational revision **v0.5** ran at approved `36ceb050`. The pilot is closed as truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun. Final counts: **145 complete, five stopped, 246 untouched**. Standing continuation 4 stopped with `state_git_failure`, outside the allowed automatic reasons; no successor was started. [Frozen descriptive analysis and complete cell roster](docs/process/TAA_EXPERIMENT_A_TRUNCATED_ANALYSIS_v01.md). [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains draft and unmerged for Claude/Astra review. H stays sealed.
 
 [Descriptive] [Anthropic neutral attempt 2](docs/process/TAA_EXPERIMENT_A_ANTHROPIC_ATTEMPT2_v01.md) completed at approved37cf7203: exactclaude-sonnet-5-5, two requests, native thinking0, charge$0.002542. Updated Sonnet/Google cost projections are conditional; the later approved pilot stopped for review.
 
