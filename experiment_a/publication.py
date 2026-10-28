@@ -25,6 +25,9 @@ class Publisher(State):
     branch = BRANCH
 
     def __init__(self, root=None, *, run_root=None, sleeper=None):
+        if os.environ.get('TAA_RUN_KIND') == 'held-out run':
+            # Set H evidence goes only to private storage until reviewed release approval.
+            raise Stop('held_out_public_publication_refused')
         self.root=Path(root or os.environ.get('TAA_EXPERIMENT_EVIDENCE_WORKTREE','/workspace/taa-experiment-evidence')).resolve()
         self.run_root=Path(run_root or config.ROOT).resolve()
         self.failed=False;self.base=None;self.evidence=None

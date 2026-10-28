@@ -1,0 +1,1 @@
+[Descriptive] Offline engineering validation only. Final source pins/runtime/tests/workflow remained unchanged across all passing checks. The earlier full log is an interrupted prefix, not a pass; the older workflow is retained to document the fixed cross-job path collision. No provider calls or Actions dispatch. Raw empirical pilot evidence is unaffected.
