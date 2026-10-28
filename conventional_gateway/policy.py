@@ -348,7 +348,9 @@ class Policy:
                 add("PR2", "prohibition", "violated", "PROHIBIT", "wrong payment route", prohibited_element="payment_route")
         template = "refund_denied" if tool == "deny_refund" else args.get("template")
         if tool in ("message_party", "deny_refund") and template in ("refund_issued", "refund_denied"):
-            citation = args.get("cites") if template == "refund_issued" else args.get("basis", args.get("cites"))
+            # Denials bind their evidence through `basis` only, as the reference does; `cites`
+            # is the settlement field for refund_issued and is never read for a denial.
+            citation = args.get("cites") if template == "refund_issued" else args.get("basis")
             amount = args.get("amount", claim.get("amount", 0))
             if not citation or facts.get(citation) is None:
                 add("template_evidence", "support", "violated", "REFUSE",
