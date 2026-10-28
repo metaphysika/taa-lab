@@ -1,6 +1,6 @@
 # TAA Lab (v0.24.29 serving-only virtue review; frozen Study C v0.23.9)
 
-[Descriptive] Experiment A operational revision **v0.5** adds credential-scanned per-episode publication to `experiment-a-evidence` and bounded standing-continuation receipts on one approved commit. [Design and operation](docs/process/TAA_EXPERIMENT_A_PUBLICATION_STANDING_v05.md). The pilot is stopped at index90 with accepted `executor_outage` closure; next untouched91. All earlier stops/replies/markers remain. This revision is offline only: no model call or continuation launch is approved. [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains unmerged for Claude/Astra review.
+[Descriptive] Experiment A pilot is closed: **truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun.** 145complete,5recordedstops,246neverrun. No further pilot continuation in this execution environment. [Owner closure and final state commit](docs/process/TAA_EXPERIMENT_A_PILOT_CLOSURE_v01.md). [Results-only PR41](https://github.com/metaphysika/taa-lab/pull/41) remains draft for Claude/Astra; raw evidence and all markers are retained.
 
 [Descriptive] [Anthropic neutral attempt 2](docs/process/TAA_EXPERIMENT_A_ANTHROPIC_ATTEMPT2_v01.md) completed at approved37cf7203: exactclaude-sonnet-5-5, two requests, native thinking0, charge$0.002542. Updated Sonnet/Google cost projections are conditional; the later approved pilot stopped for review.
 
