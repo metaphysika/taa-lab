@@ -490,3 +490,5 @@ stage budgets, with merged weights excluded under the original test.
 
 
 [Descriptive] Experiment A continuation 2 is closed with guard stop `executor_outage`; it is not running and must never be resumed. The retained evidence and accounting verified without new provider requests. See [the status and closure report](docs/process/TAA_EXPERIMENT_A_CONTINUATION2_OUTAGE_v01.md). PR #41 remains draft and unmerged for review.
+
+[Descriptive] [Post-pilot substantive/procedural supplement](docs/process/TAA_EXPERIMENT_A_PROCEDURAL_SUPPLEMENT_v01.md) records every non-PERMIT act, the requested order-effect classification and claim-by-claim evidence checks. The frozen analysis remains unchanged.
