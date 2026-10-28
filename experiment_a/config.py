@@ -40,10 +40,15 @@ def schedule():
     return [dict(row,provider=provider) for row in trials for provider in MODELS]
 
 
-def system():
-    # The identical guide accompanies the identical system text in every arm.
-    return ((ROOT / 'live_demo/frozen/system.txt').read_text() + '\n\n' +
-            (INPUTS / 'policy-guide.txt').read_text())
+AMENDMENT_GUIDE = INPUTS / 'amendment-v02' / 'policy-guide-v0.3.txt'
+
+
+def system(guide=None):
+    # The identical guide accompanies the identical system text in every arm. The pilot used
+    # the frozen v0.2 guide (the default); the draft amendment's v0.3 guide is selected only
+    # by passing AMENDMENT_GUIDE explicitly, never by arm.
+    guide = INPUTS / 'policy-guide.txt' if guide is None else guide
+    return ((ROOT / 'live_demo/frozen/system.txt').read_text() + '\n\n' + guide.read_text())
 
 
 def launch_ready(*, neutral=False):
