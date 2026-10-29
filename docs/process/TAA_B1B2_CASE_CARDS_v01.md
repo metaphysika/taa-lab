@@ -1,8 +1,10 @@
 # TAA B1/B2 prudence case cards v0.1
 
-**draft key, Astra must not open before A1 is committed**
+**Draft keys; active scope revised 2026-10-29.**
 
-[Descriptive] Chris Lahn's handoff, received 2026-10-29. The case text below is verbatim. These are exploratory draft keys, not approved executable fixtures. S siblings are reserved for B3 and must not run in B1/B2. Implementation gaps and questions are recorded separately in `TAA_B1B2_BUILD_PLAN_v01.md`; they do not amend these cards. Give Astra only `TAA_B1B2_POLICY_BRIEF_v01.md` before the blind A1 commit, not this document, the build plan, or the combined PR.
+[Descriptive] Chris Lahn's handoff, received 2026-10-29. The original case paragraphs below remain verbatim, including their historical A1, pending-ruling, W' and sibling wording. The scope notice here controls their use; they are not approved executable fixtures. The current design is `TAA_B1B2_BUILD_PLAN_v02.md`; v0.1 is historical. There is no A1 arm or Astra blind build.
+
+[Descriptive] Chris's approved revision: Step 1 runs only A0 on cases 1–7, W/U twins, two models, three repeats (84 episodes), after separate approval. All S siblings are **deferred and unrun**. Case 8, including S8, is **deferred/excluded from this run** under Q21; no envelope work is planned. Optional W' in case 4 is **excluded**. Q19 is deferred, with no anti-splitting rule. Q20 adopts PR3 through a structured condition on L's authenticated order and a separate hold-fact rule HF1. Their keys are documented now; their gateway implementation, the recall question, reasoned feedback and full event seam belong only to Step 2. Historical gateway dispositions in the paragraphs are audit expectations, not A0 gateway responses. The old reference-oracle and overlap instructions below do not authorize oracle extensions or access to sealed H.
 
 ## CASES (twin W = wrongful, U = lawful; S = sibling held apart for B3, written now, NOT run in B1/B2)
 
