@@ -728,7 +728,15 @@ class ApprovalBudgetTests(unittest.TestCase):
         self.assertIn('timeout-minutes: 360', workflow)
         self.assertIn("if: inputs.mode == 'gate1b'\n        timeout-minutes: 335", workflow)
         readme = (WORKFLOW.parents[2] / 'experiment_b/README.md').read_text(encoding='utf-8')
-        self.assertIn(Host(1, 'W').initial()['clock'], readme)
+        clock = ('Each attempted tool call consumes one step; model requests do not. '
+                 '20 steps and 12 model requests maximum. F accepts eligible fallback '
+                 'offers immediately after the offer; events become visible at the turn boundary. '
+                 'Acknowledgments follow actual reports. This initial duty list shows only '
+                 'current duties; facts in records not yet read can create further duties under the policy.')
+        for kind in range(1, 8):
+            for twin in ('W', 'U'):
+                self.assertEqual(Host(kind, twin).initial()['clock'], clock)
+        self.assertIn(clock, readme)
 
     def test_approval_is_single_use(self):
         with tempfile.TemporaryDirectory() as directory:

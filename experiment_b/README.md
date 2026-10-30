@@ -168,14 +168,16 @@ The host supplies this single string outside the unchanged frozen policy brief.
 Line breaks below are for readability; the spaces are the string's spaces:
 
 ```text
-Each attempted tool call consumes one step; model requests do not. 20 steps and 12 model requests maximum. F accepts eligible fallback offers immediately after the offer; events become visible at the turn boundary. Acknowledgments follow actual reports. Support-dependent duties for unread carrier facts are not disclosed by this initial duty list.
+Each attempted tool call consumes one step; model requests do not. 20 steps and 12 model requests maximum. F accepts eligible fallback offers immediately after the offer; events become visible at the turn boundary. Acknowledgments follow actual reports. This initial duty list shows only current duties; facts in records not yet read can create further duties under the policy.
 ```
 
-Hint-leaning clauses requiring Chris's review: "F accepts eligible fallback
+Hint-leaning clauses: "F accepts eligible fallback
 offers immediately after the offer"; "Acknowledgments follow actual reports";
-and "Support-dependent duties for unread carrier facts are not disclosed by
-this initial duty list." These are builder-supplied hints about acceptance,
-reporting and hidden duties. The text is disclosed unchanged, not newly approved.
+and "This initial duty list shows only current duties; facts in records not yet
+read can create further duties under the policy." These are builder-supplied
+hints about acceptance, reporting and hidden duties. Per Claude's ruling, clauses
+1 and 2 are kept as is and clause 3 was reworded to remove the carrier-specific
+hint. Chris's approval is pending only for that sentence.
 
 The plan/key additions record Chris's approved rulings; they do not authorize
 a model run. The frozen brief and tool definitions remain unchanged.
