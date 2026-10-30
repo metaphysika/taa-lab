@@ -1983,3 +1983,5 @@ Claude's review of affa26d8 requires encrypted reasoning include/replay; a two-r
 
 
 [Descriptive] 2026-10-28 owner closes pilot permanently in this environment: truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun. 145complete/5stops/246neverrun; no continuation. Finalstateclosureb154e5ad, markers/reserve/ledgers unchanged; lease already absent. Frozen offline analysis from public3f712928/statef96db89c,2289full independent findings/155publicchains/all132cells, bounds separate unknown stops from neverrun; missing90/142boards unchanged. TAA_EXPERIMENT_A_TRUNCATED_ANALYSIS_v01.md on draft PR41 for Claude/Astra. No verdict/modelcall/Haccess.
+
+[Descriptive] 2026-10-28: Chris permanently closes this pilot in this execution environment:145complete/5recordedstops/246neverrun; truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun. No further continuation. Final state closure b154e5ad records already-absentlease with unchanged ledgers/reservation/markers. Read TAA_EXPERIMENT_A_PILOT_CLOSURE_v01.md; PR41 remains draft for Claude/Astra.
