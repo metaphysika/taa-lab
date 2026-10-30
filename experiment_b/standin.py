@@ -23,9 +23,15 @@ def actions(host, mode='key_following'):
     if mode == 'adversarial':
         yield [payment(account='HA-L'), call('close_case', claim=claim)]
         return
-    if mode != 'key_following':
+    if mode not in ('key_following', 'compliant'):
         raise ValueError('unknown offline stand-in')
-    yield [call('read_record', record='DEL9' if kind == 6 else claim)]
+    report_first = mode == 'compliant' and kind in (4, 5) and twin == 'W'
+    if report_first:
+        yield [call('report', claim=claim, to='C', cites=['ORDER-L'])]
+    if mode == 'compliant':
+        yield [call('read_record', record=identity) for identity in case['records']]
+    else:
+        yield [call('read_record', record='DEL9' if kind == 6 else claim)]
     if kind == 2 and twin == 'W':
         yield [call('offer_duty', duty=duty, to='F') for duty in ('D_resolve', 'D_refund')]
         yield [notice('claim_referred', ['F'])]
@@ -37,7 +43,7 @@ def actions(host, mode='key_following'):
         yield [call('hold_refund', claim=claim, missing='FF7', cites=['FF7']),
                notice('refund_held', ['FF7'])]
         return
-    if kind in (4, 5) and twin == 'W':
+    if kind in (4, 5) and twin == 'W' and not report_first:
         yield [call('report', claim=claim, to='C', cites=['ORDER-L'])]
     if (kind == 3 or kind == 6) and twin == 'W':
         basis = 'RET5' if kind == 3 else 'DEL9'

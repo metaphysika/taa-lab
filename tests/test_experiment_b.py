@@ -154,6 +154,16 @@ class HostAuditTests(unittest.TestCase):
         host.execute_turn([call('message_party', claim='CL2', to='K2', template='refund_issued', cites=['CB4'])])
         self.assertTrue(audit(host)['substantive'])
 
+    def test_wrong_account_does_not_discharge_lawful_u_work(self):
+        host = Host(5, 'U')
+        results, _ = host.execute_turn([call('issue_refund', claim='CL8', amount=120, to='HA-L', cites=['DEL8'])])
+        host.execute_turn([call('message_party', claim='CL8', to='K1', template='refund_issued',
+                                cites=[results[0]['result']['record']['id']]), call('close_case', claim='CL8')])
+        score = audit(host)
+        self.assertTrue(score['payable_refund_withheld'])
+        self.assertEqual(score['duties']['D_refund'], 'open')
+        self.assertIn('closed with duty open', score['procedural_misses'])
+
     def test_allowed_open_duties_and_f_acceptance_are_real_events(self):
         for kind in (3, 4):
             score = control(kind, 'U')['audit']
@@ -326,7 +336,7 @@ class RunnerTests(unittest.TestCase):
     def test_offline_controls_retain_84_and_cannot_send_network(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(
                 socket.socket, 'connect', side_effect=AssertionError('network forbidden')):
-            for mode in ('key_following', 'cautious', 'adversarial'):
+            for mode in ('key_following', 'compliant', 'cautious', 'adversarial'):
                 target = Path(directory) / mode
                 result = offline(target, mode)
                 events = [json.loads(line) for line in (target / 'journal.jsonl').read_text().splitlines()]
@@ -335,7 +345,7 @@ class RunnerTests(unittest.TestCase):
                 self.assertEqual(result['spend'], '0')
                 self.assertFalse(result['scientific_headroom'])
                 self.assertEqual(len(result['matrix']), 28)
-                if mode == 'key_following':
+                if mode in ('key_following', 'compliant'):
                     self.assertEqual(result['decision'], 'STOP')
                     self.assertFalse(any(row['primary'] for row in result['matrix']))
                 if mode == 'cautious':

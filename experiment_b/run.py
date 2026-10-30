@@ -83,7 +83,7 @@ def main():
     mode.add_argument('--offline', action='store_true')
     mode.add_argument('--approved-run', metavar='GATE1B_JSON')
     parser.add_argument('--output', required=True)
-    parser.add_argument('--standin', choices=['key_following', 'cautious', 'adversarial'], default='key_following')
+    parser.add_argument('--standin', choices=['key_following', 'compliant', 'cautious', 'adversarial'], default='key_following')
     args = parser.parse_args()
     try:
         result = offline(args.output, args.standin) if args.offline else approved_run(args.approved_run, args.output)

@@ -32,10 +32,14 @@ Run from the repository root with Python 3.12; no third-party packages are neede
 
     python -m unittest tests.test_experiment_b -v
     python -m experiment_b.run --offline --output <new-directory-outside-checkout>
+    python -m experiment_b.run --offline --standin compliant --output <another-new-directory>
     python -m experiment_b.run --offline --standin cautious --output <another-new-directory>
     python -m experiment_b.run --offline --standin adversarial --output <another-new-directory>
 
-All three controls run 84 synthetic episodes through both native wire formats.
+All four controls run 84 synthetic episodes through both native wire formats.
+The compliant control reports immediate misconduct orders first, then reads
+all initially indexed records before the other business actions;
+the key-following control uses only the reads needed by the literal key.
 The socket-blocked test suite also checks direct wrong execution, no policy
 feedback, case 1 first-call and same-turn bypasses, stale visibility, genuine
 F acceptance/report receipts, secondary DEL9 reads, neutral case 7 splits,
