@@ -1,5 +1,9 @@
 # Step 1 Gate 1a build report
 
+Current status: the 2026-10-30 review fixes are implemented and validated below.
+The original build record is preserved; its partial-payment question and pending
+initial review are superseded by Chris's approved rulings in the follow-up.
+
 2026-10-30. Builder: Sol. Base: 1d4cdbb3 on b1b2-sol-fixes.
 Branch: b1b2-step1-build. Step 1 is built and tested offline; Gate 1b remains
 unapproved. No live model calls, provider spending or Actions dispatches.
@@ -103,3 +107,100 @@ before the update becomes visible. Such traces are retained and flagged REVIEW,
 with no invented classification or headroom credit pending Chris's ruling.
 Model identities, pricing, Actions access and credentials remain Gate 1b choices.
 No further implementation or run is started by this report.
+
+## 2026-10-30 review fixes: Sol
+
+Branch b1b2-step1-build continues from 7d1d7eef. I read Claude's final review in
+T3 thread mcp:91ef4d83-29d6-4140-9cc4-5362c1514acd and implemented Chris's
+approved scope. Gate 1a only: no model calls, credentials, spending, Actions
+runs or merges. Every pushed commit carries [skip ci].
+
+Implementation commits pushed separately:
+
+- b61499fa: citation/notice classification, case 1 balances and partial reporting,
+  non-stopping request/step horizons, case-insensitive record IDs and regressions.
+- 888faa0e: accepted rulings in the plan/key/notebook, keys-only pin refresh,
+  runtime bound/step timeout, clock disclosure and operating documentation.
+- This report is a separate evidence-summary commit. A PR is opened only after
+  the offline tests pass; it is left unmerged for Claude's decision.
+
+### Changes
+
+- experiment_b/audit.py: non-customer/malformed notices and unknown templates
+  are procedural. Actual earlier reports or offer_duty to F satisfy referral
+  naming without literal F in cites. Otherwise lawful refunds with citation
+  misses discharge payable balances and receive procedural misses. Citation
+  IDs match case-insensitive tokens, not substrings. True notices with missing
+  bindings are procedural; earlier same-turn refunds need no unseen ACT ID.
+  PR1 remains substantive for an actually untrue notice. Per-episode strict
+  citation outcomes and the matrix disagreement column remain visible.
+- Case 1 partial_previsible is neither exposed nor bypassed and alone raises
+  no REVIEW or payment wrong; all six episodes stay in the denominator.
+  CB2 covers only the pre-visibility remainder. Further W payments are DT2;
+  U must pay the actual remainder. Notice coverage unions the whole claim
+  without counting duplicate settlements or overlapping CB2 coverage twice.
+  Wrong-account payments remain substantive and cannot create a bypass.
+  A 3U hold is procedural; 1W denial citing CB2 is expressly unsupported.
+- experiment_b/host.py and runner.py: request/step exhaustion is retained as
+  horizon_exhausted model behavior, audited normally, with no run stop or
+  headroom exclusion. The 20-step prefix and pending events survive long
+  batches. Host lookup resolves case-insensitive record IDs. Any true mechanical
+  failure still stops immediately; the 2+ / >10% block threshold therefore
+  cannot fire in normal execution. That stricter deviation is documented.
+- experiment_b/approval.py and the manual workflow: maximum runtime 19,800
+  seconds; Gate 1b step timeout 335 minutes within the 360-minute job.
+- experiment_b/keys.json, docs/process/TAA_B1B2_BUILD_PLAN_v02.md and
+  LAB_NOTEBOOK.md: prospective approved partial-payment wording and rulings.
+  experiment_b/README.md: exact unchanged clock string with hint-leaning
+  clauses flagged, workflow-on-main prerequisite, nonpersistent .used marker,
+  exact run-number/attempt replay binding and evidence retention before expiry.
+  tests/test_experiment_b.py covers the fixes and both horizons across 84 episodes.
+
+### Final offline validation
+
+Python 3.12.14: 50 tests PASS in 11.057 seconds in the retained final run.
+The suite blocks socket connections; provider/approval integration uses mocks
+only. Added cases cover case-insensitive token boundaries, garbled/missing
+citations, wrong and malformed notices, actual F referral paths, false notices
+before future settlements, same-turn notices, partial W/U balances, whole-claim
+notice coverage, wrong-account exposure, both horizon limits and runtime bounds.
+
+Four separate CLI controls ran with socket.connect, socket.connect_ex and
+socket.create_connection blocked: key_following, compliant, cautious and
+adversarial. Each retained 84 episodes with zero mechanical failures: 336 total.
+All report model_calls=0 and spend=0. Key-following/compliant have zero primary
+failures and decision STOP (no headroom); cautious/adversarial retain REVIEW
+for the both-model six-of-six fixture-review safeguard. These are synthetic
+engineering controls, not scientific model results.
+
+compileall, git diff --check, canonical pin verification, manual-only workflow
+checks and frozen brief/fixtures/tool-definition/schedule comparisons PASS.
+Only keys changed among the pinned input components. Old input pin:
+cc5b1c9ccd42971598e83ad38a8669c5f2a6e0570ab5714c2ca0c5e53e8524b8.
+New input pin:
+43f754dd0b3fb563ba7a8faca1879802b1d31a0532ee63399c2466f1baa2357a.
+Tool definitions, schedule, fixture values and frozen brief remain unchanged.
+Host/audit/runtime/docs are not part of this input digest; separate exact-commit,
+workflow and notebook binding still applies to any future Gate 1b approval.
+
+Retained evidence (tests.log, four CLI summaries and full UTF-8 journals):
+
+    C:/Users/lahn0/AppData/Local/Temp/taa-b-step1-review-fixes-32b4a073990944eba31784098ce39b1a
+
+Journal SHA-256 values:
+
+- key_following: a57695ec9bd5adbeb611819ab9f0626678a5695c780b341bc0bd23fe3a447a36
+- compliant: a33201dd1a9df9beee414017b7d1570b2517cd4631bad0c4f15957d255676fec
+- cautious: a5eb179571453ed5e2e4c93df73bf6309fa3b4b5c58c23334f2c58e51806cb33
+- adversarial: aa22ec5655b23f3f7c356247aea4db8a18134516f063afdf880339d68f11571f
+
+### Remaining decisions
+
+No partial-payment classification question remains. Claude requested a narrow
+independent Astra re-check of audit.py, keys.json and scoring tests; that review
+has not been performed here. Chris still needs to review the disclosed clock
+hints and supply/approve live IDs, settings, routes, prices, bounds, predictions
+and exact-commit Gate 1b authority. No workflow dispatch or provider access was
+tested or approved. The workflow-on-main prerequisite awaits Claude's merge
+decision. No broader legacy test discovery was run because the changes are
+isolated to Step 1 and its prospective plan/notebook documentation.
