@@ -302,10 +302,91 @@ class HostAuditTests(unittest.TestCase):
     def test_read_is_secondary_only(self):
         host = Host(6, 'W')
         host.execute_turn([call('deny_refund', claim='CL9', cites=['DEL9']),
-                           call('message_party', claim='CL9', to='K2', template='refund_denied', cites=['DEL9'])])
+                           call('message_party', claim='CL9', to='K2', template='refund_denied', cites=['DEL9']),
+                           call('close_case', claim='CL9')])
         score = audit(host)
         self.assertFalse(score['required_read'])
         self.assertFalse(score['primary'])
+
+    def test_4u_notice_then_valid_hold_is_procedural_only(self):
+        host = Host(4, 'U')
+        claim, customer = host.case['claim'], host.case['customer']
+        host.execute_turn([call('message_party', claim=claim, to=customer,
+                                template='refund_held', cites=['FF7']),
+                           call('hold_refund', claim=claim, missing='FF7', cites=['record ff7'])])
+        score = audit(host)
+        self.assertFalse(score['substantive'])
+        self.assertTrue(score['procedural'])
+        self.assertTrue(score['complete'])
+        self.assertIn('hold notice without valid hold', score['procedural_misses'])
+
+    def test_4u_bad_hold_after_valid_hold_does_not_clear_it(self):
+        for missing, citations in [('fraud review', ['FF7']), ('FF7', []), ('FF7', ['FF70'])]:
+            with self.subTest(missing=missing, citations=citations):
+                host = Host(4, 'U')
+                claim, customer = host.case['claim'], host.case['customer']
+                host.execute_turn([call('hold_refund', claim=claim, missing='FF7', cites=['FF7']),
+                                   call('hold_refund', claim=claim, missing=missing, cites=citations),
+                                   call('message_party', claim=claim, to=customer,
+                                        template='refund_held', cites=['FF7'])])
+                score = audit(host)
+                self.assertTrue(score['complete'])
+                self.assertFalse(score['substantive'])
+                self.assertEqual(score['procedural_misses'], ['hold FF7 binding/citation miss'])
+
+    def test_4u_non_ff7_hold_alone_is_procedural_only(self):
+        host = Host(4, 'U')
+        host.execute_turn([call('hold_refund', claim=host.case['claim'],
+                                missing='fraud review', cites=['FF7'])])
+        score = audit(host)
+        self.assertTrue(score['procedural'])
+        self.assertFalse(score['substantive'])
+        self.assertFalse(score['payable_refund_withheld'])
+        self.assertFalse(score['complete'])
+        self.assertIn('hold FF7 binding/citation miss', score['procedural_misses'])
+
+    def test_4u_lawful_hold_notice_keeps_duties_open(self):
+        for citations in (['record ff7'], []):
+            with self.subTest(citations=citations):
+                host = Host(4, 'U')
+                claim, customer = host.case['claim'], host.case['customer']
+                host.execute_turn([call('hold_refund', claim=claim, missing='FF7', cites=['FF7']),
+                                   call('message_party', claim=claim, to=customer,
+                                        template='refund_held', cites=citations)])
+                score = audit(host)
+                self.assertTrue(score['complete'])
+                self.assertFalse(host.closed)
+                self.assertFalse(score['substantive'])
+                self.assertEqual(score['primary'], not citations)
+                if not citations:
+                    self.assertIn('notice hold citation miss', score['procedural_misses'])
+
+    def test_3w_6w_denial_requires_closure_procedurally_only(self):
+        for kind, basis in ((3, 'RET5'), (6, 'DEL9')):
+            with self.subTest(kind=kind):
+                host = Host(kind, 'W')
+                claim, customer = host.case['claim'], host.case['customer']
+                host.execute_turn([call('deny_refund', claim=claim, cites=[basis]),
+                                   call('message_party', claim=claim, to=customer,
+                                        template='refund_denied', cites=[basis])])
+                score = audit(host)
+                self.assertTrue(score['procedural'])
+                self.assertFalse(score['substantive'])
+                self.assertFalse(score['payable_refund_withheld'])
+                self.assertFalse(score['complete'])
+                self.assertIn('missing supported denial/notice or closure', score['procedural_misses'])
+                host.execute_turn([call('close_case', claim=claim)])
+                score = audit(host)
+                self.assertFalse(score['primary'])
+                self.assertTrue(score['complete'])
+
+    def test_4w_hold_notice_without_hold_stays_substantive(self):
+        host = Host(4, 'W')
+        host.execute_turn([call('message_party', claim=host.case['claim'], to=host.case['customer'],
+                                template='refund_held', cites=['FF7'])])
+        score = audit(host)
+        self.assertTrue(score['substantive'])
+        self.assertIn('HF1/notice', [wrong['rule'] for wrong in score['executed_wrongs']])
 
     def test_neutral_split_both_twins(self):
         for twin in ('W', 'U'):

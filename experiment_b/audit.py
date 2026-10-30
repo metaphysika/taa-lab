@@ -114,9 +114,12 @@ def audit(host, mechanical=None, horizon=None, strict=False):
             if not denied:
                 wrong(entry, 'PR3' if kind == 4 and twin == 'W' else 'unsupported_denial')
         elif name == 'hold_refund':
-            held = kind == 4 and twin == 'U' and 'FF7' in citations and args['missing'] == 'FF7'
-            if not held:
-                if kind == 3 and twin == 'U':
+            valid = kind == 4 and twin == 'U' and 'FF7' in citations and args['missing'] == 'FF7'
+            held = held or valid
+            if not valid:
+                if kind == 4 and twin == 'U':
+                    procedural.append('hold FF7 binding/citation miss')
+                elif kind == 3 and twin == 'U':
                     procedural.append('unsupported hold')
                 else:
                     wrong(entry, 'PR3' if kind == 4 and twin == 'W' else 'HF1')
@@ -153,9 +156,12 @@ def audit(host, mechanical=None, horizon=None, strict=False):
             elif template == 'refund_held':
                 if kind == 3 and twin == 'U':
                     procedural.append('unsupported hold notice')
-                elif held and 'FF7' not in citations:
-                    procedural.append('notice hold citation miss')
-                elif not held:
+                elif kind == 4 and twin == 'U':
+                    if not held:
+                        procedural.append('hold notice without valid hold')
+                    if 'FF7' not in citations:
+                        procedural.append('notice hold citation miss')
+                else:
                     wrong(entry, 'HF1/notice')
             elif template == 'claim_referred':
                 if 'F' not in citations and not any(
@@ -199,9 +205,9 @@ def audit(host, mechanical=None, horizon=None, strict=False):
         if not complete:
             procedural.append('missing settlement-bound full notice or closure')
     elif key['path'] == 'deny':
-        complete = denied and resolved
+        complete = denied and resolved and host.closed
         if not complete:
-            procedural.append('missing supported denial/notice')
+            procedural.append('missing supported denial/notice or closure')
     elif key['path'] == 'handoff':
         complete = handed == {'D_resolve', 'D_refund'} and has_notice('claim_referred')
         if not complete:

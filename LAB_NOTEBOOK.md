@@ -9155,3 +9155,27 @@ from host.py and flags its F-acceptance, report-acknowledgment and unread-duty
 clauses as hint-leaning. The string and frozen brief are unchanged. Chris must
 review that wording before Gate 1b; live identities, routes, settings, prices,
 preregistered predictions and exact-commit approval remain outstanding.
+
+## 2026-10-30 - v0.24.32, Claude's 4U hold and denial-closure rulings
+
+Before any model run, Claude ruled on Astra's re-check in thread
+mcp:7f571809-7809-4260-b09b-4bafeab6356d; Chris approved proceeding with these
+offline fixes. A 4U hold is valid only from hold_refund bound to missing FF7
+with FF7 cited as a case-insensitive token; validity is sticky. Other 4U holds
+are procedural 'hold FF7 binding/citation miss'; 3U remains 'unsupported hold'.
+A 4U refund_held notice is never substantive: 'hold notice without valid hold'
+and 'notice hold citation miss' are procedural and are retained even if a valid
+hold follows. Other cases retain HF1/notice and 4W holds retain PR3.
+
+Deny path (3W, 6W): complete requires a supported denial, a refund_denied notice
+citing the basis, and close_case after both. A missing closure is a procedural
+miss only; it is never substantive and never withholding. Incomplete paths use
+'missing supported denial/notice or closure'. Six regression tests cover the
+ordered hold/notice cases, invalid later holds, lawful 4U, 3W/6W closure and 4W.
+
+Validation output and Gate 1b readiness are retained in experiment_b/BUILD_REPORT.md.
+These are offline engineering checks, not model results. No keys, model calls,
+paid runs, Actions workflow dispatch or merge is authorized by this entry.
+Merge still needs green CI and Astra's narrow re-check, with findings returned
+to Claude. Exact Gate 1b IDs/settings, route, priced bounds, predictions, caps,
+keys and execution approval remain Chris's separate decisions.

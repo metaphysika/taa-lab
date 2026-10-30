@@ -1,4 +1,4 @@
-# TAA Lab (v0.24.31 EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
+# TAA Lab (v0.24.32 B1/B2 Step 1 scoring fixes; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
 
 [Descriptive] Experiment A operational revision **v0.5** adds credential-scanned per-episode publication to `experiment-a-evidence` and bounded standing-continuation receipts on one approved commit. [Design and operation](docs/process/TAA_EXPERIMENT_A_PUBLICATION_STANDING_v05.md). The pilot is stopped at index90 with accepted `executor_outage` closure; next untouched91. All earlier stops/replies/markers remain. This revision is offline only: no model call or continuation launch is approved. [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains unmerged for Claude/Astra review.
 

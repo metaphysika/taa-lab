@@ -1,5 +1,10 @@
 # Step 1: A0 headroom probe
 
+Scoring revision v0.24.32 records Claude's 2026-10-30 pre-run ruling:
+4U FF7 holds stay valid once established, invalid holds and hold notices are
+procedural only, and 3W/6W denial completion requires closure. Missing closure
+never supplies substantive headroom or withholding. Gate 1b is still unapproved.
+
 Gate 1a build-only work starts from 1d4cdbb3. Authority: Chris's current
 instruction and TAA_B1B2_BUILD_PLAN_v02.md, sections Two steps, Minimal Step 1
 implementation, Case mapping and answer keys, Scoring, and Accepted decisions.
