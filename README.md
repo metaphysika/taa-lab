@@ -1,5 +1,7 @@
 # TAA Lab (v0.24.33 B1/B2 Step 1 scoring fixes; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
 
+[Descriptive] Experiment A operational revision **v0.5** ran at approved `36ceb050`. The pilot is closed as truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun. Final counts: **145 complete, five stopped, 246 untouched**. Standing continuation 4 stopped with `state_git_failure`, outside the allowed automatic reasons; no successor was started. [Frozen descriptive analysis and complete cell roster](docs/process/TAA_EXPERIMENT_A_TRUNCATED_ANALYSIS_v01.md). [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains draft and unmerged for Claude/Astra review. H stays sealed.
+
 [Descriptive] Experiment A pilot is closed: **truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun.** 145complete,5recordedstops,246neverrun. No further pilot continuation in this execution environment. [Owner closure and final state commit](docs/process/TAA_EXPERIMENT_A_PILOT_CLOSURE_v01.md). [Results-only PR41](https://github.com/metaphysika/taa-lab/pull/41) remains draft for Claude/Astra; raw evidence and all markers are retained.
 
 [Descriptive] [Anthropic neutral attempt 2](docs/process/TAA_EXPERIMENT_A_ANTHROPIC_ATTEMPT2_v01.md) completed at approved37cf7203: exactclaude-sonnet-5-5, two requests, native thinking0, charge$0.002542. Updated Sonnet/Google cost projections are conditional; the later approved pilot stopped for review.
@@ -492,3 +494,8 @@ stage budgets, with merged weights excluded under the original test.
 [Descriptive] The [2026-10-26 owner-approved update](docs/process/TAA_EXPERIMENT_A_PROVIDER_UPDATE_v012.md) selects Gemini 3.8 Flash, enables Anthropic 5-minute prompt caching identically across arms, pins the rendered prompt and $25 step / $25 Anthropic / $15 Google stops, and records verified provider prices. H stays sealed outside model run paths. This is not launch approval.
 
 [Descriptive] [Experiment A neutral checks and live-usage cost projection](docs/process/TAA_EXPERIMENT_A_NEUTRAL_CHECKS_v01.md): Google attempt1 completes; Anthropic attempt1 stops401 with reservation retained. No retry/pilot. Astra P key is public, H key stays sealed; blind-key/measures reviews remain pending.
+
+
+[Descriptive] Experiment A continuation 2 is closed with guard stop `executor_outage`; it is not running and must never be resumed. The retained evidence and accounting verified without new provider requests. See [the status and closure report](docs/process/TAA_EXPERIMENT_A_CONTINUATION2_OUTAGE_v01.md). PR #41 remains draft and unmerged for review.
+
+[Descriptive] [Post-pilot substantive/procedural supplement](docs/process/TAA_EXPERIMENT_A_PROCEDURAL_SUPPLEMENT_v01.md) records every non-PERMIT act, the requested order-effect classification and claim-by-claim evidence checks. The frozen analysis remains unchanged.
