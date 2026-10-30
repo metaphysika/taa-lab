@@ -1,5 +1,43 @@
 # Step 1 Gate 1a build report
 
+## 2026-10-30 v0.24.33: closure ordering and Windows baseline comparison
+
+Tested source: e903e61f0227eacbfb7507c617f5e1bb96a3df5e. The 3W/6W
+scorer now requires the last close_case after the first supported denial and
+first valid refund_denied notice, using tool-call positions within each turn.
+Early closure remains procedural and stays flagged after a valid later closure.
+keys.json is unchanged. This correction precedes any model run.
+
+Full Windows discovery at merge-base 5e260cb804f02f72cdf109211115c55f5472eb7a
+ran 1,376 tests in 32.414s: 20 failures, 698 errors, 109 skips. At the tested
+source head it ran 1,440 tests in 44.199s: 20 failures, 698 errors, 109 skips.
+All 718 failing test/subtest IDs match exactly, including FAIL/ERROR type;
+head-only IDs: 0; base-only IDs: 0. These failures and errors were already
+present before this work. The 64-test increase is the Step 1 suite, including
+eight new closure-order regressions. No unrelated failures were changed.
+
+Final focused validation: python -m unittest tests.test_experiment_b -v ran
+64 tests in 11.358s, OK (exit 0). The scripted run.py --scenario all completed
+all 18 scenarios, exit 0, with default scripted agent and no model counsel.
+Its working directory contains only copied scenarios and external output;
+no credential file was copied. Final-focused.log and final-scenarios.log are
+retained alongside the discovery evidence below. No model calls or spending.
+
+Both runs use the same bundled Python 3.12.14, Windows settings, UTF-8 output,
+credential-variable removal and socket-blocking sitecustomize guard. The base
+run uses a separate detached temporary worktree, removed after comparison.
+The full-suite command is python -m unittest discover tests. Bare
+python -m unittest discover was also run on both revisions: each discovers only
+one schema-import error because tests/ has no __init__.py on Python 3.12.
+It is not the full-suite comparison. Linux CI is green on the supplied PR head
+3bef85cb71d4e22dbc834aae043acc7d22f89d8e, including both Harness checks/test
+runs; checks on the final pushed head must be assessed separately.
+
+Raw discovery logs and discovery-comparison.json retain both exact ID lists in
+C:/Users/lahn0/AppData/Local/Temp/taa-b-sol-fixes2-8e095427.
+SHA-256 of the shared sorted FAIL/ERROR ID lines, LF-delimited with final LF:
+9d5155bf3ef416e49b4c85eec5315892fbed13651490740f2f129e2ed1792c38.
+
 ## 2026-10-30 v0.24.32: Claude ruling implemented
 
 Implementation/tested source head: 78d7c8429371fefde06827aa4c7d658a8295a8be.
@@ -35,13 +73,15 @@ controls each retain 84 episodes: 336 total, no mechanical failures, zero model
 calls and spend 0. Key-following/compliant retain STOP for no scientific
 headroom; cautious/adversarial retain the fixture-review safeguards.
 
-The requested full discovery does NOT pass locally: 1,432 tests in 62.672s,
-20 failures, 697 errors, 109 skips. The failures are outside test_experiment_b;
-observed causes include frozen-fixture/manifest mismatches on this Windows
-checkout, missing dependencies, unavailable Unix resource and symlink privilege.
-No baseline rerun proves every broad-suite failure pre-existing. No unrelated
-code or expected results were changed to make discovery green. This supersedes
-any blanket validation claim in the historical report below.
+The earlier full discovery did NOT pass locally: 1,432 tests in 62.672s,
+20 failures, 697 errors, 109 skips. The v0.24.33 same-setup baseline comparison
+above now establishes that the current Windows failures and errors were already
+present before this work: base 1,376 tests and head 1,440 tests, each with
+20 failures, 698 errors and 109 skips, at merge-base
+5e260cb804f02f72cdf109211115c55f5472eb7a. All failing IDs match; Linux CI
+is green on the supplied 3bef85cb head. No unrelated code or expected results
+were changed to make discovery green. This supersedes any blanket validation
+claim in the historical report below.
 
 Full stdout/stderr for discovery, the focused suite, scripted scenarios and
 four synthetic controls is pasted at the end of this report, without elision.
