@@ -9325,3 +9325,80 @@ and reclosure. keys.json is unchanged; no model run has occurred.
 
 [Descriptive] Owner approved Claude's branch review. The Experiment A record PRs merge into main in order: #41 (truncated pilot analysis and supplement), #45 (pilot closed as infrastructure-truncated), #51 (Experiment A paused). Superseded branches are deleted: b1b2-design (PR #52 closed; main has the newer documents via PR #53), b1b2-sol-fixes, feat/gateway-v031-stage7, feat/gateway-v031-comparators, feat/gateway-independent-traces-v01 and evidence/haiku55-study-a-continuation-2026-10-11 (the last two are fully contained in main). PR #47 (usability slice plan) stays parked as a draft. PRs #46, #48, #49 and #50 are kept as drafts; #50 is retargeted to main. experiment-state and experiment-a-evidence are never deleted or merged into main. No model calls, evidence, scorer, scenario or result changes.
 2026-10-30 (v0.24.34): Clock text sentence 3 was reworded per Claude's ruling before any model run; clauses 1 and 2 are kept as is, and Chris's approval is pending only for sentence 3.
+
+## 2026-10-30 - v0.24.35, Gate 1b readiness fixes and Chris's decisions
+
+[Descriptive] Claude's final readiness review in T3 thread
+mcp:9c38c1cf-dd7c-4d09-95db-2a01718d90f2 found missing ledger enforcement,
+an insufficient whole-run cap, byte/token naming confusion, settings protected
+only by fingerprints, and missing final preregistration. These offline fixes
+start from freshly fetched origin/main db21cc8986c4d10eddfafa664443c5215dd45a01.
+
+[Owner decisions] Chris sets the Experiment B Anthropic cumulative stop to
+$13.00. The starting Anthropic balance is $8.588293049999988 from this notebook
+line 9188, not the stale $5.805643249999988 repo ledger. OpenAI keeps its existing
+$8 stop and exact repo balance $1.1327969749999984 (lines 6802 and 6831), rather
+than the approximate $1.17 figure. Each model has $4.00 whole-run room; combined
+room is $8.00. The legacy caps.probe field is the whole-run cap, now permitted
+up to $8, not a separate $0.05 probe. Chris accepts each model's first real
+request as the identity/usage probe, costing about $0.01 or less at the measured
+initial request size. Chris approves clock sentence 3; clauses 1 and 2 stay as is.
+
+[Engineering] experiment_b/ledger_start.json records the source balances and
+stops. Before constructing any transport, approved_run prints and journals each
+provider's spend, stop and requested room, plus the monthly sum. It refuses
+provider_stop_would_be_exceeded when current spend plus remaining_dollars would
+exceed the stop. The larger of snapshot and live repo ledger balances is used.
+The live formation Anthropic ledger is reconciled to line 9188 with its source
+recorded, without charging new spend. Production ledgers are mutable accounting;
+immutable historical test snapshots remain unchanged. The $13 stop applies only
+to Experiment B, not to formation or Experiment A.
+
+[Owner decision] The monthly total cap is $50 including this month's spend.
+October's recorded API-spend floor is $17.4660934499999910: OpenAI plus Anthropic,
+Google $7.7450034250000046 from line 9188 (including retained reserve), and Groq
+$0 from its repo ledger. The approval's monthly_remaining must fit beneath
+$50 minus recorded spend and include any additional monthly spending before
+approval. The snapshot refuses a different UTC month until refreshed; no
+automatic reset or fresh $50 allowance is implied.
+
+[Engineering] input_token_bound now permits at most 96,000 serialized JSON
+UTF-8 bytes, including ASCII escaping and the framing allowance, not 96,000
+tokenized input tokens. This conservative bound stays below the 100K input
+price tier. Offline measurement covers four stand-ins, 84 episodes each, using
+gpt-6-luna and claude-haiku-5-5, 8,192 output bounds, default Luna reasoning and
+Haiku adaptive thinking/medium effort. Largest JSON request: 18,728 bytes
+(compliant); key-following 13,825; cautious/adversarial 11,318 each. With 2,000
+bytes of framing, the largest leaves 75,272 bytes of room, exceeding the tested
+20,000-byte extra margin. Live encrypted history may grow differently and is
+still bounded before transmission. First requests measure 10,725/10,390 bytes
+(Luna/Haiku), with upper byte-based estimates $0.006710625/$0.00666875 using
+0.125 input/0.625 output dollars per million and 8,192 output tokens. The
+full conservative reservation is $0.01712 per request; no separate probe is sent.
+
+[Engineering] Native adapters already require exact identity and valid usage
+before continuing; regressions check that a failed first request for either
+provider prevents further spending. Approval now checks Haiku thinking
+{type: adaptive}, output_config effort medium and anthropic-version 2023-06-01
+as well as the fingerprint. The README adds the artifact-download, durable
+results/<dated name>/ copy, ledger booking and notebook-entry checklist.
+
+[Still required] After Claude reviews these fixes, make one second small
+preregistration commit: add the exact canonical configuration line generated
+with json.dumps(configuration, sort_keys=True), plus the exact predictions
+sentence. Fill selected model IDs, HTTPS routes, key/header conventions,
+default Luna reasoning, Haiku settings/version, 8,192 output and 96,000 byte
+bounds, 2,000-byte framing, margin prices, 300-second timeout, runtime bound,
+fixed 84-episode schedule, $4/$4/$8 caps and reconciled monthly room. Then derive
+the final clean approved SHA and input/schedule/workflow/notebook hashes, expiry,
+repository/workflow ref, next run number and attempt 1 for the external approval
+manifest. Do not approve this fixes-only SHA or derive the final SHA before that
+commit and any merge. No final configuration line or predictions sentence is
+added here. No model call, workflow dispatch or merge is performed by this work.
+
+[Offline validation] Python 3.12.14: python -m unittest tests.test_experiment_b
+-v passes 71 tests (11.496 seconds), with sockets blocked by the suite. The
+run.py --scenario all scripted regression completes all 18 scenarios with exit
+0 under a socket-blocking wrapper that also bypasses keys.env loading and
+directs reports outside the checkout. git diff --check passes. These are
+engineering checks, not paid model results or scientific headroom evidence.

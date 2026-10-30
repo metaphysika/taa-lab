@@ -29,8 +29,10 @@ FF7 add the accepted readable Step 1 facts. No H files or key are opened.
 Gate 1b remains unapproved. Model IDs, normal reasoning settings, permitted
 Actions route, credentials, current prices, request/history/output bounds,
 runtime estimate and spend caps require Chris's separate exact-commit approval.
-The proposed $2 probe subcap, $12 combined ceiling and $50 monthly ceiling are
-limits for a future approval, not spending authority.
+Chris's 2026-10-30 decisions set $4 per model, $8 for the whole run and $50 for
+the monthly total including prior spend. The legacy `caps.probe` field names
+the whole-run cap; it is not a separate probe allowance. These decisions still
+require preregistration and separate exact-commit execution approval.
 
 ## Offline use
 
@@ -69,8 +71,8 @@ The draft manual-only Actions workflow maps the GitHub secret TAA_OPENAI_API_KEY
 to LUNA_API_KEY in the job environment and keeps ANTHROPIC_API_KEY unchanged;
 Chris must approve those mappings or revise the workflow before exact-commit
 approval. No workflow was dispatched during this build. There is no automatic
-push/PR trigger in this new workflow. Build commits use [skip ci] to avoid
-triggering unrelated existing workflows while honoring the requested pushes.
+push/PR trigger in this new workflow. Use ordinary CI on build commits; never
+use a CI-skip marker. Do not dispatch this workflow during offline fixes.
 
 Complete and preregister configuration, cost/runtime bounds and predictions
 in LAB_NOTEBOOK.md, then test and commit. Keep the approval JSON outside the
@@ -94,15 +96,77 @@ Only after Chris's separate Gate 1b approval, the approved Actions entrypoint is
     python -m experiment_b.run --approved-run <approval.json> --output <new-external-directory>
 
 Before transmission, the budget reserves an approved input/output upper bound
-against the probe cap and remaining combined, monthly and provider room. The
-input guard uses serialized UTF-8 bytes plus an explicitly approved native
-framing overhead; Chris must approve its conservatism for the chosen route.
+against the whole-run cap and remaining combined, monthly and provider room.
+Before any transport is constructed, `approved_run` prints and journals each
+provider's cumulative spend, stop and requested room, plus the monthly sum.
+`ledger_start.json` pins notebook-sourced balances: OpenAI $1.1327969749999984
+with its existing $8 stop, Anthropic $8.588293049999988 with Chris's $13
+Experiment B stop. This is the exact OpenAI ledger balance, rather than the
+rough $1.17 estimate. The guard uses the larger of snapshot and current repo
+ledger balances. It refuses `current + remaining_dollars > stop` with
+`provider_stop_would_be_exceeded`. Anthropic's $13 stop does not change any
+Experiment A or formation stop.
+
+The October API-spend floor also includes notebook-sourced Google spend
+($7.7450034250000046, including its retained reserve) and the Groq ledger ($0).
+The recorded sum is $17.4660934499999910. `caps.monthly_remaining` must be no
+more than $50 minus that sum, and must account for any additional monthly
+spend before approval. A different UTC month requires refreshing the snapshot;
+the guard does not silently reset cumulative spending.
+
+Chris accepts each model's first real request as its probe, with no separate
+$0.05 request or allowance. Native adapters check exact returned identity and
+complete, valid usage before another request; a failure stops the schedule and
+keeps the uncertain reserve. With the selected 8,192 output bound and margin
+prices, the first offline request costs less than about $0.01 at its JSON-byte
+input estimate. The full conservative reservation can be larger.
+
+`input_token_bound` is a legacy name: the guard counts serialized JSON UTF-8
+bytes (`ensure_ascii=True`), plus the approved framing overhead, not tokenized
+input. Its ceiling is now 96,000 bytes, below the 100K input tier boundary.
+The offline size regression exercises all four stand-ins, 84 episodes each,
+with the selected model IDs, 8,192 output bounds and Haiku settings, and requires
+at least 20,000 extra bytes after a 2,000-byte framing allowance. Actual live
+encrypted reasoning can grow differently; the same fail-closed byte guard
+still applies. Haiku approval requires `thinking={"type":"adaptive"}`,
+`output_config={"effort":"medium"}` and `anthropic-version: 2023-06-01`.
+
+On the 2026-10-30 offline measurement, the largest request was 18,728 JSON bytes
+(compliant control), leaving 75,272 bytes after the 2,000-byte overhead.
+Key-following peaked at 13,825 bytes; cautious and adversarial at 11,318 each.
+First requests were 10,725 bytes (Luna) and 10,390 (Haiku), with conservative
+byte-based cost estimates of $0.006710625 and $0.00666875 respectively.
 Input prices must upper-bound every uncached/cache read/cache creation tier;
 output prices must include normal reasoning tokens. Native usage is retained;
 cost accounting reports a conservative dollar upper bound, not a claimed exact
 invoice. Unknown usage, transport failures and timeouts retain the whole reserve.
 No request can silently escape the cap. Block 1 spend projects the full run;
 guard failures stop immediately and every attempted episode remains recorded.
+
+## Post-run checklist
+
+1. Download the Actions artifact `experiment-b-step1-receipts`, including any
+   partial-run STOP evidence, before artifact expiry.
+2. Copy it intact into `results/<dated name>/` and commit the durable evidence.
+3. Book usage-backed spend and retained uncertainty reserves in the provider
+   ledgers; refresh `ledger_start.json` and monthly room before another approval.
+4. Add a notebook entry with the approved SHA, Actions run identity, artifact
+   path, actual/uncertain spending, completion or STOP, and scientific limits.
+
+## Preregistration follow-up after Claude's review
+
+One second small commit is still required. Add the final exact configuration
+line generated by `json.dumps(configuration, sort_keys=True)` and the exact
+predictions sentence to `LAB_NOTEBOOK.md`; neither is added by this fix.
+The configuration needs the selected IDs/routes/authentication, default Luna
+reasoning, Haiku adaptive/medium/version settings, 8,192 output and 96,000
+JSON-byte bounds, framing allowance, margin prices, 300-second request timeout,
+runtime bound, fixed schedule and $4/$4/$8 caps. Reconcile all monthly spend
+and fill the remaining monthly room first. Clock sentence 3 is approved.
+Commit that preregistration before deriving the clean final SHA, hashes,
+expiry and next Actions run-number/attempt binding for Chris's separate
+approval JSON. The JSON stays outside the checkout. Any later merge changes
+the approved SHA; rebind approval rather than approving this fixes-only head.
 
 ## Review questions and engineering freezes
 
@@ -177,7 +241,7 @@ and "This initial duty list shows only current duties; facts in records not yet
 read can create further duties under the policy." These are builder-supplied
 hints about acceptance, reporting and hidden duties. Per Claude's ruling, clauses
 1 and 2 are kept as is and clause 3 was reworded to remove the carrier-specific
-hint. Chris's approval is pending only for that sentence.
+hint. Chris approved sentence 3 on 2026-10-30.
 
 The plan/key additions record Chris's approved rulings; they do not authorize
 a model run. The frozen brief and tool definitions remain unchanged.

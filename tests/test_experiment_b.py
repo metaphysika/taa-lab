@@ -1,5 +1,6 @@
 """Offline engineering controls; synthetic behavior is not headroom evidence."""
 from copy import deepcopy
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from decimal import Decimal
@@ -21,6 +22,7 @@ from experiment_b.budget import Budget
 from experiment_b.fixtures import digest
 from experiment_b.run import approved_run
 from experiment_b.transport import HTTPS
+from experiment_b.ledger import check_ledger, LEDGER_START
 
 
 NETWORK_BLOCK = patch.object(socket.socket, 'connect', side_effect=AssertionError('offline tests prohibit sockets'))
@@ -666,18 +668,105 @@ class RunnerTests(unittest.TestCase):
 def configuration():
     provider = dict(model_id='offline-only-id', endpoint='https://example.invalid/v1/responses',
                     key_env='OFFLINE_ONLY', auth_header='Authorization', auth_prefix='Bearer ', headers={},
-                    settings=dict(max_output_tokens=100), input_token_bound=100000,
+                    settings=dict(max_output_tokens=100), input_token_bound=96000,
                     output_token_bound=100, input_token_overhead=1000, timeout_seconds=30,
                     input_dollars_per_million_upper='1', output_dollars_per_million_upper='2',
                     remaining_dollars='2', protocol='responses')
     anthropic = deepcopy(provider)
-    anthropic.update(protocol='anthropic', endpoint='https://example.invalid/v1/messages', settings=dict(max_tokens=100))
+    anthropic.update(protocol='anthropic', endpoint='https://example.invalid/v1/messages',
+                     headers={'anthropic-version': '2023-06-01'},
+                     settings=dict(max_tokens=100, thinking={'type': 'adaptive'}, output_config={'effort': 'medium'}))
     return dict(episode_count=84, max_requests=12, max_steps=20, parallel_tool_calls=True,
-                runtime_bound_seconds=10000, caps=dict(probe='2', combined_remaining='12', monthly_remaining='50'),
+                runtime_bound_seconds=10000, caps=dict(probe='2', combined_remaining='12', monthly_remaining='30'),
                 providers={'Luna': provider, 'Haiku 5.5': anthropic})
 
 
+class LedgerTests(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        self.ledger = json.loads(LEDGER_START.read_text(encoding='utf-8'))
+        self.path = self.root / 'ledger_start.json'
+        for entry in list(self.ledger['providers'].values()) + self.ledger['other_month_spend']:
+            path = self.root / entry['ledger_path']
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(dict(estimated_api_dollars=entry['cumulative_dollars'])), encoding='utf-8')
+        for target, value in (('ROOT', self.root), ('LEDGER_START', self.path)):
+            mocked = patch('experiment_b.ledger.' + target, value)
+            mocked.start()
+            self.addCleanup(mocked.stop)
+        clock = patch('experiment_b.ledger.datetime')
+        self.clock = clock.start()
+        self.clock.now.return_value = datetime(2026, 10, 30, tzinfo=timezone.utc)
+        self.addCleanup(clock.stop)
+        self.config = configuration()
+        self.config['caps'].update(probe='8.00', combined_remaining='8.00', monthly_remaining='8.00')
+        for provider in self.config['providers'].values():
+            provider['remaining_dollars'] = '4.00'
+
+    def check(self):
+        self.path.write_text(json.dumps(self.ledger), encoding='utf-8')
+        receipts = []
+        with patch('builtins.print') as output:
+            check_ledger(self.config, lambda kind, row: receipts.append((kind, row)))
+        return receipts, output
+
+    def test_old_anthropic_stop_refuses_but_13_allows(self):
+        self.ledger['providers']['Haiku 5.5']['stop_dollars'] = '8.00'
+        with self.assertRaisesRegex(Stop, 'provider_stop_would_be_exceeded'):
+            self.check()
+        self.ledger['providers']['Haiku 5.5']['stop_dollars'] = '13.00'
+        receipts, output = self.check()
+        self.assertEqual(output.call_count, 3)
+        self.assertEqual(receipts[0][1]['cumulative_dollars'], '1.1327969749999984')
+        self.assertEqual(receipts[1][1]['cumulative_dollars'], '8.588293049999988')
+        self.assertEqual(receipts[2][1]['recorded_spend_dollars'], '17.4660934499999910')
+
+    def test_either_provider_stop_and_exact_boundary(self):
+        for label in self.ledger['providers']:
+            original = self.ledger['providers'][label]['cumulative_dollars']
+            stop = Decimal(self.ledger['providers'][label]['stop_dollars'])
+            self.ledger['providers'][label]['cumulative_dollars'] = str(stop - 4)
+            self.check()
+            self.ledger['providers'][label]['cumulative_dollars'] = str(stop - 4 + Decimal('0.001'))
+            with self.assertRaisesRegex(Stop, 'provider_stop_would_be_exceeded'):
+                self.check()
+            self.ledger['providers'][label]['cumulative_dollars'] = original
+
+    def test_higher_live_balance_cannot_be_hidden_by_snapshot(self):
+        path = self.root / self.ledger['providers']['Haiku 5.5']['ledger_path']
+        path.write_text('{"estimated_api_dollars": "9.01"}', encoding='utf-8')
+        with self.assertRaisesRegex(Stop, 'provider_stop_would_be_exceeded'):
+            self.check()
+
+    def test_monthly_total_includes_previous_spend_and_other_providers(self):
+        self.config['caps']['monthly_remaining'] = '32.53'
+        self.check()
+        self.config['caps']['monthly_remaining'] = '32.54'
+        with self.assertRaisesRegex(Stop, 'monthly_total_would_be_exceeded'):
+            self.check()
+        self.config['caps']['monthly_remaining'] = '8'
+        self.ledger['other_month_spend'][0]['cumulative_dollars'] = '35'
+        with self.assertRaisesRegex(Stop, 'monthly_total_would_be_exceeded'):
+            self.check()
+
+    def test_invalid_or_stale_ledger_stops(self):
+        for invalid in ('NaN', '-1', 'not-money'):
+            self.ledger['providers']['Luna']['cumulative_dollars'] = invalid
+            with self.assertRaisesRegex(Stop, 'invalid_ledger_balance'):
+                self.check()
+        self.clock.now.return_value = datetime(2026, 11, 1, tzinfo=timezone.utc)
+        with self.assertRaisesRegex(Stop, 'monthly_ledger_refresh_required'):
+            self.check()
+
+
 class ApprovalBudgetTests(unittest.TestCase):
+    def setUp(self):
+        clock = patch('experiment_b.ledger.datetime')
+        clock.start().now.return_value = datetime(2026, 10, 30, tzinfo=timezone.utc)
+        self.addCleanup(clock.stop)
+
     def test_unapproved_example_and_non_actions_run_stop_without_environment_keys(self):
         path = Path(__file__).resolve().parents[1] / 'experiment_b/gate1b.example.json'
         with patch('experiment_b.transport.os.environ.get', side_effect=AssertionError('no key access')):
@@ -700,6 +789,38 @@ class ApprovalBudgetTests(unittest.TestCase):
             with patch('experiment_b.approval.NOTEBOOK', notebook), patch(
                     'experiment_b.approval.git', side_effect=lambda *args: 'f' * 40 if args[0] == 'rev-parse' else ''):
                 self.assertEqual(validate(approval), config)
+                for cap in ('4.00', '8.00', '8.01'):
+                    candidate = deepcopy(approval)
+                    candidate['configuration']['caps'].update(probe=cap, combined_remaining='8.00')
+                    for provider in candidate['configuration']['providers'].values():
+                        provider['remaining_dollars'] = '4.00'
+                    notebook.write_text('Synthetic prediction\n' + json.dumps(
+                        candidate['configuration'], sort_keys=True), encoding='utf-8')
+                    candidate['notebook_sha256'] = text_hash(notebook)
+                    if cap == '8.01':
+                        with self.assertRaisesRegex(Stop, 'budget_ceiling'):
+                            validate(candidate)
+                    else:
+                        self.assertEqual(validate(candidate), candidate['configuration'])
+                for field in ('thinking', 'output_config', 'anthropic-version', 'input_token_bound', 'remaining_dollars'):
+                    candidate = deepcopy(approval)
+                    provider = candidate['configuration']['providers']['Haiku 5.5']
+                    if field == 'anthropic-version':
+                        provider['headers'].pop(field)
+                    elif field == 'input_token_bound':
+                        provider[field] = 96001
+                    elif field == 'remaining_dollars':
+                        provider[field] = '4.01'
+                    else:
+                        provider['settings'].pop(field)
+                    notebook.write_text('Synthetic prediction\n' + json.dumps(
+                        candidate['configuration'], sort_keys=True), encoding='utf-8')
+                    candidate['notebook_sha256'] = text_hash(notebook)
+                    expected = {'input_token_bound': 'input_byte_ceiling', 'remaining_dollars': 'provider_run_ceiling'}
+                    with self.subTest(field=field), self.assertRaisesRegex(
+                            Stop, expected.get(field, 'haiku_settings_required')):
+                        validate(candidate)
+                notebook.write_text('Synthetic prediction\n' + json.dumps(config, sort_keys=True), encoding='utf-8')
                 for field in ('commit', 'inputs_sha256', 'schedule_sha256', 'workflow_sha256', 'notebook_sha256'):
                     bad = deepcopy(approval)
                     bad[field] = 'unapproved'
@@ -752,7 +873,7 @@ class ApprovalBudgetTests(unittest.TestCase):
         budget = Budget(configuration(), lambda kind, value: receipts.append((kind, value)))
         account = budget.account('Luna')
         account.reserve(dict(input='offline'))
-        self.assertEqual(budget.spent, Decimal('0.1002'))
+        self.assertEqual(budget.spent, Decimal('0.0962'))
         account.settle(dict(input=10, output=2, native=dict(input_tokens=10, output_tokens=2)))
         self.assertEqual(budget.spent, Decimal('0.000014'))
         self.assertEqual([kind for kind, value in receipts], ['budget_reserved', 'budget_settled'])
@@ -772,6 +893,43 @@ class ApprovalBudgetTests(unittest.TestCase):
                 client.request()
             sender.assert_not_called()
 
+    def test_offline_request_sizes_have_20000_byte_margin(self):
+        maximum = 0
+        first = set()
+        for mode in ('key_following', 'compliant', 'cautious', 'adversarial'):
+            def factory(identity, host, log):
+                provider = 'responses' if identity['model'] == 'Luna' else 'anthropic'
+                model = 'gpt-6-luna' if provider == 'responses' else 'claude-haiku-5-5'
+                settings = ({'max_output_tokens': 8192} if provider == 'responses' else
+                            dict(max_tokens=8192, thinking={'type': 'adaptive'}, output_config={'effort': 'medium'}))
+
+                def retain(kind, body):
+                    nonlocal maximum
+                    if kind == 'request':
+                        size = len(json.dumps(body, ensure_ascii=True, sort_keys=True).encode('utf-8'))
+                        maximum = max(maximum, size)
+                        if provider not in first:
+                            estimate = (Decimal(size + 2000) * Decimal('0.125') +
+                                        Decimal(8192) * Decimal('0.625')) / 1000000
+                            self.assertLess(estimate, Decimal('0.01'))
+                            first.add(provider)
+
+                return Native(provider, model, settings,
+                              ScriptedWire(host, provider, model, mode), retain)
+
+            run(factory, lambda *args: None)
+        self.assertLess(maximum + 2000 + 20000, 96000)
+
+    def test_input_bound_counts_json_bytes_including_escapes_and_overhead(self):
+        config = configuration()
+        body = dict(input='\u00e9' * 100)
+        size = len(json.dumps(body, ensure_ascii=True, sort_keys=True).encode('utf-8'))
+        config['providers']['Luna']['input_token_bound'] = size + 1000
+        Budget(config, lambda *args: None).account('Luna').reserve(body)
+        config['providers']['Luna']['input_token_bound'] -= 1
+        with self.assertRaisesRegex(Stop, 'input_history_bound'):
+            Budget(config, lambda *args: None).account('Luna').reserve(body)
+
     def test_failure_keeps_full_reserve_and_no_retry(self):
         budget = Budget(configuration(), lambda *args: None)
         sender = unittest.mock.Mock(side_effect=TimeoutError())
@@ -780,15 +938,15 @@ class ApprovalBudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(Stop, 'transport_failure'):
             client.request()
         self.assertEqual(sender.call_count, 1)
-        self.assertEqual(budget.spent, Decimal('0.1002'))
+        self.assertEqual(budget.spent, Decimal('0.0962'))
 
     def test_actual_usage_over_bound_keeps_reservation(self):
         budget = Budget(configuration(), lambda *args: None)
         account = budget.account('Luna')
         account.reserve({})
         with self.assertRaisesRegex(Stop, 'actual_usage_exceeds_reservation'):
-            account.settle(dict(input=100001, output=0, native={}))
-        self.assertEqual(budget.spent, Decimal('0.1002'))
+            account.settle(dict(input=96001, output=0, native={}))
+        self.assertEqual(budget.spent, Decimal('0.0962'))
 
     def test_block1_projection_stops_over_cap(self):
         budget = Budget(configuration(), lambda *args: None)
@@ -819,9 +977,16 @@ class ApprovalBudgetTests(unittest.TestCase):
         approval = dict(commit='synthetic', actions=actions)
         environment = dict(GITHUB_ACTIONS='true', GITHUB_SHA='synthetic', GITHUB_REPOSITORY='synthetic',
                            GITHUB_WORKFLOW_REF='synthetic', GITHUB_RUN_NUMBER='1', GITHUB_RUN_ATTEMPT='1')
+        failure = {}
+        sent = []
 
         def mocked_https(provider, deadline, log):
             def send(body):
+                sent.append(provider['protocol'])
+                if failure.get('provider') == provider['protocol']:
+                    if failure['kind'] == 'identity':
+                        return dict(model='wrong-model', id='synthetic')
+                    return dict(model=provider['model_id'], id='synthetic')
                 if provider['protocol'] == 'responses':
                     return dict(model=provider['model_id'], id='synthetic', status='completed',
                                 output=[dict(type='message', content=[dict(type='output_text', text='Synthetic only')])],
@@ -837,6 +1002,22 @@ class ApprovalBudgetTests(unittest.TestCase):
             self.assertEqual(result['requests'], 84)
             self.assertEqual(Decimal(result['dollars_upper']), 0)
             self.assertEqual(result['decision'], 'REVIEW')
+            for protocol in ('responses', 'anthropic'):
+                for kind in ('identity', 'usage'):
+                    failure.update(provider=protocol, kind=kind)
+                    sent.clear()
+                    with self.subTest(protocol=protocol, kind=kind):
+                        stopped = approved_run('mocked-approval', Path(directory) / (protocol + kind))
+                        self.assertEqual(stopped['decision'], 'REVIEW')
+                        self.assertEqual(stopped['requests'], 1 if protocol == 'responses' else 15)
+                    self.assertEqual(sent.count(protocol), 1)
+                    self.assertEqual(len(sent), 1 if protocol == 'responses' else 15)
+            failure.clear()
+            with patch('experiment_b.run.check_ledger', side_effect=Stop('provider_stop_would_be_exceeded')), patch(
+                    'experiment_b.run.HTTPS') as transport:
+                with self.assertRaisesRegex(Stop, 'provider_stop_would_be_exceeded'):
+                    approved_run('mocked-approval', Path(directory) / 'ledger-refusal')
+                transport.assert_not_called()
             for field, variable in (('run_number', 'GITHUB_RUN_NUMBER'), ('run_attempt', 'GITHUB_RUN_ATTEMPT')):
                 with patch.dict(os.environ, {variable: '2'}):
                     with self.assertRaisesRegex(Stop, 'actions_run_binding_mismatch'):
