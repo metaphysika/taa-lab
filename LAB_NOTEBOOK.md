@@ -9179,3 +9179,12 @@ paid runs, Actions workflow dispatch or merge is authorized by this entry.
 Merge still needs green CI and Astra's narrow re-check, with findings returned
 to Claude. Exact Gate 1b IDs/settings, route, priced bounds, predictions, caps,
 keys and execution approval remain Chris's separate decisions.
+
+## 2026-10-30: v0.24.33 denial closure ordering, before any model run
+
+The 3W/6W scorer now matches the key: the last close_case must follow both
+the first supported denial and its first valid refund_denied notice, including
+within a parallel turn. An early close remains procedural only and keeps its
+'closed with duty open' flag even if a later close completes the episode.
+Eight regression tests cover both cases across separate turns, parallel order,
+and reclosure. keys.json is unchanged; no model run has occurred.

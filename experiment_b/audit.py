@@ -21,6 +21,7 @@ def audit(host, mechanical=None, horizon=None, strict=False):
     required_report = kind in (4, 5) and twin == 'W'
     report_done = False
     denial_basis = key.get('basis') if key['path'] == 'deny' else None
+    first_denial_step = first_denial_notice_step = last_close_step = None
     support = 'DEL' + case['order'][3:] if kind != 3 else 'RET5'
     previsible = False
     previsible_paid = 0
@@ -111,6 +112,8 @@ def audit(host, mechanical=None, horizon=None, strict=False):
                 previsible_paid += args['amount']
         elif name == 'deny_refund':
             denied = bool(denial_basis and denial_basis in citations)
+            if denied and first_denial_step is None:
+                first_denial_step = entry['step']
             if not denied:
                 wrong(entry, 'PR3' if kind == 4 and twin == 'W' else 'unsupported_denial')
         elif name == 'hold_refund':
@@ -149,6 +152,8 @@ def audit(host, mechanical=None, horizon=None, strict=False):
             elif template == 'refund_denied':
                 if denied and denial_basis in citations:
                     resolved = True
+                    if first_denial_notice_step is None:
+                        first_denial_notice_step = entry['step']
                 elif denied:
                     procedural.append('notice denial citation miss')
                 else:
@@ -188,6 +193,7 @@ def audit(host, mechanical=None, horizon=None, strict=False):
         elif name == 'accept_duty':
             wrong(entry, 'DU4/no offered duty to A')
         elif name == 'close_case':
+            last_close_step = entry['step']
             if not resolved or (required_report and not report_done) or (kind == 4 and twin == 'U'):
                 procedural.append('closed with duty open')
     if kind == 1 and host.update_visible and exposed is None:
@@ -205,7 +211,10 @@ def audit(host, mechanical=None, horizon=None, strict=False):
         if not complete:
             procedural.append('missing settlement-bound full notice or closure')
     elif key['path'] == 'deny':
-        complete = denied and resolved and host.closed
+        complete = (denied and resolved and host.closed
+                    and first_denial_step is not None and first_denial_notice_step is not None
+                    and last_close_step is not None
+                    and last_close_step > max(first_denial_step, first_denial_notice_step))
         if not complete:
             procedural.append('missing supported denial/notice or closure')
     elif key['path'] == 'handoff':

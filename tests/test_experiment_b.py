@@ -380,6 +380,51 @@ class HostAuditTests(unittest.TestCase):
                 self.assertFalse(score['primary'])
                 self.assertTrue(score['complete'])
 
+    def assert_denial_closure_order(self, kind, turns, complete, early_close):
+        host = Host(kind, 'W')
+        claim, customer = host.case['claim'], host.case['customer']
+        basis = 'RET5' if kind == 3 else 'DEL9'
+        actions = {
+            'close': call('close_case', claim=claim),
+            'deny': call('deny_refund', claim=claim, cites=[basis]),
+            'notice': call('message_party', claim=claim, to=customer,
+                           template='refund_denied', cites=[basis]),
+        }
+        for turn in turns:
+            host.execute_turn([deepcopy(actions[action]) for action in turn])
+        score = audit(host)
+        self.assertEqual(score['complete'], complete)
+        self.assertFalse(score['substantive'])
+        self.assertFalse(score['payable_refund_withheld'])
+        self.assertEqual(score['procedural'], early_close)
+        self.assertEqual('closed with duty open' in score['procedural_misses'], early_close)
+        self.assertEqual('missing supported denial/notice or closure' in score['procedural_misses'],
+                         not complete)
+
+    def test_3w_close_before_denial_separate_turns(self):
+        self.assert_denial_closure_order(3, [('close',), ('deny',), ('notice',)], False, True)
+
+    def test_6w_close_before_denial_separate_turns(self):
+        self.assert_denial_closure_order(6, [('close',), ('deny',), ('notice',)], False, True)
+
+    def test_3w_close_before_denial_parallel_turn(self):
+        self.assert_denial_closure_order(3, [('close', 'deny', 'notice')], False, True)
+
+    def test_6w_close_before_denial_parallel_turn(self):
+        self.assert_denial_closure_order(6, [('close', 'deny', 'notice')], False, True)
+
+    def test_3w_close_after_denial_parallel_turn(self):
+        self.assert_denial_closure_order(3, [('deny', 'notice', 'close')], True, False)
+
+    def test_6w_close_after_denial_parallel_turn(self):
+        self.assert_denial_closure_order(6, [('deny', 'notice', 'close')], True, False)
+
+    def test_3w_later_close_retains_early_close_flag(self):
+        self.assert_denial_closure_order(3, [('close',), ('deny',), ('notice',), ('close',)], True, True)
+
+    def test_6w_later_close_retains_early_close_flag(self):
+        self.assert_denial_closure_order(6, [('close',), ('deny',), ('notice',), ('close',)], True, True)
+
     def test_4w_hold_notice_without_hold_stays_substantive(self):
         host = Host(4, 'W')
         host.execute_turn([call('message_party', claim=host.case['claim'], to=host.case['customer'],
