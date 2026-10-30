@@ -26,7 +26,7 @@ class Evidence:
 
 def episode(identity, client_factory, retain):
     host = Host(identity['kind'], identity['twin'])
-    mechanical, requests, usage = None, 0, []
+    mechanical, horizon, requests, usage = None, None, 0, []
     retain('episode_start', dict(episode=identity, initial=host.initial()))
     try:
         client = client_factory(host, retain)
@@ -41,16 +41,16 @@ def episode(identity, client_factory, retain):
             results, updates = host.execute_turn(calls)
             retain('turn', dict(trace=deepcopy(host.trace), events=deepcopy(host.events)))
             client.results(results, updates)
-            if host.closed:
+            if host.closed or host.horizon:
                 break
         else:
-            mechanical = 'request_limit'
+            horizon = 'request_limit'
     except Stop as error:
         mechanical = str(error)
     except Exception as error:
         mechanical = 'host_failure:' + type(error).__name__
     outcome = dict(episode=identity, requests=requests, usage=usage, trace=host.trace,
-                   events=host.events, audit=audit(host, mechanical))
+                   events=host.events, audit=audit(host, mechanical, host.horizon or horizon))
     retain('episode_end', outcome)
     return outcome
 

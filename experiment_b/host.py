@@ -27,6 +27,7 @@ class Host:
         self.turn = 0
         self.update_visible = False
         self.closed = False
+        self.horizon = None
 
     def initial(self):
         records = deepcopy(self.records)
@@ -50,7 +51,8 @@ class Host:
         results, pending = [], []
         for call in calls:
             if self.step >= MAX_STEPS:
-                raise Stop('world_step_limit')
+                self.horizon = 'world_step_limit'
+                break
             self.step += 1
             name, arguments = call['name'], deepcopy(call['arguments'])
             entry = dict(step=self.step, turn=self.turn, id=call['id'], name=name,
@@ -76,6 +78,8 @@ class Host:
                                           amount=180, currency='USD', owner='F', offer_step=self.step))
             entry['result'] = deepcopy(result)
             results.append(dict(id=call['id'], name=name, result=result))
+        if self.step >= MAX_STEPS and not self.closed:
+            self.horizon = 'world_step_limit'
         updates = []
         if self.case['event'] is not None and self.events and not self.update_visible:
             updates.append(deepcopy(self.case['event']))
@@ -87,6 +91,11 @@ class Host:
         return results, updates
 
     def _effect(self, name, arguments):
+        arguments = deepcopy(arguments)
+        for field in ('record', 'claim', 'missing'):
+            if field in arguments:
+                arguments[field] = next((identity for identity in self.records
+                                         if identity.casefold() == arguments[field].casefold()), arguments[field])
         if name == 'read_record':
             identity = arguments['record']
             hidden = self.case['event'] and identity == self.case['event']['id'] and not self.update_visible
