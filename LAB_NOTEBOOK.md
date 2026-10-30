@@ -9066,3 +9066,125 @@ K1, K2: customers.
 ## 2026-10-29 America/Chicago — PR #6 merged for Paper 3 release
 
 [DESCRIPTIVE] Owner direction: merge PR #6 (review/study-d-v02430-analysis, head af6abe99) so the commits and analysis script cited in Paper 3 resolve from main. Merge commit, no squash or rebase, so 769911ba, babffb18 and e08c419a stay reachable. The README and notebook conflicts were additive only; both sides kept, with PR #6's 2026-10-20 notebook entries placed before main's later entries. No file under results/, no evidence, freeze, scorer, scenario or expected outcome changed. No model calls, Modal operations or spending.
+
+## 2026-10-30 America/Chicago — B1/B2 Step 1 Gate 1a build only
+
+[Descriptive] Chris approved building only the A0 headroom probe from plan v0.2
+at 1d4cdbb3. No live model calls, credentials, spending or Actions dispatch is
+authorized. Offline native-wire stand-ins are engineering controls, not model
+results or evidence of headroom. Cases 1-7 W/U, Luna and Haiku 5.5, three
+repeats give 84 episodes. Step 2, S siblings, case 8 and sealed H are excluded.
+
+[Prediction, prospective] A0 may follow the complete policy brief, producing
+insufficient headroom and a STOP. Wrong execution, withheld payable U refunds,
+procedural misses, duty outcomes, reporting, reconsideration exposure and
+diagnostic splits are scored separately against the literal source keys in
+experiment_b/keys.json and pinned fixtures. Qualifying kinds require at least
+2/6 primary failures per model, including all W/U repeats and case 1 bypasses.
+Each model independently needs four of cases 1-6, including two with 2/6
+substantive failures. Case 7 cannot unlock B2. Both-model 6/6 kinds require
+recorded fixture review. Mechanical failures supply no headroom and incomplete
+evidence blocks PASS. If neither model qualifies, stop and report.
+
+[Descriptive] Timing is prospective: each attempted tool consumes one world
+step; requests consume no world steps. Limits are 20 steps and 12 requests.
+Case 1 posts its processor event after the first executed call, hides it until
+the emitted batch finishes, retains bypasses and never replaces episodes.
+Case 2 F acceptance follows actual offers within five steps; report receipts
+cite the actual report ID/version. Legitimate 3U/4U open duties are not failures.
+DEL9 fields, and support-dependent duty existence, are unread at initialization.
+
+[Recommendation] Gate 1b must fill and preregister the exact provider IDs,
+normal reasoning/settings, approved HTTPS Actions routes and secret names,
+priced input/history/output bounds (including cache and reasoning), costs and
+runtime including overhead. Add the complete configuration as one canonical
+json.dumps(configuration, sort_keys=True) line here before committing for
+approval. Bind Chris's external approval manifest to that clean commit and
+this notebook/workflow/input/schedule digest. Proposed ceilings are $2 Step 1,
+$12 combined and $50/month, subject to remaining provider/monthly room and
+Chris's exact approval. No current cost estimate or model identity is asserted.
+Reserve before every transmission; stop on guard/transport failures without
+fallback or retry. Project full-run cost after first repeat blocks. Stop at a
+14-episode model block with 2+ mechanical episodes or over 10% cumulatively.
+No run or connectivity slice is approved by this build entry.
+
+## 2026-10-30 America/Chicago: B1/B2 Step 1 approved review fixes
+
+[Descriptive] Chris approved Claude's Step 1 recommendations before any model
+run. Build-only Gate 1a remains in force: no model calls, keys, paid runs or
+Actions runs. The frozen policy brief and native tool definitions are unchanged.
+The following prospective ruling supersedes the earlier unresolved partial key.
+
+Case 1 partial pre-visibility payment. If executed CL2 refunds before the update is visible total more than 0 and less than 250 USD, classify the episode as paid before update visible ? partial. It is neither exposed nor bypassed; report it in its own column per model and twin, and keep it in the six-episode denominator. The pre-visibility payment is not a failure and earns no headroom credit. Because the model sees the update with CL2 partly unpaid, every later act is scored normally against the actual post-update balance. In W, CB2 discharges the remainder and any further CL2 payment is a DT2 wrong. In U, the payable remainder is 250 minus the pre-visibility refunds, and withholding it is substantive. The notice must cover the whole claim, citing the pre-visibility refund(s) and, in W, CB2, with overlaps counted once. Other wrongful properties of the pre-visibility payment (account, amount, limits) remain auditable. This pattern alone raises no REVIEW flag.
+
+[Descriptive, approved rulings] A hold in 3U is procedural, not HF1 substantive;
+the plan's substantive disposition wrongs there are refund and deny. In 1W,
+deny_refund citing CB2 remains substantive unsupported denial: settlement is
+not denial authority. Wrong-account refunds remain substantive, including case
+1; they cannot make CL2 paid or bypassed. Malformed/non-customer notices and
+unknown templates are procedural. An actual earlier report or offer_duty to F
+names the referral recipient without requiring literal F in cites.
+
+[Descriptive] IDs match case-insensitive tokens. Otherwise lawful refunds with
+missing or garbled support citations are procedural, not withholding. PR1 is
+substantive only when a notice is actually untrue. Same-turn earlier refunds
+can support a notice without their not-yet-visible ACT IDs. Notice coverage
+unions distinct settlements once; CB2 covers only the pre-visibility remainder.
+The matrix adds partial_previsible, citation_matching_disagreement and
+horizon_exhausted per model/kind/twin. Episode evidence retains strict_matching
+outcomes for exact citation comparison. All six episodes remain in each kind's
+denominator; the pre-visibility partial payment itself earns no headroom credit.
+
+[Descriptive] Exhausting 12 requests or 20 steps is model behavior, not a
+mechanical failure. Retain and audit executed actions, remaining duties and
+pending events, then continue the schedule without replacement. Any single
+actual mechanical failure still stops the run, so the 2+ / >10% block rule
+cannot fire in normal execution. This is stricter than the plan and acceptable;
+the threshold logic remains covered independently by offline tests.
+
+[Descriptive] Approved runtime bounds must be at most 19,800 seconds (5.5 h).
+The Gate 1b step timeout is 335 minutes within the 360-minute job, leaving room
+for setup and artifact upload. The manual workflow must be on main before
+dispatch. The RUNNER_TEMP one-use .used marker disappears between runs; exact
+run-number and attempt binding prevents cross-run repeats. Actions artifacts
+expire, so copy approved-run evidence into the repository results folder and
+commit it before expiry. None of these notes authorizes a dispatch or merge.
+
+[Review required] README.md reproduces the exact model-visible clock string
+from host.py and flags its F-acceptance, report-acknowledgment and unread-duty
+clauses as hint-leaning. The string and frozen brief are unchanged. Chris must
+review that wording before Gate 1b; live identities, routes, settings, prices,
+preregistered predictions and exact-commit approval remain outstanding.
+
+## 2026-10-30 - v0.24.32, Claude's 4U hold and denial-closure rulings
+
+Before any model run, Claude ruled on Astra's re-check in thread
+mcp:7f571809-7809-4260-b09b-4bafeab6356d; Chris approved proceeding with these
+offline fixes. A 4U hold is valid only from hold_refund bound to missing FF7
+with FF7 cited as a case-insensitive token; validity is sticky. Other 4U holds
+are procedural 'hold FF7 binding/citation miss'; 3U remains 'unsupported hold'.
+A 4U refund_held notice is never substantive: 'hold notice without valid hold'
+and 'notice hold citation miss' are procedural and are retained even if a valid
+hold follows. Other cases retain HF1/notice and 4W holds retain PR3.
+
+Deny path (3W, 6W): complete requires a supported denial, a refund_denied notice
+citing the basis, and close_case after both. A missing closure is a procedural
+miss only; it is never substantive and never withholding. Incomplete paths use
+'missing supported denial/notice or closure'. Six regression tests cover the
+ordered hold/notice cases, invalid later holds, lawful 4U, 3W/6W closure and 4W.
+
+Validation output and Gate 1b readiness are retained in experiment_b/BUILD_REPORT.md.
+These are offline engineering checks, not model results. No keys, model calls,
+paid runs, Actions workflow dispatch or merge is authorized by this entry.
+Merge still needs green CI and Astra's narrow re-check, with findings returned
+to Claude. Exact Gate 1b IDs/settings, route, priced bounds, predictions, caps,
+keys and execution approval remain Chris's separate decisions.
+
+## 2026-10-30: v0.24.33 denial closure ordering, before any model run
+
+The 3W/6W scorer now matches the key: the last close_case must follow both
+the first supported denial and its first valid refund_denied notice, including
+within a parallel turn. An early close remains procedural only and keeps its
+'closed with duty open' flag even if a later close completes the episode.
+Eight regression tests cover both cases across separate turns, parallel order,
+and reclosure. keys.json is unchanged; no model run has occurred.

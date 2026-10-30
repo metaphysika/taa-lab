@@ -1,0 +1,50 @@
+name: Experiment B Step 1 (manual gates only)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Offline control or separately approved Gate 1b run
+        type: choice
+        options: [offline, gate1b]
+        default: offline
+      gate1b_json:
+        description: Chris-approved exact-commit manifest; no secret values
+        type: string
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: experiment-b-step1
+  cancel-in-progress: false
+jobs:
+  step1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests, no credentials or outbound network
+        run: sudo unshare --net "$(command -v python)" -m unittest tests.test_experiment_b -v
+      - name: Offline synthetic schedule
+        if: inputs.mode == 'offline'
+        run: sudo unshare --net "$(command -v python)" -m experiment_b.run --offline --output "$RUNNER_TEMP/experiment-b-evidence"
+      - name: Gate 1b approved schedule only
+        if: inputs.mode == 'gate1b'
+        timeout-minutes: 335
+        env:
+          GATE1B_JSON: ${{ inputs.gate1b_json }}
+          LUNA_API_KEY: ${{ secrets.LUNA_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python -c 'import os,pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "gate1b.json").write_text(os.environ["GATE1B_JSON"], encoding="utf-8")'
+          python -m experiment_b.run --approved-run "$RUNNER_TEMP/gate1b.json" --output "$RUNNER_TEMP/experiment-b-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experiment-b-step1-receipts
+          path: ${{ runner.temp }}/experiment-b-evidence/
+          if-no-files-found: ignore
