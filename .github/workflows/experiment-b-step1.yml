@@ -34,6 +34,7 @@ jobs:
         run: sudo unshare --net "$(command -v python)" -m experiment_b.run --offline --output "$RUNNER_TEMP/experiment-b-evidence"
       - name: Gate 1b approved schedule only
         if: inputs.mode == 'gate1b'
+        timeout-minutes: 335
         env:
           GATE1B_JSON: ${{ inputs.gate1b_json }}
           LUNA_API_KEY: ${{ secrets.LUNA_API_KEY }}

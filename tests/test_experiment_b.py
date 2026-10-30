@@ -586,6 +586,23 @@ class ApprovalBudgetTests(unittest.TestCase):
                 with patch('experiment_b.approval.git', return_value='dirty'):
                     with self.assertRaises(Stop):
                         validate(approval)
+                for bound in (19800, 19801, 21599, 21600, 0, True):
+                    config['runtime_bound_seconds'] = bound
+                    notebook.write_text('Synthetic prediction\n' + json.dumps(config, sort_keys=True), encoding='utf-8')
+                    approval['notebook_sha256'] = text_hash(notebook)
+                    with self.subTest(runtime_bound=bound):
+                        if type(bound) is int and bound == 19800:
+                            self.assertEqual(validate(approval), config)
+                        else:
+                            with self.assertRaisesRegex(Stop, 'actions_runtime_bound'):
+                                validate(approval)
+
+    def test_workflow_timeouts_and_exact_clock_disclosure(self):
+        workflow = WORKFLOW.read_text(encoding='utf-8')
+        self.assertIn('timeout-minutes: 360', workflow)
+        self.assertIn("if: inputs.mode == 'gate1b'\n        timeout-minutes: 335", workflow)
+        readme = (WORKFLOW.parents[2] / 'experiment_b/README.md').read_text(encoding='utf-8')
+        self.assertIn(Host(1, 'W').initial()['clock'], readme)
 
     def test_approval_is_single_use(self):
         with tempfile.TemporaryDirectory() as directory:

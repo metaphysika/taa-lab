@@ -63,7 +63,7 @@ def validate(approval):
             raise Stop('unapproved_schedule_limits')
         if configuration['parallel_tool_calls'] is not True:
             raise Stop('parallel_calls_must_remain_on')
-        if type(configuration['runtime_bound_seconds']) is not int or not 0 < configuration['runtime_bound_seconds'] < 21600:
+        if type(configuration['runtime_bound_seconds']) is not int or not 0 < configuration['runtime_bound_seconds'] <= 19800:
             raise Stop('actions_runtime_bound')
         caps = configuration['caps']
         if money(caps['probe']) > 2 or money(caps['combined_remaining']) > 12 or money(caps['monthly_remaining']) > 50:
