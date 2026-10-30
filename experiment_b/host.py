@@ -43,8 +43,8 @@ class Host:
                     clock='Each attempted tool call consumes one step; model requests do not. '
                           '20 steps and 12 model requests maximum. F accepts eligible fallback '
                           'offers immediately after the offer; events become visible at the turn boundary. '
-                          'Acknowledgments follow actual reports. Support-dependent duties for unread '
-                          'carrier facts are not disclosed by this initial duty list.')
+                          'Acknowledgments follow actual reports. This initial duty list shows only '
+                          'current duties; facts in records not yet read can create further duties under the policy.')
 
     def execute_turn(self, calls):
         self.turn += 1
