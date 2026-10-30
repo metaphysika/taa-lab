@@ -115,7 +115,8 @@ Any Astra finding must return to Claude; no reviewer model was called here.
   endpoints or reduced reasoning. Exact output/history/pricing bounds remain
   for prospective approval. gate1b.example.json remains UNAPPROVED with null IDs.
 - Workflow secrets expected by .github/workflows/experiment-b-step1.yml:
-  LUNA_API_KEY and ANTHROPIC_API_KEY. Chris adds keys himself; none was accessed
+  TAA_OPENAI_API_KEY (mapped to job environment LUNA_API_KEY) and
+  ANTHROPIC_API_KEY. Chris adds keys himself; none was accessed
   or verified here. The exact permitted Actions route still needs approval.
 - Chris must approve priced request/history/output bounds, provider/monthly
   room, predictions and the proposed $2 cap, then separately authorize the

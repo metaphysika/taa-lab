@@ -9188,3 +9188,5 @@ within a parallel turn. An early close remains procedural only and keeps its
 'closed with duty open' flag even if a later close completes the episode.
 Eight regression tests cover both cases across separate turns, parallel order,
 and reclosure. keys.json is unchanged; no model run has occurred.
+
+2026-10-30: Step 1 maps Luna's job environment LUNA_API_KEY to the existing GitHub secret TAA_OPENAI_API_KEY; ANTHROPIC_API_KEY is unchanged. Manual-only dispatch and read-only permissions remain; no secrets were accessed and no model run occurred.

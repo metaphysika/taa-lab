@@ -65,7 +65,8 @@ The example manifest is deliberately unapproved and cannot send anything.
 Chris must select exact model IDs (including the exact identity returned on
 wire), ordinary supported reasoning settings, permitted Responses and native
 Anthropic HTTPS endpoints, authentication header/version conventions and keys.
-The draft manual-only Actions workflow maps LUNA_API_KEY and ANTHROPIC_API_KEY;
+The draft manual-only Actions workflow maps the GitHub secret TAA_OPENAI_API_KEY
+to LUNA_API_KEY in the job environment and keeps ANTHROPIC_API_KEY unchanged;
 Chris must approve those mappings or revise the workflow before exact-commit
 approval. No workflow was dispatched during this build. There is no automatic
 push/PR trigger in this new workflow. Build commits use [skip ci] to avoid
