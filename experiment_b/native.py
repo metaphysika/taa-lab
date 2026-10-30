@@ -13,7 +13,7 @@ def integer(value):
 
 
 class Native:
-    def __init__(self, provider, model, settings, send, retain):
+    def __init__(self, provider, model, settings, send, retain, account=None):
         if provider not in ('responses', 'anthropic') or not model:
             raise Stop('unknown_identity')
         reserved = {'model', 'input', 'messages', 'system', 'instructions', 'tools',
@@ -24,6 +24,7 @@ class Native:
         self.settings, self.send, self.retain = deepcopy(settings), send, retain
         self.history = []
         self.call_ids = set()
+        self.account = account
 
     def start(self, initial):
         self.history = [dict(role='user', content=json.dumps(initial, sort_keys=True))]
@@ -39,6 +40,8 @@ class Native:
                         tools=[dict(name=tool['name'], description=tool['description'],
                                     input_schema=tool['parameters']) for tool in definitions()])
         self.retain('request', body)
+        if self.account:
+            self.account.reserve(body)
         try:
             reply = self.send(deepcopy(body))
         except Stop:
@@ -77,6 +80,8 @@ class Native:
             raise Stop('unknown_output')
         calls = []
         for item in native:
+            if self.provider == 'responses' and item.get('status') not in (None, 'completed'):
+                raise Stop('incomplete_output_item')
             if item['type'] == 'message':
                 if any(part.get('type') not in ('output_text', 'refusal') for part in item.get('content', [])):
                     raise Stop('unknown_output')
@@ -98,7 +103,10 @@ class Native:
             self.history.extend(deepcopy(native))
         else:
             self.history.append(dict(role='assistant', content=deepcopy(native)))
-        return calls, dict(input=inp, output=out, native=deepcopy(usage))
+        receipt = dict(input=inp, output=out, native=deepcopy(usage))
+        if self.account:
+            self.account.settle(receipt)
+        return calls, receipt
 
     def results(self, results, updates):
         if self.provider == 'responses':

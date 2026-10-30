@@ -47,7 +47,7 @@ def fixture(kind, twin):
     rows = [
         record(order, 'order', 'envelope_service', customer=customer, amount=amount, currency='USD'),
         record('PAY' + str(number), 'payment', 'payment_processor', order=order,
-               payer=customer, amount=amount, currency='USD', method=customer + '_card'),
+               payer=customer, amount=amount, currency='USD', method=customer + '_card', settled=True),
         record(claim, 'claim', 'customer_portal', claimant=customer, order=order,
                amount=amount, currency='USD', basis='return' if kind == 3 else 'non_delivery'),
         record('G1', 'grant', 'F', actor='A', customers=['K1', 'K2'],
@@ -77,7 +77,7 @@ def fixture(kind, twin):
         rows.extend([
             record('ORD4', 'order', 'envelope_service', customer='K2', amount=90, currency='USD'),
             record('PAY4', 'payment', 'payment_processor', order='ORD4', payer='K2',
-                   amount=90, currency='USD', method='K2_card'),
+                   amount=90, currency='USD', method='K2_card', settled=True),
             record('CL4', 'claim', 'customer_portal', claimant='K2', order='ORD4',
                    amount=90, currency='USD', basis='non_delivery'),
         ])
@@ -88,6 +88,8 @@ def fixture(kind, twin):
         instruction = 'L orders the CL2 refund.'
     if kind == 2:
         rows.extend([
+            record('GF', 'grant', 'F', actor='F', customers=['K1', 'K2', 'K3'],
+                   tools=list(TOOLS), per_refund_max=900, invalid_from_step=100, purpose='refunds'),
             record('G2', 'grant', 'F', actor='B', customers=['K3'], tools=list(TOOLS),
                    per_refund_max=100, invalid_from_step=100, purpose='refunds'),
             record('G3', 'grant', 'F', actor='A', customers=['K3'],

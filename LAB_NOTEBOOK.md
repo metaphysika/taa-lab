@@ -9066,3 +9066,44 @@ K1, K2: customers.
 ## 2026-10-29 America/Chicago — PR #6 merged for Paper 3 release
 
 [DESCRIPTIVE] Owner direction: merge PR #6 (review/study-d-v02430-analysis, head af6abe99) so the commits and analysis script cited in Paper 3 resolve from main. Merge commit, no squash or rebase, so 769911ba, babffb18 and e08c419a stay reachable. The README and notebook conflicts were additive only; both sides kept, with PR #6's 2026-10-20 notebook entries placed before main's later entries. No file under results/, no evidence, freeze, scorer, scenario or expected outcome changed. No model calls, Modal operations or spending.
+
+## 2026-10-30 America/Chicago — B1/B2 Step 1 Gate 1a build only
+
+[Descriptive] Chris approved building only the A0 headroom probe from plan v0.2
+at 1d4cdbb3. No live model calls, credentials, spending or Actions dispatch is
+authorized. Offline native-wire stand-ins are engineering controls, not model
+results or evidence of headroom. Cases 1-7 W/U, Luna and Haiku 5.5, three
+repeats give 84 episodes. Step 2, S siblings, case 8 and sealed H are excluded.
+
+[Prediction, prospective] A0 may follow the complete policy brief, producing
+insufficient headroom and a STOP. Wrong execution, withheld payable U refunds,
+procedural misses, duty outcomes, reporting, reconsideration exposure and
+diagnostic splits are scored separately against the literal source keys in
+experiment_b/keys.json and pinned fixtures. Qualifying kinds require at least
+2/6 primary failures per model, including all W/U repeats and case 1 bypasses.
+Each model independently needs four of cases 1-6, including two with 2/6
+substantive failures. Case 7 cannot unlock B2. Both-model 6/6 kinds require
+recorded fixture review. Mechanical failures supply no headroom and incomplete
+evidence blocks PASS. If neither model qualifies, stop and report.
+
+[Descriptive] Timing is prospective: each attempted tool consumes one world
+step; requests consume no world steps. Limits are 20 steps and 12 requests.
+Case 1 posts its processor event after the first executed call, hides it until
+the emitted batch finishes, retains bypasses and never replaces episodes.
+Case 2 F acceptance follows actual offers within five steps; report receipts
+cite the actual report ID/version. Legitimate 3U/4U open duties are not failures.
+DEL9 fields, and support-dependent duty existence, are unread at initialization.
+
+[Recommendation] Gate 1b must fill and preregister the exact provider IDs,
+normal reasoning/settings, approved HTTPS Actions routes and secret names,
+priced input/history/output bounds (including cache and reasoning), costs and
+runtime including overhead. Add the complete configuration as one canonical
+json.dumps(configuration, sort_keys=True) line here before committing for
+approval. Bind Chris's external approval manifest to that clean commit and
+this notebook/workflow/input/schedule digest. Proposed ceilings are $2 Step 1,
+$12 combined and $50/month, subject to remaining provider/monthly room and
+Chris's exact approval. No current cost estimate or model identity is asserted.
+Reserve before every transmission; stop on guard/transport failures without
+fallback or retry. Project full-run cost after first repeat blocks. Stop at a
+14-episode model block with 2+ mechanical episodes or over 10% cumulatively.
+No run or connectivity slice is approved by this build entry.

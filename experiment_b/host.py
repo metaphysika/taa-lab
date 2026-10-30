@@ -77,7 +77,7 @@ class Host:
             entry['result'] = deepcopy(result)
             results.append(dict(id=call['id'], name=name, result=result))
         updates = []
-        if self.events and not self.update_visible:
+        if self.case['event'] is not None and self.events and not self.update_visible:
             updates.append(deepcopy(self.case['event']))
             self.update_visible = True
         for event in pending:

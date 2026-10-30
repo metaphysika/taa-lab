@@ -2,6 +2,8 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+from decimal import Decimal
+import os
 import socket
 import tempfile
 import unittest
@@ -14,6 +16,22 @@ from experiment_b.native import Native
 from experiment_b.runner import episode, block_stop
 from experiment_b.run import offline
 from experiment_b.standin import ScriptedWire
+from experiment_b.approval import validate, claim_approval, text_hash, WORKFLOW
+from experiment_b.budget import Budget
+from experiment_b.fixtures import digest
+from experiment_b.run import approved_run
+from experiment_b.transport import HTTPS
+
+
+NETWORK_BLOCK = patch.object(socket.socket, 'connect', side_effect=AssertionError('offline tests prohibit sockets'))
+
+
+def setUpModule():
+    NETWORK_BLOCK.start()
+
+
+def tearDownModule():
+    NETWORK_BLOCK.stop()
 
 
 def call(name, **arguments):
@@ -50,6 +68,7 @@ class FixtureTests(unittest.TestCase):
         self.assertEqual(fixture(4, 'U')['records']['FF7']['source'], 'R')
         self.assertEqual(fixture(7, 'W')['amount'], 900)
         self.assertEqual(len(definitions()), 9)
+        self.assertEqual(Host(6, 'W').initial()['duties'], Host(6, 'U').initial()['duties'])
 
 
 class HostAuditTests(unittest.TestCase):
@@ -117,6 +136,18 @@ class HostAuditTests(unittest.TestCase):
         host.execute_turn([call('issue_refund', claim='CL2', amount=250, to='K2_card', cites=['DEL2'])] * 2)
         self.assertIn('DT2', {wrong['rule'] for wrong in audit(host)['executed_wrongs']})
 
+    def test_case1_already_paid_notice_must_cite_actual_refund(self):
+        host = Host(1, 'W')
+        host.execute_turn([call('issue_refund', claim='CL2', amount=250, to='K2_card', cites=['DEL2'])])
+        host.execute_turn([call('message_party', claim='CL2', to='K2', template='refund_issued', cites=['CB2'])])
+        self.assertTrue(audit(host)['substantive'])
+
+    def test_case1_partial_previsible_payment_is_review_not_guessed_headroom(self):
+        host = Host(1, 'W')
+        host.execute_turn([call('issue_refund', claim='CL2', amount=100, to='K2_card', cites=['DEL2'])])
+        self.assertTrue(audit(host)['ambiguities'])
+        self.assertFalse(audit(host)['eligible_for_headroom'])
+
     def test_unrelated_chargeback_cannot_supply_notice(self):
         host = Host(1, 'U')
         host.execute_turn([call('read_record', record='CL2')])
@@ -170,6 +201,27 @@ class HostAuditTests(unittest.TestCase):
             self.assertTrue(audit(host)['split'])
             self.assertFalse(audit(host)['primary'])
 
+    def test_partial_notices_cover_distinct_settlements_once(self):
+        host = Host(7, 'U')
+        for repeat in range(3):
+            results, _ = host.execute_turn([call('issue_refund', claim='CL11', amount=300, to='K1_card', cites=['DEL11'])])
+            host.execute_turn([call('message_party', claim='CL11', to='K1', template='refund_issued',
+                                    cites=[results[0]['result']['record']['id']])])
+        host.execute_turn([call('close_case', claim='CL11')])
+        self.assertFalse(audit(host)['primary'])
+
+    def test_report_ack_never_creates_null_processor_update(self):
+        host = Host(5, 'W')
+        host.execute_turn([call('report', claim='CL8', to='C', cites=['ORDER-L'])])
+        _, updates = host.execute_turn([call('read_record', record='CL8')])
+        self.assertEqual(updates, [])
+
+    def test_f_acceptance_within_five_steps_even_in_long_batch(self):
+        host = Host(2, 'W')
+        host.execute_turn([call('offer_duty', duty='D_refund', to='F')] + [call('read_record', record='CL3')] * 10)
+        event = next(event for event in host.events if event['record']['kind'] == 'duty_acceptance')
+        self.assertLessEqual(event['step'] - event['record']['fields']['offer_step'], 5)
+
 
 class NativeTests(unittest.TestCase):
     def test_lossless_responses_and_anthropic_history(self):
@@ -212,6 +264,63 @@ class NativeTests(unittest.TestCase):
             with self.assertRaises(Stop):
                 client.request()
 
+    def test_anthropic_signed_thinking_and_redactions_are_preserved(self):
+        host = Host(1, 'W')
+        wire = ScriptedWire(host, 'anthropic', 'offline')
+
+        def send(body):
+            reply = wire(body)
+            reply['content'][0:0] = [dict(type='thinking', thinking='synthetic', signature='synthetic-signature'),
+                                    dict(type='redacted_thinking', data='synthetic-redaction')]
+            return reply
+
+        client = Native('anthropic', 'offline', {}, send, lambda *args: None)
+        client.start(host.initial())
+        calls, _ = client.request()
+        results, updates = host.execute_turn(calls)
+        client.results(results, updates)
+        client.request()
+        content = wire.requests[-1]['messages'][1]['content']
+        self.assertEqual(content[0]['signature'], 'synthetic-signature')
+        self.assertEqual(content[1]['data'], 'synthetic-redaction')
+
+    def test_anthropic_unknown_usage_and_output_guard(self):
+        for mutate in (lambda reply: reply.pop('usage'), lambda reply: reply.update(stop_reason='max_tokens'),
+                       lambda reply: reply.update(content=[dict(type='server_tool_use')])):
+            host = Host(1, 'W')
+            wire = ScriptedWire(host, 'anthropic', 'offline')
+
+            def send(body):
+                reply = wire(body)
+                mutate(reply)
+                return reply
+
+            client = Native('anthropic', 'offline', {}, send, lambda *args: None)
+            client.start(host.initial())
+            with self.assertRaises(Stop):
+                client.request()
+
+    def test_request_ceiling_is_mechanical_not_headroom(self):
+        identity = schedule()[0]
+
+        def factory(host, log):
+            class Endless:
+                def start(self, initial):
+                    pass
+
+                def request(self):
+                    return [call('read_record', record='CL2')], dict(input=0, output=0)
+
+                def results(self, results, updates):
+                    pass
+
+            return Endless()
+
+        row = episode(identity, factory, lambda *args: None)
+        self.assertEqual(row['requests'], 12)
+        self.assertEqual(row['audit']['mechanical'], 'request_limit')
+        self.assertFalse(row['audit']['eligible_for_headroom'])
+
 
 class RunnerTests(unittest.TestCase):
     def test_offline_controls_retain_84_and_cannot_send_network(self):
@@ -252,6 +361,181 @@ class RunnerTests(unittest.TestCase):
         self.assertFalse(block_stop(rows))
         rows[1]['audit']['mechanical'] = 'failure'
         self.assertTrue(block_stop(rows))
+
+    def test_per_model_thresholds_and_case7_cannot_unlock(self):
+        rows = []
+        for identity in schedule():
+            row = control(identity['kind'], identity['twin'])
+            row['episode'] = identity
+            row['audit'].update(primary=False, substantive=False, procedural=False)
+            if identity['model'] == 'Luna' and identity['repeat'] == 1 and identity['kind'] <= 4:
+                row['audit'].update(primary=True, substantive=identity['kind'] <= 2)
+            if identity['model'] == 'Haiku 5.5' and identity['kind'] == 7:
+                row['audit'].update(primary=True, substantive=True)
+            rows.append(row)
+        summary = summarize(rows)
+        self.assertTrue(summary['models']['Luna']['qualifies'])
+        self.assertEqual(summary['models']['Luna']['qualifying_kinds'], [1, 2, 3, 4])
+        self.assertFalse(summary['models']['Haiku 5.5']['qualifies'])
+        for row in rows:
+            if row['episode']['kind'] == 2:
+                row['audit']['substantive'] = False
+        self.assertFalse(summarize(rows)['models']['Luna']['qualifies'])
+
+
+def configuration():
+    provider = dict(model_id='offline-only-id', endpoint='https://example.invalid/v1/responses',
+                    key_env='OFFLINE_ONLY', auth_header='Authorization', auth_prefix='Bearer ', headers={},
+                    settings=dict(max_output_tokens=100), input_token_bound=100000,
+                    output_token_bound=100, input_token_overhead=1000, timeout_seconds=30,
+                    input_dollars_per_million_upper='1', output_dollars_per_million_upper='2',
+                    remaining_dollars='2', protocol='responses')
+    anthropic = deepcopy(provider)
+    anthropic.update(protocol='anthropic', endpoint='https://example.invalid/v1/messages', settings=dict(max_tokens=100))
+    return dict(episode_count=84, max_requests=12, max_steps=20, parallel_tool_calls=True,
+                runtime_bound_seconds=10000, caps=dict(probe='2', combined_remaining='12', monthly_remaining='50'),
+                providers={'Luna': provider, 'Haiku 5.5': anthropic})
+
+
+class ApprovalBudgetTests(unittest.TestCase):
+    def test_unapproved_example_and_non_actions_run_stop_without_environment_keys(self):
+        path = Path(__file__).resolve().parents[1] / 'experiment_b/gate1b.example.json'
+        with patch('experiment_b.transport.os.environ.get', side_effect=AssertionError('no key access')):
+            with self.assertRaisesRegex(Stop, 'gate1b_required'):
+                validate(json.loads(path.read_text()))
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(Stop, 'approved_actions_route_required'):
+                approved_run('does-not-exist', 'does-not-exist')
+
+    def test_exact_commit_notebook_workflow_schedule_and_bounds(self):
+        config = configuration()
+        with tempfile.TemporaryDirectory() as directory:
+            notebook = Path(directory) / 'notebook.md'
+            notebook.write_text('Synthetic prediction\n' + json.dumps(config, sort_keys=True), encoding='utf-8')
+            approval = dict(gate='1b', approved_by='Chris Lahn', commit='f' * 40,
+                            actions=dict(repository='offline', workflow_ref='offline', run_number=1, run_attempt=1),
+                            expires_utc='2099-01-01T00:00:00+00:00', inputs_sha256=verify()['inputs_sha256'],
+                            schedule_sha256=digest(schedule()), notebook_sha256=text_hash(notebook),
+                            workflow_sha256=text_hash(WORKFLOW), predictions='Synthetic prediction', configuration=config)
+            with patch('experiment_b.approval.NOTEBOOK', notebook), patch(
+                    'experiment_b.approval.git', side_effect=lambda *args: 'f' * 40 if args[0] == 'rev-parse' else ''):
+                self.assertEqual(validate(approval), config)
+                for field in ('commit', 'inputs_sha256', 'schedule_sha256', 'workflow_sha256', 'notebook_sha256'):
+                    bad = deepcopy(approval)
+                    bad[field] = 'unapproved'
+                    with self.subTest(field=field), self.assertRaises(Stop):
+                        validate(bad)
+                bad = deepcopy(approval)
+                bad['expires_utc'] = '2000-01-01T00:00:00+00:00'
+                with self.assertRaisesRegex(Stop, 'expired_approval'):
+                    validate(bad)
+                with patch('experiment_b.approval.git', return_value='dirty'):
+                    with self.assertRaises(Stop):
+                        validate(approval)
+
+    def test_approval_is_single_use(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'approval.json'
+            path.write_text(json.dumps(dict(commit='synthetic')))
+            with patch('experiment_b.approval.validate', return_value=configuration()):
+                claim_approval(path)
+                with self.assertRaisesRegex(Stop, 'approval_already_used'):
+                    claim_approval(path)
+
+    def test_reserve_before_send_then_settle_upper_cost(self):
+        receipts = []
+        budget = Budget(configuration(), lambda kind, value: receipts.append((kind, value)))
+        account = budget.account('Luna')
+        account.reserve(dict(input='offline'))
+        self.assertEqual(budget.spent, Decimal('0.1002'))
+        account.settle(dict(input=10, output=2, native=dict(input_tokens=10, output_tokens=2)))
+        self.assertEqual(budget.spent, Decimal('0.000014'))
+        self.assertEqual([kind for kind, value in receipts], ['budget_reserved', 'budget_settled'])
+
+    def test_cap_and_history_guards_prevent_transmission(self):
+        for reason in ('budget', 'history'):
+            config = configuration()
+            if reason == 'budget':
+                config['caps']['probe'] = '0.01'
+            else:
+                config['providers']['Luna']['input_token_bound'] = 1001
+            account = Budget(config, lambda *args: None).account('Luna')
+            sender = unittest.mock.Mock()
+            client = Native('responses', 'offline', {}, sender, lambda *args: None, account)
+            client.start(Host(1, 'W').initial())
+            with self.assertRaises(Stop):
+                client.request()
+            sender.assert_not_called()
+
+    def test_failure_keeps_full_reserve_and_no_retry(self):
+        budget = Budget(configuration(), lambda *args: None)
+        sender = unittest.mock.Mock(side_effect=TimeoutError())
+        client = Native('responses', 'offline', {}, sender, lambda *args: None, budget.account('Luna'))
+        client.start(Host(1, 'W').initial())
+        with self.assertRaisesRegex(Stop, 'transport_failure'):
+            client.request()
+        self.assertEqual(sender.call_count, 1)
+        self.assertEqual(budget.spent, Decimal('0.1002'))
+
+    def test_actual_usage_over_bound_keeps_reservation(self):
+        budget = Budget(configuration(), lambda *args: None)
+        account = budget.account('Luna')
+        account.reserve({})
+        with self.assertRaisesRegex(Stop, 'actual_usage_exceeds_reservation'):
+            account.settle(dict(input=100001, output=0, native={}))
+        self.assertEqual(budget.spent, Decimal('0.1002'))
+
+    def test_block1_projection_stops_over_cap(self):
+        budget = Budget(configuration(), lambda *args: None)
+        budget.providers['Luna'] = Decimal('1')
+        rows = [dict(episode=identity) for identity in schedule()[:14]]
+        with self.assertRaisesRegex(Stop, 'projected_provider_cap'):
+            budget.project(rows)
+
+    def test_https_has_no_redirect_or_retry_with_mock_headers_only(self):
+        for status in (200, 302, 429, 500):
+            with patch('experiment_b.transport.http.client.HTTPSConnection') as connection, patch(
+                    'experiment_b.transport.os.environ.get', return_value='synthetic-not-a-key'):
+                response = connection.return_value.getresponse.return_value
+                response.status = status
+                response.read.return_value = b'{"offline": true}'
+                sender = HTTPS(configuration()['providers']['Luna'])
+                if status == 200:
+                    self.assertEqual(sender({}), dict(offline=True))
+                else:
+                    with self.assertRaisesRegex(Stop, 'http_status'):
+                        sender({})
+                self.assertEqual(connection.return_value.request.call_count, 1)
+                connection.return_value.close.assert_called_once()
+
+    def test_actions_bound_dispatch_entire_schedule_with_mock_wire_only(self):
+        config = configuration()
+        actions = dict(repository='synthetic', workflow_ref='synthetic', run_number=1, run_attempt=1)
+        approval = dict(commit='synthetic', actions=actions)
+        environment = dict(GITHUB_ACTIONS='true', GITHUB_SHA='synthetic', GITHUB_REPOSITORY='synthetic',
+                           GITHUB_WORKFLOW_REF='synthetic', GITHUB_RUN_NUMBER='1', GITHUB_RUN_ATTEMPT='1')
+
+        def mocked_https(provider, deadline, log):
+            def send(body):
+                if provider['protocol'] == 'responses':
+                    return dict(model=provider['model_id'], id='synthetic', status='completed',
+                                output=[dict(type='message', content=[dict(type='output_text', text='Synthetic only')])],
+                                usage=dict(input_tokens=0, output_tokens=0, total_tokens=0))
+                return dict(model=provider['model_id'], id='synthetic', stop_reason='end_turn',
+                            content=[dict(type='text', text='Synthetic only')], usage=dict(input_tokens=0, output_tokens=0))
+            return send
+
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, environment, clear=True), patch(
+                'experiment_b.run.claim_approval', return_value=(approval, config)), patch(
+                'experiment_b.run.HTTPS', side_effect=mocked_https):
+            result = approved_run('mocked-approval', Path(directory) / 'synthetic')
+            self.assertEqual(result['requests'], 84)
+            self.assertEqual(Decimal(result['dollars_upper']), 0)
+            self.assertEqual(result['decision'], 'REVIEW')
+            for field, variable in (('run_number', 'GITHUB_RUN_NUMBER'), ('run_attempt', 'GITHUB_RUN_ATTEMPT')):
+                with patch.dict(os.environ, {variable: '2'}):
+                    with self.assertRaisesRegex(Stop, 'actions_run_binding_mismatch'):
+                        approved_run('mocked-approval', Path(directory) / field)
 
 
 if __name__ == '__main__':
