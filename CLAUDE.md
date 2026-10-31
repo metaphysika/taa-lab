@@ -38,8 +38,9 @@ readable, and prefer the Python standard library over new dependencies.
 - `--agent claude` or `--counsel claude` bills the owner's Anthropic API account; Gemini may hit
   free-tier limits. Ask Chris before any exploratory round that would cost over $5.
   Ask first too if the round's cost cannot be estimated beforehand, or if its estimated
-  cost plus spend so far would reach a provider's $8 stop. Paid confirmation runs,
-  key changes and permanent actions still need his approval.
+  cost plus spend so far would reach a provider's $8 stop. Any paid confirmation or
+  preregistered run, key or secret changes and permanent actions still need his approval.
+  Plan steps 4 (room check) and 5 (real run) each still need his explicit approval.
 
 ## Where things go
 

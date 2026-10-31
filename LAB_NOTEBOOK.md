@@ -9759,10 +9759,15 @@ direction. Claude's strategy ruling above remains preserved verbatim.
   model calls" with "ask before any exploratory round that would cost over
   $5". Ask first if the round's cost cannot be estimated beforehand, or if
   its estimated cost plus spend so far would reach a provider's $8 stop.
-  Paid confirmation runs, key changes and permanent actions still need
-  Chris's approval. This dated decision replaces ONLY the earlier "ask before
-  ~200 model calls" threshold. "Ask me before any model run" and the approvals
-  in plan steps 4-5 still apply as written; the original text stays verbatim.
+  This dated decision supersedes the earlier "ask before ~200 model calls"
+  threshold and the plan's general "Ask me before any model run" wording for
+  exploratory rounds only. Exploratory rounds costing $5 or less need no
+  approval if their cost is estimable beforehand and their estimated cost plus
+  spend so far would not reach a provider's $8 stop, except that plan steps 4
+  (room check) and 5 (real run) each still need Chris's explicit approval.
+  Any paid confirmation or preregistered run, key or secret changes and
+  permanent actions also still need his explicit approval. The original plan
+  text stays verbatim.
 
 <details>
 <summary>Chris's working plan, verbatim (2026-10-31)</summary>
@@ -9818,9 +9823,14 @@ First action: assign step 1 to Codi and step 2 to Sol, and report back when the 
 
 ## v0.24.41 (2026-10-31): clarify the ask rule
 
-Clarified that Chris's dated $5 decision replaces only the earlier ~200-model-call
-threshold. "Ask me before any model run" and the approvals in plan steps 4-5
-still apply as written. Updated CLAUDE.md with the cost-estimate and provider-stop
-conditions and the retained approvals for paid confirmation runs, key changes and
-permanent actions. Corrected one Gate 1b evidence README bullet's capitalization
-and punctuation, and wrapped the Haiku parenthetical without changing its words.
+Clarified that Chris's dated $5 decision supersedes the earlier ~200-model-call
+threshold and the plan's general "Ask me before any model run" wording for
+exploratory rounds only. Exploratory rounds costing $5 or less need no approval
+if their cost is estimable beforehand and their estimated cost plus spend so far
+would not reach a provider's $8 stop, except that plan steps 4 (room check) and 5
+(real run) each still need his explicit approval. Any paid confirmation or
+preregistered run, key or secret changes and permanent actions also still need
+his explicit approval. The original plan text stays verbatim. Updated CLAUDE.md
+with these cost and approval rules. Corrected one Gate 1b evidence README bullet's
+capitalization and punctuation, and wrapped the Haiku parenthetical without
+changing its words.
