@@ -1,4 +1,6 @@
-# TAA Lab (v0.24.35 B1/B2 Step 1 scoring fixes; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
+# TAA Lab (v0.24.36 B1/B2 Gate 1b preregistration; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
+
+[Preregistration] v0.24.36 records the exact Gate 1b configuration, Chris-approved predictions and owner spending decision in LAB_NOTEBOOK.md. Execution still requires a separate approval bound to the final merged commit and Actions run.
 
 [Descriptive] Experiment A operational revision **v0.5** ran at approved `36ceb050`. The pilot is closed as truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun. Final counts: **145 complete, five stopped, 246 untouched**. Standing continuation 4 stopped with `state_git_failure`, outside the allowed automatic reasons; no successor was started. [Frozen descriptive analysis and complete cell roster](docs/process/TAA_EXPERIMENT_A_TRUNCATED_ANALYSIS_v01.md). [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains draft and unmerged for Claude/Astra review. H stays sealed.
 
