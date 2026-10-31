@@ -1,4 +1,4 @@
-# TAA Lab (v0.24.37 B1/B2 audit failure hardening; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
+# TAA Lab (v0.24.38 B1/B2 calendar-independent ledger guard; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
 
 [Preregistration] v0.24.36 records the exact Gate 1b configuration, Chris-approved predictions and owner spending decision in LAB_NOTEBOOK.md. Execution still requires a separate approval bound to the final merged commit and Actions run.
 

@@ -1,6 +1,5 @@
 """Offline engineering controls; synthetic behavior is not headroom evidence."""
 from copy import deepcopy
-from datetime import datetime, timezone
 import json
 from pathlib import Path
 from decimal import Decimal
@@ -853,10 +852,6 @@ class LedgerTests(unittest.TestCase):
             mocked = patch('experiment_b.ledger.' + target, value)
             mocked.start()
             self.addCleanup(mocked.stop)
-        clock = patch('experiment_b.ledger.datetime')
-        self.clock = clock.start()
-        self.clock.now.return_value = datetime(2026, 11, 1, tzinfo=timezone.utc)
-        self.addCleanup(clock.stop)
         self.config = configuration()
         self.config['caps'].update(probe='8.00', combined_remaining='8.00', monthly_remaining='8.00')
         for provider in self.config['providers'].values():
@@ -913,17 +908,15 @@ class LedgerTests(unittest.TestCase):
             self.ledger['providers']['Luna']['cumulative_dollars'] = invalid
             with self.assertRaisesRegex(Stop, 'invalid_ledger_balance'):
                 self.check()
-        self.clock.now.return_value = datetime(2026, 12, 1, tzinfo=timezone.utc)
-        with self.assertRaisesRegex(Stop, 'monthly_ledger_refresh_required'):
-            self.check()
+
+    def test_ledger_is_calendar_independent(self):
+        # The guard reads no clock.
+        with patch('builtins.print'):
+            receipts, _ = self.check()
+        self.assertEqual(receipts[-1][1]['month'], 'from 2026-10-30')
 
 
 class ApprovalBudgetTests(unittest.TestCase):
-    def setUp(self):
-        clock = patch('experiment_b.ledger.datetime')
-        clock.start().now.return_value = datetime(2026, 11, 1, tzinfo=timezone.utc)
-        self.addCleanup(clock.stop)
-
     def test_harness_failures_retain_spend_and_close_evidence(self):
         config = configuration()
         approval = dict(commit='synthetic', actions=dict(repository='synthetic', workflow_ref='synthetic',

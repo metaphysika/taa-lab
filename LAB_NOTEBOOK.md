@@ -9487,3 +9487,18 @@ historical ledger snapshots; no workflow or frozen study source changes.
 This failed attempt is not scored, not pooled and not headroom evidence.
 The next run starts fresh from episode 1. This build makes no model calls,
 dispatches no workflows and performs no merge.
+
+## 2026-10-31 — v0.24.38: calendar-independent Gate 1b ledger guard
+
+At Chris's request, following Claude's ruling, the month-equality gate is
+removed on 2026-10-31 before any Gate 1b call under this revision. The earlier
+failed attempt remains recorded in v0.24.37. The guard reads no clock; the
+ledger's `month` value is now `from 2026-10-30`, a receipt label only. Refresh
+`ledger_start.json` only when balances change before a new approval.
+
+This is safe because the all-time monthly total conservatively overcounts
+spend since October 30. All spend arithmetic remains unchanged, including the
+higher of snapshot and live balances, provider stops, $4/$4/$8 caps and $50
+total cap. The v0.24.36 configuration line and predictions remain word for
+word. This build makes no paid calls, dispatches no workflows and performs
+no merge.
