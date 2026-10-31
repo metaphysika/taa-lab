@@ -9746,7 +9746,7 @@ I didn't edit any files. I only read the two answers and checked that the run ar
 
 </details>
 
-### Chris's working plan: status and pending decision
+### Chris's working plan: status and decision
 
 Chris's working plan below is recorded word for word as the owner's working
 direction. Claude's strategy ruling above remains preserved verbatim.
@@ -9754,11 +9754,13 @@ direction. Claude's strategy ruling above remains preserved verbatim.
 - Plan step 1, close-out of Gate 1b: COMPLETED by PR #59, merged at b041eea1.
 - Plan step 2, quick trace skim (read-only, $0, Sol): NOT STARTED. It must
   not start until this v0.24.40 PR is merged.
-- "Pending decision from me": PENDING. Chris has not confirmed replacing
-  the ask-before threshold of ~200 model calls with asking before any
-  exploratory round over $5. Keep the current rule in force until Chris
-  confirms; the plan's instruction to ask before any model run also remains
-  in force. This record approves no run, spend, build or threshold change.
+- 2026-10-31, about 1:07 PM CT: DECIDED by Chris. Replace "ask before ~200
+  model calls" with "ask before any exploratory round that would cost over
+  $5". Ask first if the round's cost cannot be estimated beforehand, or if
+  its estimated cost plus spend so far would reach a provider's $8 stop.
+  Paid confirmation runs, key changes and permanent actions still need
+  Chris's approval. This dated decision supersedes the original plan's
+  ask-before wording for exploratory rounds; the original text stays verbatim.
 
 <details>
 <summary>Chris's working plan, verbatim (2026-10-31)</summary>
