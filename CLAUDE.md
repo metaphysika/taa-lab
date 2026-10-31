@@ -41,6 +41,7 @@ readable, and prefer the Python standard library over new dependencies.
   cost plus spend so far would reach a provider's $8 stop. Any paid confirmation or
   preregistered run, key or secret changes and permanent actions still need his approval.
   Plan steps 4 (room check) and 5 (real run) each still need his explicit approval.
+  An exploratory round costing $5 or less needs no approval if its cost is estimable beforehand and its estimated cost plus spend so far would not reach a provider's $8 stop; this exception covers exploratory rounds only, and steps 4 and 5 and paid confirmation runs still need Chris's explicit approval.
 
 ## Where things go
 
