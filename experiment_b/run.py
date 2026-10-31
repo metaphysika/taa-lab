@@ -75,6 +75,10 @@ def approved_run(path, directory):
     except Stop as error:
         evidence.retain('stop', dict(reason=str(error), dollars_reserved_or_spent_upper=str(budget.spent)))
         raise
+    except Exception as error:
+        evidence.retain('stop', dict(reason='unexpected_failure:' + type(error).__name__,
+                                     dollars_reserved_or_spent_upper=str(budget.spent)))
+        raise
     finally:
         evidence.close()
 

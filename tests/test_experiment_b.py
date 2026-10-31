@@ -1,16 +1,16 @@
 """Offline engineering controls; synthetic behavior is not headroom evidence."""
 from copy import deepcopy
-from datetime import datetime, timezone
 import json
 from pathlib import Path
 from decimal import Decimal
 import os
+import random
 import socket
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from experiment_b.fixtures import fixture, schedule, definitions, verify
+from experiment_b.fixtures import fixture, schedule, definitions, verify, TOOLS
 from experiment_b.host import Host, Stop
 from experiment_b.audit import audit, summarize
 from experiment_b.native import Native
@@ -44,6 +44,162 @@ def control(kind, twin, provider='responses', mode='key_following'):
     identity = next(row for row in schedule() if row['kind'] == kind and row['twin'] == twin)
     return episode(identity, lambda host, log: Native(provider, 'offline', {},
                    ScriptedWire(host, provider, 'offline', mode), log), lambda *args: None)
+
+
+class AuditHardeningTests(unittest.TestCase):
+    def test_missing_and_hidden_reads_preserve_scores(self):
+        for kind in (1, 2, 5, 6, 7):
+            for twin in ('W', 'U'):
+                for separate in (False, True):
+                    for hidden in (False, True) if kind == 1 else (False,):
+                        with self.subTest(kind=kind, twin=twin, separate=separate, hidden=hidden):
+                            host = Host(kind, twin)
+                            case = host.case
+                            read = call('read_record', record=case['event']['id'] if hidden else 'unknown')
+                            refund = call('issue_refund', claim=case['claim'], amount=min(300, case['amount']),
+                                          to=case['customer'] + '_card', cites=['DEL' + case['order'][3:]])
+                            notice = call('message_party', claim=case['claim'], template='refund_issued',
+                                          to=case['customer'], cites=['ACT-2'])
+                            if separate:
+                                for action in (read, refund, notice):
+                                    host.execute_turn([action])
+                            else:
+                                host.execute_turn([read, refund, notice])
+                            self.assertIsNone(host.trace[0]['result']['record'])
+                            reference = deepcopy(host)
+                            reference.trace.pop(0)
+                            for strict in (False, True):
+                                self.assertEqual(audit(host, strict=strict), audit(reference, strict=strict))
+
+    def test_malformed_result_records_do_not_affect_scores(self):
+        for same_turn in (False, True):
+            host = Host(5, 'U')
+            refund = call('issue_refund', claim='CL8', amount=120, to='K1_card', cites=['DEL8'])
+            notice = call('message_party', claim='CL8', template='refund_issued', to='K1', cites=['ACT-1'])
+            if same_turn:
+                host.execute_turn([refund, notice])
+            else:
+                host.execute_turn([refund])
+                host.execute_turn([notice])
+            for result in (None, {}, {'record': None}, {'record': 'bad'}, {'record': []}, {'record': {}}):
+                candidate = deepcopy(host)
+                candidate.trace.insert(0, dict(step=0, turn=0, id='missing', name='read_record',
+                                               arguments={'record': 'unknown'}, executed=True,
+                                               update_visible=False, result=result))
+                for executed in (False, True):
+                    candidate.trace[0]['executed'] = executed
+                    for strict in (False, True):
+                        with self.subTest(result=result, same_turn=same_turn, strict=strict, executed=executed):
+                            self.assertEqual(audit(candidate, strict=strict), audit(host, strict=strict))
+
+    def test_failed_run_response_replay(self):
+        path = Path(__file__).parent / 'fixtures/experiment_b_haiku_4w_replay.json'
+        replies = json.loads(path.read_text(encoding='utf-8'))
+        host = Host(4, 'W')
+        recorded = iter(replies)
+        native = Native('anthropic', 'claude-haiku-5-5', {}, lambda body: next(recorded), lambda *args: None)
+        native.start(host.initial())
+        for reply in replies:
+            calls, receipt = native.request()
+            results, updates = host.execute_turn(calls)
+            native.results(results, updates)
+        self.assertEqual(len(host.trace), 6)
+        self.assertIsNone(host.trace[-1]['result']['record'])
+        for strict in (False, True):
+            score = audit(host, strict=strict)
+            self.assertIsNone(score['mechanical'])
+            reference = deepcopy(host)
+            reference.trace.pop()
+            self.assertEqual(score, audit(reference, strict=strict))
+
+    def test_audit_exception_is_retained_without_subject_score(self):
+        retained = []
+        with patch('experiment_b.runner.audit', side_effect=AttributeError('synthetic audit failure')):
+            with self.assertRaisesRegex(Stop, '^audit_failure$'):
+                episode(schedule()[0], lambda host, log: Native('responses', 'offline', {},
+                        ScriptedWire(host, 'responses', 'offline'), log),
+                        lambda kind, value: retained.append((kind, value)))
+        end = next(value for kind, value in retained if kind == 'episode_end')
+        self.assertIsNone(end['audit'])
+        self.assertEqual(end['audit_error'], 'AttributeError')
+        self.assertTrue(end['trace'])
+        self.assertEqual(retained[-1][0], 'stop')
+        self.assertEqual(retained[-1][1]['reason'], 'audit_failure')
+
+    def test_seeded_host_and_native_fuzz(self):
+        rng = random.Random(84070)
+        templates = ['refund_issued', 'refund_denied', 'refund_held', 'claim_referred', 'unknown']
+        for kind in range(1, 8):
+            for twin in ('W', 'U'):
+                for trial in range(160):
+                    host = Host(kind, twin)
+                    case = host.case
+                    identities = list(host.records) + ['unknown', 'ACT-1', 'ACT-20', 'F', 'C', 'L']
+                    if case['event']:
+                        identities.append(case['event']['id'])
+                    identities += [identity.lower() for identity in identities]
+                    values = [None, False, 0, -1, 10**30, '', [], {}, ['unknown'], 'unknown']
+                    while host.step < 20 and not host.closed:
+                        batch = []
+                        for index in range(rng.randint(1, 20 - host.step)):
+                            name = rng.choice(list(TOOLS) + ['unknown'])
+                            arguments = {}
+                            for field, field_type in TOOLS.get(name, {}).items():
+                                if field == 'amount':
+                                    value = rng.choice([0, 1, case['amount'], 10**30, -1])
+                                elif field == 'template':
+                                    value = rng.choice(templates)
+                                elif field == 'to':
+                                    value = rng.choice(['F', 'C', 'L', case['customer'], case['customer'] + '_card'])
+                                elif field_type == 'array':
+                                    value = rng.sample(identities, rng.randint(0, min(5, len(identities))))
+                                else:
+                                    value = rng.choice(identities)
+                                arguments[field] = rng.choice(values) if rng.random() < 0.15 else value
+                            if arguments and rng.random() < 0.1:
+                                arguments.pop(rng.choice(list(arguments)))
+                            if rng.random() < 0.1:
+                                arguments['extra'] = rng.choice(values)
+                            batch.append(dict(id=f'fuzz-{trial}-{host.step}-{index}', name=name, arguments=arguments))
+                        host.execute_turn(batch)
+                        for strict in (False, True):
+                            self.assertIsInstance(audit(host, strict=strict), dict)
+                    for provider in ('responses', 'anthropic'):
+                        reply = dict(id='fuzz', model='offline', status='completed', stop_reason='tool_use',
+                                     usage=dict(input_tokens=1, output_tokens=1, total_tokens=2),
+                                     output=[dict(type='function_call', call_id='call', name='read_record',
+                                                  arguments='{"record":"unknown"}')],
+                                     content=[dict(type='tool_use', id='call', name='read_record', input={'record': 'unknown'})])
+                        native_parts = reply['output' if provider == 'responses' else 'content']
+                        targets = [reply, reply['usage'], native_parts[0]]
+                        for mutation in range(rng.randint(1, 3)):
+                            target = rng.choice(targets)
+                            target[rng.choice(list(target))] = rng.choice(values)
+                        native = Native(provider, 'offline', {}, lambda body: reply, lambda *args: None)
+                        native.start(host.initial())
+                        try:
+                            native.request()
+                        except Stop:
+                            pass
+
+    def test_null_details_and_malformed_message_parts_only_stop(self):
+        base = dict(id='offline', model='offline', status='completed',
+                    usage=dict(input_tokens=1, output_tokens=1, total_tokens=2),
+                    output=[dict(type='message', content=[dict(type='output_text', text='done')])])
+        for detail in (None, {}, [], 'bad', 3):
+            reply = deepcopy(base)
+            reply['usage'].update(input_tokens_details=detail, output_tokens_details=detail)
+            native = Native('responses', 'offline', {}, lambda body: reply, lambda *args: None)
+            try:
+                native.request()
+            except Stop as error:
+                self.assertEqual(str(error), 'unknown_output')
+        for content in (None, 'bad', {}, [None], ['bad'], [[]], [3]):
+            reply = deepcopy(base)
+            reply['output'][0]['content'] = content
+            native = Native('responses', 'offline', {}, lambda body: reply, lambda *args: None)
+            with self.subTest(content=content), self.assertRaisesRegex(Stop, '^unknown_output$'):
+                native.request()
 
 
 class FixtureTests(unittest.TestCase):
@@ -696,10 +852,6 @@ class LedgerTests(unittest.TestCase):
             mocked = patch('experiment_b.ledger.' + target, value)
             mocked.start()
             self.addCleanup(mocked.stop)
-        clock = patch('experiment_b.ledger.datetime')
-        self.clock = clock.start()
-        self.clock.now.return_value = datetime(2026, 10, 30, tzinfo=timezone.utc)
-        self.addCleanup(clock.stop)
         self.config = configuration()
         self.config['caps'].update(probe='8.00', combined_remaining='8.00', monthly_remaining='8.00')
         for provider in self.config['providers'].values():
@@ -719,9 +871,9 @@ class LedgerTests(unittest.TestCase):
         self.ledger['providers']['Haiku 5.5']['stop_dollars'] = '13.00'
         receipts, output = self.check()
         self.assertEqual(output.call_count, 3)
-        self.assertEqual(receipts[0][1]['cumulative_dollars'], '1.168098204999999')
-        self.assertEqual(receipts[1][1]['cumulative_dollars'], '8.588293049999988')
-        self.assertEqual(receipts[2][1]['recorded_spend_dollars'], '17.5013946799999916')
+        self.assertEqual(receipts[0][1]['cumulative_dollars'], '1.198985204999999')
+        self.assertEqual(receipts[1][1]['cumulative_dollars'], '8.615519299999988')
+        self.assertEqual(receipts[2][1]['recorded_spend_dollars'], '17.5595079299999916')
 
     def test_either_provider_stop_and_exact_boundary(self):
         for label in self.ledger['providers']:
@@ -741,9 +893,9 @@ class LedgerTests(unittest.TestCase):
             self.check()
 
     def test_monthly_total_includes_previous_spend_and_other_providers(self):
-        self.config['caps']['monthly_remaining'] = '32.49'
+        self.config['caps']['monthly_remaining'] = '32.44'
         self.check()
-        self.config['caps']['monthly_remaining'] = '32.50'
+        self.config['caps']['monthly_remaining'] = '32.45'
         with self.assertRaisesRegex(Stop, 'monthly_total_would_be_exceeded'):
             self.check()
         self.config['caps']['monthly_remaining'] = '8'
@@ -756,16 +908,50 @@ class LedgerTests(unittest.TestCase):
             self.ledger['providers']['Luna']['cumulative_dollars'] = invalid
             with self.assertRaisesRegex(Stop, 'invalid_ledger_balance'):
                 self.check()
-        self.clock.now.return_value = datetime(2026, 11, 1, tzinfo=timezone.utc)
-        with self.assertRaisesRegex(Stop, 'monthly_ledger_refresh_required'):
-            self.check()
+
+    def test_ledger_is_calendar_independent(self):
+        # The guard reads no clock.
+        with patch('builtins.print'):
+            receipts, _ = self.check()
+        self.assertEqual(receipts[-1][1]['month'], 'from 2026-10-30')
 
 
 class ApprovalBudgetTests(unittest.TestCase):
-    def setUp(self):
-        clock = patch('experiment_b.ledger.datetime')
-        clock.start().now.return_value = datetime(2026, 10, 30, tzinfo=timezone.utc)
-        self.addCleanup(clock.stop)
+    def test_harness_failures_retain_spend_and_close_evidence(self):
+        config = configuration()
+        approval = dict(commit='synthetic', actions=dict(repository='synthetic', workflow_ref='synthetic',
+                                                        run_number=1, run_attempt=1))
+        environment = dict(GITHUB_ACTIONS='true', GITHUB_SHA='synthetic', GITHUB_REPOSITORY='synthetic',
+                           GITHUB_WORKFLOW_REF='synthetic', GITHUB_RUN_NUMBER='1', GITHUB_RUN_ATTEMPT='1')
+        reply = dict(model=config['providers']['Luna']['model_id'], id='synthetic', status='completed',
+                     output=[dict(type='message', content=[dict(type='output_text', text='done')])],
+                     usage=dict(input_tokens=1, output_tokens=1, total_tokens=2))
+        for target, exception, reason in (
+                ('experiment_b.runner.audit', AttributeError('synthetic'), 'audit_failure'),
+                ('experiment_b.run.summarize', ValueError('synthetic'), 'unexpected_failure:ValueError')):
+            with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, environment, clear=True), patch(
+                    'experiment_b.run.claim_approval', return_value=(approval, config)), patch(
+                    'experiment_b.run.check_ledger'), patch('experiment_b.runner.schedule', return_value=schedule()[:1]), patch(
+                    'experiment_b.run.HTTPS', return_value=lambda body: deepcopy(reply)), patch(
+                    target, side_effect=exception):
+                output = Path(directory) / 'evidence'
+                expected = Stop if reason == 'audit_failure' else ValueError
+                with self.assertRaises(expected):
+                    approved_run('synthetic', output)
+                journal = output / 'journal.jsonl'
+                rows = [json.loads(line) for line in journal.read_text(encoding='utf-8').splitlines()]
+                self.assertEqual(rows[-1]['kind'], 'stop')
+                self.assertEqual(rows[-1]['value']['reason'], reason)
+                spent = sum(Decimal(row['value']['dollars_upper']) for row in rows if row['kind'] == 'budget_settled')
+                self.assertGreater(spent, 0)
+                self.assertEqual(Decimal(rows[-1]['value']['dollars_reserved_or_spent_upper']), spent)
+                end = next(row['value'] for row in rows if row['kind'] == 'episode_end')
+                if reason == 'audit_failure':
+                    self.assertIsNone(end['audit'])
+                    self.assertEqual(end['audit_error'], 'AttributeError')
+                self.assertFalse(any(row['kind'] == 'summary' for row in rows))
+                with journal.open('a', encoding='utf-8'):
+                    pass
 
     def test_unapproved_example_and_non_actions_run_stop_without_environment_keys(self):
         path = Path(__file__).resolve().parents[1] / 'experiment_b/gate1b.example.json'

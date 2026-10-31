@@ -112,8 +112,7 @@ The October API-spend floor also includes notebook-sourced Google spend
 ($7.7450034250000046, including its retained reserve) and the Groq ledger ($0).
 The recorded sum is $17.5013946799999916. `caps.monthly_remaining` must be no
 more than $50 minus that sum, and must account for any additional monthly
-spend before approval. A different UTC month requires refreshing the snapshot;
-the guard does not silently reset cumulative spending.
+spend before approval. The ledger guard is calendar-independent; refresh ledger_start.json only when balances change before a new approval.
 
 Chris accepts each model's first real request as its probe, with no separate
 $0.05 request or allowance. Native adapters check exact returned identity and
@@ -150,7 +149,7 @@ guard failures stop immediately and every attempted episode remains recorded.
    partial-run STOP evidence, before artifact expiry.
 2. Copy it intact into `results/<dated name>/` and commit the durable evidence.
 3. Book usage-backed spend and retained uncertainty reserves in the provider
-   ledgers; refresh `ledger_start.json` and monthly room before another approval.
+   ledgers. The ledger guard is calendar-independent; refresh ledger_start.json only when balances change before a new approval.
 4. Add a notebook entry with the approved SHA, Actions run identity, artifact
    path, actual/uncertain spending, completion or STOP, and scientific limits.
 

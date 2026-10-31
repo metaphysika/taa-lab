@@ -1,5 +1,4 @@
-"""Preflight cumulative provider stops and this month's recorded API spend."""
-from datetime import datetime, timezone
+"""Preflight cumulative provider stops and recorded API spend since 2026-10-30 (all-time balances, conservative)."""
 from decimal import Decimal, InvalidOperation
 import json
 
@@ -24,8 +23,6 @@ def balance(value):
 def check_ledger(configuration, retain):
     try:
         ledger = json.loads(LEDGER_START.read_text(encoding='utf-8'))
-        if ledger['month'] != datetime.now(timezone.utc).strftime('%Y-%m'):
-            raise Stop('monthly_ledger_refresh_required')
         if set(ledger['providers']) != set(configuration['providers']):
             raise Stop('ledger_providers_mismatch')
         total = Decimal(0)

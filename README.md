@@ -1,6 +1,8 @@
-# TAA Lab (v0.24.36 B1/B2 Gate 1b preregistration; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
+# TAA Lab (v0.24.38 B1/B2 calendar-independent ledger guard; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
 
 [Preregistration] v0.24.36 records the exact Gate 1b configuration, Chris-approved predictions and owner spending decision in LAB_NOTEBOOK.md. Execution still requires a separate approval bound to the final merged commit and Actions run.
+
+[Engineering] v0.24.37 fixes null read-record audit crashes and retains harness failures with spend. Gate 1b attempt 41198759544 failed in episode 21; its [raw evidence](results/experiment-b-step1-gate1b-attempt1-failed-2026-10-31/README.md) is not scored or pooled. The next run starts fresh at episode 1. Failed-attempt upper-bound spend of $0.058113250 is booked to cumulative balances (OpenAI $1.198985204999999; Anthropic $8.615519299999988; recorded total $17.5595079299999916). The ledger is restamped to November UTC. Chris excludes these few cents from the fresh $8 Gate 1b budget; the v0.24.36 configuration and predictions remain the execution basis.
 
 [Descriptive] Experiment A operational revision **v0.5** ran at approved `36ceb050`. The pilot is closed as truncated by infrastructure failures in the execution environment; descriptive pilot only; no episode replaced or rerun. Final counts: **145 complete, five stopped, 246 untouched**. Standing continuation 4 stopped with `state_git_failure`, outside the allowed automatic reasons; no successor was started. [Frozen descriptive analysis and complete cell roster](docs/process/TAA_EXPERIMENT_A_TRUNCATED_ANALYSIS_v01.md). [Results-only PR #41](https://github.com/metaphysika/taa-lab/pull/41) remains draft and unmerged for Claude/Astra review. H stays sealed.
 

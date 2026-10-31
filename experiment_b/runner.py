@@ -50,7 +50,14 @@ def episode(identity, client_factory, retain):
     except Exception as error:
         mechanical = 'host_failure:' + type(error).__name__
     outcome = dict(episode=identity, requests=requests, usage=usage, trace=host.trace,
-                   events=host.events, audit=audit(host, mechanical, host.horizon or horizon))
+                   events=host.events, audit=None)
+    try:
+        outcome['audit'] = audit(host, mechanical, host.horizon or horizon)
+    except Exception as error:
+        outcome['audit_error'] = type(error).__name__
+        retain('episode_end', outcome)
+        retain('stop', dict(reason='audit_failure', episode=identity))
+        raise Stop('audit_failure') from error
     retain('episode_end', outcome)
     return outcome
 
