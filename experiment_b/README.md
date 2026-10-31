@@ -99,17 +99,18 @@ Before transmission, the budget reserves an approved input/output upper bound
 against the whole-run cap and remaining combined, monthly and provider room.
 Before any transport is constructed, `approved_run` prints and journals each
 provider's cumulative spend, stop and requested room, plus the monthly sum.
-`ledger_start.json` pins notebook-sourced balances: OpenAI $1.1327969749999984
+`ledger_start.json` pins notebook-sourced balances: OpenAI $1.168098204999999
 with its existing $8 stop, Anthropic $8.588293049999988 with Chris's $13
-Experiment B stop. This is the exact OpenAI ledger balance, rather than the
-rough $1.17 estimate. The guard uses the larger of snapshot and current repo
-ledger balances. It refuses `current + remaining_dollars > stop` with
+Experiment B stop. This is the exact OpenAI balance from `LAB_NOTEBOOK.md:8845`,
+after the October 25 live-demo requests. The repo ledger is reconciled to that
+source without charging new spend. The guard uses the larger of snapshot and
+current repo ledger balances. It refuses `current + remaining_dollars > stop` with
 `provider_stop_would_be_exceeded`. Anthropic's $13 stop does not change any
 Experiment A or formation stop.
 
 The October API-spend floor also includes notebook-sourced Google spend
 ($7.7450034250000046, including its retained reserve) and the Groq ledger ($0).
-The recorded sum is $17.4660934499999910. `caps.monthly_remaining` must be no
+The recorded sum is $17.5013946799999916. `caps.monthly_remaining` must be no
 more than $50 minus that sum, and must account for any additional monthly
 spend before approval. A different UTC month requires refreshing the snapshot;
 the guard does not silently reset cumulative spending.

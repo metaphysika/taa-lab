@@ -9337,8 +9337,8 @@ start from freshly fetched origin/main db21cc8986c4d10eddfafa664443c5215dd45a01.
 [Owner decisions] Chris sets the Experiment B Anthropic cumulative stop to
 $13.00. The starting Anthropic balance is $8.588293049999988 from this notebook
 line 9188, not the stale $5.805643249999988 repo ledger. OpenAI keeps its existing
-$8 stop and exact repo balance $1.1327969749999984 (lines 6802 and 6831), rather
-than the approximate $1.17 figure. Each model has $4.00 whole-run room; combined
+$8 stop (line 6831) and exact balance $1.168098204999999 from line 8845, after
+the October 25 live-demo requests. Each model has $4.00 whole-run room; combined
 room is $8.00. The legacy caps.probe field is the whole-run cap, now permitted
 up to $8, not a separate $0.05 probe. Chris accepts each model's first real
 request as the identity/usage probe, costing about $0.01 or less at the measured
@@ -9349,13 +9349,14 @@ stops. Before constructing any transport, approved_run prints and journals each
 provider's spend, stop and requested room, plus the monthly sum. It refuses
 provider_stop_would_be_exceeded when current spend plus remaining_dollars would
 exceed the stop. The larger of snapshot and live repo ledger balances is used.
-The live formation Anthropic ledger is reconciled to line 9188 with its source
-recorded, without charging new spend. Production ledgers are mutable accounting;
-immutable historical test snapshots remain unchanged. The $13 stop applies only
+The live formation Anthropic ledger is reconciled to line 9188 and the OpenAI
+ledger to line 8845, with sources recorded and without charging new spend.
+Production ledgers are mutable accounting; immutable historical test snapshots
+remain unchanged. The $13 stop applies only
 to Experiment B, not to formation or Experiment A.
 
 [Owner decision] The monthly total cap is $50 including this month's spend.
-October's recorded API-spend floor is $17.4660934499999910: OpenAI plus Anthropic,
+October's recorded API-spend floor is $17.5013946799999916: OpenAI plus Anthropic,
 Google $7.7450034250000046 from line 9188 (including retained reserve), and Groq
 $0 from its repo ledger. The approval's monthly_remaining must fit beneath
 $50 minus recorded spend and include any additional monthly spending before

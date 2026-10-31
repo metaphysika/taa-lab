@@ -719,9 +719,9 @@ class LedgerTests(unittest.TestCase):
         self.ledger['providers']['Haiku 5.5']['stop_dollars'] = '13.00'
         receipts, output = self.check()
         self.assertEqual(output.call_count, 3)
-        self.assertEqual(receipts[0][1]['cumulative_dollars'], '1.1327969749999984')
+        self.assertEqual(receipts[0][1]['cumulative_dollars'], '1.168098204999999')
         self.assertEqual(receipts[1][1]['cumulative_dollars'], '8.588293049999988')
-        self.assertEqual(receipts[2][1]['recorded_spend_dollars'], '17.4660934499999910')
+        self.assertEqual(receipts[2][1]['recorded_spend_dollars'], '17.5013946799999916')
 
     def test_either_provider_stop_and_exact_boundary(self):
         for label in self.ledger['providers']:
@@ -741,9 +741,9 @@ class LedgerTests(unittest.TestCase):
             self.check()
 
     def test_monthly_total_includes_previous_spend_and_other_providers(self):
-        self.config['caps']['monthly_remaining'] = '32.53'
+        self.config['caps']['monthly_remaining'] = '32.49'
         self.check()
-        self.config['caps']['monthly_remaining'] = '32.54'
+        self.config['caps']['monthly_remaining'] = '32.50'
         with self.assertRaisesRegex(Stop, 'monthly_total_would_be_exceeded'):
             self.check()
         self.config['caps']['monthly_remaining'] = '8'
