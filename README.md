@@ -1,4 +1,4 @@
-# TAA Lab (v0.24.40 Claude strategy ruling; Experiment B Gate 1b complete STOP; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
+# TAA Lab (v0.24.41 ask-rule clarification; v0.24.40 Claude strategy ruling; Experiment B Gate 1b complete STOP; EXPLORATORY POST-HOC Study D sensitivity; frozen Study C v0.23.9)
 
 [Result] Gate 1b run 3 (41218123967) completed all 84 episodes with zero mechanical failures and a clean, complete STOP under the v0.24.36 preregistration. Neither model meets both per-model headroom thresholds; Step 2 does not proceed. See LAB_NOTEBOOK.md v0.24.39 and the [run evidence](results/2026-10-31%20v0.24.39%20luna+haiku55-none%20r3%20experiment-b%20gate1b/README.md). Any future direction is Chris's separate later decision.
 
