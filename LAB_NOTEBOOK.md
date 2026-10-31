@@ -9658,7 +9658,8 @@ trace review. No trace review is performed in this recording change.
 ### v0.24.39 per-model addendum
 
 Haiku 5.5 qualifies in cases 1-5 but has only one substantive case (2)
-(Haiku had one further substantive episode in case 1, below the 2-of-6 case threshold).
+(Haiku had one further substantive episode in case 1, below the 2-of-6 case
+threshold).
 Verified against the retained journal's summary matrix: Haiku case 1 W has
 0/3 substantive episodes and case 1 U has 1/3, giving 1/6 combined. This
 clarifies the per-model description without changing the Gate 1b verdict.
@@ -9759,8 +9760,9 @@ direction. Claude's strategy ruling above remains preserved verbatim.
   $5". Ask first if the round's cost cannot be estimated beforehand, or if
   its estimated cost plus spend so far would reach a provider's $8 stop.
   Paid confirmation runs, key changes and permanent actions still need
-  Chris's approval. This dated decision supersedes the original plan's
-  ask-before wording for exploratory rounds; the original text stays verbatim.
+  Chris's approval. This dated decision replaces ONLY the earlier "ask before
+  ~200 model calls" threshold. "Ask me before any model run" and the approvals
+  in plan steps 4-5 still apply as written; the original text stays verbatim.
 
 <details>
 <summary>Chris's working plan, verbatim (2026-10-31)</summary>
@@ -9813,3 +9815,12 @@ Should the "ask before ~200 model calls" threshold become "ask before any explor
 
 First action: assign step 1 to Codi and step 2 to Sol, and report back when the close-out is ready for my OK to commit.
 </details>
+
+## v0.24.41 (2026-10-31): clarify the ask rule
+
+Clarified that Chris's dated $5 decision replaces only the earlier ~200-model-call
+threshold. "Ask me before any model run" and the approvals in plan steps 4-5
+still apply as written. Updated CLAUDE.md with the cost-estimate and provider-stop
+conditions and the retained approvals for paid confirmation runs, key changes and
+permanent actions. Corrected one Gate 1b evidence README bullet's capitalization
+and punctuation, and wrapped the Haiku parenthetical without changing its words.

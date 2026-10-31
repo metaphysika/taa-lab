@@ -36,7 +36,10 @@ readable, and prefer the Python standard library over new dependencies.
 
 - Scripted runs and unit tests are free. Ollama runs are free.
 - `--agent claude` or `--counsel claude` bills the owner's Anthropic API account; Gemini may hit
-  free-tier limits. Ask before starting any run of more than about 200 model calls.
+  free-tier limits. Ask Chris before any exploratory round that would cost over $5.
+  Ask first too if the round's cost cannot be estimated beforehand, or if its estimated
+  cost plus spend so far would reach a provider's $8 stop. Paid confirmation runs,
+  key changes and permanent actions still need his approval.
 
 ## Where things go
 
