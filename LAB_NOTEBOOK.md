@@ -9713,7 +9713,7 @@ Astra and I mostly agree. I'm ruling to **combine the two ideas in order**. Firs
   - Use new, versioned cases, labeled exploratory.
   - The memo has to show how the explanations avoid simply giving away the answer.
   - Plan for the risk that models are already at the ceiling.
-- **The $1ΓÇô3 cap** is reasonable, well under the $50 monthly cap. You'd approve it only after the memo.
+- **The $1–3 cap** is reasonable, well under the $50 monthly cap. You'd approve it only after the memo.
 
 ## (3) Ordered plan
 
