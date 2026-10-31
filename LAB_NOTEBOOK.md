@@ -9745,3 +9745,69 @@ There's no spending decision today. "Is 'catches' still a goal?" can wait until 
 I didn't edit any files. I only read the two answers and checked that the run artifact is still on GitHub.
 
 </details>
+
+### Chris's working plan: status and pending decision
+
+Chris's working plan below is recorded word for word as the owner's working
+direction. Claude's strategy ruling above remains preserved verbatim.
+
+- Plan step 1, close-out of Gate 1b: COMPLETED by PR #59, merged at b041eea1.
+- Plan step 2, quick trace skim (read-only, $0, Sol): NOT STARTED. It must
+  not start until this v0.24.40 PR is merged.
+- "Pending decision from me": PENDING. Chris has not confirmed replacing
+  the ask-before threshold of ~200 model calls with asking before any
+  exploratory round over $5. Keep the current rule in force until Chris
+  confirms; the plan's instruction to ask before any model run also remains
+  in force. This record approves no run, spend, build or threshold change.
+
+<details>
+<summary>Chris's working plan, verbatim (2026-10-31)</summary>
+
+Here is what we decided after Experiment B Gate 1b. Please treat it as the working plan and coordinate the team from it. Claude (chief architect) rules on every Astra review before any action, and that rule still stands.
+
+## Where we are
+- Gate 1b (GitHub run 41218123967, commit 4978fc93, 84 episodes, Luna + Haiku 5.5) ended in a clean, complete STOP under its preregistration. Neither model qualified. Procedural misses far exceeded executed wrongs (Luna 13 vs 3; Haiku 21 vs 1). Most serious errors were over-caution on lawful versions of cases. Spend was about $0.25.
+- My prediction gets a split verdict. Part 1 (a model would qualify) was wrong. Part 2 (procedural misses would exceed wrongs) was right.
+- Step 2 / B2 does NOT proceed. No rerun, no threshold changes, no relabeling, no pooling with the failed first attempt, and case 7 stays diagnostic only.
+- Lesson: on the Gate 1b cases, a competent rule list and TAA predict the same decisions, so those cases could never test our moonshot claims. Across Experiment A, Paper 3 and Gate 1b, briefed models rarely commit wrongs. Their errors are procedural or over-cautious.
+
+## The moonshot goals (what all work must move toward)
+1. CATCHES: checking M/A/F (permissible, still authorized, still serves its purpose) catches wrongs a strong rule list misses.
+2. TEACHES: M/A/F feedback teaches judgment that transfers to new situations.
+
+## New working standard
+Two lanes:
+- EXPLORATION lane (now): small new cases, cheap models, quick iteration, all results labeled "exploratory" and never used as paper claims. Light but real rules: keep every run, write a one-line prediction in LAB_NOTEBOOK.md before each run, script-based scoring only, never touch keys.env, never alter old results.
+- CONFIRMATION lane (later): only for something promising. Preregister it and run it on fresh cases.
+
+NEEDLE TEST: no experiment gets built unless it passes all five:
+1. It directly tests CATCHES or TEACHES.
+2. It could go either way, and each outcome would change what we do next.
+3. There is room to see a difference (models are not already near 100%).
+4. The comparison is fair: TAA versus the STRONGEST reasonable rule list.
+5. It is big enough to tell a real difference from noise.
+Stopping rule: a line of work gets at most two design rounds to show it has room. If it doesn't, drop it and report that honestly.
+
+We keep good science and drop ceremony: no multi-layer reviews of small decisions, and no gates that can pass or fail without telling us anything about the moonshots.
+
+## Ordered plan
+1. CLOSE OUT GATE 1B (Codi; about 1 hour; $0; needs my OK to commit):
+   - Download the GitHub artifact "experiment-b-step1-receipts" from run 41218123967 (it expires 2027-01-29) into a results/ folder named per CLAUDE.md rule 4. Confirm the repeat count for the name.
+   - Book the actual cost from the receipts to the spending ledgers.
+   - Write a LAB_NOTEBOOK.md entry covering: the STOP, the split prediction verdict, the spend, that Step 2 does not proceed, the Step 2 design gap (feedback only reached blocked proposals, so it could never help an over-cautious agent), and this new two-lane plan with the needle test.
+   - Run the unit tests and the scripted runs before committing.
+2. QUICK TRACE SKIM (Sol; about 30 minutes; read-only; $0): skim the Gate 1b traces for why lawful work went unfinished. Categories: misunderstood authority, missing facts, excess caution, paperwork burden, case-wording problem. This is notes to inform case design, not a project and not a relabeling.
+3. DESIGN THE "CATCHES" TEST (Claude drafts; $0): 3-4 NEW "purpose quietly lapsed" cases, where the permission is still valid on paper but its reason is gone. Include lawful versions that must still get done. Arms: plain agent / agent with strong rule list / agent with M/A/F check. ASTRA separately writes the strongest reasonable rule list, so the comparison isn't rigged toward TAA. Claude rules on Astra's input.
+4. ROOM CHECK (needs my approval; about $1-2; cheap models such as Gemini Flash-Lite, Luna, Haiku 5.5): a small exploratory run to confirm there is room. Prediction goes in the notebook first.
+5. REAL RUN (needs my approval; about $5-15): only if the room check shows room. Predictions recorded first, sized to detect a difference, fresh cases.
+6. THEN "TEACHES", designed the same way: M/A/F feedback vs. equally informative plain-rule feedback vs. no feedback, plus a "may I do this?" option so cautious agents can get feedback too, then tested on fresh situations for transfer.
+Later: decide whether the work supports a paper claim (confirmation lane).
+
+## Still off-limits
+No Groq or Qwen calls. No new providers or paid accounts. Don't open sealed set H. Don't edit old case files in place (new versioned files only). Don't try model after model until one "qualifies." Never describe results as "TAA prevented wrongs." Respect the $50 monthly TAA cap, the per-provider $8 stops and $10 ceilings. Ask me before any model run.
+
+## Pending decision from me
+Should the "ask before ~200 model calls" threshold become "ask before any exploratory round over $5"? Until I confirm, keep the current rule.
+
+First action: assign step 1 to Codi and step 2 to Sol, and report back when the close-out is ready for my OK to commit.
+</details>
