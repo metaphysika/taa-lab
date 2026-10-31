@@ -11,6 +11,7 @@ Failed attempt 1 (41198759544) is already booked and is not pooled. Run 2
 - Run: https://github.com/metaphysika/taa-lab/actions/runs/41218123967.
 - Workflow run number: 3; attempt: 1.
 - Commit: 4978fc93ee2eaf1b9450d694a9a616ae6c74a101.
+- executed code: README v0.24.38 at 4978fc93
 - Workflow: Experiment B Step 1 (manual gates only), .github/workflows/experiment-b-step1.yml.
 - October 31, 2026, 11:07:22-11:27:26 AM CT (CDT, UTC-05:00),
   or 2026-10-31T16:07:22Z through 2026-10-31T16:27:26Z.
