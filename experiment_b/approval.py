@@ -66,7 +66,7 @@ def validate(approval):
         if type(configuration['runtime_bound_seconds']) is not int or not 0 < configuration['runtime_bound_seconds'] <= 19800:
             raise Stop('actions_runtime_bound')
         caps = configuration['caps']
-        if money(caps['probe']) > 2 or money(caps['combined_remaining']) > 12 or money(caps['monthly_remaining']) > 50:
+        if money(caps['probe']) > 8 or money(caps['combined_remaining']) > 12 or money(caps['monthly_remaining']) > 50:
             raise Stop('budget_ceiling')
         if set(configuration['providers']) != set(MODELS):
             raise Stop('unknown_models')
@@ -87,6 +87,11 @@ def validate(approval):
             settings = provider['settings']
             if type(settings) is not dict:
                 raise Stop('invalid_model_settings')
+            if label == 'Haiku 5.5' and (
+                    settings.get('thinking') != {'type': 'adaptive'} or
+                    settings.get('output_config') != {'effort': 'medium'} or
+                    provider['headers'].get('anthropic-version') != '2023-06-01'):
+                raise Stop('haiku_settings_required')
             output_field = 'max_output_tokens' if label == 'Luna' else 'max_tokens'
             if (type(settings[output_field]) is not int or
                     settings[output_field] != provider['output_token_bound']):
@@ -94,8 +99,12 @@ def validate(approval):
             for field in ('input_token_bound', 'output_token_bound', 'input_token_overhead', 'timeout_seconds'):
                 if type(provider[field]) is not int or provider[field] <= 0:
                     raise Stop('invalid_request_bound')
+            if provider['input_token_bound'] > 96000:
+                raise Stop('input_byte_ceiling')
             for field in ('input_dollars_per_million_upper', 'output_dollars_per_million_upper', 'remaining_dollars'):
                 money(provider[field])
+            if money(provider['remaining_dollars']) > 4:
+                raise Stop('provider_run_ceiling')
             if provider['protocol'] == 'responses' and not provider['endpoint'].rstrip('/').endswith('/responses'):
                 raise Stop('responses_route_required')
         return configuration

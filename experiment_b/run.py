@@ -9,6 +9,7 @@ from experiment_b.audit import summarize
 from experiment_b.budget import Budget
 from experiment_b.fixtures import verify
 from experiment_b.host import Stop
+from experiment_b.ledger import check_ledger
 from experiment_b.native import Native
 from experiment_b.runner import Evidence, run
 from experiment_b.standin import ScriptedWire
@@ -51,6 +52,7 @@ def approved_run(path, directory):
     started = time.monotonic()
     try:
         evidence.retain('manifest', dict(mode='GATE1B', approval=approval, pins=verify()))
+        check_ledger(configuration, evidence.retain)
 
         def factory(identity, host, log):
             if time.monotonic() - started >= configuration['runtime_bound_seconds']:
