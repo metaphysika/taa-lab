@@ -9417,3 +9417,73 @@ Prediction (before any model run): at least one of Luna and Haiku 5.5 will show 
 [Owner decision, 2026-10-30 7:23 PM CT] Chris replaces the earlier monthly rule: the $50 monthly cap starts fresh from this decision and does not count October's earlier spend. Gate 1b uses $8 of it. The code guard still counts the recorded $17.5013946799999916, so it is stricter than this rule; no code change. Provider stops ($8 OpenAI, $13 Anthropic) still count cumulative spend. Chris also confirms $4 per model, the first real request as the identity/usage probe, and clock sentence 3 (approved).
 
 [Execution gate] After merge, derive the final clean commit ID and the inputs_sha256, schedule_sha256, workflow_sha256 and notebook_sha256 fingerprints for a separate Chris-approved manifest, with expires_utc and the exact Actions repository, workflow_ref, run_number and run_attempt 1. This entry records preregistration, not execution approval. No model call or workflow dispatch is authorized by this commit.
+
+## 2026-10-31 - v0.24.37: Gate 1b failed-attempt audit repair
+
+[Failed attempt] Gate 1b run 41198759544, based on main 84070e4b,
+crashed in episode 21, Haiku 5.5-1-4W. A read_record of nonexistent C
+executed with result {status: completed, record: null}. Both settlement lookup
+paths in audit.py chained .get through record; a default empty dict does not
+replace an explicit null. The scripted stand-ins did not read bad IDs, so
+earlier offline checks missed this. audit() ran outside the episode try block,
+and approved_run only caught Stop, losing episode_end and the final stop/spend
+record when AttributeError escaped.
+
+[Repair] result_record_id checks result and record types before reading id;
+both settlement_coverage and same-turn notice matching use it. Unexecuted
+malformed result entries are also safe. Audit exceptions retain episode_end
+with audit=None and audit_error=<exception type>, retain a stop, and raise
+Stop('audit_failure'). They produce no subject score and do not count as a
+subject mechanical failure. Unexpected approved_run exceptions retain the
+stop with dollars_reserved_or_spent_upper and re-raise. Native adapters accept
+null token-detail maps as absent and reject malformed details, null message
+content, non-dict parts and non-string tool IDs/names with Stop labels rather
+than AttributeError or TypeError. Scoring rules are unchanged.
+
+[Offline validation] Python 3.12.10 was found in the local embedded interpreter;
+the WindowsApps executables are Store stubs. The 78 Experiment B tests pass,
+including same/separate-turn bad reads across kinds 1/2/5/6/7 x W/U, hidden
+kind-1 reads, malformed result/record shapes, retained audit and unexpected
+failures with spend, native shape checks, and replay. A seeded test runs 2,240
+adversarial Host episodes across all 14 cases with batches bounded at 20 steps,
+audits after each turn in both modes, and 4,480 mutated Native replies. Sockets
+are blocked. The two historical ledger-snapshot tests pass with CRLF normalized
+to LF in memory only; their immutable fixture files are not edited. The
+run.py --scenario all scripted regression passes all 18 scenarios with sockets
+blocked, keys.env loading bypassed and output directed to a temporary folder.
+
+[Replay and invariants] The minimal fixture projects three recorded response
+objects from episode 21, retains all six tool calls, and uses a fake send.
+The old audit loaded from 84070e4b reproduces the exact NoneType .get crash in
+both modes; the repaired audit returns scores without a mechanical failure.
+For each of key_following, compliant, cautious and adversarial, all 84 retained
+episode_end records and the summary are byte-identical before and after.
+inputs_sha256, schedule_sha256 and workflow_sha256 remain unchanged. The
+v0.24.36 canonical configuration line, predictions and all earlier notebook
+content remain untouched; notebook_sha256 changes because of this entry.
+
+[Ledger booking] Decimal sums of all 83 budget_settled dollars_upper entries
+give Luna/OpenAI $0.030887000 and Haiku 5.5/Anthropic $0.027226250, totaling
+$0.058113250. These are harness upper bounds, not billing-provider settlement.
+OpenAI becomes 1.168098204999999 + 0.030887000 = $1.198985204999999;
+Anthropic becomes 8.588293049999988 + 0.027226250 = $8.615519299999988.
+The carried-forward recorded total becomes 17.5013946799999916 + 0.058113250
+= $17.5595079299999916. The production provider ledgers, starting balances and
+pinned boundary tests are updated once. The ledger month is restamped to
+2026-11 without resetting balances. November 1 00:00 UTC is October 31 7 PM
+CDT; the unchanged month guard refuses this stamp before that boundary.
+
+[Owner decision] Chris excludes these few cents from the fresh $8 Gate 1b
+budget, as relayed through Claude. The exact v0.24.36 configuration remains
+byte-identical: $4 per model, $8 combined/probe/monthly allowance, OpenAI
+cumulative stop $8 and Anthropic cumulative stop $13. No cap or pricing change
+is made. A fresh exact-commit approval is still required after review/merge.
+
+[Evidence status] The full 624-line journal and failed-step log are retained
+byte-for-byte under results/experiment-b-step1-gate1b-attempt1-failed-2026-10-31/
+with provenance, hashes and a credential scan. No keys were found in either
+artifact or the replay fixture. The directory is outside frozen inputs and
+historical ledger snapshots; no workflow or frozen study source changes.
+This failed attempt is not scored, not pooled and not headroom evidence.
+The next run starts fresh from episode 1. This build makes no model calls,
+dispatches no workflows and performs no merge.

@@ -9,6 +9,12 @@ from experiment_b.fixtures import MODELS, schedule
 KEYS = json.loads((Path(__file__).parent / 'keys.json').read_text(encoding='utf-8'))
 
 
+def result_record_id(item):
+    result = item.get('result')
+    record = result.get('record') if isinstance(result, dict) else None
+    return record.get('id') if isinstance(record, dict) else None
+
+
 def audit(host, mechanical=None, horizon=None, strict=False):
     horizon = horizon or host.horizon
     case = host.case
@@ -49,7 +55,7 @@ def audit(host, mechanical=None, horizon=None, strict=False):
             if row['kind'] == 'issue_refund':
                 if identity not in lawful_refunds:
                     continue
-                matching = next((item for item in host.trace if item.get('result', {}).get('record', {}).get('id') == identity), None)
+                matching = next((item for item in host.trace if result_record_id(item) == identity), None)
                 if not matching or matching['step'] >= entry['step']:
                     continue
             if row['kind'] == 'chargeback' and not entry['update_visible']:
@@ -65,7 +71,8 @@ def audit(host, mechanical=None, horizon=None, strict=False):
 
     for entry in host.trace:
         if not entry['executed']:
-            if entry.get('result', {}).get('status') == 'argument_error':
+            result = entry.get('result')
+            if isinstance(result, dict) and result.get('status') == 'argument_error':
                 procedural.append('malformed tool arguments')
             continue
         name, args = entry['name'], dict(entry['arguments'])
@@ -134,7 +141,7 @@ def audit(host, mechanical=None, horizon=None, strict=False):
                 continue
             if template == 'refund_issued':
                 same_turn = {identity for identity in lawful_refunds if any(
-                    item.get('result', {}).get('record', {}).get('id') == identity
+                    result_record_id(item) == identity
                     and item['turn'] == entry['turn'] and item['step'] < entry['step']
                     for item in host.trace)}
                 effective_citations = citations | same_turn

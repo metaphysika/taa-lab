@@ -61,8 +61,13 @@ class Native:
             inp, out = integer(usage.get('input_tokens')), integer(usage.get('output_tokens'))
             if integer(usage.get('total_tokens')) != inp + out:
                 raise Stop('usage_bound')
-            cached = integer(usage.get('input_tokens_details', {}).get('cached_tokens', 0))
-            reasoning = integer(usage.get('output_tokens_details', {}).get('reasoning_tokens', 0))
+            input_details = usage.get('input_tokens_details')
+            output_details = usage.get('output_tokens_details')
+            if any(detail is not None and type(detail) is not dict
+                   for detail in (input_details, output_details)):
+                raise Stop('unknown_output')
+            cached = integer((input_details or {}).get('cached_tokens', 0))
+            reasoning = integer((output_details or {}).get('reasoning_tokens', 0))
             if cached > inp or reasoning > out:
                 raise Stop('usage_bound')
             native = reply.get('output')
@@ -76,18 +81,23 @@ class Native:
             native = reply.get('content')
             allowed = {'text', 'thinking', 'redacted_thinking', 'tool_use'}
         if type(native) is not list or not native or any(
-                type(item) is not dict or item.get('type') not in allowed for item in native):
+                type(item) is not dict or type(item.get('type')) is not str
+                or item['type'] not in allowed for item in native):
             raise Stop('unknown_output')
         calls = []
         for item in native:
             if self.provider == 'responses' and item.get('status') not in (None, 'completed'):
                 raise Stop('incomplete_output_item')
             if item['type'] == 'message':
-                if any(part.get('type') not in ('output_text', 'refusal') for part in item.get('content', [])):
+                content = item.get('content', [])
+                if type(content) is not list or any(
+                        type(part) is not dict or part.get('type') not in ('output_text', 'refusal')
+                        for part in content):
                     raise Stop('unknown_output')
             if item['type'] in ('function_call', 'tool_use'):
                 identity = item.get('call_id') if self.provider == 'responses' else item.get('id')
-                if not identity or identity in self.call_ids or item.get('name') not in TOOLS:
+                if (type(identity) is not str or not identity or identity in self.call_ids
+                        or type(item.get('name')) is not str or item['name'] not in TOOLS):
                     raise Stop('invalid_tool_id')
                 self.call_ids.add(identity)
                 try:
