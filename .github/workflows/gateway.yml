@@ -1,12 +1,6 @@
 name: Gateway offline alignment
 on:
-  push:
-    paths-ignore:
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
-      - 'docs/REPRODUCE.md'
-      - 'docs/paper-map.md'
-      - 'docs/drafts/**'
+  workflow_call:
   pull_request:
     paths-ignore:
       - 'AGENTS.md'
@@ -14,8 +8,13 @@ on:
       - 'docs/REPRODUCE.md'
       - 'docs/paper-map.md'
       - 'docs/drafts/**'
+      - 'exploratory/**'
 jobs:
+  scope:
+    uses: ./.github/workflows/ci-scope.yml
   reference-and-foundation:
+    needs: scope
+    if: github.event_name != 'pull_request' || needs.scope.outputs.gateway == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read

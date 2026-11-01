@@ -1,0 +1,78 @@
+name: Full offline suite
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 08:00 UTC = 02:00 America/Chicago (CST), 03:00 during daylight saving (CDT).
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nightly-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      run: ${{ steps.nightly.outputs.run }}
+    steps:
+      - id: nightly
+        name: Skip only unchanged main after a successful nightly
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let run = true;
+            if (context.eventName === 'schedule') {
+              try {
+                const response = await github.rest.actions.listWorkflowRuns({
+                  ...context.repo, workflow_id: 'full-suite.yml', branch: 'main',
+                  event: 'schedule', status: 'success', per_page: 1
+                });
+                const previous = response.data.workflow_runs[0];
+                run = !previous || previous.head_sha !== context.sha;
+                core.info(run ? 'Main changed or no successful nightly exists.' :
+                  'Main is unchanged since the last successful nightly; skipping.');
+              } catch (error) {
+                core.warning('Nightly history unavailable; running the full suite: ' + error.message);
+              }
+            }
+            core.setOutput('run', String(run));
+  gateway:
+    needs: nightly-changes
+    if: needs.nightly-changes.outputs.run == 'true'
+    uses: ./.github/workflows/gateway.yml
+  harness:
+    needs: nightly-changes
+    if: needs.nightly-changes.outputs.run == 'true'
+    uses: ./.github/workflows/tests.yml
+  formation:
+    needs: nightly-changes
+    if: needs.nightly-changes.outputs.run == 'true'
+    uses: ./.github/workflows/formation-python39.yml
+  experiment-a:
+    needs: nightly-changes
+    if: needs.nightly-changes.outputs.run == 'true'
+    uses: ./.github/workflows/experiment-a.yml
+  q18:
+    needs: nightly-changes
+    if: needs.nightly-changes.outputs.run == 'true'
+    uses: ./.github/workflows/q18.yml
+  live-demo:
+    needs: nightly-changes
+    if: needs.nightly-changes.outputs.run == 'true'
+    uses: ./.github/workflows/live-demo.yml
+  exploratory:
+    needs: nightly-changes
+    if: needs.nightly-changes.outputs.run == 'true'
+    uses: ./.github/workflows/exploratory.yml
+  full-green:
+    name: Full suite green (confirmatory gate)
+    if: always() && needs.nightly-changes.outputs.run == 'true'
+    needs: [nightly-changes, gateway, harness, formation, experiment-a, q18, live-demo, exploratory]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every offline suite to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python -c 'import json,os; results=json.loads(os.environ["RESULTS"]); assert all(job["result"] == "success" for job in results.values()), results'

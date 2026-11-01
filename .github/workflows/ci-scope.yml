@@ -1,0 +1,33 @@
+name: Select old-evidence checks
+on:
+  workflow_call:
+    outputs:
+      gateway:
+        value: ${{ jobs.scope.outputs.gateway }}
+      study_d:
+        value: ${{ jobs.scope.outputs.study_d }}
+      gemma:
+        value: ${{ jobs.scope.outputs.gemma }}
+permissions:
+  contents: read
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    outputs:
+      gateway: ${{ steps.paths.outputs.gateway }}
+      study_d: ${{ steps.paths.outputs.study_d }}
+      gemma: ${{ steps.paths.outputs.gemma }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - id: paths
+        name: Classify complete Git diff; unknown paths select all
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python scripts/ci_scope.py
