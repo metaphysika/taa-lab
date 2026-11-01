@@ -10526,13 +10526,13 @@ Actions log for run 41305700088 records the full uploaded ZIP SHA-256 as
 The ZIP itself was not found locally for an independent hash check.
 The receipts journal remains outside the repository at
 `C:\Users\lahn0\step3-roomcheck-receipts-run41305700088\step3-live\journal.jsonl`.
-Sol's local read-only verification found 1,778 lines and file SHA-256
+Sol's local read-only verification found 1,778 lines, 8,852,689 bytes, and file SHA-256
 `b5940a8244f751f11f19b0f507a67d294c6c1ad8e86dfb604d3887eed2954d9e`.
 The journal is not committed.
 
-Pending next step: Chris chooses whether to stop step 3 as no room at this
-difficulty with two models, or authorize a free offline round-2 design.
-Round 1 of 2 is spent. No choice is recorded here; no round-2 design, paid run
-or step 5 is approved by this entry. This documentation work made no model
-calls, accessed no secrets, dispatched no workflow, spent nothing and merged
-nothing.
+Chris decided at 7:17 AM CT on November 1, 2026 to STOP step 3 at round 1:
+no room at this difficulty with two models. This result is exploratory and
+is not evidence that TAA or the rule list prevented wrongs. Round 1 of 2 is
+spent. No round 2, paid run or step 5 is approved by this decision or entry.
+This documentation work made no model calls, accessed no secrets, dispatched
+no workflow, spent nothing and merged nothing.
