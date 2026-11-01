@@ -1,3 +1,4 @@
+@AGENTS.md
 # Instructions for Claude Code in this repository
 
 Start each session by reading `docs/project-context.md`.
