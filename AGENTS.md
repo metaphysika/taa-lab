@@ -24,6 +24,8 @@ Read `CLAUDE.md` in full for research safeguards, spending limits, and dated own
 
 ## Install and offline checks
 
+Doc-only PRs skip automatic CI only when every changed path matches `AGENTS.md`, `CLAUDE.md`, `docs/REPRODUCE.md`, `docs/paper-map.md`, or `docs/drafts/**`; any other changed path runs all automatic workflows.
+
 Run commands from the repo root. CI uses Python 3.11 for the main harness/gateway checks, Python 3.9 for formation compatibility, and Python 3.12 for separate serialization/CPU rehearsal jobs.
 
 ```sh
