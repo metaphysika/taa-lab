@@ -10411,3 +10411,46 @@ legacy snapshot checks. Baseline step-3 Python sources were loaded from Git
 objects in memory, without modifying the worktree. No dependencies were added.
 Node code-point and frozen-file checks and git diff --check pass. These are
 offline engineering results, not CI, model-run or scientific headroom evidence.
+
+### v0.24.44 malformed-truncation correction (2026-11-01) - EXPLORATORY
+
+PR #64 blocker correction after review of head
+`38dddc295c0257e399f5b61db8d18c052cd61851`. This addition supersedes the
+malformed-response scoring statement in the review correction above. Rejected
+tool calls may recover when the episode ends normally with an executed non-read
+outcome. An explicit MALFORMED provider failure, including a truncating reply
+after an executed report or notice, remains mechanical and receives no core
+label on either W or U. Witnessed wrong acts still count in the wrong-rate lower
+bound. NO_REPLY behavior and rejected-call recovery are unchanged.
+
+Updated immutable implementation commit:
+`e490674ec2bf276b382a6479429493e53bbf78a7`.
+This supersedes the earlier implementation anchors for the current fix. The final
+PR head also includes this notebook addition; the separate external approval
+must name that final head and the canonical UTF-8/LF notebook SHA-256. No paid
+run is approved by this anchor or addition.
+
+Reservation note: if a provider reply is rejected before its usage is settled,
+the full worst-case reservation of $0.01712 (about $0.017) remains counted against
+the hard cap. This conservative accounting can cause an earlier cap stop. The
+reservation and settlement logic is unchanged.
+
+Offline validation: 129 focused tests passed (79 Experiment B and 50 step-3),
+including W/U report and notice truncations across all four cases with and
+without a preceding rejected call, normal rejected-call recovery, and witnessed
+wrong-act bounds. Both scripted CLI controls, obedient and careful, completed
+144 episodes with zero mechanical faults. All 18 legacy scripted scenarios
+completed. Network and key-file guards were active; legacy keys.env loading was
+bypassed and standalone control/scenario output was external to the checkout.
+
+Full unittest discovery ran 1,515 tests: 20 failures, 698 errors and 109 skips.
+The original-head 38dddc29 baseline ran 1,514 tests with the same 20 failures,
+698 errors and 109 skips. Typed failure/error ID sets are identical; no new
+discovery regressions. Baseline audit and test sources were loaded from Git
+objects in memory without changing the checkout. Node code-point checks,
+frozen-file checks and git diff --check passed. Added notebook text is ASCII;
+earlier notebook content is preserved. pins.json, all arm and case hashes,
+Astra's d3481e3e42fe069a9ff2e6aae80cf7ef99e05998e1f89394ca72312c3db9a6db hash,
+and Gate 1b files remain unchanged. No model calls, API-key access, workflow
+dispatches, secret changes or spending occurred. These are offline engineering
+results only.
