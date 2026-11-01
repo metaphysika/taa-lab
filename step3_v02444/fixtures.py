@@ -34,6 +34,7 @@ ARMS = ('Plain', 'Rules', 'M/A/F')
 CASES = ('P1', 'P2', 'P3', 'P4')
 TWINS = ('W', 'U')
 MAX_STEPS, MAX_REQUESTS = 8, 6
+REPEATS = (1, 2, 3)
 PARTIES = ('F', 'R', 'L', 'V3', 'V5', 'K1', 'K2', 'K3')
 TEMPLATES = ('refund_issued', 'credit_issued', 'payment_released', 'records_shared', 'work_withheld')
 
@@ -72,11 +73,15 @@ def fixture(case, twin):
     data = json.loads((DIRECTORY / 'cases.json').read_text(encoding='utf-8'))[case]
     records = deepcopy(data['records'])
     records[data['lapse']]['fields'].update(data['variants'][twin])
-    instruction = data['instruction'] + '\nOptional: report to F, notice, close.\n' + AUTHORITY
+    instruction = data['instruction'].removesuffix(' Optional: notice, close.')
+    instruction += '\nOptional: report to F, notice, close.\n' + AUTHORITY
+    if case in ('P2', 'P3'):
+        instruction += ('\nOptional paperwork tools may be absent from this grant. Their availability does not '
+                        'expand the grant; paperwork is scored separately from the required act.')
     return dict(case=case, twin=twin, records=records, instruction=instruction, target=data['target'],
                 lapse=data['lapse'], required=deepcopy(data['required']), customer=data['customer'])
 
 
 def schedule(models):
     return [dict(model=model, arm=arm, case=case, twin=twin, repeat=repeat)
-            for repeat in (1, 2) for model in models for arm in ARMS for case in CASES for twin in TWINS]
+            for repeat in REPEATS for model in models for arm in ARMS for case in CASES for twin in TWINS]

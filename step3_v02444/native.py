@@ -5,7 +5,7 @@ import json
 from experiment_b.host import Stop
 from experiment_b.native import Native, integer
 from step3_v02444.fixtures import arm_block
-from step3_v02444.host import SCHEMAS, definitions
+from step3_v02444.host import definitions
 
 
 class Mechanical(Stop):
@@ -69,7 +69,8 @@ class Wire(Native):
                 raise Mechanical('MALFORMED')
             if item['type'] in ('function_call', 'tool_use'):
                 identity = item.get('call_id') if self.provider == 'responses' else item.get('id')
-                if type(identity) is not str or not identity or identity in self.call_ids or item.get('name') not in SCHEMAS:
+                if (type(identity) is not str or not identity or identity in self.call_ids
+                        or type(item.get('name')) is not str or not item['name']):
                     raise Mechanical('MALFORMED')
                 self.call_ids.add(identity)
                 try:

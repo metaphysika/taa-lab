@@ -52,13 +52,8 @@ def episode(identity, factory, retain):
                 break
             result = host.execute(call['name'], call['arguments'])
             results.append(dict(id=call['id'], name=call['name'], result=result))
-            if result['status'] == 'error':
-                mechanical = 'MALFORMED'
-                break
         retain('host_journal', deepcopy(host.journal))
         client.results(results)
-        if mechanical:
-            break
         if host.closed or host.steps >= MAX_STEPS:
             horizon = 'closed' if host.closed else 'step_limit'
             break
@@ -74,10 +69,10 @@ def pipeline(factory, retain, models=MODELS):
     rows = []
     for identity in schedule(models):
         rows.append(episode(identity, factory, retain))
-        if rows[-1]['audit']['mechanical']:
+        if rows[-1]['stop_reason']:
             break
     result = summarize(rows, models)
-    result['stop_reason'] = rows[-1]['stop_reason'] or rows[-1]['audit']['mechanical'] if rows else None
+    result['stop_reason'] = rows[-1]['stop_reason'] if rows else None
     retain('summary', result)
     return result
 
