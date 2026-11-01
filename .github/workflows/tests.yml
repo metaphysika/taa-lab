@@ -1,6 +1,20 @@
 name: Harness checks
-# Runs the free, no-AI checks on every push and pull request. Uses no API keys.
-on: [push, pull_request]
+# Runs the free, no-AI checks unless every changed path is ignored below. Uses no API keys.
+on:
+  push:
+    paths-ignore:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'docs/REPRODUCE.md'
+      - 'docs/paper-map.md'
+      - 'docs/drafts/**'
+  pull_request:
+    paths-ignore:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'docs/REPRODUCE.md'
+      - 'docs/paper-map.md'
+      - 'docs/drafts/**'
 jobs:
   test:
     runs-on: ubuntu-latest
