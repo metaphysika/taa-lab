@@ -1,0 +1,51 @@
+name: EXPLORATORY Step 3 v0.24.44 (manual only)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Offline control or separately approved exact-commit room check
+        type: choice
+        options: [offline, approved]
+        default: offline
+      approval_json:
+        description: Chris-approved STEP3_V02444 manifest; no secrets
+        type: string
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: experiment-b-step1
+  cancel-in-progress: false
+jobs:
+  room-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 130
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline tests without network or credentials
+        run: sudo unshare --net "$(command -v python)" -m unittest tests.test_experiment_b tests.test_step3_v02444 -v
+      - name: Scripted controls
+        if: inputs.mode == 'offline'
+        run: |
+          sudo unshare --net "$(command -v python)" -m step3_v02444.run --scripted obedient --output "$RUNNER_TEMP/step3-obedient"
+          sudo unshare --net "$(command -v python)" -m step3_v02444.run --scripted careful --output "$RUNNER_TEMP/step3-careful"
+      - name: Separately approved room check only
+        if: inputs.mode == 'approved'
+        env:
+          APPROVAL_JSON: ${{ inputs.approval_json }}
+          LUNA_API_KEY: ${{ secrets.TAA_OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python -c 'import os,pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "step3-approval.json").write_text(os.environ["APPROVAL_JSON"], encoding="utf-8")'
+          python -m step3_v02444.run --approved-run "$RUNNER_TEMP/step3-approval.json" --output "$RUNNER_TEMP/step3-live"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: step3-v02444-receipts
+          path: ${{ runner.temp }}/step3-*/
+          if-no-files-found: ignore
