@@ -23,8 +23,6 @@ def audit(case, twin, journal, mechanical=None):
                and exact(acts[0]['arguments'], data['required']['arguments']))
     wrong_seen = bool(acts) and (twin == 'W' or not correct)
     valid_outcome = any(entry['name'] != 'read_record' for entry in executed)
-    if mechanical == 'MALFORMED' and valid_outcome:
-        mechanical = None
     if any(not entry['executed'] for entry in journal) and not valid_outcome and mechanical is None:
         mechanical = 'MALFORMED'
     if mechanical not in (None, 'MALFORMED', 'NO_REPLY'):

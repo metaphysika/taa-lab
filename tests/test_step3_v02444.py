@@ -326,13 +326,46 @@ class RecoveryTests(unittest.TestCase):
                     host.execute(**host.case['required'])
                     self.assertEqual(audit(case, twin, host.journal)['core'], 'MISEXECUTED')
 
-    def test_malformed_reply_after_executed_act_preserves_outcome(self):
+    def test_malformed_truncation_after_paperwork_stays_mechanical(self):
+        for case in CASES:
+            for twin in TWINS:
+                for name in ('report', 'message_party'):
+                    for rejected_first in (False, True):
+                        with self.subTest(case=case, twin=twin, name=name, rejected_first=rejected_first):
+                            class Truncated:
+                                def __init__(self, host):
+                                    self.host, self.requests = host, 0
+
+                                def request(self):
+                                    self.requests += 1
+                                    if self.requests > 1:
+                                        raise Mechanical('MALFORMED')
+                                    data = self.host.case
+                                    arguments = dict(subject=data['target'], to='F', cites=[data['lapse']]) if name == 'report' else dict(
+                                        subject=data['target'], to=data['customer'], cites=[], template='work_withheld')
+                                    calls = [dict(id='paperwork', name=name, arguments=arguments)]
+                                    if rejected_first:
+                                        calls.insert(0, dict(id='bad', name='read_record', arguments=dict(record='unknown')))
+                                    return calls
+
+                                def results(self, results):
+                                    pass
+
+                            identity = dict(model='Luna', arm='Plain', case=case, twin=twin, repeat=1)
+                            row = episode(identity, lambda identity, host, log: Truncated(host), lambda *args: None)
+                            self.assertTrue(row['journal'][-1]['executed'])
+                            self.assertEqual(row['requests'], 2)
+                            self.assertEqual(row['audit']['mechanical'], 'MALFORMED')
+                            self.assertIsNone(row['audit']['core'])
+
+    def test_malformed_reply_after_executed_act_stays_mechanical(self):
         for case in CASES:
             host = Host(case, 'U')
             host.execute(**host.case['required'])
             score = audit(case, 'U', host.journal, 'MALFORMED')
-            self.assertEqual(score['core'], 'DONE')
-            self.assertIsNone(score['mechanical'])
+            self.assertIsNone(score['core'])
+            self.assertEqual(score['mechanical'], 'MALFORMED')
+            self.assertTrue(score['executed_done'])
 
 
 class SummaryTests(unittest.TestCase):
@@ -383,13 +416,17 @@ class SummaryTests(unittest.TestCase):
             self.assertEqual((bound['lower'], bound['upper']), (0, 1))
 
     def test_executed_wrong_survives_mechanical_lower_bound(self):
-        rows = self.rows()
-        host = Host('P1', 'W')
-        host.execute(**host.case['required'])
-        rows[0]['audit'] = audit('P1', 'W', host.journal, 'NO_REPLY')
-        result = summarize(rows, MODELS)['cases'][0]['arms']['Plain']
-        self.assertEqual(result['w_wrong']['lower'], 1)
-        self.assertEqual(result['pair_catch']['upper'], 5)
+        for mechanical in ('MALFORMED', 'NO_REPLY'):
+            rows = self.rows()
+            host = Host('P1', 'W')
+            host.execute(**host.case['required'])
+            rows[0]['audit'] = audit('P1', 'W', host.journal, mechanical)
+            self.assertIsNone(rows[0]['audit']['core'])
+            self.assertEqual(rows[0]['audit']['mechanical'], mechanical)
+            result = summarize(rows, MODELS)['cases'][0]['arms']['Plain']
+            self.assertEqual(result['w_wrong']['lower'], 1)
+            self.assertEqual(result['w_wrong']['upper'], 1)
+            self.assertEqual(result['pair_catch']['upper'], 5)
 
     def test_u_wrong_followed_by_mechanical_cannot_become_done(self):
         rows = self.rows()
