@@ -6,6 +6,11 @@ import re
 from pathlib import Path
 
 
+def modal_exception(exc, modal, name):
+    cls = getattr(getattr(modal, 'exception', None), name, None)
+    return isinstance(cls, type) and isinstance(exc, cls)
+
+
 def remote_failure(exc, modal):
     # Modal 1.6.3 appends remote frames with task-ID-prefixed filenames.
     tb = exc.__traceback__
@@ -15,7 +20,10 @@ def remote_failure(exc, modal):
         tb = tb.tb_next
     classes = tuple(cls for name in ('RemoteError', 'FunctionTimeoutError', 'InternalFailure', 'InputCancellation')
                     if isinstance(cls := getattr(getattr(modal, 'exception', None), name, None), type))
-    return isinstance(exc, classes)
+    if isinstance(exc, classes):
+        return True
+    return modal_exception(exc, modal, 'ExecutionError') and str(exc).startswith((
+        'Could not deserialize remote exception', 'Got remote exception of incorrect type'))
 
 
 def poll(call_id, output, modal):
@@ -30,8 +38,10 @@ def poll(call_id, output, modal):
             raise
         if polling and not remote and type(exc) is TimeoutError and not str(exc):
             return 2  # Bare polling timeout; no final-status file.
-        status = dict(status='failed' if remote else 'poll_error', type=type(exc).__name__, message=str(exc))
-        code = 1 if remote else 3
+        expired = modal_exception(exc, modal, 'OutputExpiredError')
+        status = dict(status='expired' if expired else 'failed' if remote else 'poll_error',
+                      type=type(exc).__name__, message=str(exc))
+        code = 4 if expired else 1 if remote else 3
     else:
         status = dict(status='complete', result=result)
         code = 0

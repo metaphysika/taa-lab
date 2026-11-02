@@ -201,9 +201,13 @@ def check_cache(cache, download=None, config=None, tokenizer=None, generation=No
                     report['write_attempts'].append(str(candidate))
     sys.addaudithook(audit_write)
     try:
+        repo_files = None
         started = time.perf_counter()
         try:
             verify_weights(cache)
+            manifest = json.loads((cache/'weights-manifest.json').read_text())
+            if manifest.get('repo_files') == sorted(manifest['sha256']):
+                repo_files = manifest['repo_files']
         except Exception as exc:
             report['errors'].append(dict(lookup='verify_weights', type=type(exc).__name__, message=str(exc)))
         report['verify_seconds'] = time.perf_counter() - started
@@ -223,6 +227,9 @@ def check_cache(cache, download=None, config=None, tokenizer=None, generation=No
             except Exception as exc:
                 report['errors'].append(dict(lookup='snapshot_download', mode=mode, type=type(exc).__name__, message=str(exc)))
             for name, loader in loaders.items():
+                if name == 'GenerationConfig' and repo_files is not None and 'generation_config.json' not in repo_files:
+                    report['diagnostics'].append(dict(lookup=name, mode=mode, status='absent in repo'))
+                    continue
                 try:
                     if loader is None:
                         import transformers

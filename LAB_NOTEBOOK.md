@@ -10656,3 +10656,25 @@ Final targeted suite 13 tests PASS with one symlink skip, including the added
 no-traceback Modal cancellation and pre-get login-failure cases. Fast checks
 PASS: 415 tests and all scripted scenarios (40.413 s). Runtime cache behavior
 and detach survival remain unverified.
+
+
+### 2026-11-02 ? PR #75 third review fixes, EXPLORATORY offline only
+
+Modal ExecutionError with either specified remote-exception deserialization
+message prefix now writes failed final status / exit 1 even without remote
+frames. Other ExecutionError messages remain polling errors absent independent
+remote provenance. OutputExpiredError records expired / exit 4, without
+claiming success or failure of the worker. Added mocked tests for both
+message prefixes, the unrelated-error control and expiration.
+
+CPU cache checks report GenerationConfig as absent in repo when the pinned
+repo file list matches the verified snapshot roster and omits that file.
+Listed but unreadable generation config remains blocking. Tests cover both
+cases. STEP4.md now requests an unavailable-local-exception-class case in
+the future approved CPU detach test. No Modal/model calls, model downloads,
+live launch, spending, merge or force-push.
+
+Validation: focused 28 tests PASS with five Windows symlink-privilege skips;
+fast checks PASS with 415 tests and all scripted scenarios (40.218 s).
+Live cache compatibility, detach survival and future SDK exception-message
+compatibility remain unverified.

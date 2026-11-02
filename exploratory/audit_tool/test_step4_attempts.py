@@ -170,6 +170,50 @@ class AttemptTests(unittest.TestCase):
             self.assertEqual(poll('fc', output, modal), 3)
             self.assertFalse(output.exists())
 
+    def test_remote_deserialization_failures(self):
+        class ExecutionError(Exception):
+            pass
+        for message in ('Could not deserialize remote exception due to local error: missing torch',
+                        'Got remote exception of incorrect type str'):
+            with self.subTest(message=message), tempfile.TemporaryDirectory() as tmp:
+                call = Mock()
+                call.get.side_effect = ExecutionError(message)
+                modal = SimpleNamespace(exception=SimpleNamespace(ExecutionError=ExecutionError),
+                    FunctionCall=SimpleNamespace(from_id=Mock(return_value=call)))
+                output = Path(tmp)/'status'
+                self.assertEqual(poll('fc', output, modal), 1)
+                self.assertEqual(json.loads(output.read_text())['status'], 'failed')
+        call.get.side_effect = ExecutionError('Could not deserialize result due to local error')
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)/'status'
+            self.assertEqual(poll('fc', output, modal), 3)
+            self.assertFalse(output.exists())
+
+    def test_expired_output(self):
+        class OutputExpiredError(Exception):
+            pass
+        call = Mock()
+        call.get.side_effect = OutputExpiredError('output expired')
+        modal = SimpleNamespace(exception=SimpleNamespace(OutputExpiredError=OutputExpiredError),
+            FunctionCall=SimpleNamespace(from_id=Mock(return_value=call)))
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)/'status'
+            self.assertEqual(poll('fc', output, modal), 4)
+            self.assertEqual(json.loads(output.read_text())['status'], 'expired')
+
+    def test_generation_config_present_but_unreadable_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp)
+            snapshot = cache/'hub'/('models--'+step4.MODEL.replace('/', '--'))/'snapshots'/step4.REVISION
+            snapshot.mkdir(parents=True)
+            (snapshot/'generation_config.json').write_text('{}')
+            step4.cache_manifest(cache, Mock(return_value=str(snapshot)),
+                                 Mock(return_value=['generation_config.json']))
+            generation = Mock(side_effect=OSError('cannot load generation config'))
+            report = step4.check_cache(cache, Mock(return_value=str(snapshot)), Mock(), Mock(), generation, Mock())
+            self.assertEqual(generation.call_count, 2)
+            self.assertEqual([e['lookup'] for e in report['errors']], ['GenerationConfig']*2)
+
     def test_prefetch_inventory(self):
         with tempfile.TemporaryDirectory() as tmp:
             snapshot = Path(tmp)/'snapshot'
@@ -235,10 +279,12 @@ class AttemptTests(unittest.TestCase):
             config.assert_any_call(step4.MODEL, revision=step4.REVISION,
                 cache_dir=str(cache/'hub'), local_files_only=True, trust_remote_code=False)
             download.assert_any_call(step4.MODEL, revision=step4.REVISION)
-            for loader in (config, generation, processor):
+            for loader in (config, processor):
                 loader.assert_any_call(step4.MODEL, revision=step4.REVISION, trust_remote_code=False)
                 self.assertEqual(loader.call_count, 2)
-            self.assertEqual(len(report['diagnostics']), 2)
+            generation.assert_not_called()
+            self.assertEqual(len(report['diagnostics']), 4)
+            self.assertEqual([d['status'] for d in report['diagnostics'] if d['lookup'] == 'GenerationConfig'], ['absent in repo']*2)
             self.assertGreaterEqual(report['verify_seconds'], 0)
             self.assertEqual(report['errors'][0]['lookup'], 'AutoTokenizer')
             self.assertIn('missing', report['errors'][0]['message'])

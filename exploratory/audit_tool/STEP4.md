@@ -163,3 +163,25 @@ attempted in each pass, but its failures are non-blocking diagnostics.
 All lookups retain the pinned revision and trust_remote_code=False for
 Transformers. This does not run the vLLM engine. The new behavior was tested
 with injected library stand-ins only; no Modal call or model loading occurred.
+
+
+PR #75 third review fixes (EXPLORATORY, 2026-11-02):
+
+Modal ExecutionError messages starting with "Could not deserialize remote
+exception" or "Got remote exception of incorrect type" are confirmed remote
+failures: failed final JSON / exit 1, even with no remote traceback. Other
+ExecutionError messages retain the poll_error classification unless another
+remote marker applies. This covers a worker exception class unavailable on
+the polling machine. The future owner-approved CPU detach test should
+deliberately raise such an exception class and confirm the failed final file.
+
+OutputExpiredError now writes a separate terminal status value expired
+(exit 4). Expiration does not establish whether the worker succeeded or
+failed; inspect retained evidence. Local interrupts still write no file.
+
+In both CPU cache-check passes, GenerationConfig is reported as
+"absent in repo" without blocking when the pinned prefetch repo file list
+matches the verified snapshot roster and lacks generation_config.json.
+If the file is listed, lookup errors still block. A missing/unverified repo
+roster does not justify this exception. No CPU test or cache lookup was run
+on Modal; these changes were mock-tested only.
