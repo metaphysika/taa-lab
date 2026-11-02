@@ -10580,3 +10580,5 @@ Validation: eight focused tests passed, including all 33 cases x 12 turns
 through a fake engine; the mock completed 132 episodes and both reports.
 Fast checks passed 415 tests and all scripted scenarios. No model or Modal
 calls, downloads, deployments, secret access, workflow dispatch or spend.
+
+[EXPLORATORY] 2026-11-02: Step 4 timeout raised to 6 h, derived cap ~$20; Chris approved, no review. No model calls, Modal calls or paid runs.

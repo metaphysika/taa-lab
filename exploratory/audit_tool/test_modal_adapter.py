@@ -1,5 +1,6 @@
 import copy
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
@@ -8,7 +9,7 @@ from types import SimpleNamespace
 
 from exploratory.audit_tool.step4 import transport
 
-from exploratory.audit_tool.modal_adapter import launch_guard, mock, sha, verify_checkpoint
+from exploratory.audit_tool.modal_adapter import CAP, IDLE, TIMEOUT, launch_guard, mock, sha, verify_checkpoint
 
 
 class AdapterTests(unittest.TestCase):
@@ -49,7 +50,10 @@ class AdapterTests(unittest.TestCase):
         for confirm, env in [(False, {}), (True, {'CI': 'true'}), (True, {'TAA_TEST': '1'})]:
             with self.assertRaises(ValueError):
                 launch_guard(confirm, env)
-        self.assertEqual(launch_guard(True, {}), 12)
+        self.assertEqual(TIMEOUT, 21600)
+        self.assertEqual(CAP, math.ceil((TIMEOUT + IDLE + 120) / 3600 * 3.20 + .40))
+        self.assertEqual(launch_guard(True, {}), 20)
+        self.assertLess(CAP, 30)
 
     def test_checkpoint_corruption(self):
         for arm in ('neutral', 'contrary', 'virtue'):
