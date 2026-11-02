@@ -21,7 +21,9 @@ def verify_checkpoint(root, arm, plan=None):
     entry, = [r for r in plan['checkpoints'] if r['arm'] == arm]
     root = Path(root)
     folder = root/entry['path']
-    for path in (root, root/'science', root/'science'/arm, folder):
+    if not root.is_dir():
+        raise ValueError('missing checkpoint mount')
+    for path in (root/'science', root/'science'/arm, folder):
         if path.is_symlink() or not path.is_dir():
             raise ValueError('missing/symlink checkpoint directory')
     index = folder/'checkpoint-integrity.json'

@@ -25,6 +25,6 @@ jobs:
       - name: Exploratory syntax, scenario JSON and fixture smoke tests, without network
         run: sudo unshare --net "$(command -v python)" scripts/run_fast_checks.py --smoke
       - name: Audit tool wrapper tests, without network
-        run: sudo unshare --net "$(command -v python)" -m unittest exploratory.audit_tool.test_audit -v
+        run: sudo unshare --net "$(command -v python)" -m unittest exploratory.audit_tool.test_audit exploratory.audit_tool.test_modal_adapter -v
       - name: Live demo frozen science and retained evidence preservation guard
         run: python scripts/check_live_demo_preservation.py --policy-change-record docs/process/evidence/experiment-a-assertion-binding/validation.json --report "$RUNNER_TEMP/exploratory-preservation.json"
