@@ -109,9 +109,9 @@ class WorkflowTests(unittest.TestCase):
                 self.assertEqual(events['pull_request']['paths-ignore'],
                                  list(ci_scope.DOC_IGNORES) + ['exploratory/**'])
 
-    def test_full_entrypoint_is_unfiltered_on_main_and_has_nightly_manual_triggers(self):
+    def test_full_entrypoint_has_only_nightly_manual_triggers(self):
         full = workflow('full-suite')
-        self.assertEqual(full['on']['push'], {'branches': ['main']})
+        self.assertEqual(set(full['on']), {'schedule', 'workflow_dispatch'})
         self.assertEqual(full['on']['schedule'], [{'cron': '0 8 * * *'}])
         self.assertIn('workflow_dispatch', full['on'])
         calls = {job['uses'] for job in full['jobs'].values() if 'uses' in job}
