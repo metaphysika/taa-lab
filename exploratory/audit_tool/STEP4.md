@@ -107,9 +107,17 @@ claim still retains the reservation for review; no automatic refund.
 
 Status exit 2 applies only to the exact built-in TimeoutError with no message
 from get(timeout=0). A remote timeout with a message, timeout subclass, or
-BaseException cancellation writes a failed final JSON and exits 1. A remote
-bare built-in TimeoutError with no message remains indistinguishable from
-Modal's pending signal.
+confirmed remote BaseException cancellation writes a failed final JSON and
+exits 1. Local KeyboardInterrupt and SystemExit pass through without writing
+any file. Unconfirmed client errors use status poll_error / exit 3 and write
+<output>.poll-error.json (replaceable on another poll), leaving the create-only
+final path available. Remote classification uses Modal task-ID traceback
+frames or explicit Modal remote failure classes, including InputCancellation,
+FunctionTimeoutError, RemoteError and InternalFailure. An exception without
+remote provenance is treated as a polling error, not proof the worker failed.
+This follows the inspected public Modal 1.6.3 client traceback representation;
+SDK changes or absent remote traceback data may reduce classification certainty.
+A bare timeout from get with no remote provenance remains the pending signal.
 
 New --mode check-weights (with --attempt and --confirm-spend) defines a
 CPU-only, read-only check in a new container, using the same offline image
@@ -136,3 +144,22 @@ timeouts/cancellation, extra and missing cache files, HF blob symlinks, the
 worker's attempt-N output expression, CPU mounts/secrets, offline lookup
 arguments, and write-attempt/missing-file diagnostics. Windows may skip the
 real symlink test when symlink privileges are unavailable.
+
+
+PR #75 second review fixes (EXPLORATORY, 2026-11-02):
+
+Prefetch now calls list_repo_files for the exact pinned revision, compares
+the complete local snapshot roster against it, and refuses extra/missing
+files. The manifest includes files, repo_files, total_bytes and per-file
+SHA-256. This is code for a future approved prefetch; no listing or download
+of the model repository was performed during this offline build.
+
+The CPU check reports verify_seconds and runs two passes: explicit
+cache_dir/local_files_only, then environment-only resolution with neither
+argument, relying on HF_HOME=/weights and HF_HUB_OFFLINE=1 as the worker does.
+Both passes check snapshot_download, AutoConfig, AutoTokenizer and
+GenerationConfig (engine generation_config='auto'). AutoProcessor is also
+attempted in each pass, but its failures are non-blocking diagnostics.
+All lookups retain the pinned revision and trust_remote_code=False for
+Transformers. This does not run the vLLM engine. The new behavior was tested
+with injected library stand-ins only; no Modal call or model loading occurred.

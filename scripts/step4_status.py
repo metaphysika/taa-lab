@@ -2,7 +2,20 @@
 import argparse
 from datetime import datetime, timezone
 import json
+import re
 from pathlib import Path
+
+
+def remote_failure(exc, modal):
+    # Modal 1.6.3 appends remote frames with task-ID-prefixed filenames.
+    tb = exc.__traceback__
+    while tb:
+        if re.match(r'^<ta-[0-9A-Z]{26}>:', tb.tb_frame.f_code.co_filename):
+            return True
+        tb = tb.tb_next
+    classes = tuple(cls for name in ('RemoteError', 'FunctionTimeoutError', 'InternalFailure', 'InputCancellation')
+                    if isinstance(cls := getattr(getattr(modal, 'exception', None), name, None), type))
+    return isinstance(exc, classes)
 
 
 def poll(call_id, output, modal):
@@ -12,15 +25,20 @@ def poll(call_id, output, modal):
         polling = True
         result = call.get(timeout=0)
     except BaseException as exc:
-        if polling and type(exc) is TimeoutError and not str(exc):
+        remote = remote_failure(exc, modal) if polling else False
+        if isinstance(exc, (KeyboardInterrupt, SystemExit)) and not remote:
+            raise
+        if polling and not remote and type(exc) is TimeoutError and not str(exc):
             return 2  # Bare polling timeout; no final-status file.
-        status = dict(status='failed', type=type(exc).__name__, message=str(exc))
-        code = 1
+        status = dict(status='failed' if remote else 'poll_error', type=type(exc).__name__, message=str(exc))
+        code = 1 if remote else 3
     else:
         status = dict(status='complete', result=result)
         code = 0
     status.update(function_call_id=call_id, finished_utc=datetime.now(timezone.utc).isoformat())
-    with Path(output).open('x') as stream:
+    # Poll errors are observations, not terminal results. Keep the final path free.
+    target = Path(str(output) + '.poll-error.json') if code == 3 else Path(output)
+    with target.open('w' if code == 3 else 'x') as stream:
         json.dump(status, stream, indent=2)
     return code
 

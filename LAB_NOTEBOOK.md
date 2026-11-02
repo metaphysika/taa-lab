@@ -10632,3 +10632,27 @@ No Modal/model calls, spending, live launch, merge or force-push.
 
 Focused validation: 22 tests PASS, five Windows symlink-privilege skips
 (four existing directory cases and the new HF blob symlink case).
+
+
+### 2026-11-02 ? PR #75 second review fixes, EXPLORATORY offline only
+
+Local KeyboardInterrupt/SystemExit now pass through without a status file.
+Confirmed remote failures use failed/exit 1; client polling errors use
+poll_error/exit 3 and a replaceable .poll-error.json sidecar, leaving the
+create-only final path free. Classification follows task-ID traceback frames
+and explicit remote exception classes inspected in the public Modal 1.6.3
+wheel source (downloaded from PyPI; no Modal API invocation). Missing remote
+provenance or SDK changes can reduce classification certainty.
+
+Prefetch reports complete file/repo rosters, compares them at the pinned
+revision, and records total bytes. CPU cache diagnostics now include timed
+hash verification, environment-only lookups in a second pass, GenerationConfig
+and non-blocking AutoProcessor diagnostics. Replaced the fragile submission
+source-string assertion with AST structure checks. No HF repository lookup,
+model download/loading, Modal call, paid run, merge or force-push.
+
+Validation: focused 24 tests PASS with five Windows symlink-privilege skips.
+Final targeted suite 13 tests PASS with one symlink skip, including the added
+no-traceback Modal cancellation and pre-get login-failure cases. Fast checks
+PASS: 415 tests and all scripted scenarios (40.413 s). Runtime cache behavior
+and detach survival remain unverified.

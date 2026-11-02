@@ -145,16 +145,24 @@ def reserve_attempt(ledger, attempt):
         ledger.pop('attempt-launch-lock')
 
 
-def cache_manifest(cache, download=None):
+def cache_manifest(cache, download=None, list_files=None):
     from exploratory.audit_tool.modal_adapter import sha
     if download is None:
         from huggingface_hub import snapshot_download
         download = snapshot_download
+    if list_files is None:
+        from huggingface_hub import list_repo_files
+        list_files = list_repo_files
+    repo_files = sorted(list_files(MODEL, revision=REVISION))
     snapshot = Path(download(MODEL, revision=REVISION, cache_dir=str(Path(cache)/'hub')))
-    hashes = {str(p.relative_to(snapshot)): sha(p) for p in sorted(snapshot.rglob('*')) if p.is_file()}
+    hashes = {p.relative_to(snapshot).as_posix(): sha(p) for p in sorted(snapshot.rglob('*')) if p.is_file()}
     if not hashes:
         raise ValueError('empty weights snapshot')
-    manifest = dict(model=MODEL, revision=REVISION, sha256=hashes)
+    files = sorted(hashes)
+    if files != repo_files:
+        raise ValueError('snapshot/repo roster mismatch: '+json.dumps(dict(missing=sorted(set(repo_files)-set(files)), extra=sorted(set(files)-set(repo_files)))))
+    manifest = dict(model=MODEL, revision=REVISION, sha256=hashes, files=files,
+                    repo_files=repo_files, total_bytes=sum((snapshot/name).stat().st_size for name in files))
     (Path(cache)/'weights-manifest.json').write_text(json.dumps(manifest, indent=2))
     return manifest
 
@@ -166,12 +174,12 @@ def verify_weights(cache):
     if manifest['model'] != MODEL or manifest['revision'] != REVISION or not manifest['sha256']:
         raise ValueError('weights identity mismatch')
     snapshot = cache/'hub'/('models--'+MODEL.replace('/', '--'))/'snapshots'/REVISION
-    files = {str(p.relative_to(snapshot)): sha(p) for p in snapshot.rglob('*') if p.is_file()}
+    files = {p.relative_to(snapshot).as_posix(): sha(p) for p in snapshot.rglob('*') if p.is_file()}
     if files != manifest['sha256']:
         raise ValueError('weights hash/roster mismatch')
 
 
-def check_cache(cache, download=None, config=None, tokenizer=None):
+def check_cache(cache, download=None, config=None, tokenizer=None, generation=None, processor=None):
     """CPU-only diagnostics; no generation. Audit write attempts even if denied."""
     cache = Path(cache).absolute()
     snapshot = cache/'hub'/('models--'+MODEL.replace('/', '--'))/'snapshots'/REVISION
@@ -193,34 +201,36 @@ def check_cache(cache, download=None, config=None, tokenizer=None):
                     report['write_attempts'].append(str(candidate))
     sys.addaudithook(audit_write)
     try:
-        def verify():
+        started = time.perf_counter()
+        try:
             verify_weights(cache)
-        def snapshot_lookup():
-            nonlocal download
-            if download is None:
-                from huggingface_hub import snapshot_download
-                download = snapshot_download
-            resolved = Path(download(MODEL, revision=REVISION, cache_dir=str(cache/'hub'), local_files_only=True))
-            if resolved.resolve() != snapshot.resolve():
-                raise ValueError('offline snapshot resolved to unexpected path: '+str(resolved))
-        def config_lookup():
-            nonlocal config
-            if config is None:
-                from transformers import AutoConfig
-                config = AutoConfig.from_pretrained
-            config(MODEL, revision=REVISION, cache_dir=str(cache/'hub'), local_files_only=True, trust_remote_code=False)
-        def tokenizer_lookup():
-            nonlocal tokenizer
-            if tokenizer is None:
-                from transformers import AutoTokenizer
-                tokenizer = AutoTokenizer.from_pretrained
-            tokenizer(MODEL, revision=REVISION, cache_dir=str(cache/'hub'), local_files_only=True, trust_remote_code=False)
-        for name, lookup in [('verify_weights', verify), ('snapshot_download', snapshot_lookup),
-                             ('AutoConfig', config_lookup), ('AutoTokenizer', tokenizer_lookup)]:
+        except Exception as exc:
+            report['errors'].append(dict(lookup='verify_weights', type=type(exc).__name__, message=str(exc)))
+        report['verify_seconds'] = time.perf_counter() - started
+        loaders = dict(AutoConfig=config, AutoTokenizer=tokenizer,
+                       GenerationConfig=generation, AutoProcessor=processor)
+        report['diagnostics'] = []
+        for explicit in (True, False):
+            mode = 'explicit' if explicit else 'environment'
+            options = dict(cache_dir=str(cache/'hub'), local_files_only=True) if explicit else {}
             try:
-                lookup()
+                if download is None:
+                    from huggingface_hub import snapshot_download
+                    download = snapshot_download
+                resolved = Path(download(MODEL, revision=REVISION, **options))
+                if resolved.resolve() != snapshot.resolve():
+                    raise ValueError('offline snapshot resolved to unexpected path: '+str(resolved))
             except Exception as exc:
-                report['errors'].append(dict(lookup=name, type=type(exc).__name__, message=str(exc)))
+                report['errors'].append(dict(lookup='snapshot_download', mode=mode, type=type(exc).__name__, message=str(exc)))
+            for name, loader in loaders.items():
+                try:
+                    if loader is None:
+                        import transformers
+                        loader = getattr(transformers, name).from_pretrained
+                    loader(MODEL, revision=REVISION, trust_remote_code=False, **options)
+                except Exception as exc:
+                    collection = report['diagnostics'] if name == 'AutoProcessor' else report['errors']
+                    collection.append(dict(lookup=name, mode=mode, type=type(exc).__name__, message=str(exc)))
     finally:
         active = False
     return report
