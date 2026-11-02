@@ -1,4 +1,4 @@
-# EXPLORATORY audit tool v1 (v0.24.51)
+# EXPLORATORY audit tool v1 (v0.24.52)
 
 Compare two models on the same frozen Study D behavioral battery. This is a
 before/after fine-tune regression check, with no internal diagnosis. The tool
@@ -38,7 +38,9 @@ python -X utf8 exploratory/audit_tool/audit.py --mode adapters --baseline my_mod
 
 Your module must be importable in Python's environment. API and local open-model
 implementations share this interface; no provider is hard-coded. Adapter mode
-executes your code and may incur costs. This build authorizes only mock/replay
+runs each case once per model (single-pass), unlike Study D's four repeats.
+Its counts and uncertainty are not directly comparable to that four-repeat run.
+It executes your code and may incur costs. This build authorizes only mock/replay
 use. No live adapter or calls were used in development.
 
 ## Numbers and interpretation
@@ -67,11 +69,13 @@ this battery, scoped to the tested models.
 
 ## Study D check and limits
 
-Replay independently verifies all 394/396 retained episodes, native replies,
-histories, seeds and frozen scoring through the existing analysis audit. It
+Replay re-verifies using the existing audit: all 394/396 retained episodes, native replies,
+histories, seeds and frozen scoring. It
 compares neutral (130 recorded) with contrary (132); virtue is verified but not
 included in this comparison. The two missing neutral episodes, one W and one U,
-remain missing. No missing reply is invented.
+count as unknown: the lost W episode stays among the planned 64 W episodes,
+and the lost U episode stays among the planned 64 U episodes. Neither is re-run
+or dropped. No missing reply is invented.
 
 The command fails on a mismatch with the reproduction record: contrary W
 54 known / 0 unknown / 64 planned (84.375%); neutral W 8 / 25 / 64
@@ -86,13 +90,14 @@ not new scientific evidence, independent training replication, or verification
 of trained weights. No diagnosis of model internals or general safety follows.
 
 Open decisions for Chris: regression thresholds, a held-out probe set, and the
-policy for the two missing episodes. Recommendation: retain uncertainty bounds,
+policy for the two missing episodes. Recommendation: keep both as unknown
+among their originally planned episodes, never re-run or drop them,
 require practical effect sizes chosen before testing, and develop a separate
 held-out set before claiming validation.
 
 ## Validation (1 November 2026)
 
-Windows CPU validation passed: three wrapper unit tests, the 33-case-per-model
+Windows CPU validation passed: four wrapper unit tests, the 33-case-per-model
 mock CLI, the full stored-evidence audit (394/396), and the required fast check
 (415 tests and all scripted scenarios). Full suite and manual workflows were
 not run. Linux execution remains for automatic PR CI; wrapper tests are wired

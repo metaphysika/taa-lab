@@ -10541,3 +10541,8 @@ no workflow, spent nothing and merged nothing.
 ## 2026-11-01 - v0.24.51 EXPLORATORY audit tool v1
 
 [Engineering] Packages the existing frozen Study D battery and scorer as a before/after behavioral regression report under exploratory/audit_tool/. Provider-neutral injected adapters, fixed-stop mock and stored-evidence replay; no model calls, secrets, training, Modal operations or spend. Separate servility, over-refusal, reporting and protocol-completion measures retain episode ids, actions, effects and planned-denominator uncertainty. Regression thresholds remain an owner decision. The stored replay checks primary W bounds against the v02449 reproduction record; this is reused evidence, not a new observation or a scientific verdict. See the tool README for definitions and limits.
+
+
+## 2026-11-01 - v0.24.52 EXPLORATORY audit tool review fixes
+
+[Engineering] The wrapper retains malformed over-refusal overlap rows as unknown instead of crashing on the existing audit guard. Added a mock-adapter boundary regression test. Documented single-pass adapter runs, the temporary Windows path patch scope and restoration, missing episodes in plain words, and reuse of the existing audit. Frozen evidence and scoring remain unchanged. Offline checks only; no model calls or spend.
