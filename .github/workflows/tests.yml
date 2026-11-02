@@ -1,13 +1,7 @@
 name: Harness checks
-# Runs the free, no-AI checks unless every changed path is ignored below. Uses no API keys.
+# PRs select Study D/Gemma checks; the full-suite caller also runs full discovery.
 on:
-  push:
-    paths-ignore:
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
-      - 'docs/REPRODUCE.md'
-      - 'docs/paper-map.md'
-      - 'docs/drafts/**'
+  workflow_call:
   pull_request:
     paths-ignore:
       - 'AGENTS.md'
@@ -15,8 +9,13 @@ on:
       - 'docs/REPRODUCE.md'
       - 'docs/paper-map.md'
       - 'docs/drafts/**'
+      - 'exploratory/**'
 jobs:
+  scope:
+    uses: ./.github/workflows/ci-scope.yml
   test:
+    needs: scope
+    if: github.event_name != 'pull_request' || needs.scope.outputs.study_d == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +59,7 @@ jobs:
           python -I scripts/study_d_gemma_post_training_ci_v02429.py --assets studies/formation-study-d-gemma-stages-v02429 --output "$RUNNER_TEMP/study-d-post-v02429"
           python -m unittest tests.test_study_d_virtue_v02429 -v
       - name: Unit tests
+        if: github.event_name != 'pull_request'
         run: python -m unittest discover tests -v
       - name: Reproduce pinned Study D three-arm analysis (CPU only; no model calls)
         run: |
@@ -70,6 +70,7 @@ jobs:
           # Git normalizes CSV line endings; compare the table without CR/LF differences.
           diff -u --strip-trailing-cr "results/2026-10-20 v0.24.30 study-d three-arm analysis/case-breakdowns.csv" "$RUNNER_TEMP/study-d-analysis-v02430/case-breakdowns.csv"
       - name: Scripted run of every scenario
+        if: github.event_name != 'pull_request'
         run: python run.py --scenario all
       - name: EXPLORATORY POST-HOC Study D sensitivity (CPU only; primary verdicts unchanged)
         run: |
@@ -84,6 +85,8 @@ jobs:
           python -m pip install 'modal==1.6.2'
           python -m unittest tests.test_modal_serialization_v0249 tests.test_modal_serialization_v02413 tests.test_modal_serialization_v02414 tests.test_modal_serialization_v02415 tests.test_modal_serialization_v02416 tests.test_modal_serialization_v02417 tests.test_modal_serialization_v02418 tests.test_modal_serialization_v02419 tests.test_modal_serialization_v02420 tests.test_study_d_gemma_speed_v02421.SpeedSerializationTests tests.test_study_d_gemma_speed_v02422.SpeedSerializationTests tests.test_study_d_science_v02423.ScienceSerializationTests tests.test_study_d_science_v02424.ScienceSerializationTests tests.test_study_d_reuse_v02425.ReuseSerializationTests tests.test_study_d_completion_v02426.CompletionSerializationTests tests.test_study_d_virtue_v02427.VirtueSerializationTests tests.test_study_d_virtue_v02428.VirtueSerializationTests tests.test_study_d_virtue_v02429.VirtueSerializationTests -v
   gemma-cpu-rehearsal:
+    needs: scope
+    if: github.event_name != 'pull_request' || needs.scope.outputs.gemma == 'true'
     name: Gemma actual CPU training rehearsal (no GPU or secrets)
     runs-on: ubuntu-latest
     timeout-minutes: 20

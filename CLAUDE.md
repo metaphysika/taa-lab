@@ -29,8 +29,8 @@ readable, and prefer the Python standard library over new dependencies.
 
 ## After every code change
 
-- Run `python3 -m unittest discover tests` and `python3 run.py --scenario all` (scripted, free).
-- Both must pass before committing. The GitHub Action runs the unit tests on every push.
+- For exploratory work, run `python3 scripts/run_fast_checks.py` before committing (fast unit set and all scripted scenarios, free). Work in a checkout without `keys.env`. Between exploratory rounds, do not wait for CI.
+- The full offline suite, including `python3 -m unittest discover tests` and `python3 run.py --scenario all`, runs on every push to main, nightly when main has changed since the last successful nightly, and through the Full offline suite manual workflow. Before any confirmatory run, require a green full-suite run on main for the exact commit being used and record its commit and run URL in `LAB_NOTEBOOK.md` before the run. Hash pinning, Claude review, preregistered predictions, fresh held-out material and separate execution approval still apply. See `docs/ci-tiers.md`.
 - Bump the version in `README.md` when behavior changes, and note it in `LAB_NOTEBOOK.md`.
 
 ## Costs

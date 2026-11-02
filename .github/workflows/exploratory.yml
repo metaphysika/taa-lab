@@ -1,0 +1,28 @@
+name: Exploratory offline smoke
+on:
+  workflow_call:
+  pull_request:
+    paths:
+      - 'exploratory/**'
+      - '.github/workflows/exploratory.yml'
+      - 'scripts/run_fast_checks.py'
+      - 'scripts/check_live_demo_preservation.py'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-gateway.txt
+      - name: Exploratory syntax, scenario JSON and fixture smoke tests, without network
+        run: sudo unshare --net "$(command -v python)" scripts/run_fast_checks.py --smoke
+      - name: Live demo frozen science and retained evidence preservation guard
+        run: python scripts/check_live_demo_preservation.py --policy-change-record docs/process/evidence/experiment-a-assertion-binding/validation.json --report "$RUNNER_TEMP/exploratory-preservation.json"
