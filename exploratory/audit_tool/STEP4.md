@@ -3,7 +3,7 @@
 Build only. No execution approval. Run offline from the repository root:
 
 ```
-python -m exploratory.audit_tool.step4 --mode mock --output NEW_DIRECTORY
+python -m exploratory.audit_tool.step4 --mode mock --attempt 4 --output NEW_DIRECTORY
 python -m unittest exploratory.audit_tool.test_modal_adapter exploratory.audit_tool.test_audit -v
 ```
 
@@ -31,21 +31,62 @@ First decoded replies are retained without repair or retry. Native transcripts,
 each finished episode, reports and caught failures are committed to the new
 evidence Volume. Forced termination may leave the in-flight episode unresolved.
 
-The live CLI requires --mode live --confirm-spend, refuses CI, and requires a
-clean committed checkout. It reserves the entire derived $20 once in a dedicated Modal
-Dict before building or scheduling; failed attempts consume the reservation.
-No automatic restart or refund. One A100-80GB worker, no retries, single-use,
-6-hour timeout, 120-second startup, 300-second idle setting. Source upload is
-Git HEAD only, never local credentials. Existing private Volumes are read-only.
+EXPLORATORY v0.24.55: detached submission replaces the blocking launcher.
+No execution approval. The CLI requires explicit --attempt N (N >= 4),
+--confirm-spend for live/prefetch modes, no CI, and a clean committed checkout.
+Live output is an immediate receipt: app_id, function_call_id, attempt,
+started_utc and commit. Results use /results/<commit>/attempt-<N>/ and refuse
+an existing folder. Old attempt-3 evidence is untouched.
 
-Budget limitation requiring review before execution: the reservation computes
-ceil((21600 + 300 + 120) / 3600 * $3.20 + $0.40) = $20
-(unrounded: $19.9734), below the $30 Modal workspace limit, using the historical
-Study D all-resource hourly ceiling and a build allowance. It is a conservative
-launcher reservation under those assumptions, not a provider billing limit.
-Current pricing and image-build charges must be checked before approval; this
-build does not establish an unconditional hard billing cap. No live execution,
-image build, deployment, checkpoint download or model call was tested.
+Future owner-approved Linux launch form (do not execute as part of this build):
+
+```sh
+setsid nohup python -m exploratory.audit_tool.step4 --mode live --attempt 4 --confirm-spend --output NEW_RECEIPT.json </dev/null >launcher.log 2>&1 &
+python scripts/step4_status.py --call-id RECEIPT_CALL_ID --output NEW_FINAL.json
+```
+
+The status command makes one nonblocking poll: exit 2 means pending, with no
+final file; 0 means complete; 1 means failed with retained exception details.
+Repeat polling externally as needed; it never resubmits. Signal handlers log
+UTC time and signal name to redirected stderr and terminate nonzero. The
+separate session and detached app address different cancellation risks.
+
+Ledger: entire-step4-cap stays unchanged. attempt-3 records reserved=$20 and
+actual_billed=$0.60 (approximate owner-supplied billing). New attempt-N records
+reserved=$20, actual_billed=null. Unknown billing retains the full reservation;
+no automatic refund/settlement. A durable launch lock serializes reservation
+checks; an interrupted lock requires review, never automatic clearing. Missing
+historical state fails closed. The cumulative guard sums billed costs when
+known and reservations otherwise before adding the new worst case.
+
+CUMULATIVE_CAP is the single provisional cumulative constant, default $21.
+The six-hour timeout, 120-second startup, 300-second idle and historical
+$3.20/hour plus $0.40 build allowance derive a rounded $20 reservation.
+Attempt 3 plus attempt 4 is $20.60. Chris has not approved the cap choice;
+changing the cap to $20 alone blocks this launch. A shorter timeout must also
+be separately chosen/recomputed if retaining $20. This is a planning guard,
+not a provider billing limit. Rates/build charges require approval-time review.
+Memory remains 64 GiB. Prefetch has separate CPU costs, not automatically
+settled by the GPU ledger; owner approval must account for those costs too.
+
+--mode prefetch defines/submits a CPU-only prefetch_weights function (no GPU),
+with the existing HF secret, pinned model google/gemma-4-31B-it revision
+842da3794eaa0b77d5f08bae87a17459d91ff475. It downloads the snapshot to
+/weights/hub in taa-step4-gemma-weights, records every snapshot file SHA-256 in
+weights-manifest.json and commits the Volume. No prefetch was executed here.
+The live worker mounts that Volume read-only, checks its identity/roster/hashes
+before batch loading, and sets HF_HOME=/weights and HF_HUB_OFFLINE=1.
+It does not attach the HF secret to the GPU worker.
+
+policy.ENGINE uses the same model ID and revision plus tokenizer_revision,
+with generation_config='auto'; those settings remain unchanged. The layout
+matches HF_HOME/hub and the revision snapshot. The pinned vLLM/Transformers
+combination has NOT been exercised against this read-only cache: whether it
+needs additional writable cache metadata or uncached auxiliary files remains
+uncertain. Missing files should fail offline. Prefetch, a CPU detach test,
+optional GPU smoke, and exact-commit launch each still need owner approval.
+API references: [Modal polling](https://modal.com/docs/guide/job-queue),
+[HF cache layout](https://huggingface.co/docs/huggingface_hub/guides/manage-cache).
 
 EXPLORATORY v0.24.54: the mount root accepts a directory symlink; science,
 arm and final directories still reject symlinks. Load policy by file path after

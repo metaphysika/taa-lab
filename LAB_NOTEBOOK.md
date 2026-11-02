@@ -10584,3 +10584,27 @@ calls, downloads, deployments, secret access, workflow dispatch or spend.
 [EXPLORATORY] 2026-11-02: Step 4 timeout raised to 6 h, derived cap ~$20; Chris approved, no review. No model calls, Modal calls or paid runs.
 
 [EXPLORATORY] 2026-11-02 v0.24.54: Fix step 4 mount-root symlinks, policy loading after frozen-bundle installation, and Study D image parity; offline checks only, no execution approval or model calls.
+
+
+## 2026-11-02 ? v0.24.55 EXPLORATORY step 4 attempt-4 launcher
+
+[Descriptive] Attempt 3 was an infrastructure abort, not a behavioral result.
+Retained failure: InputCancellation / "Input was cancelled by user". The review
+favors launcher signal or heartbeat loss; the initiating cause is unresolved.
+Approximate billed cost $0.60. Original evidence remains untouched at
+C:/Users/lahn0/T3/briefs/step4_attempt3_records/ (container.log, failure.json,
+launcher.log). No scoring or treatment inference from this abort.
+
+[Engineering] Implemented the attempt-4 brief and Claude review steps 1?5 and 7:
+detached spawn/receipt, status polling, signal logging, per-attempt folders,
+cumulative reservations, and CPU weights-prefetch definition with read-only
+offline worker cache. Memory stays 64 GiB; provisional CUMULATIVE_CAP=$21
+awaits Chris's choice. Cache loading and detach behavior remain live-unverified.
+No Modal/model calls, prefetch, paid run, dispatch, launch or merge. See
+exploratory/audit_tool/STEP4.md.
+
+[Validation] Focused suite: 16 tests, PASS with four Windows symlink-privilege
+skips. Fast checks: 415 tests PASS and all scripted scenarios PASS (41.815 s).
+Mocked tests cover receipts/detach, status pending/failure/success, signal
+logging, existing-folder refusal, cumulative reservations and pinned cache
+hashes/corruption. No remote validation was performed.

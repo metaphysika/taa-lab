@@ -58,10 +58,12 @@ def mock():
     return Adapter(lambda system, history, turn: '{"tool": null, "args": {}}')
 
 
-def launch_guard(confirm, environ):
+def launch_guard(confirm, environ, spent_so_far=0, cumulative_cap=None):
     if not confirm or any(environ.get(k) for k in ('CI', 'GITHUB_ACTIONS', 'PYTEST_CURRENT_TEST', 'TAA_TEST')):
         raise ValueError('explicit --confirm-spend required; CI/tests forbidden')
     reservation = (TIMEOUT + IDLE + 120) / 3600 * 3.20 + .40
     if reservation > CAP:
         raise ValueError(f'worst-case reservation exceeds ${CAP}')
+    if cumulative_cap is not None and spent_so_far + CAP > cumulative_cap:
+        raise ValueError('cumulative step 4 cap exceeded')
     return CAP
