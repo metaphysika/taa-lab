@@ -171,18 +171,71 @@ def verify_weights(cache):
         raise ValueError('weights hash/roster mismatch')
 
 
-def submit(app, worker, commit, attempt, output):
+def check_cache(cache, download=None, config=None, tokenizer=None):
+    """CPU-only diagnostics; no generation. Audit write attempts even if denied."""
+    cache = Path(cache).absolute()
+    snapshot = cache/'hub'/('models--'+MODEL.replace('/', '--'))/'snapshots'/REVISION
+    report = dict(model=MODEL, revision=REVISION, errors=[], write_attempts=[],
+                  symlinks=[dict(path=str(p.relative_to(cache)), target=os.readlink(p),
+                                 exists=p.exists()) for p in snapshot.rglob('*') if p.is_symlink()])
+    active = True
+
+    def audit_write(event, args):
+        if not active:
+            return
+        if event == 'open':
+            path, mode, flags = args
+            writing = (isinstance(mode, str) and any(c in mode for c in 'wax+')) or (
+                isinstance(flags, int) and flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC))
+            if writing and isinstance(path, (str, bytes, os.PathLike)):
+                candidate = Path(os.fsdecode(path)).absolute()
+                if candidate.is_relative_to(cache):
+                    report['write_attempts'].append(str(candidate))
+    sys.addaudithook(audit_write)
+    try:
+        def verify():
+            verify_weights(cache)
+        def snapshot_lookup():
+            nonlocal download
+            if download is None:
+                from huggingface_hub import snapshot_download
+                download = snapshot_download
+            resolved = Path(download(MODEL, revision=REVISION, cache_dir=str(cache/'hub'), local_files_only=True))
+            if resolved.resolve() != snapshot.resolve():
+                raise ValueError('offline snapshot resolved to unexpected path: '+str(resolved))
+        def config_lookup():
+            nonlocal config
+            if config is None:
+                from transformers import AutoConfig
+                config = AutoConfig.from_pretrained
+            config(MODEL, revision=REVISION, cache_dir=str(cache/'hub'), local_files_only=True, trust_remote_code=False)
+        def tokenizer_lookup():
+            nonlocal tokenizer
+            if tokenizer is None:
+                from transformers import AutoTokenizer
+                tokenizer = AutoTokenizer.from_pretrained
+            tokenizer(MODEL, revision=REVISION, cache_dir=str(cache/'hub'), local_files_only=True, trust_remote_code=False)
+        for name, lookup in [('verify_weights', verify), ('snapshot_download', snapshot_lookup),
+                             ('AutoConfig', config_lookup), ('AutoTokenizer', tokenizer_lookup)]:
+            try:
+                lookup()
+            except Exception as exc:
+                report['errors'].append(dict(lookup=name, type=type(exc).__name__, message=str(exc)))
+    finally:
+        active = False
+    return report
+
+
+def submit(app, worker, commit, attempt, output, before_spawn=lambda: None):
     with app.run(detach=True):
+        before_spawn()
         call = worker.spawn(commit)
         output.write_text(json.dumps(dict(app_id=app.app_id, function_call_id=call.object_id,
             attempt=attempt, started_utc=utc(), commit=commit)))
 
 
-def launch(output, attempt, prefetch=False):
+def launch(output, attempt, prefetch=False, check_weights=False):
     import modal
-    if not prefetch:
-        ledger = modal.Dict.from_name('taa-step4-v02452-budget-once', create_if_missing=False)
-        reserve_attempt(ledger, attempt)
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     with tempfile.TemporaryDirectory() as temporary:
         archive = Path(temporary)/'source.zip'
@@ -215,7 +268,25 @@ def launch(output, attempt, prefetch=False):
             weights.commit()
             return result
 
-        @app.function(image=image.env({'HF_HOME': '/weights', 'HF_HUB_OFFLINE': '1'}), gpu='A100-80GB', cpu=(2, 2), memory=(65536, 65536),
+        offline_image = image.env({'HF_HOME': '/weights', 'HF_HUB_OFFLINE': '1'})
+
+        @app.function(image=offline_image, cpu=2, memory=4096, timeout=3600,
+                      retries=0, max_containers=1,
+                      volumes={'/weights': weights.read_only()}, serialized=True)
+        def check_cached_weights(source_commit):
+            import sys
+            import zipfile
+            with zipfile.ZipFile('/opt/source.zip') as source:
+                source.extractall('/opt/repo')
+            sys.path.insert(0, '/opt/repo')
+            from exploratory.audit_tool.step4 import check_cache
+            report = check_cache('/weights')
+            print(json.dumps(report), flush=True)
+            if report['errors']:
+                raise RuntimeError(json.dumps(report))
+            return report
+
+        @app.function(image=offline_image, gpu='A100-80GB', cpu=(2, 2), memory=(65536, 65536),
                       timeout=TIMEOUT, startup_timeout=120, scaledown_window=IDLE,
                       retries=0, max_containers=1, single_use_containers=True,
                       volumes={'/weights': weights.read_only(), '/adapters': private, '/virtue': virtue, '/results': evidence}, serialized=True)
@@ -236,12 +307,18 @@ def launch(output, attempt, prefetch=False):
                 import modal
                 modal.Volume.from_name('taa-step4-v02452-evidence').commit()
 
-        submit(app, prefetch_weights if prefetch else worker, commit, attempt, output)
+        def reserve():
+            ledger = modal.Dict.from_name('taa-step4-v02452-budget-once', create_if_missing=False)
+            reserve_attempt(ledger, attempt)
+
+        target = prefetch_weights if prefetch else check_cached_weights if check_weights else worker
+        submit(app, target, commit, attempt, output,
+               before_spawn=(lambda: None) if prefetch or check_weights else reserve)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--mode', choices=('mock', 'live', 'prefetch'), default='mock')
+    parser.add_argument('--mode', choices=('mock', 'live', 'prefetch', 'check-weights'), default='mock')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--confirm-spend', action='store_true')
     parser.add_argument('--attempt', type=int, required=True)
@@ -251,11 +328,11 @@ def main():
     install_signal_logging()
     if args.output.exists():
         parser.error('output must be new; retain earlier outputs')
-    if args.mode in ('live', 'prefetch'):
+    if args.mode in ('live', 'prefetch', 'check-weights'):
         launch_guard(args.confirm_spend, os.environ)
         if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
             parser.error('clean committed source required')
-        launch(args.output, args.attempt, args.mode == 'prefetch')
+        launch(args.output, args.attempt, args.mode == 'prefetch', args.mode == 'check-weights')
     else:
         with audit.snapshot() as (repository, _):
             batch(repository, args.output)

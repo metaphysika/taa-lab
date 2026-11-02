@@ -6,11 +6,14 @@ from pathlib import Path
 
 
 def poll(call_id, output, modal):
+    polling = False
     try:
-        result = modal.FunctionCall.from_id(call_id).get(timeout=0)
-    except TimeoutError:
-        return 2  # Still running; leave final-status file absent.
-    except Exception as exc:
+        call = modal.FunctionCall.from_id(call_id)
+        polling = True
+        result = call.get(timeout=0)
+    except BaseException as exc:
+        if polling and type(exc) is TimeoutError and not str(exc):
+            return 2  # Bare polling timeout; no final-status file.
         status = dict(status='failed', type=type(exc).__name__, message=str(exc))
         code = 1
     else:

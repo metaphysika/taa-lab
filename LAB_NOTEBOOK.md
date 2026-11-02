@@ -10608,3 +10608,27 @@ skips. Fast checks: 415 tests PASS and all scripted scenarios PASS (41.815 s).
 Mocked tests cover receipts/detach, status pending/failure/success, signal
 logging, existing-folder refusal, cumulative reservations and pinned cache
 hashes/corruption. No remote validation was performed.
+
+
+### 2026-11-02 ? PR #75 review fixes, EXPLORATORY offline only
+
+Moved the attempt reservation after successful app entry and immediately
+before spawn; setup failures leave the ledger untouched. Status polling now
+records remote message-bearing timeouts and BaseException cancellations as
+failed final JSON. Only an exact bare built-in polling TimeoutError is pending.
+Added a CPU-only read-only cache-check definition, with no HF secret and the
+same offline environment as the GPU worker. It verifies hashes, snapshot
+resolution, config and tokenizer lookups, and reports symlinks, missing-file
+errors and Python-observed cache write attempts. No CPU check was executed.
+
+Tests add reservation ordering/setup failures, remote status exceptions,
+extra/missing cache files, real blob symlinks, attempt-folder selection and
+CPU-only mount/offline diagnostics. Fast checks PASS: 415 tests and all
+scripted scenarios (40.475 s). Runtime cache compatibility, Volume symlink
+preservation and detach survival remain unverified; native writes bypassing
+Python audit hooks cannot be diagnosed by this hook. Bare remote TimeoutError
+without a message remains indistinguishable from the pending sentinel.
+No Modal/model calls, spending, live launch, merge or force-push.
+
+Focused validation: 22 tests PASS, five Windows symlink-privilege skips
+(four existing directory cases and the new HF blob symlink case).

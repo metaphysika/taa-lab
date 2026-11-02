@@ -98,3 +98,41 @@ VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=2, PYTHONPATH=/opt/study-d.
 Source packaging differs: step 4 uploads /opt/source.zip, extracts /opt/repo
 and adds it to sys.path; Study D copies helpers/assets under /opt/study-d.
 No remote image build or execution was performed.
+
+
+PR #75 review fixes (EXPLORATORY, 2026-11-02): reservation now runs inside
+the detached app context immediately before GPU spawn. Image, Volume and app
+setup failures do not reserve an attempt. A spawn/receipt failure after the
+claim still retains the reservation for review; no automatic refund.
+
+Status exit 2 applies only to the exact built-in TimeoutError with no message
+from get(timeout=0). A remote timeout with a message, timeout subclass, or
+BaseException cancellation writes a failed final JSON and exits 1. A remote
+bare built-in TimeoutError with no message remains indistinguishable from
+Modal's pending signal.
+
+New --mode check-weights (with --attempt and --confirm-spend) defines a
+CPU-only, read-only check in a new container, using the same offline image
+environment as the GPU worker and no HF secret. It does not reserve a GPU
+attempt. It runs verify_weights, snapshot_download(local_files_only=True),
+AutoConfig.from_pretrained and AutoTokenizer.from_pretrained at the pinned
+revision, with explicit local_files_only and no remote code. The snapshot
+lookup must resolve to the expected cache snapshot.
+
+The diagnostic report lists symlink paths/targets and target existence,
+lookup errors including missing filenames reported by the libraries, and
+attempted file opens for writing under /weights (including lock files),
+even if the read-only mount denies them. A Python audit hook observes writes;
+native-library writes that bypass Python audit events are not captured.
+Each lookup is attempted so a missing tokenizer is reported even if config
+also fails. The report is printed; lookup errors raise with the report in
+the exception for the status recorder, while success returns the report.
+This check was defined and unit-tested only, never submitted. It does not
+initialize vLLM or prove that vLLM's remaining initialization is compatible
+with the mount. CPU check and prefetch costs still require owner approval.
+
+Additional mocked tests cover setup-before-reservation ordering, remote
+timeouts/cancellation, extra and missing cache files, HF blob symlinks, the
+worker's attempt-N output expression, CPU mounts/secrets, offline lookup
+arguments, and write-attempt/missing-file diagnostics. Windows may skip the
+real symlink test when symlink privileges are unavailable.
