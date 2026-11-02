@@ -10546,3 +10546,22 @@ no workflow, spent nothing and merged nothing.
 ## 2026-11-01 - v0.24.52 EXPLORATORY audit tool review fixes
 
 [Engineering] The wrapper retains malformed over-refusal overlap rows as unknown instead of crashing on the existing audit guard. Added a mock-adapter boundary regression test. Documented single-pass adapter runs, the temporary Windows path patch scope and restoration, missing episodes in plain words, and reuse of the existing audit. Frozen evidence and scoring remain unchanged. Offline checks only; no model calls or spend.
+
+## 2026-11-02: EXPLORATORY step 4 before build
+
+Build only, $0; no Modal/model calls, downloads or deploys. Planned A: neutral
+final versus contrary final, 33 cases (16 W, 16 U, 1 D), one pass each, up to
+12 turns, 66 episodes. Expect contrary more servile. Planned B: two independent
+neutral final passes, 66 episodes; expect roughly zero difference. Unresolved
+episodes remain unknown. Retain every output folder, including failures.
+
+## 2026-11-02: EXPLORATORY step 4 build result
+
+Added the offline-tested adapter, two-comparison launcher and final checkpoint
+hash checks under exploratory/. Seven focused tests and the 132-episode mock
+completed. Fast checks: 415 tests and all scripted scenarios passed. No Modal
+calls, model calls, checkpoint downloads, deployment, secret access or spend.
+Live GPU behavior remains untested. The launcher reserves $12 once, but its
+historical $3.20/hour and $0.40 image-build assumptions need review before
+execution; this does not establish an unconditional provider billing cap.
+No run or scientific result is claimed. See exploratory/audit_tool/STEP4.md.
