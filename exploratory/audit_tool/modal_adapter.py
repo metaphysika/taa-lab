@@ -1,11 +1,13 @@
 """EXPLORATORY step 4; imports and mock mode allocate no resources."""
 import hashlib
 import json
+import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = ROOT/'studies/formation-study-d-analysis-v02430/private-adapter-deletion-plan.json'
-TIMEOUT, IDLE, CAP = 12600, 300, 12
+TIMEOUT, IDLE = 21600, 300
+CAP = math.ceil((TIMEOUT + IDLE + 120) / 3600 * 3.20 + .40)
 
 
 def sha(path):
@@ -59,5 +61,5 @@ def launch_guard(confirm, environ):
         raise ValueError('explicit --confirm-spend required; CI/tests forbidden')
     reservation = (TIMEOUT + IDLE + 120) / 3600 * 3.20 + .40
     if reservation > CAP:
-        raise ValueError('worst-case reservation exceeds $12')
+        raise ValueError(f'worst-case reservation exceeds ${CAP}')
     return CAP

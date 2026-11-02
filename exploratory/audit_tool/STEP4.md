@@ -32,14 +32,15 @@ each finished episode, reports and caught failures are committed to the new
 evidence Volume. Forced termination may leave the in-flight episode unresolved.
 
 The live CLI requires --mode live --confirm-spend, refuses CI, and requires a
-clean committed checkout. It reserves the entire $12 once in a dedicated Modal
+clean committed checkout. It reserves the entire derived $20 once in a dedicated Modal
 Dict before building or scheduling; failed attempts consume the reservation.
 No automatic restart or refund. One A100-80GB worker, no retries, single-use,
-3.5-hour timeout, 120-second startup, 300-second idle setting. Source upload is
+6-hour timeout, 120-second startup, 300-second idle setting. Source upload is
 Git HEAD only, never local credentials. Existing private Volumes are read-only.
 
 Budget limitation requiring review before execution: the reservation computes
-(12600 + 300 + 120) / 3600 * $3.20 + $0.40 = $11.9734, using the historical
+ceil((21600 + 300 + 120) / 3600 * $3.20 + $0.40) = $20
+(unrounded: $19.9734), below the $30 Modal workspace limit, using the historical
 Study D all-resource hourly ceiling and a build allowance. It is a conservative
 launcher reservation under those assumptions, not a provider billing limit.
 Current pricing and image-build charges must be checked before approval; this

@@ -93,7 +93,7 @@ def batch(repository, output, live=False, commit=None, persist=lambda: None):
 
 def launch(output):
     import modal
-    # One durable, nonrefundable $12 reservation across A/B and all attempts.
+    # One durable, nonrefundable derived CAP reservation across A/B and all attempts.
     ledger = modal.Dict.from_name('taa-step4-v02452-budget-once', create_if_missing=True)
     if not ledger.put('entire-step4-cap', CAP, skip_if_exists=True):
         raise RuntimeError('step 4 reservation already used; no restart')
