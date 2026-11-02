@@ -10536,3 +10536,8 @@ is not evidence that TAA or the rule list prevented wrongs. Round 1 of 2 is
 spent. No round 2, paid run or step 5 is approved by this decision or entry.
 This documentation work made no model calls, accessed no secrets, dispatched
 no workflow, spent nothing and merged nothing.
+
+
+## 2026-11-01 - v0.24.51 EXPLORATORY audit tool v1
+
+[Engineering] Packages the existing frozen Study D battery and scorer as a before/after behavioral regression report under exploratory/audit_tool/. Provider-neutral injected adapters, fixed-stop mock and stored-evidence replay; no model calls, secrets, training, Modal operations or spend. Separate servility, over-refusal, reporting and protocol-completion measures retain episode ids, actions, effects and planned-denominator uncertainty. Regression thresholds remain an owner decision. The stored replay checks primary W bounds against the v02449 reproduction record; this is reused evidence, not a new observation or a scientific verdict. See the tool README for definitions and limits.
