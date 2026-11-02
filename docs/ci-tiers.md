@@ -12,8 +12,7 @@ procedure and separate execution approval.
 | PR containing only the existing documentation ignore paths | No automatic PR checks |
 | Exploratory-only PR | Fast units and scripted scenarios; exploratory syntax/JSON smoke tests; unchanged Live demo preservation guard |
 | Other PR | Fast units and scripted scenarios; Formation Python 3.9, Experiment A, Q18 and Live demo; Gateway, Study D and Gemma only when selected by their inputs |
-| Every push to main | Full offline suite, including full unittest discovery and every existing offline workflow |
-| Nightly or manual Full offline suite | Same full suite; only a nightly may skip unchanged main |
+| Nightly or manual Full offline suite | Full offline suite, including full unittest discovery and every existing offline workflow; only a nightly may skip unchanged main |
 
 The documentation exception from PR #67 remains exactly:
 
@@ -29,7 +28,8 @@ America/Chicago during standard time and 03:00 during daylight saving time.
 GitHub scheduling may delay a run. A read-only Actions history query compares
 main's SHA with the last successful scheduled run of this workflow. Identical
 SHAs skip expensive jobs. Missing history or a history-query error runs the
-suite. Push-to-main and manual runs never use this skip. A skipped nightly
+suite. Manual runs never use this skip. Chris approved removing the push-to-main
+trigger on November 1, 2026. A skipped nightly
 does not produce the full-green confirmatory gate.
 
 ## Input coverage
@@ -97,6 +97,7 @@ hosted timings must be verified by CI; no workflow was manually dispatched.
 Before a confirmatory run, require `Full suite green (confirmatory gate)`
 from `Full offline suite` on main at the exact commit being used, then
 record that commit and run URL in `LAB_NOTEBOOK.md` before the run.
+Since pushes no longer run the suite, a manual dispatch (`workflow_dispatch`) or a nightly that finished green on that exact commit is needed before a confirmatory run.
 All called suites must succeed. Hash pinning, Claude review, preregistered
 predictions, fresh held-out material, keep-every-run and spend limits still
 apply. An exploratory check or skipped nightly is not this gate.
