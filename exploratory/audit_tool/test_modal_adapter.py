@@ -1,3 +1,6 @@
+import ast
+import subprocess
+import sys
 import copy
 import json
 import math
@@ -54,6 +57,73 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(CAP, math.ceil((TIMEOUT + IDLE + 120) / 3600 * 3.20 + .40))
         self.assertEqual(launch_guard(True, {}), 20)
         self.assertLess(CAP, 30)
+
+    def test_image_matches_study_d(self):
+        root = Path(__file__).resolve().parents[2]
+        def settings(path):
+            tree = ast.parse(path.read_text())
+            calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)
+                     and isinstance(n.func, ast.Attribute)]
+            pins = next(tuple(ast.literal_eval(a) for a in n.args)
+                        for n in calls if n.func.attr == 'pip_install')
+            env = next(ast.literal_eval(n.args[0]) for n in calls if n.func.attr == 'env')
+            python = next(ast.literal_eval(n.keywords[0].value) for n in calls
+                          if n.func.attr == 'debian_slim')
+            return python, pins, env
+        self.assertEqual(settings(root/'exploratory/audit_tool/step4.py'),
+                         settings(root/'scripts/study_d_gemma_stages_app_v02428.py'))
+
+    def test_archive_policy_after_frozen_bundle(self):
+        from exploratory.audit_tool import audit
+        with audit.snapshot() as (repository, _):
+            code = """
+import json
+from pathlib import Path
+from exploratory.audit_tool import audit
+repository = Path.cwd()
+manifest = json.loads((repository/'studies/formation-study-d-analysis-v02430/inputs.json').read_text())
+runtime = audit.module(repository/'scripts/study_d_gemma_runtime_v02416.py', 'step4_runtime')
+runtime.ASSETS = repository/manifest['assets']
+runtime.install_frozen_bundle()
+policy = audit.module(repository/'formation/study_d_gemma_stages_v02428.py', 'step4_policy')
+assert isinstance(policy.ENGINE, dict) and policy.ENGINE
+"""
+            subprocess.run([sys.executable, '-c', code], cwd=repository, check=True)
+
+    def test_checkpoint_directory_symlinks(self):
+        for level in ('root', 'science', 'arm', 'final'):
+            with self.subTest(level=level), tempfile.TemporaryDirectory() as tmp:
+                base = Path(tmp)
+                root = base/'mount'
+                folder = root/'science'/'neutral'/'final'
+                folder.mkdir(parents=True)
+                file = folder/'adapter.bin'
+                file.write_bytes(b'fixture')
+                files = {'adapter.bin': dict(sha256=sha(file), bytes=7)}
+                index = folder/'checkpoint-integrity.json'
+                index.write_text(json.dumps(dict(arm='neutral', complete=True,
+                    scientific_checkpoint=True, sha256={'adapter.bin': sha(file)})))
+                plan = dict(checkpoints=[dict(arm='neutral', path='science/neutral/final',
+                    files=files, checkpoint_index_sha256=sha(index))])
+                target = dict(root=root, science=root/'science',
+                              arm=root/'science'/'neutral', final=folder)[level]
+                moved = base/'real'
+                target.rename(moved)
+                try:
+                    target.symlink_to(moved, target_is_directory=True)
+                except OSError as exc:
+                    self.skipTest('directory symlinks unavailable: '+str(exc))
+                if level == 'root':
+                    self.assertEqual(verify_checkpoint(root, 'neutral', plan), folder)
+                else:
+                    with self.assertRaisesRegex(ValueError, 'missing/symlink'):
+                        verify_checkpoint(root, 'neutral', plan)
+
+    def test_missing_mount(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plan = dict(checkpoints=[dict(arm='neutral', path='science/neutral/final')])
+            with self.assertRaisesRegex(ValueError, 'missing checkpoint mount'):
+                verify_checkpoint(Path(tmp)/'absent', 'neutral', plan)
 
     def test_checkpoint_corruption(self):
         for arm in ('neutral', 'contrary', 'virtue'):

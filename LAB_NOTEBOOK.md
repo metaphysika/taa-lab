@@ -10582,3 +10582,5 @@ Fast checks passed 415 tests and all scripted scenarios. No model or Modal
 calls, downloads, deployments, secret access, workflow dispatch or spend.
 
 [EXPLORATORY] 2026-11-02: Step 4 timeout raised to 6 h, derived cap ~$20; Chris approved, no review. No model calls, Modal calls or paid runs.
+
+[EXPLORATORY] 2026-11-02 v0.24.54: Fix step 4 mount-root symlinks, policy loading after frozen-bundle installation, and Study D image parity; offline checks only, no execution approval or model calls.

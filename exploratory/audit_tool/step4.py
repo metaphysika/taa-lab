@@ -64,7 +64,7 @@ def batch(repository, output, live=False, commit=None, persist=lambda: None):
         if live:
             # Both checks finish BEFORE importing the checkpoint loader.
             paths = {arm: verify_checkpoint('/adapters', arm) for arm in models}
-            from formation import study_d_gemma_stages_v02428 as policy
+            policy = audit.module(repository/'formation/study_d_gemma_stages_v02428.py', 'step4_policy')
             from vllm import LLM
             engine = LLM(**policy.ENGINE)
             tokenizer = engine.get_tokenizer()
@@ -102,7 +102,11 @@ def launch(output):
         archive = Path(temporary)/'source.zip'
         subprocess.run(['git', 'archive', '--format=zip', '-o', str(archive), 'HEAD'], cwd=ROOT, check=True)
         image = (modal.Image.debian_slim(python_version='3.12')
-                 .pip_install('vllm==0.31.0', 'transformers==5.10.4', 'huggingface_hub==1.31.0', 'nvidia-ml-py==13.580.82')
+                 .pip_install('vllm==0.31.0', 'transformers==5.10.4', 'huggingface_hub==1.31.0', 'nvidia-ml-py==13.580.82',
+                              'peft==0.21.2', 'accelerate==1.15.0')
+                 .env({'HF_HUB_DISABLE_TELEMETRY': '1', 'VLLM_NO_USAGE_STATS': '1',
+                       'VLLM_USE_FLASHINFER_SAMPLER': '0', 'OMP_NUM_THREADS': '2',
+                       'PYTHONPATH': '/opt/study-d'})
                  .add_local_file(str(archive), '/opt/source.zip', copy=True))
         app = modal.App('taa-step4-v02452')
         evidence = modal.Volume.from_name('taa-step4-v02452-evidence', create_if_missing=True)

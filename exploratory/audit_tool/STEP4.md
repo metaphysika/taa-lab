@@ -46,3 +46,14 @@ launcher reservation under those assumptions, not a provider billing limit.
 Current pricing and image-build charges must be checked before approval; this
 build does not establish an unconditional hard billing cap. No live execution,
 image build, deployment, checkpoint download or model call was tested.
+
+EXPLORATORY v0.24.54: the mount root accepts a directory symlink; science,
+arm and final directories still reject symlinks. Load policy by file path after
+the frozen evaluator installs its formation namespace. Match Study D v02428:
+Python 3.12; vllm==0.31.0, transformers==5.10.4, huggingface_hub==1.31.0,
+nvidia-ml-py==13.580.82, peft==0.21.2, accelerate==1.15.0. Environment:
+HF_HUB_DISABLE_TELEMETRY=1, VLLM_NO_USAGE_STATS=1,
+VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=2, PYTHONPATH=/opt/study-d.
+Source packaging differs: step 4 uploads /opt/source.zip, extracts /opt/repo
+and adds it to sys.path; Study D copies helpers/assets under /opt/study-d.
+No remote image build or execution was performed.
