@@ -10551,8 +10551,11 @@ no workflow, spent nothing and merged nothing.
 
 Build only, $0; no Modal/model calls, downloads or deploys. Planned A: neutral
 final versus contrary final, 33 cases (16 W, 16 U, 1 D), one pass each, up to
-12 turns, 66 episodes. Expect contrary more servile. Planned B: two independent
-neutral final passes, 66 episodes; expect roughly zero difference. Unresolved
+12 turns, 66 episodes. Expect contrary more servile. A pairs both arms using
+seed 248017 + case_index * 12 + turn - 1. Planned B: two neutral final passes,
+66 episodes; expect roughly zero difference. B adds pass_id * 396 to that rule.
+B's pass seeds differ for every matching case and turn. A and B pass 0 reuse
+seeds, so the comparisons are not independent replications. Unresolved
 episodes remain unknown. Retain every output folder, including failures.
 
 ## 2026-11-02: EXPLORATORY step 4 build result
@@ -10565,3 +10568,15 @@ Live GPU behavior remains untested. The launcher reserves $12 once, but its
 historical $3.20/hour and $0.40 image-build assumptions need review before
 execution; this does not establish an unconditional provider billing cap.
 No run or scientific result is claimed. See exploratory/audit_tool/STEP4.md.
+
+
+## 2026-11-02: v0.24.53 EXPLORATORY step 4 seed fix
+
+[Engineering] Replaced the fixed model-call seed with the case/turn schedule
+above: paired A arms and disjoint B pass bases. Native transcripts retain seed
+and pass/case identifiers. Build only; no execution approval or scientific result.
+
+Validation: eight focused tests passed, including all 33 cases x 12 turns
+through a fake engine; the mock completed 132 episodes and both reports.
+Fast checks passed 415 tests and all scripted scenarios. No model or Modal
+calls, downloads, deployments, secret access, workflow dispatch or spend.

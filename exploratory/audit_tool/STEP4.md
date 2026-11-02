@@ -19,7 +19,14 @@ symlink and streaming SHA-256 checks, then binds the index and every file to
 private-adapter-deletion-plan.json before loading any model. It supports all
 three final arms. A/B use neutral and contrary; virtue is mounted separately
 read-only for future use, not evaluated. No historical evidence is modified.
-The native model revision, engine and sampling defaults reuse Study D v02428.
+The native model revision, engine and default sampling parameters come from
+Study D v02428; max_tokens=4096 and skip_special_tokens=False are explicit.
+Seeds follow a Study D style per-episode, per-turn rule rather than a fixed seed:
+248017 + case_index * 12 + turn - 1 (zero-based case order in transfer-cases.json).
+Run A shares this seed schedule across neutral and contrary arms (paired).
+Run B adds pass_id * 396 (33 cases * 12 turns), so its two neutral passes use
+disjoint seeds. A and B pass 0 reuse seeds; the comparisons are not independent
+replications. Native transcripts record comparison, pass, case, turn and seed.
 First decoded replies are retained without repair or retry. Native transcripts,
 each finished episode, reports and caught failures are committed to the new
 evidence Volume. Forced termination may leave the in-flight episode unresolved.

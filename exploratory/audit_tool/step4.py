@@ -13,6 +13,38 @@ from exploratory.audit_tool import audit
 from exploratory.audit_tool.modal_adapter import Adapter, ROOT, CAP, TIMEOUT, IDLE, launch_guard, mock, verify_checkpoint
 
 
+def call_seed(comparison, pass_id, case_index, turn):
+    """A pairs arms; B uses disjoint pass bases; each case reserves 12 turns."""
+    base = 248017 + (pass_id * 33 * 12 if comparison == 'B' else 0)
+    return base + case_index * 12 + turn - 1
+
+
+def transport(engine, tokenizer, runtime, path, arm, comparison, pass_id,
+              cid, case_index, output, persist):
+    from vllm.lora.request import LoRARequest
+    adapter = LoRARequest(arm, 1 if arm == 'neutral' else 2, str(path))
+
+    def generate(system, history, turn):
+        messages = [{'role': 'system', 'content': system}] + history
+        ids = runtime.prompt_ids(tokenizer, messages, True)
+        if len(ids)+4096 > 16384:
+            raise ValueError('context guard; no trimming')
+        params = engine.get_default_sampling_params().clone()
+        params.max_tokens = 4096
+        params.seed = call_seed(comparison, pass_id, case_index, turn)
+        params.skip_special_tokens = False
+        reply = engine.generate([{'prompt_token_ids': ids}], params,
+                                lora_request=adapter, use_tqdm=False)[0]
+        text = reply.outputs[0].text
+        with (output/'native.jsonl').open('a') as stream:
+            stream.write(json.dumps(dict(comparison=comparison, pass_id=pass_id,
+                         case_id=cid, arm=arm, turn=turn, seed=params.seed,
+                         messages=messages, reply=text))+'\n')
+        persist()
+        return text
+    return Adapter(generate)
+
+
 def batch(repository, output, live=False, commit=None, persist=lambda: None):
     """One GPU allocation covers both planned comparisons; retain each episode."""
     output = Path(output)
@@ -34,31 +66,16 @@ def batch(repository, output, live=False, commit=None, persist=lambda: None):
             paths = {arm: verify_checkpoint('/adapters', arm) for arm in models}
             from formation import study_d_gemma_stages_v02428 as policy
             from vllm import LLM
-            from vllm.lora.request import LoRARequest
             engine = LLM(**policy.ENGINE)
             tokenizer = engine.get_tokenizer()
-            def transport(arm):
-                adapter = LoRARequest(arm, 1 if arm == 'neutral' else 2, str(paths[arm]))
-                def generate(system, history, turn):
-                    messages = [{'role': 'system', 'content': system}] + history
-                    ids = runtime.prompt_ids(tokenizer, messages, True)
-                    if len(ids)+4096 > 16384:
-                        raise ValueError('context guard; no trimming')
-                    params = engine.get_default_sampling_params().clone()
-                    params.max_tokens, params.seed, params.skip_special_tokens = 4096, 248017, False
-                    reply = engine.generate([{'prompt_token_ids': ids}], params, lora_request=adapter, use_tqdm=False)[0]
-                    text = reply.outputs[0].text
-                    with (output/'native.jsonl').open('a') as stream:
-                        stream.write(json.dumps(dict(arm=arm, turn=turn, messages=messages, reply=text))+'\n')
-                    persist()
-                    return text
-                return Adapter(generate)
-            models = {arm: transport(arm) for arm in models}
         for label, arms in [('A', ('neutral', 'contrary')), ('B', ('neutral', 'neutral'))]:
             rows = []
             for pass_id, arm in enumerate(arms):
                 current = {}
-                for cid, case in cases.items():
+                for case_index, (cid, case) in enumerate(cases.items()):
+                    if live:
+                        models[arm] = transport(engine, tokenizer, runtime, paths[arm], arm,
+                                                label, pass_id, cid, case_index, output, persist)
                     row = audit.run_adapter({cid: case}, models[arm])[(cid, 1)]
                     current[(cid, 1)] = row
                     (output/f'{label}-{pass_id}-{cid}.json').write_text(json.dumps(row))
