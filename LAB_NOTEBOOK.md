@@ -10584,3 +10584,97 @@ calls, downloads, deployments, secret access, workflow dispatch or spend.
 [EXPLORATORY] 2026-11-02: Step 4 timeout raised to 6 h, derived cap ~$20; Chris approved, no review. No model calls, Modal calls or paid runs.
 
 [EXPLORATORY] 2026-11-02 v0.24.54: Fix step 4 mount-root symlinks, policy loading after frozen-bundle installation, and Study D image parity; offline checks only, no execution approval or model calls.
+
+
+## 2026-11-02 ? v0.24.55 EXPLORATORY step 4 attempt-4 launcher
+
+[Descriptive] Attempt 3 was an infrastructure abort, not a behavioral result.
+Retained failure: InputCancellation / "Input was cancelled by user". The review
+favors launcher signal or heartbeat loss; the initiating cause is unresolved.
+Approximate billed cost $0.60. Original evidence remains untouched at
+C:/Users/lahn0/T3/briefs/step4_attempt3_records/ (container.log, failure.json,
+launcher.log). No scoring or treatment inference from this abort.
+
+[Engineering] Implemented the attempt-4 brief and Claude review steps 1?5 and 7:
+detached spawn/receipt, status polling, signal logging, per-attempt folders,
+cumulative reservations, and CPU weights-prefetch definition with read-only
+offline worker cache. Memory stays 64 GiB; provisional CUMULATIVE_CAP=$21
+awaits Chris's choice. Cache loading and detach behavior remain live-unverified.
+No Modal/model calls, prefetch, paid run, dispatch, launch or merge. See
+exploratory/audit_tool/STEP4.md.
+
+[Validation] Focused suite: 16 tests, PASS with four Windows symlink-privilege
+skips. Fast checks: 415 tests PASS and all scripted scenarios PASS (41.815 s).
+Mocked tests cover receipts/detach, status pending/failure/success, signal
+logging, existing-folder refusal, cumulative reservations and pinned cache
+hashes/corruption. No remote validation was performed.
+
+
+### 2026-11-02 ? PR #75 review fixes, EXPLORATORY offline only
+
+Moved the attempt reservation after successful app entry and immediately
+before spawn; setup failures leave the ledger untouched. Status polling now
+records remote message-bearing timeouts and BaseException cancellations as
+failed final JSON. Only an exact bare built-in polling TimeoutError is pending.
+Added a CPU-only read-only cache-check definition, with no HF secret and the
+same offline environment as the GPU worker. It verifies hashes, snapshot
+resolution, config and tokenizer lookups, and reports symlinks, missing-file
+errors and Python-observed cache write attempts. No CPU check was executed.
+
+Tests add reservation ordering/setup failures, remote status exceptions,
+extra/missing cache files, real blob symlinks, attempt-folder selection and
+CPU-only mount/offline diagnostics. Fast checks PASS: 415 tests and all
+scripted scenarios (40.475 s). Runtime cache compatibility, Volume symlink
+preservation and detach survival remain unverified; native writes bypassing
+Python audit hooks cannot be diagnosed by this hook. Bare remote TimeoutError
+without a message remains indistinguishable from the pending sentinel.
+No Modal/model calls, spending, live launch, merge or force-push.
+
+Focused validation: 22 tests PASS, five Windows symlink-privilege skips
+(four existing directory cases and the new HF blob symlink case).
+
+
+### 2026-11-02 ? PR #75 second review fixes, EXPLORATORY offline only
+
+Local KeyboardInterrupt/SystemExit now pass through without a status file.
+Confirmed remote failures use failed/exit 1; client polling errors use
+poll_error/exit 3 and a replaceable .poll-error.json sidecar, leaving the
+create-only final path free. Classification follows task-ID traceback frames
+and explicit remote exception classes inspected in the public Modal 1.6.3
+wheel source (downloaded from PyPI; no Modal API invocation). Missing remote
+provenance or SDK changes can reduce classification certainty.
+
+Prefetch reports complete file/repo rosters, compares them at the pinned
+revision, and records total bytes. CPU cache diagnostics now include timed
+hash verification, environment-only lookups in a second pass, GenerationConfig
+and non-blocking AutoProcessor diagnostics. Replaced the fragile submission
+source-string assertion with AST structure checks. No HF repository lookup,
+model download/loading, Modal call, paid run, merge or force-push.
+
+Validation: focused 24 tests PASS with five Windows symlink-privilege skips.
+Final targeted suite 13 tests PASS with one symlink skip, including the added
+no-traceback Modal cancellation and pre-get login-failure cases. Fast checks
+PASS: 415 tests and all scripted scenarios (40.413 s). Runtime cache behavior
+and detach survival remain unverified.
+
+
+### 2026-11-02 ? PR #75 third review fixes, EXPLORATORY offline only
+
+Modal ExecutionError with either specified remote-exception deserialization
+message prefix now writes failed final status / exit 1 even without remote
+frames. Other ExecutionError messages remain polling errors absent independent
+remote provenance. OutputExpiredError records expired / exit 4, without
+claiming success or failure of the worker. Added mocked tests for both
+message prefixes, the unrelated-error control and expiration.
+
+CPU cache checks report GenerationConfig as absent in repo when the pinned
+repo file list matches the verified snapshot roster and omits that file.
+Listed but unreadable generation config remains blocking. Tests cover both
+cases. STEP4.md now requests an unavailable-local-exception-class case in
+the future approved CPU detach test. No Modal/model calls, model downloads,
+live launch, spending, merge or force-push.
+
+Validation: focused 28 tests PASS with five Windows symlink-privilege skips;
+fast checks PASS with 415 tests and all scripted scenarios (40.218 s).
+Live cache compatibility, detach survival and future SDK exception-message
+compatibility remain unverified.

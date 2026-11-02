@@ -66,7 +66,8 @@ class AdapterTests(unittest.TestCase):
                      and isinstance(n.func, ast.Attribute)]
             pins = next(tuple(ast.literal_eval(a) for a in n.args)
                         for n in calls if n.func.attr == 'pip_install')
-            env = next(ast.literal_eval(n.args[0]) for n in calls if n.func.attr == 'env')
+            env = next(ast.literal_eval(n.args[0]) for n in calls if n.func.attr == 'env'
+                       and 'HF_HUB_DISABLE_TELEMETRY' in ast.literal_eval(n.args[0]))
             python = next(ast.literal_eval(n.keywords[0].value) for n in calls
                           if n.func.attr == 'debian_slim')
             return python, pins, env
