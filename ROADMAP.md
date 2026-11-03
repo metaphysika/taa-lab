@@ -1061,3 +1061,10 @@ Fresh v02416 CPU/GPU local and remote stage/worker/closure keys, new Volume/Dict
 
 
 2026-10-18 v0.24.20: owner-approved architecture-conditioned LoRA target validation and $30 cumulative Study D cap; unchanged scientific/per-stage settings; fresh CPU data/rehearsal prepared for review, no launch. See docs/process/PAPER3_STUDY_D_GEMMA_STAGES_v02420.md.
+
+
+## Fresh exploratory Step 4 drafting — 2026-11-03
+
+| Work | Status | Next gate |
+|---|---|---|
+| 8 fact pairs / 32 conditions; 16 borderline candidates; deterministic read-only prefixes; locked held-out roster and blind packet | Drafted at $0 on b1b2-step4-cases, stacked on PR 78 | Independent permissibility labeling and owner case/protocol review; separate execution approval |
