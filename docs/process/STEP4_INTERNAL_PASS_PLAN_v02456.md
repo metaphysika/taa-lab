@@ -1,6 +1,6 @@
 # Step 4 internal-pass plan v0.24.56
 
-EXPLORATORY proposal for Chris's later approval. Preparation cost $0. No execution is authorized. The internal pass remains blocked by the measured backend omission of tool observations, behavioral eligibility, validation material and a prospective intervention specification.
+EXPLORATORY proposal for Chris's later approval. Preparation cost $0. No execution is authorized. PR #82 fixed the tool-observation omission; the earlier report is retained as history. The internal pass remains blocked by the two fact contrasts with misaligned token positions, behavioral eligibility, validation material and a prospective intervention specification.
 
 ## Sources and decisions
 
