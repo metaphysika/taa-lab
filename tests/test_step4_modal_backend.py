@@ -34,9 +34,12 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(events[1][0]['status'], 'returned')
 
     def test_time_cap(self):
-        config = b.settings(3)
-        self.assertEqual(config['session_seconds'], int((3-b.FIXED_MARGIN)/b.EFFECTIVE_RATE*3600))
-        self.assertEqual(config['timeout'], config['session_seconds']-b.IDLE)
+        config = b.settings(5)
+        self.assertEqual(config['session_seconds'], int((5-config['pre_timeout_allowance_usd'])/config['pessimistic_hourly_rate']*3600))
+        self.assertEqual(config['timeout'], config['session_seconds'])
+        self.assertGreater(config['timeout'], b.CALL_SECONDS + b.SHUTDOWN_SECONDS)
+        with self.assertRaises(ValueError):
+            b.settings(config['pre_timeout_allowance_usd'])
         stop = config['timeout']-b.CALL_SECONDS-b.SHUTDOWN_SECONDS
         self.assertTrue(b.may_start(0, config))
         self.assertTrue(b.may_start(stop-1, config))
@@ -48,12 +51,12 @@ class BackendTests(unittest.TestCase):
                 b.settings(cap)
         checkpoints = {'base': {'available': True}}
         expected = dict(binding('a'*40, 'development', checkpoints), backend_settings=config)
-        receipt = dict(expected, approved_by='Chris Lahn', dollar_cap=3)
+        receipt = dict(expected, approved_by='Chris Lahn', dollar_cap=5)
         events = []
         guard = LaunchGuard(receipt, expected, checkpoints, events.append, owner_approved=True)
         for _ in range(176):
             guard.call('base', 0, lambda: 'ok')
-        self.assertEqual(guard.reserved, 3)
+        self.assertEqual(guard.reserved, 5)
         self.assertEqual(len(guard.attempts), 176)
         guard.before_cell = lambda: b.may_start(stop, config)
         with self.assertRaisesRegex(ValueError, 'session time limit'):
@@ -62,7 +65,7 @@ class BackendTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             LaunchGuard(dict(receipt, dollar_cap=.39), expected, checkpoints, events.append, owner_approved=True)
 
-    def test_timeout_continues_and_analysis_unknown(self):
+    def test_timeout_stops_and_analysis_unknown(self):
         from exploratory.step4_harness.runner import run_block
         from exploratory.step4_harness.analysis import report
         checkpoints = {'base': {'available': True}, 'neutral': {'available': True}}
@@ -77,8 +80,8 @@ class BackendTests(unittest.TestCase):
             raise RuntimeError('other failure stops stage')
         rows = run_block('development', checkpoints, guard, backend, lambda row: None, 0,
                          execution_verifier=lambda commit: None)
-        self.assertEqual(len(calls), 2)
-        self.assertEqual([r['terminal_status'] for r in rows], ['call_timeout', 'generation_failed'])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual([r['terminal_status'] for r in rows], ['call_timeout'])
         self.assertEqual(rows[0]['attempts'][0]['raw'], 'partial')
         self.assertEqual(rows[0]['protocol_bounds'], [0, 1])
         unit = report(rows)['units'][0]
@@ -148,20 +151,47 @@ class BackendTests(unittest.TestCase):
     def test_detach_and_once_claim(self):
         calls = []
         class Ledger:
-            used = False
+            def __init__(self):
+                self.used = {}
             def put(self, *args, **kwargs):
                 calls.append('claim')
-                if self.used:
+                if args[0] in self.used:
                     return False
-                self.used = True
+                self.used[args[0]] = args[1]
                 return True
         ledger = Ledger()
         app = NS(run=lambda **kw: calls.append(kw) or nullcontext(), app_id='app')
         worker = NS(spawn=lambda *args: calls.append('spawn') or NS(object_id='call'))
+        receipt = dict(binding('a'*40, 'development', {'base': {'available': True}}),
+                       archive_sha256='b'*64, dollar_cap=5, backend_settings=b.settings(5),
+                       approved_by='Chris Lahn', approval_id='development-1')
         with tempfile.TemporaryDirectory() as temp:
-            b.submit(app, worker, ledger, {'dollar_cap': 3}, 'id', Path(temp)/'receipt')
+            b.submit(app, worker, ledger, receipt, 'id', Path(temp)/'receipt')
             with self.assertRaises(ValueError):
-                b.submit(app, worker, ledger, {'dollar_cap': 3}, 'id2', Path(temp)/'receipt2')
+                b.submit(app, worker, ledger, receipt, 'id2', Path(temp)/'receipt2')
+            variants = [dict(receipt, dollar_cap=5.0),
+                        dict(receipt, backend_settings=dict(reversed(list(receipt['backend_settings'].items())))),
+                        dict(receipt, backend_settings={
+                            k: float(v) if type(v) in (int, float) else v
+                            for k, v in receipt['backend_settings'].items()})]
+            for index, variant in enumerate(variants):
+                with self.subTest(index=index):
+                    self.assertEqual(b.execution_fingerprint(receipt), b.execution_fingerprint(variant))
+                    with self.assertRaisesRegex(ValueError, 'receipt already claimed'):
+                        b.submit(app, worker, ledger, variant, 'duplicate', Path(temp)/f'duplicate{index}')
+            entry = ledger.used[b.claim_key(receipt)]
+            self.assertEqual(entry, dict(run_id='id', reserved=5,
+                                        execution_fingerprint=b.execution_fingerprint(receipt)))
+            self.assertNotEqual(b.claim_key(receipt), b.claim_key(dict(receipt, approval_id='development-2')))
+            for invalid_id in ('', ' ', None, 5):
+                with self.assertRaisesRegex(ValueError, 'nonempty approval_id'):
+                    b.claim_key(dict(receipt, approval_id=invalid_id))
+            with self.assertRaisesRegex(ValueError, 'unexpected receipt fields'):
+                b.submit(app, worker, ledger, dict(receipt, note='new note'), 'id3', Path(temp)/'receipt3')
+            self.assertEqual(calls.count('spawn'), 1)
+            self.assertEqual(b.claim_key(receipt), b.claim_key(dict(receipt, monthly_headroom_usd=50)))
+            with self.assertRaises(ValueError):
+                b.claim_key({k: v for k, v in receipt.items() if k != 'approval_id'})
         self.assertEqual(calls[:3], [{'detach': True}, 'claim', 'spawn'])
 
 
