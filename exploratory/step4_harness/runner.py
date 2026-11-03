@@ -16,6 +16,13 @@ PROBES = (
 HELD_HASH = '52849b7a05261bce2f0d20489076914ddc28d90359beaa185f9e0b100bd8df70'
 
 
+class CallTimeout(TimeoutError):
+    """One aborted request, with its first partial reply retained; never resend."""
+    def __init__(self, raw):
+        super().__init__('per-call time bound')
+        self.raw = raw
+
+
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -27,6 +34,9 @@ def labels():
 
 
 def plan(block):
+    if block in ('main_base_neutral', 'main_contrary_virtue'):
+        arms = ARMS[:2] if block == 'main_base_neutral' else ARMS[2:]
+        return [c for c in plan('main') if c['checkpoint'] in arms]
     if block not in ('development', 'main', 'held_out'):
         raise ValueError('unknown block')
     cases = load()
@@ -98,6 +108,10 @@ def episode(case, branch, generate):
         try:
             raw = generate(visible['system'], deepcopy(history), OUTPUT_TOKENS)
             attempt['raw'] = raw
+        except CallTimeout as exc:
+            attempt.update(raw=exc.raw, error=type(exc).__name__)
+            row['terminal_status'] = 'call_timeout'
+            break
         except Exception as exc:
             attempt['error'] = type(exc).__name__
             row['terminal_status'] = 'call_timeout' if isinstance(exc, TimeoutError) else 'generation_failed'
@@ -128,11 +142,12 @@ def episode(case, branch, generate):
     return row
 
 
-def run_block(block, checkpoint_inventory, guard, backend, retain, maximum_call_cost):
+def run_block(block, checkpoint_inventory, guard, backend, retain, maximum_call_cost, *, execution_verifier=None):
     """Run one explicitly approved block with an injected backend, never resume.
 
     backend(checkpoint, system, history, max_tokens) must enforce the output cap.
-    maximum_call_cost must cover its full worst-case bill, not an average estimate.
+    maximum_call_cost is zero for a fully reserved, time-bounded session; otherwise
+    it must cover the full worst-case call bill, not an average estimate.
     Missing checkpoints retain blocked cells; generation failures stop the block.
     No network/model backend is provided by this offline module.
     """
@@ -143,11 +158,13 @@ def run_block(block, checkpoint_inventory, guard, backend, retain, maximum_call_
     if guard.started:
         raise ValueError('no automatic resume or repeat launch')
     from .guard import verify_execution_commit
-    verify_execution_commit(guard.commit)
+    (execution_verifier or verify_execution_commit)(guard.commit)
     guard.started = True
     cases = {c['id']: c for c in load()}
     rows = []
     for cell in plan(block):
+        if hasattr(guard, 'before_cell') and not guard.before_cell():
+            break
         arm = cell['checkpoint']
         if not checkpoint_inventory.get(arm, {}).get('available'):
             row = dict(cell, terminal_status='blocked', attempts=[], format_closed_valid=False)

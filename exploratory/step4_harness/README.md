@@ -52,11 +52,93 @@ independent-label hashes, checkpoint inventory and finite dollar cap. An
 untrusted JSON receipt alone grants no authority. The caller must supply the
 actual clean execution commit to `binding`, use a fresh output/run identifier
 (`existing=True` refuses resume), durably persist attempts before generation,
-and enforce a worst-case per-call dollar reservation. Reservations include
-failed/uncertain calls, are never released automatically, and stop at the cap.
-A backend needs separate review of billing bounds and durable output handling.
-There is no model loader, remote launcher, automatic resume or retry here.
+and enforce the backend's time budget. The Modal backend reserves the whole
+approved cap once and records each attempt with zero additional dollar reserve.
+Uncertain amounts are never released; there is no resume or retry.
 Execution still requires Chris's exact-commit approval and staged budget review.
 
-A call timeout is retained as `call_timeout` and stops the block for review.
-No further cells start after that timeout.
+## Receipt-gated Modal backend (build only)
+
+`modal_backend.py` adds four separately launchable stages. Development has 32
+branches; `main_base_neutral` and `main_contrary_virtue` each have 384; held_out
+has 64. Main rows retain `block=main`: concatenate both stages' `cell` events and
+pass their rows to `analysis.analyze` for the original 768-branch denominator.
+Missing stages and interrupted branches remain missing in that analysis.
+
+Claude's launch procedure, only after Chris approves the exact execution commit:
+
+1. Use a clean checkout of the approved commit. Run
+   `python -m exploratory.step4_harness.modal_backend --stage development` to
+   print the binding/settings and refuse launch. Each subsequent stage needs its
+   own receipt and approval.
+2. Prepare the owner receipt with the printed binding, `backend_settings`,
+   `approved_by: "Chris Lahn"`, a new owner `approval_id`, `dollar_cap`, live `monthly_headroom_usd`, and
+   `inventory_sha256` from `guard.inventory` (virtue from `/virtue`, other arms
+   from `/adapters`). The remote worker recomputes this inventory before loading.
+   Bind `archive_sha256` to `git archive --format=zip HEAD` bytes. Receipt JSON
+   alone grants no authority: the operator must verify Chris's approval.
+3. Run `python -m exploratory.step4_harness.modal_backend --stage development
+   --receipt <approved.json> --confirm-owner-approval --output <new-launch.json>`
+   as one command. It prints block, cells, cap and binding before submitting.
+   The returned launch file records the detached call. Evidence is appended to
+   `taa-step4-behavioral-evidence/<fresh-uuid>/events.jsonl`; the separate
+   `taa-step4-behavioral-attempts` dictionary permanently claims each receipt.
+   Never resume or reuse a receipt. Review usage between stages.
+
+Settings come from attempt 4's `exploratory/audit_tool/step4.py`: identical
+Debian/Python 3.12 image and six package pins, environment, A100-80GB, 2 CPUs,
+65536 MiB, cap-derived timeout (at most six hours less idle), 300-second idle, zero retries, read-only weights
+and private adapter volumes. Base revision and adapter hashes use the existing
+verification code. The engine is exactly `formation.study_d_gemma_stages_v02428.ENGINE`.
+The Study D `prompt_ids` helper receives unchanged system/user/assistant/tool
+messages for both scripted and generated turns. Sampling clones engine defaults,
+sets max_tokens=4096 and skip_special_tokens=False. The new deterministic call
+schedule uses master seed 248017 plus call index, replacing attempt 4's old
+case/pass indexing for this different battery. Context overflow stops without
+trimming. No frozen cases, predictions or measurement policy changes.
+
+The cost model on `origin/b1b2-step4-cost-model`,
+`docs/process/STEP4_COST_TIMING_v02456.md`, estimates development $1.51 point /
+$3.77 buffered high; each main stage $5.255 point / $13.135 buffered high;
+held-out $3.07 point / $7.68 buffered high. These are historical estimates.
+The backend assumes a pessimistic hourly rate of 1.25 times the historical
+blended rate $3.75532210 / (4351.140/3600). The 1.25 multiplier is an assumption.
+Before deriving the function timeout, it deducts an allowance for 900 seconds of
+billed startup/cold start outside the function timeout, 300 seconds of idle/scaledown,
+and 120 seconds of shutdown, all at that pessimistic rate. Session seconds are
+floor(min(21600, (cap - allowance) / pessimistic_hourly_rate * 3600)); the function
+timeout equals session seconds. Caps unable to cover the allowance are refused.
+A $5 development cap leaves room for the per-call bound and shutdown margins;
+completion is not guaranteed. Every assumption and derived limit is bound in
+`backend_settings`. Chris should also set a Modal workspace spending limit as
+the hard backstop. The time limit is an estimate-based guard, not a billing guarantee.
+Use `--dollar-cap <cap>` for the offline binding preview.
+
+The receipt must contain a nonempty `approval_id`. Its durable once-only claim
+is `receipt-` plus the SHA-256 of that ID alone. A new launch requires a new owner
+approval ID; changing numeric representations, settings order or monthly headroom
+cannot create another claim. Unexpected fields and missing execution fields are
+refused, and binding and settings equality remain required. The same ledger entry
+records an execution fingerprint for audit: execution-field numbers are normalized
+with `float()` before hashing JSON with sorted keys and compact separators.
+
+The full approved cap is retained as the session reserve. Per-call dollar
+reservations are zero; the durable attempt ledger remains. Before each cell and
+each subsequent call, elapsed time plus the assumed 600-second call bound and
+120-second shutdown margin must fit within the function timeout. The historical
+effective rate is not a guaranteed live tariff; Chris must check live headroom
+and approve each staged cap. Image building/storage require separate review.
+
+The 600-second bound is an assumption for 4,096-token replies. On that deadline,
+the backend aborts the request, retains partial text, and ends that episode
+as `call_timeout`, a mechanical unknown with protocol bounds [0,1] on the planned
+denominator. It never resends and stops the block for review without starting another cell.
+Other generation exceptions stop the stage. Engine steps and volume commits can
+overrun a deadline check; the platform timeout is the outer bound. Evidence is
+journaled before generation and after each engine step, fsynced and committed.
+Abrupt termination may leave a reserved attempt; the durable prefix remains.
+Offline fake tests do not establish remote behavior or billing bounds.
+
+No Modal calls, model calls, GPU work, workflow dispatch or paid execution were
+authorized by this implementation. The cost-model branch is read as a planning
+source, not merged here. This PR targets main.
