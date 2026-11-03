@@ -22,22 +22,31 @@ STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out'
 EFFECTIVE_RATE = 3.75532210 / (4351.140 / 3600)
 CALL_SECONDS = 600  # Assumed sufficient for a full 4096-token reply, not measured.
 CALL_RESERVE = 0
-FIXED_MARGIN = .40
+RATE_MULTIPLIER = 1.25  # Pessimistic assumption, not a guaranteed tariff.
+STARTUP_SECONDS = 900
 SHUTDOWN_SECONDS = 120
 
 
 def settings(cap):
     import math
-    if type(cap) not in (int, float) or not math.isfinite(cap) or not FIXED_MARGIN <= cap <= 50:
-        raise ValueError('finite cap must cover fixed margin and fit monthly ceiling')
-    seconds = math.floor(min(TIMEOUT, (cap-FIXED_MARGIN) / EFFECTIVE_RATE * 3600))
-    return dict(effective_hourly_rate=EFFECTIVE_RATE, call_seconds=CALL_SECONDS,
-                call_bound_assumption=True, fixed_margin=FIXED_MARGIN,
+    if type(cap) not in (int, float) or not math.isfinite(cap) or not 0 < cap <= 50:
+        raise ValueError('finite positive cap within monthly ceiling required')
+    rate = EFFECTIVE_RATE * RATE_MULTIPLIER
+    allowance_seconds = STARTUP_SECONDS + IDLE + SHUTDOWN_SECONDS
+    allowance = allowance_seconds * rate / 3600
+    if cap <= allowance:
+        raise ValueError('cap cannot cover pre-timeout allowance')
+    seconds = math.floor(min(TIMEOUT, (cap-allowance) / rate * 3600))
+    return dict(effective_hourly_rate=EFFECTIVE_RATE, rate_multiplier=RATE_MULTIPLIER,
+                pessimistic_hourly_rate=rate, rate_multiplier_assumption=True,
+                startup_seconds=STARTUP_SECONDS, pre_timeout_allowance_seconds=allowance_seconds,
+                pre_timeout_allowance_usd=allowance, maximum_session_seconds=TIMEOUT,
+                call_seconds=CALL_SECONDS, call_bound_assumption=True,
                 call_reserve=CALL_RESERVE, session_reserve=cap,
                 session_seconds=seconds, idle_seconds=IDLE,
                 shutdown_seconds=SHUTDOWN_SECONDS,
-                stop_new_cells_seconds=max(0, seconds-IDLE-CALL_SECONDS-SHUTDOWN_SECONDS),
-                output_tokens=4096, sampling_seed=248017, timeout=max(0, seconds-IDLE))
+                stop_new_cells_seconds=max(0, seconds-CALL_SECONDS-SHUTDOWN_SECONDS),
+                output_tokens=4096, sampling_seed=248017, timeout=seconds)
 
 
 def may_start(elapsed, config):
@@ -145,10 +154,29 @@ def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
                      elapsed=clock()-started))
 
 
+EXECUTION_FIELDS = ('commit', 'block', 'archive_sha256', 'cases_sha256',
+                    'roster_sha256', 'prediction_sha256', 'labels_sha256',
+                    'inventory_sha256', 'dollar_cap', 'backend_settings',
+                    'approved_by', 'approval_id')
+
+
+def claim_key(receipt):
+    if set(receipt) - set(EXECUTION_FIELDS) - {'monthly_headroom_usd'}:
+        raise ValueError('unexpected receipt fields')
+    if any(field not in receipt for field in EXECUTION_FIELDS):
+        raise ValueError('missing execution receipt fields')
+    if not isinstance(receipt['approval_id'], str) or not receipt['approval_id'].strip():
+        raise ValueError('nonempty approval_id required')
+    canonical = {field: receipt[field] for field in EXECUTION_FIELDS}
+    return 'receipt-' + hashlib.sha256(json.dumps(
+        canonical, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
 def submit(app, worker, ledger, receipt, run_id, output):
+    key = claim_key(receipt)
     with app.run(detach=True):
         # Durable claim survives client loss and is never cleared on failure.
-        if not ledger.put('receipt-'+hashlib.sha256(json.dumps(receipt, sort_keys=True).encode()).hexdigest(),
+        if not ledger.put(key,
                           dict(run_id=run_id, reserved=receipt['dollar_cap']), skip_if_exists=True):
             raise ValueError('receipt already claimed; no resume')
         call = worker.spawn(receipt, run_id)
@@ -172,7 +200,7 @@ def launch(receipt, archive, output):
     weights = modal.Volume.from_name(WEIGHTS_VOLUME).read_only()
 
     @app.function(image=image, gpu='A100-80GB', cpu=(2, 2), memory=(65536, 65536),
-                  timeout=settings(receipt['dollar_cap'])['timeout'], startup_timeout=120, scaledown_window=IDLE,
+                  timeout=settings(receipt['dollar_cap'])['timeout'], startup_timeout=STARTUP_SECONDS, scaledown_window=IDLE,
                   retries=0, max_containers=1, single_use_containers=True,
                   volumes={'/weights': weights, '/adapters': private, '/virtue': virtue,
                            '/results': evidence}, serialized=True)
@@ -215,6 +243,7 @@ def main():
     if not args.receipt or not args.confirm_owner_approval or not args.output:
         parser.error('approved receipt, explicit operator trust and fresh output required')
     receipt = json.loads(args.receipt.read_bytes())
+    claim_key(receipt)
     verify_execution_commit(commit)
     launch_guard(True, os.environ)
     if args.output.exists() or receipt.get('approved_by') != 'Chris Lahn':
