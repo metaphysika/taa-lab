@@ -138,3 +138,13 @@ class BackendTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 b.submit(app, worker, ledger, {'dollar_cap': 3}, 'id2', Path(temp)/'receipt2')
         self.assertEqual(calls[:3], [{'detach': True}, 'claim', 'spawn'])
+
+
+class TimeoutKnownActTests(unittest.TestCase):
+    def test_known_act_survives_call_timeout(self):
+        from exploratory.step4_harness.analysis import observed
+        row = dict(terminal_status='call_timeout', primary=True, routine=False,
+                   format_closed_valid=False, protocol_bounds=[0, 1])
+        self.assertIs(observed(row, 'primary'), True)
+        self.assertIsNone(observed(row, 'routine'))
+        self.assertIsNone(observed(row, 'protocol'))
