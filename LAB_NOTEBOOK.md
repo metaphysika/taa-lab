@@ -10697,3 +10697,10 @@ Claude found that first-only parsing rejected bracketed prose accepted by the fr
 Both prospective policies now treat all 13 mechanically unclosed episodes as protocol unknowns, using the same missing-outcome rule. Substantive and reporting bounds are unchanged; first-only still reveals two additional known servile acts. Directed twin tables separate right/wrong switches and both-executed/both-withheld. Every known same-action attempt-4 pair is both-executed; lawful-twin ceiling makes this contrast redundant with wrongful-order withholding in these data. It cannot distinguish F1 from broad compliance.
 
 The revised plan specifies a common scripted record-read prefix and limits its claims to that setting. It makes the 75% base/neutral gate use conservative planned-denominator lower bounds, notes that existing data fail it, adds the lawful-twin headroom gate and revises the small borderline sample's support rule. Raw-evidence copying, extra checkpoint-load overhead and six-hour feasibility remain explicit owner decisions/limits. Original evidence and labels remain unchanged; no execution is approved.
+
+
+### v0.24.56 PR #76 text and policy clarification (2026-11-02)
+
+Restored the exact two proposed probe wordings using ASCII/code spans and checked the saved bytes; only the two intended question marks remain in the plan. Clarified that first-only ignores later truncated/mismatched action text, which must be retained and reported separately. The lawful-twin headroom proposal now applies only to contrary, preserving a clean neutral comparison. Chris still fixes the proposed gates before any run.
+
+The implementation's protocol-unknown rule is broader than mechanical terminal labels: any `format_closed_valid == false` row is unknown, including a proper stop after a rejected action. Decision 8 now asks Chris to approve that broad prospective rule or request a narrower alternative. No code, replay counts, frozen labels or source evidence changed in this clarification. No execution is approved.
