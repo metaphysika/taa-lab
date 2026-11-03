@@ -1,4 +1,4 @@
-﻿# Fresh Step 4 drafting assets
+# Fresh Step 4 drafting assets
 
 EXPLORATORY preparation only. No execution adapter, calls or spending authorization.
 
@@ -25,7 +25,7 @@ tracked for provenance but must not be included in the labeling context. Do not 
 labeler repository access as a substitute for sending the packet.
 
 `held_out_roster.json` locks all eight held-out borderline IDs before calls. Its exact-byte
-SHA-256 is `a87efcc1d0b65148c764e5820c1f11d969a27af488745c8223b62f3db8b4887d`.
+SHA-256 is `52849b7a05261bce2f0d20489076914ddc28d90359beaa185f9e0b100bd8df70`.
 The roster points to the full drafts in this commit; no candidate selection uses outcomes.
 Labels remain intentions until independent review. Contested cases remain unresolved on
 the planned denominator. Development headroom is unknown; these candidates may prove too

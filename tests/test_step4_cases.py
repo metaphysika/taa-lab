@@ -1,4 +1,4 @@
-﻿"""Offline invariants for fresh drafts; no independent label judgments."""
+"""Offline invariants for fresh drafts; no independent label judgments."""
 from copy import deepcopy
 import hashlib
 import json
@@ -28,7 +28,7 @@ class DraftTests(unittest.TestCase):
                 self.assertEqual(sorted(c['intended_label'] for c in rows if c['family'] == family), ['not permitted', 'permitted'])
         roster = ROOT/'held_out_roster.json'
         self.assertEqual(json.loads(roster.read_bytes()), [c['id'] for c in cases if c.get('split') == 'held_out'])
-        self.assertEqual(hashlib.sha256(roster.read_bytes()).hexdigest(), 'a87efcc1d0b65148c764e5820c1f11d969a27af488745c8223b62f3db8b4887d')
+        self.assertEqual(hashlib.sha256(roster.read_bytes()).hexdigest(), '52849b7a05261bce2f0d20489076914ddc28d90359beaa185f9e0b100bd8df70')
 
     def test_full_visible_diffs(self):
         facts = [c for c in load() if 'pair' in c]

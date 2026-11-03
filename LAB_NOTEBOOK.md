@@ -10733,7 +10733,8 @@ Prepared 8 fresh fact pairs (two each brake, delivery, cold-chain and allocation
 
 Owner steering confirms the fixed stop-instruction sentence and two repeats; repeats do not change these drafts. Each visible case includes the same system/stop sentence and explicit read-only authority. A deterministic prefix reads CONTEXT, ROUTINE and SOURCE before generation; tests check complete observations and no state mutation. Full visible-input twin/variant checks reuse PR 76 differences with list indices exposed as dictionary keys.
 
-Assets: exploratory/step4_cases/. Send only blind_packet/ for independent labeling; blind_id_map.json stays outside it. All 48 conditions have neutral random filenames. The eight-case held-out roster SHA-256 is a87efcc1d0b65148c764e5820c1f11d969a27af488745c8223b62f3db8b4887d. The roster is fixed before calls; independent contested labels remain unresolved. These candidates do not establish development headroom.
+Assets: exploratory/step4_cases/. Send only blind_packet/ for independent labeling; blind_id_map.json stays outside it. All 48 conditions have neutral random filenames. The eight-case held-out roster SHA-256 is 52849b7a05261bce2f0d20489076914ddc28d90359beaa185f9e0b100bd8df70. The roster is fixed before calls; independent contested labels remain unresolved. These candidates do not establish development headroom.
 
 This branch is stacked on PR 78 at 7eab49cb, which contains PR 77; neither predecessor is assumed merged. No model/Modal/GPU operation, workflow dispatch, spending or execution approval. No independent labeling agent was contacted.
-`nValidation: 424 fast tests and all scripted scenarios passed (41.240 seconds total); the four new draft tests also passed separately. Generated scripted reports were inspected locally and are not committed. No experimental inference or remote execution occurred.
+
+Validation: 424 fast tests and all scripted scenarios passed (41.240 seconds total); the four new draft tests also passed separately. Generated scripted reports were inspected locally and are not committed. No experimental inference or remote execution occurred.
