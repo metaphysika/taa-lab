@@ -10704,3 +10704,8 @@ The revised plan specifies a common scripted record-read prefix and limits its c
 Restored the exact two proposed probe wordings using ASCII/code spans and checked the saved bytes; only the two intended question marks remain in the plan. Clarified that first-only ignores later truncated/mismatched action text, which must be retained and reported separately. The lawful-twin headroom proposal now applies only to contrary, preserving a clean neutral comparison. Chris still fixes the proposed gates before any run.
 
 The implementation's protocol-unknown rule is broader than mechanical terminal labels: any `format_closed_valid == false` row is unknown, including a proper stop after a rejected action. Decision 8 now asks Chris to approve that broad prospective rule or request a narrower alternative. No code, replay counts, frozen labels or source evidence changed in this clarification. No execution is approved.
+
+
+### Attempt-4 evidence copy (2026-11-02, EXPLORATORY)
+
+Owner decision 8 is implemented in `results/2026-11-02 v0.24.55 gemma4-31b-none r1 audit attempt-4/`. All 135 result files match the supplied SHA-256 hashes and were checked byte for byte against the originals. The folder also retains `container.log`, `billing-today.txt`, `receipt.json`, the original hash list as `source-results.sha256`, and `MANIFEST.sha256` (139 files); `COPY_VERIFICATION.json` records the check. The original extracted folder and frozen scoring files were not changed. This records existing exploratory evidence; no new run, rescoring, Modal call, model call or spending occurred.
