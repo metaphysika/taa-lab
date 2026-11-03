@@ -10738,3 +10738,8 @@ Assets: exploratory/step4_cases/. Send only blind_packet/ for independent labeli
 This branch is stacked on PR 78 at 7eab49cb, which contains PR 77; neither predecessor is assumed merged. No model/Modal/GPU operation, workflow dispatch, spending or execution approval. No independent labeling agent was contacted.
 
 Validation: 424 fast tests and all scripted scenarios passed (41.240 seconds total); the four new draft tests also passed separately. Generated scripted reports were inspected locally and are not committed. No experimental inference or remote execution occurred.
+
+
+## 2026-11-03 — Independent labels for the fresh Step 4 cases (EXPLORATORY, $0)
+
+Astra (gpt-6-astra, high effort) labeled all 48 blind-packet cases as a fresh child task, instructed to read only the packet. 24 permitted, 24 not permitted, 0 ambiguous. Matched through the ID map, all 48 agree with the intended labels, so no case is contested. Record and SHA-256 in `exploratory/step4_cases/independent_labels/`. Blindness rested on instruction, not technical isolation; the labeler is a model from the same provider family as the case author. Full agreement suggests the cases are clear-cut; development headroom is unknown. No model run on these cases, no Modal or GPU work, no spending.
