@@ -10748,3 +10748,29 @@ Astra (gpt-6-astra, high effort) labeled all 48 blind-packet cases as a fresh ch
 ## 2026-11-03 — Stage-thread workflow adopted (process, no behavior change)
 
 Chris decided that each stage of testing runs in one long-lived Claude orchestrator thread in T3 Code instead of a new thread for each exchange. Claude starts Sol (builder) and Astra (independent reviewer or labeler) as child tasks from that thread, reviews, merges and records decisions. Claude now owns all GitHub merges and branch upkeep; Sol owns build commits and PRs; Chris does no GitHub work. Grok Bot (Codi) no longer relays work and is optional. A fresh-context reviewer still checks the exact commit before any paid run, and every paid run still needs Chris's exact-commit approval. Rules: `AGENTS.md` (GitHub housekeeping, Stage threads) and the Master Plan working rules. No code, evidence or scoring changed.
+
+
+## 2026-11-03 — v0.24.57 step 4 behavioral pass build complete (EXPLORATORY, $0)
+
+Built and merged at $0, with no Modal, model or GPU calls: cost and timing model (#81), offline harness (#82), receipt-gated Modal backend (#83), internal-pass plan and twin token alignment (#84). Sol built each one as a child task of Claude's stage thread. Claude reviewed each, and Astra reviewed the whole stack independently: NOT READY, NOT READY, then READY at backend head 8f999185.
+
+Defects caught before any paid run:
+- **Dropped tool observations.** Gemma's chat template drops `role: tool` messages, so the model would never have seen the scripted record reads, including every deciding fact. The harness now sends observations as user-role JSON, as Study D did. Study D and attempt 4 were not affected. This was found by the token-alignment audit.
+- **Cost guard.** It double-counted a full six-hour session reserve plus per-call reserves, so no stage could launch. It now converts the dollar cap to a session time limit at 1.25 × the historical blended rate, with a 900 s startup allowance plus idle and shutdown. This is an estimate-based guard; a Modal workspace spending limit set by Chris is the hard backstop.
+- **Timeouts.** A per-call timeout of 120 s was too short for 4,096-token replies, and a timeout did not stop the stage. Now: 600 s per call (assumed), and the first timeout stops the stage for review with its partial output kept.
+- **Once-only launch.** The claim key could be changed by incidental receipt fields or numeric formatting. It is now keyed on the owner's `approval_id`.
+- **Probe and known-act handling.** Probe answers are normalized (case, whitespace, one trailing period). The F3-compatible count uses wrongful cases only. Known acts stay known after a timeout.
+
+Token alignment, with the backend's exact rendering and the pinned tokenizer: all 32 contrasts are visible to the model, and 30 align token for token. The two fact contrasts of pair 4 (badge 713 versus 731) do not align positionally. The cases are unchanged. For the later internal pass, pair 4 needs an explicit span mapping or is excluded from positional patching. This does not affect the behavioral pass.
+
+Expected outcome of the full behavioral pass, recorded before any run: the formal F1 verdict will probably be "no headroom", because contrary executed every known lawful twin in attempt 4. The formal F2/F3 verdict may be "not diagnosable", because neutral switched correctly on 8 of 16 attempt-4 pairs, below the 75% gate. Most of the value is expected from descriptive probe accuracy and the borderline global-shift block. The internal-pass plan estimates decision-point capture at about $2.31. A full intervention grid would cost about $92–116, above the monthly cap, so only a staged, smaller roster will be proposed.
+
+## 2026-11-03 — Development stage: pre-run predictions (EXPLORATORY)
+
+Stage `development`: 8 development borderline cases (privacy, security, publication, lab safety; one intended permissible and one impermissible per family) × base and neutral × 2 repeats = 32 action episodes, on the attempt-4 Modal setup. No contrary or virtue outcomes are produced in this stage. Proposed cap $5 (cost model point $1.51, buffered $1.89). Chris must approve the exact commit, cap, approval ID and monthly headroom, and set a Modal spending limit. No run is approved by this entry.
+
+Predictions by Claude (planner), fixed before the run:
+1. **Measurement.** With the fixed stop sentence and user-role observations, at most 4 of 32 episodes end unclosed (malformed, step limit or call timeout).
+2. **Behavior.** For each checkpoint, the primary action is withheld in at least 7 of 8 impermissible-case episodes, and performed in at least 6 of 8 permissible-case episodes. Any shortfall is expected to be over-refusal in the security or lab-safety families.
+3. **Headroom.** At least 2 of 4 families meet the approved eligibility rule: base and neutral development refusal bounds both within 25–75%. If fewer than 2 qualify, the global-shift support calculation is reported as insufficient headroom, as the plan requires. The held-out denominator is not changed.
+These outcomes decide only measurement quality and the eligibility mask. They do not test any hypothesis.
