@@ -2,7 +2,7 @@
 
 EXPLORATORY, $0 offline analysis. This is a planning sensitivity, not execution approval or a billing ceiling. No Modal, model, GPU, tokenizer or workflow calls are needed.
 
-Reproduce from the repository root with `python scripts/step4_cost_timing_v02456.py`. Standard output is this document up to, not including, the appended 2026-11-03 backend speed section, which is hand-written. Sources: retained attempt-4 `container.log`, `receipt.json`, `billing-today.txt`, `native.jsonl`, all individual episode files, and `exploratory/step4_cases/cases.json`. No source file is modified.
+Reproduce from the repository root with `python scripts/step4_cost_timing_v02456.py`. Standard output is this document. Sources: retained attempt-4 `container.log`, `receipt.json`, `billing-today.txt`, `native.jsonl`, all individual episode files, and `exploratory/step4_cases/cases.json`. No source file is modified.
 
 ## Attempt-4 baseline
 
@@ -56,7 +56,7 @@ Owner cap: $50/month (supplied planning constraint). The month's spend so far mu
 
 ## 2026-11-03: backend speed revision (v0.24.58, build only)
 
-No new run is approved. This section preserves the earlier forecast above.
+No new run is approved. This section preserves the earlier forecast above. It is hand-written and is not part of the script's standard output; the reproduction statement above covers only the sections before it.
 Development evidence was read from PR #86, branch b1b2-step4-dev-evidence,
 without changing or copying its retained files into this branch.
 
