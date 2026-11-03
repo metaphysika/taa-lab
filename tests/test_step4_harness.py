@@ -2,7 +2,7 @@
 from copy import deepcopy
 import json
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from exploratory.step4_cases.drafts import load
 from exploratory.step4_harness import runner as h, analysis as a
 from exploratory.step4_harness.guard import LaunchGuard, binding, inventory
@@ -185,6 +185,21 @@ class HarnessTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             h.run_block('development', available, guard, lambda *x: self.fail(), retained.append, 0)
 
+
+    def test_first_timeout_stops_block(self):
+        available = {arm: {'available': True} for arm in h.ARMS}
+        expected = binding('a'*40, 'development', available)
+        receipt = dict(expected, approved_by='Chris Lahn', dollar_cap=5)
+        guard = LaunchGuard(receipt, expected, available, lambda x: None, owner_approved=True)
+        retained = []
+        backend = Mock(side_effect=TimeoutError('call bound'))
+        with patch('exploratory.step4_harness.guard.verify_execution_commit'):
+            rows = h.run_block('development', available, guard, backend, retained.append, .3)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['terminal_status'], 'call_timeout')
+        self.assertEqual(retained, rows)
+        self.assertEqual(backend.call_count, 1)
+        self.assertEqual(guard.reserved, .3)
 
 if __name__ == '__main__':
     unittest.main()

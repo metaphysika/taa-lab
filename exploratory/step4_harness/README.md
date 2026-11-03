@@ -57,3 +57,6 @@ failed/uncertain calls, are never released automatically, and stop at the cap.
 A backend needs separate review of billing bounds and durable output handling.
 There is no model loader, remote launcher, automatic resume or retry here.
 Execution still requires Chris's exact-commit approval and staged budget review.
+
+A call timeout is retained as `call_timeout` and stops the block for review.
+No further cells start after that timeout.
