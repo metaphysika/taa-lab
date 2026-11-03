@@ -142,3 +142,14 @@ Offline fake tests do not establish remote behavior or billing bounds.
 No Modal calls, model calls, GPU work, workflow dispatch or paid execution were
 authorized by this implementation. The cost-model branch is read as a planning
 source, not merged here. This PR targets main.
+
+
+v0.24.58 journals UTC wall_time and monotonic_seconds on every event. Partial
+text is appended and fsynced locally without a volume commit; every non-partial
+event synchronously commits the complete journal. Returned and stopped calls
+publish their latest text before continuing. Abrupt host loss can lose an
+uncommitted partial suffix remotely; there is no resend. Inventory and engine
+phases report elapsed times without changing full weight verification. See the
+2026-11-03 section of STEP4_COST_TIMING_v02456.md for measured limits and assumed
+forecasts. Journal fake-volume/engine tests are in test_step4_modal_backend,
+already registered in scripts/run_fast_checks.py. No run is approved.
