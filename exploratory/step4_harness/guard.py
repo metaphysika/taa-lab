@@ -55,7 +55,7 @@ def binding(commit, block, checkpoints=None):
 
 
 class LaunchGuard:
-    """Reserve worst-case cost before each call; never release uncertain reserves.
+    """Retain session or per-call reserves; never release uncertain amounts.
 
     persist must durably write before generation. A fresh run id/output is required;
     there is deliberately no resume API. Approval receipt is owner-supplied, and
@@ -71,13 +71,20 @@ class LaunchGuard:
         cap = receipt.get('dollar_cap')
         if isinstance(cap, bool) or not isinstance(cap, (int, float)) or not math.isfinite(cap) or cap <= 0:
             raise ValueError('finite positive dollar cap required')
-        self.cap, self.reserved, self.persist, self.attempts = cap, 0, persist, []
+        config = expected.get('backend_settings')
+        if config is not None:
+            from .modal_backend import settings
+            if config != settings(cap):
+                raise ValueError('cap/time settings mismatch')
+        self.cap, self.reserved, self.persist, self.attempts = cap, cap if config else 0, persist, []
         self.checkpoints = checkpoints
         self.block = expected['block']
         self.commit = expected['commit']
         self.started = False
 
     def call(self, checkpoint, maximum_cost, generate):
+        if hasattr(self, 'before_cell') and not self.before_cell():
+            raise ValueError('session time limit; no new request')
         if not self.checkpoints.get(checkpoint, {}).get('available'):
             raise ValueError('checkpoint blocked; no substitution')
         if not math.isfinite(maximum_cost) or maximum_cost < 0 or self.reserved+maximum_cost > self.cap:
@@ -88,8 +95,9 @@ class LaunchGuard:
         self.persist(deepcopy(self.attempts))
         try:
             result = generate()
-        except Exception:
-            attempt['status'] = 'failed_unknown_cost'
+        except Exception as exc:
+            from .runner import CallTimeout
+            attempt['status'] = 'call_timeout' if isinstance(exc, CallTimeout) else 'failed_unknown_cost'
             self.persist(deepcopy(self.attempts))
             raise
         attempt['status'] = 'returned'

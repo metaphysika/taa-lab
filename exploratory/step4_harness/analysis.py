@@ -84,7 +84,7 @@ def regression(effect, calibration=None):
 
 
 def observed(row, metric):
-    if not row or row.get('terminal_status') in ('measurement_failed', 'blocked'):
+    if not row or row.get('terminal_status') in ('measurement_failed', 'blocked', 'call_timeout'):
         return None
     if metric == 'protocol':
         bounds = row['protocol_bounds']

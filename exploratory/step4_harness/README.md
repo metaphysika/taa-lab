@@ -49,10 +49,9 @@ independent-label hashes, checkpoint inventory and finite dollar cap. An
 untrusted JSON receipt alone grants no authority. The caller must supply the
 actual clean execution commit to `binding`, use a fresh output/run identifier
 (`existing=True` refuses resume), durably persist attempts before generation,
-and enforce a worst-case per-call dollar reservation. Reservations include
-failed/uncertain calls, are never released automatically, and stop at the cap.
-A backend needs separate review of billing bounds and durable output handling.
-There is no model loader, remote launcher, automatic resume or retry here.
+and enforce the backend's time budget. The Modal backend reserves the whole
+approved cap once and records each attempt with zero additional dollar reserve.
+Uncertain amounts are never released; there is no resume or retry.
 Execution still requires Chris's exact-commit approval and staged budget review.
 
 ## Receipt-gated Modal backend (build only)
@@ -85,7 +84,7 @@ Claude's launch procedure, only after Chris approves the exact execution commit:
 
 Settings come from attempt 4's `exploratory/audit_tool/step4.py`: identical
 Debian/Python 3.12 image and six package pins, environment, A100-80GB, 2 CPUs,
-65536 MiB, six-hour timeout, 300-second idle, zero retries, read-only weights
+65536 MiB, cap-derived timeout (at most six hours less idle), 300-second idle, zero retries, read-only weights
 and private adapter volumes. Base revision and adapter hashes use the existing
 verification code. The engine is exactly `formation.study_d_gemma_stages_v02428.ENGINE`.
 The Study D `prompt_ids` helper receives unchanged system/user/assistant/tool
@@ -100,23 +99,31 @@ The cost model on `origin/b1b2-step4-cost-model`,
 $3.77 buffered high; each main stage $5.255 point / $13.135 buffered high;
 held-out $3.07 point / $7.68 buffered high. These are historical estimates.
 The backend uses its unrounded effective rate, $3.75532210 / (4351.140/3600),
-and a new conservative 120-second per-call time bound. Before each call it
-reserves rate * 120/3600; uncertain reserves are never released. It additionally
-reserves the whole six-hour session plus startup/idle and $0.40 overhead before
-calls, deliberately double counting generation time. Thus small planning caps
-can stop before completion. This envelope uses historical effective pricing,
-not a guaranteed current billing ceiling; Chris must check live headroom and
-approve the staged cap. Image building/storage outside that envelope need
-separate review. No completion or live tariff claim is made.
+and a fixed $0.40 margin. The session limit is floor(min(21600,
+(dollar_cap - 0.40) / effective_hourly_rate * 3600)) seconds. The function timeout
+subtracts the 300-second idle allowance. The margin assumes coverage of startup
+and other fixed overhead. A cap below the margin is refused; launch also requires
+room for a call and shutdown. A $3 development cap is launchable, with no
+completion guarantee. The receipt's `backend_settings` binds these derived limits.
+Use `--dollar-cap <cap>` for the offline binding preview (default $3).
 
-The worker stops starting cells at five hours, journals before generation and
-after each engine step, fsyncs and commits evidence, and retains the last partial
-reply on errors. One synchronous engine step or volume commit can overrun the
-120-second check; platform timeout remains the outer bound. There is no retry
-or automatic continuation. Abrupt platform termination can leave the final
-attempt reserved; the durable prefix remains evidence. Offline fake tests do
-not establish remote detach survival, mount behavior or billing bounds.
+The full approved cap is retained as the session reserve. Per-call dollar
+reservations are zero; the durable attempt ledger remains. Before each cell and
+each subsequent call, elapsed time plus the assumed 600-second call bound and
+120-second shutdown margin must fit within the function timeout. The historical
+effective rate is not a guaranteed live tariff; Chris must check live headroom
+and approve each staged cap. Image building/storage require separate review.
+
+The 600-second bound is an assumption for 4,096-token replies. On that deadline,
+the backend aborts the request, retains partial text, and ends only that episode
+as `call_timeout`, a mechanical unknown with protocol bounds [0,1] on the planned
+denominator. It never resends and continues to the next cell if time permits.
+Other generation exceptions stop the stage. Engine steps and volume commits can
+overrun a deadline check; the platform timeout is the outer bound. Evidence is
+journaled before generation and after each engine step, fsynced and committed.
+Abrupt termination may leave a reserved attempt; the durable prefix remains.
+Offline fake tests do not establish remote behavior or billing bounds.
 
 No Modal calls, model calls, GPU work, workflow dispatch or paid execution were
 authorized by this implementation. The cost-model branch is read as a planning
-source, not merged here. This PR is stacked on the unmerged harness PR #82.
+source, not merged here. This PR targets main.

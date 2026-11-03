@@ -11,7 +11,7 @@ import time
 import uuid
 import zipfile
 
-from .runner import plan, run_block
+from .runner import plan, run_block, CallTimeout
 from .guard import LaunchGuard, binding, inventory, verify_execution_commit
 from exploratory.audit_tool import audit
 from exploratory.audit_tool.modal_adapter import ROOT, TIMEOUT, IDLE
@@ -20,18 +20,28 @@ from exploratory.audit_tool.step4 import WEIGHTS_VOLUME, launch_guard
 STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out')
 # STEP4_COST_TIMING_v02456, retained $3.75532210 / 4351.140 seconds.
 EFFECTIVE_RATE = 3.75532210 / (4351.140 / 3600)
-CALL_SECONDS = 120
-CALL_RESERVE = EFFECTIVE_RATE * CALL_SECONDS / 3600
-# Whole six-hour allocation envelope, including startup and shutdown, retained
-# separately from call reserves. Effective rate is historical, not a tariff.
-SESSION_RESERVE = EFFECTIVE_RATE * (TIMEOUT + IDLE + 120) / 3600 + .40
+CALL_SECONDS = 600  # Assumed sufficient for a full 4096-token reply, not measured.
+CALL_RESERVE = 0
+FIXED_MARGIN = .40
+SHUTDOWN_SECONDS = 120
 
 
-def settings():
+def settings(cap):
+    import math
+    if type(cap) not in (int, float) or not math.isfinite(cap) or not FIXED_MARGIN <= cap <= 50:
+        raise ValueError('finite cap must cover fixed margin and fit monthly ceiling')
+    seconds = math.floor(min(TIMEOUT, (cap-FIXED_MARGIN) / EFFECTIVE_RATE * 3600))
     return dict(effective_hourly_rate=EFFECTIVE_RATE, call_seconds=CALL_SECONDS,
-                call_reserve=CALL_RESERVE, session_reserve=SESSION_RESERVE,
-                stop_new_cells_seconds=18000, output_tokens=4096,
-                sampling_seed=248017, timeout=TIMEOUT)
+                call_bound_assumption=True, fixed_margin=FIXED_MARGIN,
+                call_reserve=CALL_RESERVE, session_reserve=cap,
+                session_seconds=seconds, idle_seconds=IDLE,
+                shutdown_seconds=SHUTDOWN_SECONDS,
+                stop_new_cells_seconds=max(0, seconds-IDLE-CALL_SECONDS-SHUTDOWN_SECONDS),
+                output_tokens=4096, sampling_seed=248017, timeout=max(0, seconds-IDLE))
+
+
+def may_start(elapsed, config):
+    return elapsed + CALL_SECONDS + SHUTDOWN_SECONDS < config['timeout']
 
 
 class Journal:
@@ -86,7 +96,7 @@ class Backend:
             self.stream.add_request(request, {'prompt_token_ids': ids}, params, lora_request=adapter)
             while True:
                 if self.clock() >= deadline:
-                    raise TimeoutError('per-call time bound')
+                    raise CallTimeout(last)
                 for result in self.stream.step():
                     if result.request_id != request:
                         raise RuntimeError('unexpected request identity')
@@ -108,13 +118,11 @@ def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
     # Virtue lives on its own retained volume, as in attempt 4.
     checkpoints['virtue'] = inventory('/weights', '/virtue')['virtue']
     expected = binding(source_commit, receipt['block'], checkpoints)
-    expected['backend_settings'] = settings()
+    config = settings(receipt['dollar_cap'])
+    expected['backend_settings'] = config
     guard = LaunchGuard(receipt, expected, checkpoints,
                         lambda rows: journal(dict(event='attempt_ledger', attempts=rows)), owner_approved=True)
-    guard.reserved = SESSION_RESERVE
-    if guard.reserved > guard.cap:
-        raise ValueError('session reserve exceeds cap')
-    guard.before_cell = lambda: clock() - started < 18000
+    guard.before_cell = lambda: may_start(clock()-started, config)
     from exploratory.audit_tool.modal_adapter import verify_checkpoint
     paths = {arm: verify_checkpoint('/virtue' if arm == 'virtue' else '/adapters', arm)
              for arm, entry in checkpoints.items() if arm != 'base' and entry['available']}
@@ -141,7 +149,7 @@ def submit(app, worker, ledger, receipt, run_id, output):
     with app.run(detach=True):
         # Durable claim survives client loss and is never cleared on failure.
         if not ledger.put('receipt-'+hashlib.sha256(json.dumps(receipt, sort_keys=True).encode()).hexdigest(),
-                          dict(run_id=run_id, reserved=SESSION_RESERVE), skip_if_exists=True):
+                          dict(run_id=run_id, reserved=receipt['dollar_cap']), skip_if_exists=True):
             raise ValueError('receipt already claimed; no resume')
         call = worker.spawn(receipt, run_id)
         with Path(output).open('x', encoding='utf-8') as stream:
@@ -164,7 +172,7 @@ def launch(receipt, archive, output):
     weights = modal.Volume.from_name(WEIGHTS_VOLUME).read_only()
 
     @app.function(image=image, gpu='A100-80GB', cpu=(2, 2), memory=(65536, 65536),
-                  timeout=TIMEOUT, startup_timeout=120, scaledown_window=IDLE,
+                  timeout=settings(receipt['dollar_cap'])['timeout'], startup_timeout=120, scaledown_window=IDLE,
                   retries=0, max_containers=1, single_use_containers=True,
                   volumes={'/weights': weights, '/adapters': private, '/virtue': virtue,
                            '/results': evidence}, serialized=True)
@@ -196,12 +204,14 @@ def main():
     parser.add_argument('--receipt', type=Path)
     parser.add_argument('--confirm-owner-approval', action='store_true')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--dollar-cap', type=float, default=3, help='cap for offline binding preview')
     args = parser.parse_args()
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     expected = binding(commit, args.stage)
+    receipt = json.loads(args.receipt.read_bytes()) if args.receipt else None
+    config = settings(receipt['dollar_cap'] if receipt else args.dollar_cap)
     print(json.dumps(dict(block=args.stage, cells=len(plan(args.stage)), binding=expected,
-                         settings=settings(), cap=None if not args.receipt else
-                         json.loads(args.receipt.read_bytes()).get('dollar_cap')), indent=2), flush=True)
+                         settings=config, cap=receipt.get('dollar_cap') if receipt else args.dollar_cap), indent=2), flush=True)
     if not args.receipt or not args.confirm_owner_approval or not args.output:
         parser.error('approved receipt, explicit operator trust and fresh output required')
     receipt = json.loads(args.receipt.read_bytes())
@@ -209,13 +219,12 @@ def main():
     launch_guard(True, os.environ)
     if args.output.exists() or receipt.get('approved_by') != 'Chris Lahn':
         parser.error('fresh output and Chris Lahn approval required')
-    if any(receipt.get(k) != v for k, v in expected.items()) or receipt.get('backend_settings') != settings():
+    if any(receipt.get(k) != v for k, v in expected.items()) or receipt.get('backend_settings') != config:
         parser.error('receipt binding/settings mismatch')
-    # Allocation reserve covers startup/idle too; call reserves are additional
-    # conservative accounting. No uncertain reservation is released.
+    # The full approved cap remains reserved; attempts add no dollar reserves.
     cap = receipt.get('dollar_cap')
-    if type(cap) not in (float, int) or not SESSION_RESERVE <= cap <= 50:
-        parser.error('finite cap must cover session envelope and fit monthly ceiling')
+    if config['timeout'] <= CALL_SECONDS + SHUTDOWN_SECONDS:
+        parser.error('cap leaves no time for a bounded call and shutdown')
     headroom = receipt.get('monthly_headroom_usd')
     if type(headroom) not in (float, int) or not cap <= headroom <= 50:
         parser.error('owner live monthly headroom attestation required')
