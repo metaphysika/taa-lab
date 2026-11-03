@@ -53,15 +53,20 @@ The Linux workflows use `sudo unshare --net` for OS-level offline isolation wher
 
 ## GitHub housekeeping
 
-Owner-approved standing rules, effective 2026-10-30, copied verbatim from the Master Plan's "GitHub housekeeping" section; only filesystem path spelling is adjusted.
+Owner-approved standing rules, effective 2026-10-30 and updated 2026-11-03 (stage-thread workflow). This file is the source of truth for these rules; the Master Plan points here.
 
-- Setting: the always-on home Windows PC runs T3 Code and is signed in to GitHub via Git Credential Manager and GitHub CLI (`gh`, signed in as metaphysika) (one-time sign-ins 2026-10-30). Repo metaphysika/taa-lab at C:\Users\lahn0\T3\taa-lab. Sol (GPT builder, gpt-6.1-sol) and Claude (planner/reviewer) run there; Grok Bot (Codi) orchestrates.
+- Setting: the always-on home Windows PC runs T3 Code and is signed in to GitHub via Git Credential Manager and GitHub CLI (`gh`, signed in as metaphysika) (one-time sign-ins 2026-10-30). Repo metaphysika/taa-lab at C:\Users\lahn0\T3\taa-lab. Sol (GPT builder, gpt-6.1-sol), Astra (independent reviewer, gpt-6-astra) and Claude (planner, reviewer and orchestrator) run there. Chris does no GitHub work.
 - Sol pushes: small commits with clear messages (what and why, citing the plan section), push to origin after each meaningful commit, work on a named b1b2-* branch, never commit to main directly. Sol opens each pull request with `gh pr create` (clear title; body: what changed, why, tests, plan reference).
-- Grok Bot (orchestrator) stays out of GitHub unless asked, except a quick check at each stage change that nothing is left unmerged.
+- Grok Bot (Codi) is optional since 2026-11-03 and does no GitHub work unless Chris asks.
+- Claude owns everything else on GitHub: merges, keeping stacked or conflicted branches mergeable (merge main into the branch; never force-push without asking), and small record commits such as notebook entries and evidence records on its own b1b2-* branch. A Claude-authored code change gets a review from Sol or Astra before Claude merges it.
 - Claude merges: reviews the PR against the plan and Aim Check; when approved and CI is green, Claude merges with `gh pr merge --squash --delete-branch` using a clear commit message (this also deletes the branch), then Claude or Sol pulls main. No asking Chris before merging to main. Chris is still asked first for paid runs (exact-commit Gate 1b approval), key or secret handling changes, and anything permanent outside the normal flow (force-push, rewriting history, deleting unmerged branches).
 - Ask the owner before anything permanent outside this flow: force-push, deleting an unmerged branch, rewriting history, or merging anything with a paid-run or key-handling change. Exact-commit approval for paid runs (Gate 1b), Modal operations and public releases stays owner-only. A merge is not launch approval.
 - Cleanup: head branches are deleted at merge by `--delete-branch`. Stale review/scratch branches (b1b2-astra-review, b1b2-astra-recheck, b1b2-claude-review, etc.) are cleaned up once merged or abandoned; local T3 worktrees under C:\Users\lahn0\.t3\worktrees can be removed once merged.
 - No secrets in commits or Notion; API keys go in GitHub repository secrets that the owner adds himself.
+
+## Stage threads
+
+Adopted 2026-11-03 (Chris's decision). Each stage of testing runs in one long-lived Claude orchestrator thread in T3 Code. From that thread Claude starts Sol as a child task in its own worktree for building, and Astra as a child task given only the material it must judge (for example a blind labeling packet). Claude reviews their work, merges, records decisions in `LAB_NOTEBOOK.md` and the Master Plan, and plans the next step. Before any paid run, a fresh-context reviewer checks the exact commit. Start a new thread at a stage boundary, or after the thread has been automatically summarized more than once, from a short handoff file in `C:Userslahn0T3riefs`. Keep the durable record in the repo, the notebook and Notion, not in thread memory.
 
 ## Predictions and exploratory runs
 
