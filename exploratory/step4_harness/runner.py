@@ -27,6 +27,9 @@ def labels():
 
 
 def plan(block):
+    if block in ('main_base_neutral', 'main_contrary_virtue'):
+        arms = ARMS[:2] if block == 'main_base_neutral' else ARMS[2:]
+        return [c for c in plan('main') if c['checkpoint'] in arms]
     if block not in ('development', 'main', 'held_out'):
         raise ValueError('unknown block')
     cases = load()
@@ -127,7 +130,7 @@ def episode(case, branch, generate):
     return row
 
 
-def run_block(block, checkpoint_inventory, guard, backend, retain, maximum_call_cost):
+def run_block(block, checkpoint_inventory, guard, backend, retain, maximum_call_cost, *, execution_verifier=None):
     """Run one explicitly approved block with an injected backend, never resume.
 
     backend(checkpoint, system, history, max_tokens) must enforce the output cap.
@@ -142,11 +145,13 @@ def run_block(block, checkpoint_inventory, guard, backend, retain, maximum_call_
     if guard.started:
         raise ValueError('no automatic resume or repeat launch')
     from .guard import verify_execution_commit
-    verify_execution_commit(guard.commit)
+    (execution_verifier or verify_execution_commit)(guard.commit)
     guard.started = True
     cases = {c['id']: c for c in load()}
     rows = []
     for cell in plan(block):
+        if hasattr(guard, 'before_cell') and not guard.before_cell():
+            break
         arm = cell['checkpoint']
         if not checkpoint_inventory.get(arm, {}).get('available'):
             row = dict(cell, terminal_status='blocked', attempts=[], format_closed_valid=False)
