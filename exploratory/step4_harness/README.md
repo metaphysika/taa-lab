@@ -72,7 +72,7 @@ Claude's launch procedure, only after Chris approves the exact execution commit:
    print the binding/settings and refuse launch. Each subsequent stage needs its
    own receipt and approval.
 2. Prepare the owner receipt with the printed binding, `backend_settings`,
-   `approved_by: "Chris Lahn"`, `dollar_cap`, live `monthly_headroom_usd`, and
+   `approved_by: "Chris Lahn"`, a new owner `approval_id`, `dollar_cap`, live `monthly_headroom_usd`, and
    `inventory_sha256` from `guard.inventory` (virtue from `/virtue`, other arms
    from `/adapters`). The remote worker recomputes this inventory before loading.
    Bind `archive_sha256` to `git archive --format=zip HEAD` bytes. Receipt JSON
@@ -115,9 +115,12 @@ the hard backstop. The time limit is an estimate-based guard, not a billing guar
 Use `--dollar-cap <cap>` for the offline binding preview.
 
 The receipt must contain a nonempty `approval_id`. Its durable once-only claim
-hashes only the canonical execution fields, including that ID; unexpected fields
-are refused. The monthly headroom attestation is validated separately and cannot
-create a fresh claim for the same execution.
+is `receipt-` plus the SHA-256 of that ID alone. A new launch requires a new owner
+approval ID; changing numeric representations, settings order or monthly headroom
+cannot create another claim. Unexpected fields and missing execution fields are
+refused, and binding and settings equality remain required. The same ledger entry
+records an execution fingerprint for audit: execution-field numbers are normalized
+with `float()` before hashing JSON with sorted keys and compact separators.
 
 The full approved cap is retained as the session reserve. Per-call dollar
 reservations are zero; the durable attempt ledger remains. Before each cell and

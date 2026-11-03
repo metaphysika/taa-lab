@@ -152,12 +152,12 @@ class BackendTests(unittest.TestCase):
         calls = []
         class Ledger:
             def __init__(self):
-                self.used = set()
+                self.used = {}
             def put(self, *args, **kwargs):
                 calls.append('claim')
                 if args[0] in self.used:
                     return False
-                self.used.add(args[0])
+                self.used[args[0]] = args[1]
                 return True
         ledger = Ledger()
         app = NS(run=lambda **kw: calls.append(kw) or nullcontext(), app_id='app')
@@ -169,6 +169,23 @@ class BackendTests(unittest.TestCase):
             b.submit(app, worker, ledger, receipt, 'id', Path(temp)/'receipt')
             with self.assertRaises(ValueError):
                 b.submit(app, worker, ledger, receipt, 'id2', Path(temp)/'receipt2')
+            variants = [dict(receipt, dollar_cap=5.0),
+                        dict(receipt, backend_settings=dict(reversed(list(receipt['backend_settings'].items())))),
+                        dict(receipt, backend_settings={
+                            k: float(v) if type(v) in (int, float) else v
+                            for k, v in receipt['backend_settings'].items()})]
+            for index, variant in enumerate(variants):
+                with self.subTest(index=index):
+                    self.assertEqual(b.execution_fingerprint(receipt), b.execution_fingerprint(variant))
+                    with self.assertRaisesRegex(ValueError, 'receipt already claimed'):
+                        b.submit(app, worker, ledger, variant, 'duplicate', Path(temp)/f'duplicate{index}')
+            entry = ledger.used[b.claim_key(receipt)]
+            self.assertEqual(entry, dict(run_id='id', reserved=5,
+                                        execution_fingerprint=b.execution_fingerprint(receipt)))
+            self.assertNotEqual(b.claim_key(receipt), b.claim_key(dict(receipt, approval_id='development-2')))
+            for invalid_id in ('', ' ', None, 5):
+                with self.assertRaisesRegex(ValueError, 'nonempty approval_id'):
+                    b.claim_key(dict(receipt, approval_id=invalid_id))
             with self.assertRaisesRegex(ValueError, 'unexpected receipt fields'):
                 b.submit(app, worker, ledger, dict(receipt, note='new note'), 'id3', Path(temp)/'receipt3')
             self.assertEqual(calls.count('spawn'), 1)

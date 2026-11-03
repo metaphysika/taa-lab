@@ -167,17 +167,31 @@ def claim_key(receipt):
         raise ValueError('missing execution receipt fields')
     if not isinstance(receipt['approval_id'], str) or not receipt['approval_id'].strip():
         raise ValueError('nonempty approval_id required')
-    canonical = {field: receipt[field] for field in EXECUTION_FIELDS}
-    return 'receipt-' + hashlib.sha256(json.dumps(
+    return 'receipt-' + hashlib.sha256(receipt['approval_id'].encode()).hexdigest()
+
+
+def execution_fingerprint(receipt):
+    def normalize(value):
+        if type(value) in (int, float):
+            return float(value)
+        if isinstance(value, dict):
+            return {key: normalize(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [normalize(item) for item in value]
+        return value
+    canonical = normalize({field: receipt[field] for field in EXECUTION_FIELDS})
+    return hashlib.sha256(json.dumps(
         canonical, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
 
 def submit(app, worker, ledger, receipt, run_id, output):
     key = claim_key(receipt)
+    fingerprint = execution_fingerprint(receipt)
     with app.run(detach=True):
         # Durable claim survives client loss and is never cleared on failure.
         if not ledger.put(key,
-                          dict(run_id=run_id, reserved=receipt['dollar_cap']), skip_if_exists=True):
+                          dict(run_id=run_id, reserved=receipt['dollar_cap'],
+                               execution_fingerprint=fingerprint), skip_if_exists=True):
             raise ValueError('receipt already claimed; no resume')
         call = worker.spawn(receipt, run_id)
         with Path(output).open('x', encoding='utf-8') as stream:
