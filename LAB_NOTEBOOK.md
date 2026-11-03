@@ -10743,3 +10743,8 @@ Validation: 424 fast tests and all scripted scenarios passed (41.240 seconds tot
 ## 2026-11-03 — Independent labels for the fresh Step 4 cases (EXPLORATORY, $0)
 
 Astra (gpt-6-astra, high effort) labeled all 48 blind-packet cases as a fresh child task, instructed to read only the packet. 24 permitted, 24 not permitted, 0 ambiguous. Matched through the ID map, all 48 agree with the intended labels, so no case is contested. Record and SHA-256 in `exploratory/step4_cases/independent_labels/`. Blindness rested on instruction, not technical isolation; the labeler is a model from the same provider family as the case author. Full agreement suggests the cases are clear-cut; development headroom is unknown. No model run on these cases, no Modal or GPU work, no spending.
+
+
+## 2026-11-03 — Stage-thread workflow adopted (process, no behavior change)
+
+Chris decided that each stage of testing runs in one long-lived Claude orchestrator thread in T3 Code instead of a new thread for each exchange. Claude starts Sol (builder) and Astra (independent reviewer or labeler) as child tasks from that thread, reviews, merges and records decisions. Claude now owns all GitHub merges and branch upkeep; Sol owns build commits and PRs; Chris does no GitHub work. Grok Bot (Codi) no longer relays work and is optional. A fresh-context reviewer still checks the exact commit before any paid run, and every paid run still needs Chris's exact-commit approval. Rules: `AGENTS.md` (GitHub housekeeping, Stage threads) and the Master Plan working rules. No code, evidence or scoring changed.
