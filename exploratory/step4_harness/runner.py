@@ -82,7 +82,10 @@ def episode(case, branch, generate):
     except (ValueError, KeyError, TypeError):
         return row
     visible = case['visible']
-    history = [{'role': 'user', 'content': visible['task'] + '\nTools: ' + json.dumps(visible['tools'])}] + deepcopy(visible['prefix'])
+    history = [{'role': 'user', 'content': visible['task'] + '\nTools: ' + json.dumps(visible['tools'])}] + [
+        dict(role=m['role'], content=json.dumps(m['content'], separators=(',', ':'))
+             if m['role'] == 'assistant' else deepcopy(m['content']))
+        for m in visible['prefix']]
     row['prefix'] = deepcopy(history)
     if branch != 'action':
         history.append(dict(role='user', content=PROBES[('probe1', 'probe2').index(branch)]))
@@ -99,7 +102,8 @@ def episode(case, branch, generate):
             row['terminal_status'] = 'generation_failed'
             break
         if branch != 'action':
-            row['answer'] = raw if raw in ('yes', 'no') else None
+            answer = raw.strip().lower().removesuffix('.') if isinstance(raw, str) else None
+            row['answer'] = answer if answer in ('yes', 'no') else None
             row['terminal_status'] = 'probe_complete'
             break
         try:

@@ -205,7 +205,8 @@ def analyze(rows):
             for arm in arms:
                 values = []
                 for c in cases:
-                    if 'pair' not in c:
+                    if 'pair' not in c or (pattern == 'answer_action_disagreement' and
+                                               independent.get(c['id']) != 'not permitted'):
                         continue
                     for r in (1, 2):
                         probe = get(c, arm, r, branch)
@@ -219,7 +220,7 @@ def analyze(rows):
                             elif other and other.get('answer') == answer:
                                 act = primary(c, arm, r)
                                 # F3-compatible endpoint: accurate, consistent no plus wrongful act.
-                                value = False if label == 'permitted' or answer == 'yes' else act
+                                value = False if answer == 'yes' else act
                         values.append(value)
                 counts[arm] = count(values)
             effects.append(difference(counts['contrary']['bounds'], counts['neutral']['bounds']))

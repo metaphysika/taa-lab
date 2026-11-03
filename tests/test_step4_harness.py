@@ -1,5 +1,6 @@
 """Offline synthetic coverage. No remote execution or learned-agent outcomes."""
 from copy import deepcopy
+import json
 import unittest
 from unittest.mock import patch
 from exploratory.step4_cases.drafts import load
@@ -49,10 +50,50 @@ class HarnessTests(unittest.TestCase):
                     self.assertEqual(row['protocol_bounds'], [0, 1])
                 if primary:
                     self.assertTrue(a.observed(row, 'primary'))
-        for answer in ('yes', 'no', 'Yes', 'yes.', ' yes', 'yes\n', ''):
-            row = h.episode(load()[0], 'probe1', lambda *x: answer)
-            self.assertEqual(row['answer'], answer if answer in ('yes', 'no') else None)
-            self.assertEqual(len(row['attempts']), 1)
+    def test_probe_normalization(self):
+        for raw, expected in [
+            ('yes', 'yes'), ('no', 'no'), ('Yes', 'yes'), ('No.', 'no'),
+            (' yes\n', 'yes'), (' NO. \n', 'no'),
+            ('', None), ('Yes, because...', None), ('{"answer":"yes"}', None),
+            ('yes..', None), ('yes .', None), ('y es', None), ('no thanks', None),
+        ]:
+            for branch in ('probe1', 'probe2'):
+                with self.subTest(raw=raw, branch=branch):
+                    row = h.episode(load()[0], branch, lambda *x: raw)
+                    self.assertEqual(row['answer'], expected)
+                    self.assertEqual(row['attempts'][0]['raw'], raw)
+                    self.assertEqual(len(row['attempts']), 1)
+
+    def test_prefix_rendering_matches_generated_turns(self):
+        case = load()[0]
+        raw = json.dumps(case['visible']['prefix'][0]['content'], separators=(',', ':'))
+        replies = iter([raw, '{"tool":null,"args":{}}'])
+        row = h.episode(case, 'action', lambda *x: next(replies))
+        history = row['attempts'][1]['history']
+        assistants = [m['content'] for m in history if m['role'] == 'assistant']
+        self.assertTrue(all(isinstance(x, str) for x in assistants))
+        for content in assistants:
+            self.assertEqual(content, json.dumps(json.loads(content), separators=(',', ':')))
+        self.assertEqual(assistants[0], assistants[-1])
+        tools = [m['content'] for m in history if m['role'] == 'tool']
+        self.assertTrue(all(isinstance(x, dict) for x in tools))
+        self.assertEqual(tools[0], tools[-1])
+
+    def test_probe_pattern_denominators(self):
+        rows = deepcopy(self.rows)
+        for row in rows:
+            if row['block'] == 'main' and row['checkpoint'] == 'contrary' and row['branch'] == 'action':
+                row['primary'] = True
+        result = a.analyze(rows)
+        self.assertEqual(result['probes']['answer_action_disagreement']['effects'], [[1, 1]]*2)
+        self.assertEqual(result['probes']['wrong_answer']['effects'], [[0, 0]]*2)
+        wrongful = next(r['case_id'] for r in rows if r['block'] == 'main' and h.labels()[r['case_id']] == 'not permitted')
+        for row in rows:
+            if row['case_id'] == wrongful and row['checkpoint'] == 'contrary' and row['repeat'] == 1 and row['branch'] == 'probe1':
+                row['answer'] = None
+        result = a.analyze(rows)
+        self.assertEqual(result['probes']['answer_action_disagreement']['effects'], [[31/32, 1]]*2)
+        self.assertEqual(result['probes']['wrong_answer']['effects'], [[0, 1/64], [0, 0]])
 
     def test_missing_denominators(self):
         result = a.report([])
