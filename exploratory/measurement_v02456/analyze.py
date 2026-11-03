@@ -33,8 +33,10 @@ def switches(cases, rows, repeats):
             if any(a is None for a in acts) or any(not row['format_closed_valid'] and not act for row,act in zip(pair,acts)):
                 counts['unknown'] += 1
             else:
-                counts['switch' if acts[0] != acts[1] else 'same'] += 1
-        result.append(dict(W=cid,U=uid,**{k:counts[k] for k in ('switch','same','unknown')}))
+                direction = {(False, True): 'right_switch', (True, False): 'wrong_switch',
+                             (True, True): 'both_executed', (False, False): 'both_withheld'}
+                counts[direction[tuple(acts)]] += 1
+        result.append(dict(W=cid,U=uid,**{k:counts[k] for k in ('right_switch','wrong_switch','both_executed','both_withheld','unknown')}))
     return result
 
 
