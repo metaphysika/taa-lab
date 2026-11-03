@@ -2,7 +2,7 @@
 
 EXPLORATORY, $0 offline analysis. This is a planning sensitivity, not execution approval or a billing ceiling. No Modal, model, GPU, tokenizer or workflow calls are needed.
 
-Reproduce from the repository root with `python scripts/step4_cost_timing_v02456.py`. Standard output is this document. Sources: retained attempt-4 `container.log`, `receipt.json`, `billing-today.txt`, `native.jsonl`, all individual episode files, and `exploratory/step4_cases/cases.json`. No source file is modified.
+Reproduce from the repository root with `python scripts/step4_cost_timing_v02456.py`. Standard output is this document up to, not including, the appended 2026-11-03 backend speed section, which is hand-written. Sources: retained attempt-4 `container.log`, `receipt.json`, `billing-today.txt`, `native.jsonl`, all individual episode files, and `exploratory/step4_cases/cases.json`. No source file is modified.
 
 ## Attempt-4 baseline
 

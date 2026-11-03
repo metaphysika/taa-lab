@@ -135,7 +135,8 @@ as `call_timeout`, a mechanical unknown with protocol bounds [0,1] on the planne
 denominator. It never resends and stops the block for review without starting another cell.
 Other generation exceptions stop the stage. Engine steps and volume commits can
 overrun a deadline check; the platform timeout is the outer bound. Evidence is
-journaled before generation and after each engine step, fsynced and committed.
+journaled before generation and after each engine step and fsynced locally; since v0.24.58 the
+volume is committed at every non-partial event, not after each streamed partial.
 Abrupt termination may leave a reserved attempt; the durable prefix remains.
 Offline fake tests do not establish remote behavior or billing bounds.
 
