@@ -18,7 +18,7 @@ FAST = (
     'tests.test_ci_tiers', 'tests.test_v020', 'tests.test_v0206',
     'tests.test_obligations', 'tests.test_premise_repairs',
     'tests.test_gateway_foundation', 'tests.test_gateway_executor',
-    'tests.test_assertion_binding',
+    'tests.test_assertion_binding', 'tests.test_measurement_v02456',
     'tests.test_experiment_b', 'tests.test_step3_v02444',
 )
 
