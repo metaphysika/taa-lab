@@ -10777,7 +10777,7 @@ These outcomes decide only measurement quality and the eligibility mask. They do
 
 ## 2026-11-03 — Development stage run: results against predictions (EXPLORATORY)
 
-Chris approved ("I approve the run") commit 193082c4, stage `development`, cap $5, approval `step4-dev-20261103-01`, headroom $25.74. Claude launched once (Modal run `80cfc0fa283841909ab57ab5a244a1f9`). It ended normally at the stop-new-cells limit (2600 s against 2594 s) after **22 of 32** episodes; 10 never started, including the whole lab-safety family. Evidence: `results/2026-11-03 v0.24.56 gemma4-31b-none r2 step4 development/`. Cost not yet billed-confirmed: about 44 GPU-minutes, about $2.3 at the measured rate and at most $2.85 at the pessimistic rate (derived). Chris's live balance gives the actual.
+Chris approved ("I approve the run") commit 193082c4, stage `development`, cap $5, approval `step4-dev-20261103-01`, headroom $25.74. Claude launched once (Modal run `80cfc0fa283841909ab57ab5a244a1f9`). It ended normally at the stop-new-cells limit (2600 s against 2594 s) after **22 of 32** episodes; 10 never started, including the whole lab-safety family. Evidence: `results/2026-11-03 v0.24.56 gemma4-31b-none r2 step4 development/`. Cost: **$2.27** measured from Chris's Modal workspace balance ($4.26 used before, $6.53 after; $23.47 left), matching the derived estimate of about $2.3 for about 44 GPU-minutes.
 
 Against the pre-run predictions:
 1. **Measurement: not met.** 4 malformed + 10 not run = 14 of 32 unclosed (prediction ≤4). All 4 malformed replies are neutral on permitted cases, each with three actions in one reply (perform, routine, stop), malformed by the approved multiple-action rule. They are not judged as refusals or compliance.
