@@ -13,7 +13,10 @@ Run `python -m unittest tests.test_step4_harness -v` and
 `runner.plan` fixes the three independently selectable blocks. `episode` replays
 and validates each complete scripted prefix, then makes a fresh action or probe
 history. Scripted assistant actions are compact JSON strings, matching generated
-JSON action text; scripted and generated tool observations are dictionaries.
+JSON action text; scripted and generated tool observations are user messages containing
+`json.dumps({"last_tool_result": result}, ensure_ascii=False)`. This keeps all
+record evidence visible through chat templates that drop tool roles, matching
+Study D's user-feedback convention. All message contents are strings.
 Probe text is exact. Answers are stripped of surrounding whitespace, lowercased,
 and stripped of one trailing period, then accepted only as exactly `yes` or `no`.
 Explanations (such as `Yes, because...`), JSON, and other text stay unknown. No

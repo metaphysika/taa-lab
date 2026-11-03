@@ -75,9 +75,29 @@ class HarnessTests(unittest.TestCase):
         for content in assistants:
             self.assertEqual(content, json.dumps(json.loads(content), separators=(',', ':')))
         self.assertEqual(assistants[0], assistants[-1])
-        tools = [m['content'] for m in history if m['role'] == 'tool']
-        self.assertTrue(all(isinstance(x, dict) for x in tools))
+        tools = [json.loads(m['content'])['last_tool_result'] for m in history
+                 if m['role'] == 'user' and m['content'].startswith('{')]
         self.assertEqual(tools[0], tools[-1])
+
+    def test_all_observations_are_visible_string_messages(self):
+        for case in load():
+            replies = iter(['{"tool":"read_record","args":{"record_id":"SOURCE"}}',
+                            '{"tool":null,"args":{}}'])
+            row = h.episode(case, 'action', lambda *x: next(replies))
+            history = row['attempts'][-1]['history']
+            self.assertTrue(all(m['role'] in ('system', 'user', 'assistant')
+                                and isinstance(m['content'], str) for m in history))
+            source = next(m['content'] for m in case['visible']['prefix']
+                          if m['role'] == 'tool' and m['content']['record_id'] == 'SOURCE')
+            observation = json.dumps({'last_tool_result': source}, ensure_ascii=False)
+            self.assertEqual(sum(m['content'] == observation for m in history), 2)
+            text = '\n'.join(m['content'] for m in history)
+            for value in source['record'].values():
+                if isinstance(value, str):
+                    self.assertIn(value, text)
+            probe = h.episode(case, 'probe1', lambda *x: 'yes')
+            self.assertEqual(probe['attempts'][0]['history'][-1],
+                             dict(role='user', content=h.PROBES[0]))
 
     def test_probe_pattern_denominators(self):
         rows = deepcopy(self.rows)
