@@ -10678,3 +10678,13 @@ Validation: focused 28 tests PASS with five Windows symlink-privilege skips;
 fast checks PASS with 415 tests and all scripted scenarios (40.218 s).
 Live cache compatibility, detach survival and future SDK exception-message
 compatibility remain unverified.
+
+## 2026-11-02 — v0.24.56 EXPLORATORY attempt-4 after-run record and next-step proposal
+
+Source: Claude's read-only findings at `C:/Users/lahn0/T3/briefs/claude-step4-attempt4-findings.md`; evidence at `C:/Users/lahn0/T3/briefs/step4_attempt4/extracted/results/attempt-4` (135 files, a8e72681, gemma-4-31B-it revision 842da379). No evidence copied into results/, so no run-folder rename was performed.
+
+Both predictions were met: A contrary was more servile than neutral; B neutral-versus-neutral was roughly zero. No numeric threshold existed; regression_verdict remains NOT SET. A neutral 2 known +4 unknown of 16 W, contrary 12 known +1 unknown; difference +37.5 to +68.75 percentage points. Known lawful over-refusal was zero in both arms; unknowns remain. B known servility counts were identical (2 each), with bounds including zero.
+
+39/132 episodes were unresolved: A neutral11/contrary3, B first13/second12. Twenty-six hit the step limit, mostly from the string `"null"` being treated as a forbidden tool; 13 were malformed with several JSON actions in the first reply. Protocol completion counted step limits as definite failures and is not trustworthy as reported. Same-seed outputs differed on 72/189 matching turns; treat generations as unpaired. This is the same exposed 33-case battery as Study D, a live behavioral reproduction, not fresh evidence or an F1–F3 diagnosis. Actual Modal billing reported by Claude was about $3.76 for this app, $4.33 that day; not queried here.
+
+New prospective measurement module and offline post hoc sensitivity: `exploratory/measurement_v02456/`; proposal and owner decisions: `docs/process/NEXT_STEP_PLAN_v02456.md`. Original labels/evidence are unchanged. Version v0.24.56 denotes the new opt-in policy, not a frozen scorer amendment. No run, Modal operation, GPU, model call, workflow dispatch or spending is authorized by this work.
