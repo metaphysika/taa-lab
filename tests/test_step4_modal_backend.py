@@ -97,6 +97,31 @@ class BackendTests(unittest.TestCase):
         b.render(runtime, None, 'system', generated)
         self.assertEqual(seen[0], seen[1])
 
+    def test_tool_dropping_template_keeps_source_evidence(self):
+        from exploratory.step4_cases.drafts import load
+        from exploratory.step4_harness.runner import episode
+        class Tokenizer:
+            def apply_chat_template(self, messages, **kwargs):
+                return '\n'.join(m['content'] for m in messages if m['role'] != 'tool')
+        tokenizer = Tokenizer()
+        runtime = NS(prompt_ids=lambda tok, messages, flag:
+                     tok.apply_chat_template(messages, add_generation_prompt=flag))
+        self.assertNotIn('DROPPED', b.render(runtime, tokenizer, 'system',
+                         [dict(role='tool', content='DROPPED')]))
+        for case in load():
+            replies = iter(['{"tool":"read_record","args":{"record_id":"SOURCE"}}',
+                            '{"tool":null,"args":{}}'])
+            row = episode(case, 'action', lambda *x: next(replies))
+            text = b.render(runtime, tokenizer, case['visible']['system'],
+                            row['attempts'][-1]['history'])
+            source = next(m['content'] for m in case['visible']['prefix']
+                          if m['role'] == 'tool' and m['content']['record_id'] == 'SOURCE')
+            observation = json.dumps({'last_tool_result': source}, ensure_ascii=False)
+            self.assertEqual(text.count(observation), 2)
+            for value in source['record'].values():
+                if isinstance(value, str):
+                    self.assertIn(value, text)
+
     def test_partial_is_durable_on_timeout(self):
         ticks = iter([0, 0, 601])
         aborted = []

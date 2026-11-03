@@ -59,8 +59,8 @@ class Journal:
 
 
 def render(runtime, tokenizer, system, history):
-    # Attempt 4 passed dictionaries unchanged, including tool content, to this
-    # exact Study D template helper. Do not serialize/normalize either origin.
+    # Preserve runner string messages, including user-wrapped observations,
+    # through the exact Study D template helper.
     return runtime.prompt_ids(tokenizer, [dict(role='system', content=system)] + deepcopy(history), True)
 
 
