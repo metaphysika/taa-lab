@@ -3,9 +3,11 @@ import argparse
 import difflib
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 REVISION = '842da3794eaa0b77d5f08bae87a17459d91ff475'
 HASHES = {
     'tokenizer.json': 'cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f',
@@ -14,14 +16,14 @@ HASHES = {
 }
 
 
-def messages(visible):
-    """Exact runner.episode initial action history at PR #82 eac7c9bc."""
-    from copy import deepcopy
-    return [dict(role='system', content=visible['system']),
-            dict(role='user', content=visible['task'] + '\nTools: ' + json.dumps(visible['tools']))] + [
-        dict(role=m['role'], content=json.dumps(m['content'], separators=(',', ':'))
-             if m['role'] == 'assistant' else deepcopy(m['content']))
-        for m in visible['prefix']]
+def messages(case):
+    """Obtain the actual runner prefix, without inference."""
+    from exploratory.step4_harness.runner import episode
+    captured = []
+    episode(case, 'action', lambda system, history, cap:
+            captured.append((system, history)) or '{"tool":null,"args":{}}')
+    system, history = captured[0]
+    return [dict(role='system', content=system)] + history
 
 
 def main():
@@ -45,9 +47,8 @@ def main():
     runtime = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(runtime)
     tokenizer = AutoTokenizer.from_pretrained(str(args.tokenizer_dir), local_files_only=True)
-    report.update(wire_format='runner.episode eac7c9bc + modal_backend.render 09d12df2 + runtime.prompt_ids',
-                  earlier_report=dict(status='blocked', commit='869b8bba',
-                                      reason="Missing jinja2; dependency downloads previously unauthorized"),
+    report.update(wire_format='runner.episode 5818aad9 + modal_backend.render ef49d442 + runtime.prompt_ids',
+                  earlier_report=dict(status='measured_contrasts_dropped', commit='7269d51cd95bf401cb1444a0e66a75d7379fd4a3', reason='All 32 contrasts omitted by tool-role rendering', report_path='docs/process/STEP4_TOKEN_ALIGNMENT_DROPPED_v02456.json', prior_blocked_commit='869b8bba'),
                   python=platform.python_version(),
                   packages={d.metadata['Name']: d.version for d in sorted(
                       importlib.metadata.distributions(), key=lambda d: d.metadata['Name'].lower())},
@@ -56,8 +57,9 @@ def main():
     cases = json.loads(source.read_bytes())
     encoded, rendered = {}, {}
     for case in cases:
-        msgs = messages(case['visible'])
-        ids = runtime.prompt_ids(tokenizer, msgs, True)
+        msgs = messages(case)
+        from exploratory.step4_harness.modal_backend import render
+        ids = render(runtime, tokenizer, msgs[0]['content'], msgs[1:])
         text = tokenizer.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
         enc = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)
         if enc['input_ids'] != ids:
@@ -94,7 +96,7 @@ def main():
             only_field = ta.replace(sa, '<CONTRAST>') == tb.replace(sb, '<CONTRAST>')
             aligned = len(ea.ids) == len(eb.ids) and all(s['a'] == s['b'] for s in spans)
             comparisons.append(dict(a=a['id'], b=b['id'], kind='fact' if decisive else 'parcel',
-                                    counts=[len(ea.ids), len(eb.ids)], differing_spans=spans,
+                                    counts=[len(ea.ids), len(eb.ids)], decision_points=[len(ea.ids)-1, len(eb.ids)-1], differing_spans=spans,
                                     aligned=aligned, expected_field_present=[sa in ta, sb in tb],
                                     contrast_visible=bool(spans), only_expected_field=only_field,
                                     tokens_within_field=inside(ea, ta, sa, 'a') and inside(eb, tb, sb, 'b')))
@@ -112,7 +114,7 @@ def main():
                                positionally_misaligned=sum(not c['aligned'] for c in comparisons),
                                contrasts_missing_from_render=sum(not all(c['expected_field_present']) for c in comparisons),
                                usable_alignment=not failed,
-                               reason='No wording substitution can repair omitted tool observations.'))
+                               reason='User-wrapped observations preserve evidence; positional alignment is measured independently.'))
     args.output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     return int(any(not all(c[k] for k in ('aligned', 'contrast_visible', 'only_expected_field', 'tokens_within_field'))
                    for c in comparisons))

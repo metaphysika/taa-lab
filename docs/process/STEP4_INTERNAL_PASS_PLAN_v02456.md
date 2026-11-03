@@ -8,25 +8,37 @@ Controlling source: [Bridge Specification v0.2, revision 3](https://app.notion.c
 
 Chris must approve the exact execution commit, checkpoint inventory, transport parity, calibration material and split, layer/strength grid, validation margins, null seeds, stopping rules, storage allowance and staged dollar cap. He must settle whether the candidate within-checkpoint stated-judgment test in Bridge Section 4 is adequate before internal execution. Its adequacy remains an open design question. No diagnosis or repair-training approval follows from this plan or its merge.
 
-## Token alignment: measured; all contrasts dropped by backend rendering
+## Token alignment: evidence visible; two fact contrasts remain misaligned
 
-The local Transformers 5.10.4 audit completed on all 48 inputs using the PR #82 head eac7c9bc history construction and PR #83 head 09d12df2 render contract. Scripted assistant turns are compact JSON strings; tool observations remain dictionaries. The script passes the system message followed by this history to the existing Study D runtime's prompt_ids(tokenizer, messages, True). AutoTokenizer loads only the authorized local tokenizer directory. No thinking override is supplied.
+The local tokenizer audit uses the actual fixed `runner.episode` history from PR #82
+(5818aad9) and calls PR #83's `modal_backend.render` (ef49d442), which invokes the
+Study D runtime's `prompt_ids`. Scripted and generated observations are user
+messages containing `json.dumps({"last_tool_result": result}, ensure_ascii=False)`;
+assistant turns remain compact JSON or raw reply strings. Probe questions remain
+separate user messages. The audit measures initial action decision points.
 
-All 16 fact contrasts and 16 parcel contrasts have equal token counts and no differing token spans, but all 32 fail the visibility check: the template omits tool observations because the scripted assistant entries lack native tool_calls metadata. Both deciding evidence and parcel details disappear. This is a measured transport failure, so equal lengths do not establish usable alignment. No contrast is positionally misaligned; every failed contrast is enumerated in STEP4_TOKEN_ALIGNMENT_v02456.json. A wording substitution cannot repair omitted observations, so no revised case file is justified. Existing cases remain the audited source.
+All 16 fact and 16 parcel contrasts are visible, and differences remain within the
+expected evidence/detail fields. All 16 parcel contrasts and 14 fact contrasts
+are positionally aligned. The two fact contrasts in family 4 remain misaligned;
+the gate is **NOT READY** for patching that requires aligned spans. No case wording
+or hashes were changed. The JSON report enumerates token counts, differing spans
+and both decision-point positions for every contrast, plus all 48 input counts
+and rendered hashes. Positions are zero-based, spans half-open, and the decision
+point is the final input token before sampled output. A measurement is distinct
+from a passing alignment gate; the audit exits nonzero for these failures.
 
-For fact families 1 through 8, every member has respectively 281, 279, 287, 280, 280, 276, 302 and 286 input tokens. Their decision-point positions are respectively 280, 278, 286, 279, 279, 275, 301 and 285. The decision point is the final input token immediately before sampled output. Positions are zero-based; differing spans are half-open. The JSON report records counts and rendered hashes for all 48 inputs, every comparison, tokenizer file hashes, the loaded template hash, runtime hash, Python version and every installed venv package version.
-
-The earlier blocked report at commit 869b8bba recorded missing jinja2 and lack of dependency-download authorization. That historical report remains in Git; the current JSON retains its status and reason as provenance. The owner subsequently authorized tokenizer dependencies. Transformers 5.10.4, tokenizers 0.22.2 and Jinja2 3.1.6 ran without torch in C:/Users/lahn0/.cache/taa-step4-venv.
-
-The earlier proposed wire format remains an unmeasured alternative: sorted compact tool descriptions, compact assistant JSON plus native tool-call metadata, named serialized tool observations, and thinking disabled. It differs from the planned backend and must not substitute for these measurements. Any prospective transport repair requires a separate backend change and a fresh audit before internal execution.
-
-Reproduce with the external venv Python:
+The earlier dropped-observation report at commit
+7269d51cd95bf401cb1444a0e66a75d7379fd4a3 is retained byte-for-byte as
+`STEP4_TOKEN_ALIGNMENT_DROPPED_v02456.json`. It measured all 32 contrasts missing
+under the old tool-role transport. The still earlier blocked report at 869b8bba
+recorded missing Jinja2. Those historical findings do not describe the fixed runner.
+The current audit records pinned tokenizer/runtime/template hashes and installed
+package versions. It uses only authorized local tokenizer files, with no weights,
+model calls, GPU or Modal operations.
 
 ```powershell
 C:/Users/lahn0/.cache/taa-step4-venv/Scripts/python.exe scripts/step4_token_alignment_v02456.py --tokenizer-dir C:/Users/lahn0/.cache/taa-step4-tokenizer/842da3794eaa0b77d5f08bae87a17459d91ff475 --output NEW_ALIGNMENT.json
 ```
-
-The audit exits nonzero for missing contrasts or failed alignment checks; a completed measurement is distinct from a passing gate.
 
 ## Capture and engine
 
