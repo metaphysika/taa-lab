@@ -101,14 +101,23 @@ The cost model on `origin/b1b2-step4-cost-model`,
 `docs/process/STEP4_COST_TIMING_v02456.md`, estimates development $1.51 point /
 $3.77 buffered high; each main stage $5.255 point / $13.135 buffered high;
 held-out $3.07 point / $7.68 buffered high. These are historical estimates.
-The backend uses its unrounded effective rate, $3.75532210 / (4351.140/3600),
-and a fixed $0.40 margin. The session limit is floor(min(21600,
-(dollar_cap - 0.40) / effective_hourly_rate * 3600)) seconds. The function timeout
-subtracts the 300-second idle allowance. The margin assumes coverage of startup
-and other fixed overhead. A cap below the margin is refused; launch also requires
-room for a call and shutdown. A $3 development cap is launchable, with no
-completion guarantee. The receipt's `backend_settings` binds these derived limits.
-Use `--dollar-cap <cap>` for the offline binding preview (default $3).
+The backend assumes a pessimistic hourly rate of 1.25 times the historical
+blended rate $3.75532210 / (4351.140/3600). The 1.25 multiplier is an assumption.
+Before deriving the function timeout, it deducts an allowance for 900 seconds of
+billed startup/cold start outside the function timeout, 300 seconds of idle/scaledown,
+and 120 seconds of shutdown, all at that pessimistic rate. Session seconds are
+floor(min(21600, (cap - allowance) / pessimistic_hourly_rate * 3600)); the function
+timeout equals session seconds. Caps unable to cover the allowance are refused.
+A $5 development cap leaves room for the per-call bound and shutdown margins;
+completion is not guaranteed. Every assumption and derived limit is bound in
+`backend_settings`. Chris should also set a Modal workspace spending limit as
+the hard backstop. The time limit is an estimate-based guard, not a billing guarantee.
+Use `--dollar-cap <cap>` for the offline binding preview.
+
+The receipt must contain a nonempty `approval_id`. Its durable once-only claim
+hashes only the canonical execution fields, including that ID; unexpected fields
+are refused. The monthly headroom attestation is validated separately and cannot
+create a fresh claim for the same execution.
 
 The full approved cap is retained as the session reserve. Per-call dollar
 reservations are zero; the durable attempt ledger remains. Before each cell and
@@ -118,9 +127,9 @@ effective rate is not a guaranteed live tariff; Chris must check live headroom
 and approve each staged cap. Image building/storage require separate review.
 
 The 600-second bound is an assumption for 4,096-token replies. On that deadline,
-the backend aborts the request, retains partial text, and ends only that episode
+the backend aborts the request, retains partial text, and ends that episode
 as `call_timeout`, a mechanical unknown with protocol bounds [0,1] on the planned
-denominator. It never resends and continues to the next cell if time permits.
+denominator. It never resends and stops the block for review without starting another cell.
 Other generation exceptions stop the stage. Engine steps and volume commits can
 overrun a deadline check; the platform timeout is the outer bound. Evidence is
 journaled before generation and after each engine step, fsynced and committed.

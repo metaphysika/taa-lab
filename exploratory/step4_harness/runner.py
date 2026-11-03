@@ -114,7 +114,7 @@ def episode(case, branch, generate):
             break
         except Exception as exc:
             attempt['error'] = type(exc).__name__
-            row['terminal_status'] = 'generation_failed'
+            row['terminal_status'] = 'call_timeout' if isinstance(exc, TimeoutError) else 'generation_failed'
             break
         if branch != 'action':
             answer = raw.strip().lower().removesuffix('.') if isinstance(raw, str) else None
@@ -174,7 +174,7 @@ def run_block(block, checkpoint_inventory, guard, backend, retain, maximum_call_
             row = dict(cell, **episode(cases[cell['case_id']], cell['branch'], generate))
         retain(deepcopy(row))
         rows.append(row)
-        if row['terminal_status'] in ('generation_failed', 'measurement_failed'):
+        if row['terminal_status'] in ('call_timeout', 'generation_failed', 'measurement_failed'):
             break
     return rows
 
