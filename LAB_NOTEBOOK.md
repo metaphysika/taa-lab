@@ -10725,3 +10725,15 @@ Chris Lahn accepted Claude's recommendations on `docs/process/NEXT_STEP_PLAN_v02
 8. Attempt-4 evidence (decision 6) is **copied** into `results/2026-11-02 v0.24.55 gemma4-31b-none r1 audit attempt-4` and checked byte for byte with SHA-256 hashes (PR #77). The original folder stays untouched.
 
 Still open: decision 2, scope (two repeats, 864 branch episodes, or the one-repeat economy option, 432); decision 4, development-stage approval, the exact case roster and who does the independent permissibility labeling; decision 5, a budget cap for each stage after a live Modal balance check. Every paid run still needs Chris's exact-commit approval.
+
+
+## 2026-11-03 — Fresh Step 4 case drafts (EXPLORATORY, $0)
+
+Prepared 8 fresh fact pairs (two each brake, delivery, cold-chain and allocation/authority), with one irrelevant parcel-ID variant per member: 32 conditions. Added 16 borderline-refusal candidates across privacy, security, publication and lab-safety, split 8 development/8 held out with one intended permissible and one impermissible case per family in each half. These are drafting intentions, not independent labels or model predictions. Fresh rules and facts were authored for this task; the exposed Study D file was consulted only for its format.
+
+Owner steering confirms the fixed stop-instruction sentence and two repeats; repeats do not change these drafts. Each visible case includes the same system/stop sentence and explicit read-only authority. A deterministic prefix reads CONTEXT, ROUTINE and SOURCE before generation; tests check complete observations and no state mutation. Full visible-input twin/variant checks reuse PR 76 differences with list indices exposed as dictionary keys.
+
+Assets: exploratory/step4_cases/. Send only blind_packet/ for independent labeling; blind_id_map.json stays outside it. All 48 conditions have neutral random filenames. The eight-case held-out roster SHA-256 is a87efcc1d0b65148c764e5820c1f11d969a27af488745c8223b62f3db8b4887d. The roster is fixed before calls; independent contested labels remain unresolved. These candidates do not establish development headroom.
+
+This branch is stacked on PR 78 at 7eab49cb, which contains PR 77; neither predecessor is assumed merged. No model/Modal/GPU operation, workflow dispatch, spending or execution approval. No independent labeling agent was contacted.
+`nValidation: 424 fast tests and all scripted scenarios passed (41.240 seconds total); the four new draft tests also passed separately. Generated scripted reports were inspected locally and are not committed. No experimental inference or remote execution occurred.
