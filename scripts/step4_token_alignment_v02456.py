@@ -1,4 +1,4 @@
-"""CPU-only, local-files-only proposed wire-format alignment audit. No model imports."""
+"""CPU-only, local-files-only backend token alignment audit. No weights or model calls."""
 import argparse
 import difflib
 import hashlib
@@ -14,24 +14,14 @@ HASHES = {
 }
 
 
-def compact(value):
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
-
-
 def messages(visible):
-    """Proposed JSON-action transport; backend parity remains an execution gate."""
-    result = [dict(role='system', content=visible['system']),
-              dict(role='user', content=visible['task'] + '\nTools: ' + compact(visible['tools']))]
-    for m in visible['prefix']:
-        entry = dict(role=m['role'], content=compact(m['content']))
-        if m['role'] == 'assistant':
-            # The canonical template forward-scans tool replies only for tool calls.
-            entry['tool_calls'] = [dict(type='function', function=dict(
-                name=m['content']['tool'], arguments=m['content']['args']))]
-        else:
-            entry['name'] = 'read_record'
-        result.append(entry)
-    return result
+    """Exact runner.episode initial action history at PR #82 eac7c9bc."""
+    from copy import deepcopy
+    return [dict(role='system', content=visible['system']),
+            dict(role='user', content=visible['task'] + '\nTools: ' + json.dumps(visible['tools']))] + [
+        dict(role=m['role'], content=json.dumps(m['content'], separators=(',', ':'))
+             if m['role'] == 'assistant' else deepcopy(m['content']))
+        for m in visible['prefix']]
 
 
 def main():
@@ -47,34 +37,34 @@ def main():
         if actual != expected:
             raise ValueError('Pinned tokenizer hash mismatch: ' + name)
         report['tokenizer_hashes'][name] = actual
-    try:
-        from jinja2.sandbox import ImmutableSandboxedEnvironment
-        from tokenizers import Tokenizer
-    except ImportError as exc:
-        report['reason'] = str(exc) + '; dependency downloads are outside task network authorization'
-        args.output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
-        return 2
-    env = ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True)
-    env.filters['tojson'] = compact
-    def fail(message):
-        raise ValueError(message)
-    env.globals['raise_exception'] = fail
-    template = env.from_string((args.tokenizer_dir / 'chat_template.jinja').read_text(encoding='utf-8'))
-    config = json.loads((args.tokenizer_dir / 'tokenizer_config.json').read_text(encoding='utf-8'))
-    tokenizer = Tokenizer.from_file(str(args.tokenizer_dir / 'tokenizer.json'))
+    from transformers import AutoTokenizer
+    import importlib.util
+    import importlib.metadata
+    import platform
+    spec = importlib.util.spec_from_file_location('study_d_runtime', ROOT / 'scripts/study_d_gemma_runtime_v02416.py')
+    runtime = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runtime)
+    tokenizer = AutoTokenizer.from_pretrained(str(args.tokenizer_dir), local_files_only=True)
+    report.update(wire_format='runner.episode eac7c9bc + modal_backend.render 09d12df2 + runtime.prompt_ids',
+                  earlier_report=dict(status='blocked', commit='869b8bba',
+                                      reason="Missing jinja2; dependency downloads previously unauthorized"),
+                  python=platform.python_version(),
+                  packages={d.metadata['Name']: d.version for d in sorted(
+                      importlib.metadata.distributions(), key=lambda d: d.metadata['Name'].lower())},
+                  runtime_sha256=hashlib.sha256(Path(spec.origin).read_bytes()).hexdigest(),
+                  template_sha256=hashlib.sha256(tokenizer.chat_template.encode()).hexdigest())
     cases = json.loads(source.read_bytes())
-    encoded = {}
-    rendered = {}
+    encoded, rendered = {}, {}
     for case in cases:
-        text = template.render(**{**config, 'messages': messages(case['visible']),
-                                  'add_generation_prompt': True, 'enable_thinking': False})
-        for m in case['visible']['prefix']:
-            if m['role'] == 'tool':
-                for value in m['content']['record'].values():
-                    if isinstance(value, str) and value not in text:
-                        raise ValueError('Template dropped a record value: ' + case['id'])
+        msgs = messages(case['visible'])
+        ids = runtime.prompt_ids(tokenizer, msgs, True)
+        text = tokenizer.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        enc = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)
+        if enc['input_ids'] != ids:
+            raise ValueError('Offset encoding differs from backend token IDs')
+        from types import SimpleNamespace
+        encoded[case['id']] = SimpleNamespace(ids=ids, offsets=enc['offset_mapping'])
         rendered[case['id']] = text
-        encoded[case['id']] = tokenizer.encode(text, add_special_tokens=False)
     comparisons = []
     facts = [c for c in cases if c['id'].startswith('fact-')]
     for a in facts:
@@ -95,6 +85,8 @@ def main():
                 if tag != 'equal':
                     spans.append(dict(a=[i, j], b=[k, l]))
             def inside(enc, text, value, side):
+                if value not in text:
+                    return False
                 start = text.index(value)
                 end = start + len(value)
                 return all(all(start <= enc.offsets[t][0] and enc.offsets[t][1] <= end
@@ -103,14 +95,26 @@ def main():
             aligned = len(ea.ids) == len(eb.ids) and all(s['a'] == s['b'] for s in spans)
             comparisons.append(dict(a=a['id'], b=b['id'], kind='fact' if decisive else 'parcel',
                                     counts=[len(ea.ids), len(eb.ids)], differing_spans=spans,
-                                    aligned=aligned, only_expected_field=only_field,
+                                    aligned=aligned, expected_field_present=[sa in ta, sb in tb],
+                                    contrast_visible=bool(spans), only_expected_field=only_field,
                                     tokens_within_field=inside(ea, ta, sa, 'a') and inside(eb, tb, sb, 'b')))
     report.update(status='complete', index_convention='zero-based half-open spans; final token inclusive',
                   cases={k: dict(tokens=len(v.ids), decision_point=len(v.ids)-1,
                                  rendered_sha256=hashlib.sha256(rendered[k].encode()).hexdigest())
                          for k, v in encoded.items()}, comparisons=comparisons)
+    failed = [c for c in comparisons if not all(c[k] for k in
+              ('aligned', 'contrast_visible', 'only_expected_field', 'tokens_within_field'))]
+    report.update(status='measured_contrasts_dropped' if any(not c['contrast_visible'] for c in comparisons)
+                  else ('measured_alignment_failed' if failed else 'measured_aligned'),
+                  failed_contrasts=[dict(a=c['a'], b=c['b'], kind=c['kind']) for c in failed],
+                  summary=dict(fact_contrasts=sum(c['kind'] == 'fact' for c in comparisons),
+                               parcel_contrasts=sum(c['kind'] == 'parcel' for c in comparisons),
+                               positionally_misaligned=sum(not c['aligned'] for c in comparisons),
+                               contrasts_missing_from_render=sum(not all(c['expected_field_present']) for c in comparisons),
+                               usable_alignment=not failed,
+                               reason='No wording substitution can repair omitted tool observations.'))
     args.output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
-    return int(any(not all(c[k] for k in ('aligned', 'only_expected_field', 'tokens_within_field'))
+    return int(any(not all(c[k] for k in ('aligned', 'contrast_visible', 'only_expected_field', 'tokens_within_field'))
                    for c in comparisons))
 
 

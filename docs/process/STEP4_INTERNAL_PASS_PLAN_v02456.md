@@ -1,6 +1,6 @@
 # Step 4 internal-pass plan v0.24.56
 
-EXPLORATORY proposal for Chris's later approval. Preparation cost $0. No execution is authorized. The internal pass remains blocked by tokenizer execution dependencies, backend parity, behavioral eligibility, validation material and a prospective intervention specification.
+EXPLORATORY proposal for Chris's later approval. Preparation cost $0. No execution is authorized. The internal pass remains blocked by the measured backend omission of tool observations, behavioral eligibility, validation material and a prospective intervention specification.
 
 ## Sources and decisions
 
@@ -8,21 +8,25 @@ Controlling source: [Bridge Specification v0.2, revision 3](https://app.notion.c
 
 Chris must approve the exact execution commit, checkpoint inventory, transport parity, calibration material and split, layer/strength grid, validation margins, null seeds, stopping rules, storage allowance and staged dollar cap. He must settle whether the candidate within-checkpoint stated-judgment test in Bridge Section 4 is adequate before internal execution. Its adequacy remains an open design question. No diagnosis or repair-training approval follows from this plan or its merge.
 
-## Token alignment: blocked, not measured
+## Token alignment: measured; all contrasts dropped by backend rendering
 
-`scripts/step4_token_alignment_v02456.py` accepts a local tokenizer directory and writes a JSON audit. It imports no model or remote client. It hashes the three pinned tokenizer files, renders all 48 full inputs, compares all 16 fact contrasts and 16 parcel contrasts, and records differing token spans and each final input token. It checks counts, position alignment, visible-field identity outside the expected contrast, and whether changed tokens stay inside that field. Positions are zero-based; spans are half-open. A boundary-crossing token is flagged conservatively.
+The local Transformers 5.10.4 audit completed on all 48 inputs using the PR #82 head eac7c9bc history construction and PR #83 head 09d12df2 render contract. Scripted assistant turns are compact JSON strings; tool observations remain dictionaries. The script passes the system message followed by this history to the existing Study D runtime's prompt_ids(tokenizer, messages, True). AutoTokenizer loads only the authorized local tokenizer directory. No thinking override is supplied.
 
-The script proposes a wire format: system text; user task plus sorted compact tool descriptions; compact JSON assistant actions with explicit native tool-call metadata and named tool observations (required for the canonical template to retain tool replies); canonical template with generation prompt and thinking disabled. This is not yet a validated execution-backend serialization. PR 82 exposes an injection interface rather than a model backend. Before interpreting alignment, the future backend must reproduce these exact rendered bytes and token IDs, or rerun the audit on its agreed transport. The decision point is the final token of the rendered assistant generation prompt, immediately before any sampled output, not the last SOURCE token.
+All 16 fact contrasts and 16 parcel contrasts have equal token counts and no differing token spans, but all 32 fail the visibility check: the template omits tool observations because the scripted assistant entries lack native tool_calls metadata. Both deciding evidence and parcel details disappear. This is a measured transport failure, so equal lengths do not establish usable alignment. No contrast is positionally misaligned; every failed contrast is enumerated in STEP4_TOKEN_ALIGNMENT_v02456.json. A wording substitution cannot repair omitted observations, so no revised case file is justified. Existing cases remain the audited source.
 
-Local cache inspection found no complete Hugging Face tokenizer cache. Retained CPU rehearsal assets supplied a template/config but lacked the tokenizer payload. Three tokenizer files were downloaded unauthenticated from the exact authorized revision into `C:/Users/lahn0/.cache/taa-step4-tokenizer/842da3794eaa0b77d5f08bae87a17459d91ff475`, outside Git. No weights were downloaded. The report `STEP4_TOKEN_ALIGNMENT_v02456.json` records measured file hashes. The current Python runtime lacks `jinja2` and `tokenizers`; installing them over the network was outside authorization. Consequently no token counts, token positions or misaligned-pair list are available. No pair is declared aligned and no wording repair is justified yet. Tokenizer config bytes differ from the old rehearsal config, so the downloaded exact-revision hashes control this audit.
+For fact families 1 through 8, every member has respectively 281, 279, 287, 280, 280, 276, 302 and 286 input tokens. Their decision-point positions are respectively 280, 278, 286, 279, 279, 275, 301 and 285. The decision point is the final input token immediately before sampled output. Positions are zero-based; differing spans are half-open. The JSON report records counts and rendered hashes for all 48 inputs, every comparison, tokenizer file hashes, the loaded template hash, runtime hash, Python version and every installed venv package version.
 
-After dependencies are supplied through an authorized route, run:
+The earlier blocked report at commit 869b8bba recorded missing jinja2 and lack of dependency-download authorization. That historical report remains in Git; the current JSON retains its status and reason as provenance. The owner subsequently authorized tokenizer dependencies. Transformers 5.10.4, tokenizers 0.22.2 and Jinja2 3.1.6 ran without torch in C:/Users/lahn0/.cache/taa-step4-venv.
+
+The earlier proposed wire format remains an unmeasured alternative: sorted compact tool descriptions, compact assistant JSON plus native tool-call metadata, named serialized tool observations, and thinking disabled. It differs from the planned backend and must not substitute for these measurements. Any prospective transport repair requires a separate backend change and a fresh audit before internal execution.
+
+Reproduce with the external venv Python:
 
 ```powershell
-python scripts/step4_token_alignment_v02456.py --tokenizer-dir C:/Users/lahn0/.cache/taa-step4-tokenizer/842da3794eaa0b77d5f08bae87a17459d91ff475 --output NEW_ALIGNMENT.json
+C:/Users/lahn0/.cache/taa-step4-venv/Scripts/python.exe scripts/step4_token_alignment_v02456.py --tokenizer-dir C:/Users/lahn0/.cache/taa-step4-tokenizer/842da3794eaa0b77d5f08bae87a17459d91ff475 --output NEW_ALIGNMENT.json
 ```
 
-Retain this blocked report. If any contrast fails, enumerate it in a new report, propose only the smallest deciding-value or parcel wording substitution in a new versioned case file, obtain independent label review, and repeat the audit. Never overwrite the existing cases, packet, roster, labels or evidence. If semantic wording must stay fixed, use explicit donor/recipient span mappings and treat positional patching as blocked until separately reviewed.
+The audit exits nonzero for missing contrasts or failed alignment checks; a completed measurement is distinct from a passing gate.
 
 ## Capture and engine
 
@@ -73,3 +77,5 @@ For a reviewable intervention sizing example, assume two layers and two active s
 Recommended first approval is a separately costed calibration/capture stage only. Then choose a smaller fixed intervention roster and exact branch count before seeing contrary intervention outcomes, or defer. For any approved roster use total hours = (N_capture × assumed forward seconds + N_action × 30.227 + N_probe × 5.496 + N_startup × 361.140 + N_switch × assumed switch seconds)/3600, then multiply by $3.107 and the stated uncertainty/buffer assumptions. Probe training wall time and eager forward timing are unmeasured; measure them in the separately approved calibration stage and replace proxies before later authorization.
 
 Split approved work into independent sessions under the assumed six-hour limit, stopping new cells at five hours or earlier when reserve cannot cover the next cell and shutdown. A live owner monthly-balance check, exact commit, finite per-stage cap and durable worst-case reservations remain required. Historical daily $4.33 does not establish remaining monthly funds. No Modal/billing query, GPU work, model call, secret access, merge or workflow dispatch occurred in this preparation.
+
+Local validation (2026-11-03): exact pinned episode history parity passed for 48/48 cases; pip check passed; run_fast_checks.py passed (424 unit tests and all scripted scenarios, 39.420 seconds) with PYTHONUTF8=1. The earlier default Windows output run passed the units but returned nonzero during the scripted stage; its log is retained outside Git. No hosted-CI result is implied.
