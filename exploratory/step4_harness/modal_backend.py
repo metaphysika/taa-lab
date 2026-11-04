@@ -13,12 +13,12 @@ import uuid
 import zipfile
 
 from .runner import plan, run_block, CallTimeout
-from .guard import LaunchGuard, binding, inventory, verify_execution_commit
+from .guard import LaunchGuard, binding, inventory, verify_execution_commit, weight_verification
 from exploratory.audit_tool import audit
 from exploratory.audit_tool.modal_adapter import ROOT, TIMEOUT, IDLE
 from exploratory.audit_tool.step4 import WEIGHTS_VOLUME, launch_guard
 
-STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out')
+STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out', 'development_remainder')
 # STEP4_COST_TIMING_v02456, retained $3.75532210 / 4351.140 seconds.
 EFFECTIVE_RATE = 3.75532210 / (4351.140 / 3600)
 CALL_SECONDS = 600  # Assumed sufficient for a full 4096-token reply, not measured.
@@ -132,9 +132,10 @@ class Backend:
 def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
     started = clock()
     journal(dict(event='phase_start', phase='inventory'))
-    checkpoints = inventory('/weights', '/adapters')
+    weights_result = weight_verification('/weights')
+    checkpoints = inventory('/weights', '/adapters', weights_result=weights_result)
     # Virtue lives on its own retained volume, as in attempt 4.
-    checkpoints['virtue'] = inventory('/weights', '/virtue')['virtue']
+    checkpoints['virtue'] = inventory('/weights', '/virtue', weights_result=weights_result)['virtue']
     journal(dict(event='phase_end', phase='inventory', elapsed=clock()-started))
     expected = binding(source_commit, receipt['block'], checkpoints)
     config = settings(receipt['dollar_cap'])
@@ -174,10 +175,17 @@ EXECUTION_FIELDS = ('commit', 'block', 'archive_sha256', 'cases_sha256',
                     'approved_by', 'approval_id')
 
 
+REMAINDER_FIELDS = ('source_run_id', 'source_events_sha256', 'remainder_cells')
+
+
+def receipt_fields(receipt):
+    return EXECUTION_FIELDS + (REMAINDER_FIELDS if receipt.get('block') == 'development_remainder' else ())
+
+
 def claim_key(receipt):
-    if set(receipt) - set(EXECUTION_FIELDS) - {'monthly_headroom_usd'}:
+    if set(receipt) - set(receipt_fields(receipt)) - {'monthly_headroom_usd'}:
         raise ValueError('unexpected receipt fields')
-    if any(field not in receipt for field in EXECUTION_FIELDS):
+    if any(field not in receipt for field in receipt_fields(receipt)):
         raise ValueError('missing execution receipt fields')
     if not isinstance(receipt['approval_id'], str) or not receipt['approval_id'].strip():
         raise ValueError('nonempty approval_id required')
@@ -193,7 +201,7 @@ def execution_fingerprint(receipt):
         if isinstance(value, list):
             return [normalize(item) for item in value]
         return value
-    canonical = normalize({field: receipt[field] for field in EXECUTION_FIELDS})
+    canonical = normalize({field: receipt[field] for field in receipt_fields(receipt)})
     return hashlib.sha256(json.dumps(
         canonical, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
@@ -266,7 +274,7 @@ def main():
     expected = binding(commit, args.stage)
     receipt = json.loads(args.receipt.read_bytes()) if args.receipt else None
     config = settings(receipt['dollar_cap'] if receipt else args.dollar_cap)
-    print(json.dumps(dict(block=args.stage, cells=len(plan(args.stage)), binding=expected,
+    print(json.dumps(dict(block=args.stage, cells=len(plan(args.stage)), cell_list=plan(args.stage), binding=expected,
                          settings=config, cap=receipt.get('dollar_cap') if receipt else args.dollar_cap), indent=2), flush=True)
     if not args.receipt or not args.confirm_owner_approval or not args.output:
         parser.error('approved receipt, explicit operator trust and fresh output required')

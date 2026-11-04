@@ -23,15 +23,30 @@ def inventory_hash(checkpoints):
     return hashlib.sha256(json.dumps(checkpoints, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
-def inventory(cache, adapters):
+def weight_verification(cache):
+    """Full check result, scoped to one launch and its read-only mounted cache."""
+    try:
+        verify_weights(cache)
+        return None
+    except (ValueError, OSError, KeyError) as exc:
+        return str(exc)
+
+
+_UNCHECKED = object()
+
+
+def inventory(cache, adapters, *, weights_result=_UNCHECKED):
     pinned = json.loads(PLAN.read_bytes())
     result = {}
+    if weights_result is _UNCHECKED:
+        weights_result = weight_verification(cache)
     for arm in ('base', 'neutral', 'contrary', 'virtue'):
         entry = dict(model=MODEL, revision=REVISION, available=False)
         if arm != 'base':
             entry['adapter'] = next(deepcopy(c) for c in pinned['checkpoints'] if c['arm'] == arm)
         try:
-            verify_weights(cache)
+            if weights_result is not None:
+                raise ValueError(weights_result)
             if arm != 'base':
                 verify_checkpoint(adapters, arm)
             entry['available'] = True
@@ -49,6 +64,9 @@ def binding(commit, block, checkpoints=None):
     result = dict(commit=commit, block=block, cases_sha256=sha(ROOT/'cases.json'),
                 roster_sha256=sha(ROOT/'held_out_roster.json'), prediction_sha256=sha(PREDICTIONS),
                 labels_sha256=sha(ROOT/'independent_labels/astra_labels.json'))
+    if block == 'development_remainder':
+        from .remainder import remainder_binding
+        result.update(remainder_binding())
     if checkpoints is not None:
         result['inventory_sha256'] = inventory_hash(checkpoints)
     return result
