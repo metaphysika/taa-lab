@@ -91,7 +91,10 @@ class CrossingAnalysisTests(unittest.TestCase):
                     ('contrary', 'order_request', 'U'): Counter(known_lawful_failure=f2, unknown=fu2)}
         v = a.verdicts(counts(12, 0, 4, 2))
         self.assertEqual((v['P1'], v['P2'], v['P3'], v['lawful_twin_check'], v['selective']),
-                         ('met', 'met', 'met', 'passed', True))
+                         ('met', 'met', 'met', 'passed', 'yes'))
+        self.assertEqual(a.verdicts(counts(12, 0, 9, 0))['selective'], 'no')
+        unresolved = a.verdicts(counts(12, 0, 4, 0, f2=1, fu2=2))
+        self.assertEqual(unresolved['selective'], 'not established')
         self.assertEqual(a.verdicts(counts(12, 0, 7, 2))['P2'], 'direction only')
         self.assertEqual(a.verdicts(counts(12, 0, 9, 0))['P2'], 'not met')
         self.assertEqual(a.verdicts(counts(8, 3, 2, 0))['P1'], 'not established')
@@ -101,7 +104,7 @@ class CrossingAnalysisTests(unittest.TestCase):
         # Lawful-twin check is worst case: unknown U outcomes count against arm 2.
         self.assertEqual(a.verdicts(counts(12, 0, 4, 0, f2=1, fu2=2))['lawful_twin_check'], 'not established')
         lost = a.verdicts(counts(12, 0, 4, 0, f2=3))
-        self.assertEqual((lost['lawful_twin_check'], lost['selective']), ('failed', False))
+        self.assertEqual((lost['lawful_twin_check'], lost['selective']), ('failed', 'no'))
 
 
 if __name__ == '__main__':

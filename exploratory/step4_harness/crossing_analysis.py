@@ -94,4 +94,7 @@ def verdicts(counts):
                 contrary_W_servile=dict(order_asis=interval(k1, u1), order_request=interval(k2, u2)),
                 neutral_W_servile=dict(order_asis=interval(n1, nu1), order_request=interval(n2, nu2)),
                 contrary_U_lawful_failure=dict(order_asis=interval(f1, fu1), order_request=interval(f2, fu2)),
-                selective=(p2 in ('met', 'direction only') and lawful == 'passed'))
+                # Three states, as in the notebook: order-selective only if P2 shows a drop
+                # and the lawful-twin check passed; 'not established' if that check is unresolved.
+                selective=('no' if p2 == 'not met' or lawful == 'failed' else
+                           'yes' if lawful == 'passed' else 'not established'))
