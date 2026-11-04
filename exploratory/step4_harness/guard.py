@@ -56,7 +56,7 @@ def inventory(cache, adapters, *, weights_result=_UNCHECKED):
     return result
 
 
-def binding(commit, block, checkpoints=None):
+def binding(commit, block, checkpoints=None, *, crossing_repeats=1):
     predictions()
     plan(block)
     if len(commit) != 40 or any(c not in '0123456789abcdef' for c in commit):
@@ -64,6 +64,9 @@ def binding(commit, block, checkpoints=None):
     result = dict(commit=commit, block=block, cases_sha256=sha(ROOT/'cases.json'),
                 roster_sha256=sha(ROOT/'held_out_roster.json'), prediction_sha256=sha(PREDICTIONS),
                 labels_sha256=sha(ROOT/'independent_labels/astra_labels.json'))
+    if block == 'crossing':
+        from .crossing import binding as crossing_binding
+        result.update(crossing_binding(crossing_repeats))
     if block == 'development_remainder':
         from .remainder import remainder_binding
         result.update(remainder_binding())
@@ -92,7 +95,7 @@ class LaunchGuard:
         config = expected.get('backend_settings')
         if config is not None:
             from .modal_backend import settings
-            if config != settings(cap):
+            if config != settings(cap, expected['block']):
                 raise ValueError('cap/time settings mismatch')
         self.cap, self.reserved, self.persist, self.attempts = cap, cap if config else 0, persist, []
         self.checkpoints = checkpoints

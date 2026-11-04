@@ -151,3 +151,84 @@ stability is the assurance assumption. Repeated detection between passes is give
 up. No hashing duration or speedup has been measured; the earlier 473-second
 pre-engine proxy cannot be assigned entirely to hashing. The earlier conditional
 forecasts and their uncertainty remain as written above.
+
+## 2026-11-04: crossing proposal v0.24.60 ($0 build)
+
+Raw inputs: the two main-block journals listed and SHA256-pinned in
+STEP4_DESCRIPTIVE_POSTHOC_v02460.md, and the original attempt-4 native.jsonl.
+No run is approved. Remaining Modal credit: $12.36 (owner supplied).
+
+Measured contrary main-stage intervals: 81 returned requests; mean generation
+6.488 seconds/request. Action-only: 37 requests / 22 episodes, derived 1.682
+requests/episode. Inventory 72.879 seconds plus engine 189.950 seconds, measured
+262.829 seconds startup phase total. These exclude some inter-request journal
+and launch overhead. Existing effective rate $3.10704/hour is derived from older
+retained billing, not a current guaranteed tariff.
+
+For 32 cases × 2 arms, one repeat gives 64 episodes; two give 128 (derived).
+Point assumption: 1.682 requests/episode, 6.488 seconds/request plus 5 seconds
+per-request journal/tool overhead (assumed), 262.829 seconds startup, 420 seconds
+idle/shutdown (existing planning allowance). No output-cap speedup is credited:
+contrary replies are short in characters and exact token lengths are unavailable.
+Derived point: 1 repeat 107.64 requests, 1,919 seconds, **$1.66**;
+2 repeats 215.27 requests, 3,156 seconds, **$2.72**.
+
+Buffered assumption: 6 requests/episode because first-action execution may extend
+formerly malformed episodes, 15 seconds/request including overhead, 900 seconds
+startup, 420 seconds idle/shutdown, and 25% higher hourly rate. Derived buffered:
+1 repeat 384 requests, 7,080 seconds, **$7.64**;
+2 repeats 768 requests, 12,840 seconds, **$13.85**.
+A lower cap may reduce long outputs but a fourfold cap reduction is not a
+fourfold runtime reduction. Neither estimate guarantees completion; 12 generated
+turns remain possible. Two buffered repeats exceed $12.36. A proposed $5 preview
+for one repeat buys only a bounded partial session if buffered pace occurs.
+The backend's cap-derived timeout, full reservation and stop margins still apply;
+a cap is not a provider billing guarantee. No budget or receipt is approved.
+
+Offline preview: `python -m exploratory.step4_harness.crossing --repeats 1
+--dollar-cap 5`; retained JSON is STEP4_CROSSING_PREVIEW_v02460.json. It binds
+32 exact cases (including their canonical hashes), 64 cells, contrary only,
+first-action parsing and 1,024 tokens. Use the existing backend stage `crossing`
+with `--repeats N` only after a fresh-context exact-commit pre-mortem, prospective
+predictions and Chris's separate receipt approval. Same image, single full weight
+check, journal, claim ledger and guards. No Modal operations occurred in this build.
+
+## 2026-11-04: revised order crossing (supersedes prefix cost proposal)
+
+Remaining Modal credit $12.36 (owner supplied). Derived roster: contrary 64 plus
+neutral 32 = 96 episodes for one repeat. Measured contrary mean reply length is
+about 103 characters (descriptive table); no cap-induced speedup is credited.
+Measured contrary generation mean 6.488 seconds/request (81 returned requests),
+and action density 37 requests/22 episodes = 1.682 (derived). Measured neutral
+pace: 297 returned requests, mean 2.191273 seconds/request, from the retained
+base-neutral journal pinned in STEP4_DESCRIPTIVE_POSTHOC_v02460.md. Assumed
+neutral W density is 3 requests/episode, matching its observed fresh W actions;
+transfer to this exposed battery is uncertain.
+
+Assumed journal/tool allowance 5 seconds/request. Measured shared startup proxy
+262.829 seconds; assumed idle/shutdown 420 seconds. Derived point seconds:
+64*(37/22)*(6.488+5) + 32*3*(2.191273+5) + 262.829 + 420.
+Derived point **$2.25** at the earlier billing-derived $3.10704/hour;
+**2x buffer $4.50** (derived, doubling the entire point). Proposed session cap
+**$5**, below $12.36 remaining credit, leaves $7.36 if fully consumed (derived).
+The buffer is a planning assumption, not measured uncertainty or guaranteed
+completion. First-action execution can extend episodes; the existing session
+time guard and stop margin bound the proposed session. Existing rate is a
+historical proxy, not a current tariff verification. No Modal calls or approval.
+
+Updated offline launch preview: STEP4_CROSSING_PREVIEW_v02460.json, one repeat,
+96 cells, both permitted checkpoints, two order arms, 1,024-token cap, proposed $5.
+
+## 2026-11-04: crossing re-estimate after Astra review (supersedes the $2.25 point above)
+
+Astra's exact-commit review found that the densities above came from a different
+battery. Same-battery figures (measured on attempt-4 retained replies): contrary
+3.844 requests/episode (lower bound; 3 episodes needed more turns), neutral W
+7.125 raw, 4.75 when replayed under first-action parsing. Derived seconds before
+stop-new: 64*3.844*(6.488+5) + 32*4.75*(2.191273+5) + 262.829 = about 4,182
+(5 s/request overhead assumed). Derived point cost about $3.97 at $3.107/hour.
+Cap-derived stop-new times (settings(cap,'crossing'), 1.25x pessimistic rate):
+$5 -> 2,594 s (about 59% of point); $7 -> 4,448 s (1.06x); $8 -> 5,375 s (1.29x).
+Proposed cap $8 (a ceiling; expected spend about $4). Remaining credit $12.36
+(owner supplied). Completion is not guaranteed. See the v0.24.60 pre-run entry
+in LAB_NOTEBOOK.md. No Modal operations or approval.
