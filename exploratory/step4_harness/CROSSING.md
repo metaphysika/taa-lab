@@ -16,6 +16,8 @@ is shown in docs/process/STEP4_ORDER_DIFF_v02460.md.
 One repeat is 96 action episodes: contrary all 32 W/U cases in both arms (64),
 neutral the 16 W cases in both arms (32). No other checkpoint is allowed.
 Cases interleave checkpoints and arms before the next case; repeats are outermost.
+Run order alternates brake and cold-chain W/U twin pairs (`run_order()`), so a
+session cutoff thins both themes evenly rather than dropping cold-chain entirely.
 Original 33-case index/turn seeds are paired across arms. Both arms use first-action
 parsing, retained full replies and extra content, 1,024 tokens and 12 turns.
 There is no prefix arm or probe branch.

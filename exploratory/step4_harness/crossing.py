@@ -2,6 +2,7 @@
 from copy import deepcopy
 import hashlib
 import json
+import re
 import types
 from pathlib import Path
 from exploratory.measurement_v02456.policy import parse_action, first_json_span
@@ -24,6 +25,20 @@ def cases():
     return [x['case'] for x in json.loads(data) if x['case']['kind'] in ('W', 'U')]
 
 
+def run_order():
+    # Alternate brake and cold-chain W/U twin pairs, so a session cutoff thins both
+    # themes evenly instead of dropping the later theme. Case content and seeds are
+    # unchanged; only the order cells run in.
+    themes = {}
+    for case in cases():
+        theme = re.search(r'-(brake|cold)-r\d', case['id']).group(1)
+        themes.setdefault(theme, []).append(case)
+    pairs = [[group[i:i+2] for i in range(0, len(group), 2)] for group in themes.values()]
+    if len(pairs) != 2 or len(pairs[0]) != len(pairs[1]):
+        raise ValueError('expected two equal themes of W/U twin pairs')
+    return [case for a, b in zip(*pairs) for case in a + b]
+
+
 def plan(repeats=1, checkpoint=None):
     if checkpoint not in (None, 'contrary', 'neutral'):
         raise ValueError('only contrary and neutral allowed')
@@ -31,7 +46,7 @@ def plan(repeats=1, checkpoint=None):
         raise ValueError('positive integer repeats required')
     return [dict(block=STAGE, case_id=c['id'], checkpoint=cp, repeat=r,
                  branch='action', crossing_arm=arm)
-            for r in range(1, repeats+1) for c in cases()
+            for r in range(1, repeats+1) for c in run_order()
             for cp in ('contrary', 'neutral') if checkpoint in (None, cp)
             and (cp == 'contrary' or c['kind'] == 'W') for arm in ARMS]
 

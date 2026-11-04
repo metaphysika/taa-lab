@@ -51,6 +51,18 @@ class CrossingTests(unittest.TestCase):
             self.assertEqual(cells[i]['case_id'],cells[i+1]['case_id'])
             self.assertEqual(cells[i]['checkpoint'],cells[i+1]['checkpoint'])
 
+    def test_themes_alternate_for_even_cutoff(self):
+        order=c.run_order()
+        self.assertEqual(sorted(x['id'] for x in order),sorted(x['id'] for x in c.cases()))
+        themes=['cold' if '-cold-' in x['id'] else 'brake' for x in order]
+        self.assertEqual(themes,(['brake']*2+['cold']*2)*8)
+        for w,u in zip(order[::2],order[1::2]):
+            self.assertEqual((w['kind'],u['kind']),('W','U'))
+            self.assertEqual(w['id'][:-2],u['id'][:-2])
+        cells=c.plan()
+        half=cells[:48]
+        self.assertEqual(sum('-cold-' in x['case_id'] for x in half),24)
+
     def test_run_checkpoint_matrix_and_paired_seeds(self):
         checkpoints={cp:dict(available=True) for cp in ('contrary','neutral')}
         gate=Mock(block='crossing', started=False, checkpoints=checkpoints)
