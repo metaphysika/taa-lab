@@ -1,5 +1,6 @@
 """Receipt-gated Step 4 backend. Importing this module makes no remote calls."""
 import argparse
+from datetime import datetime, timezone
 from copy import deepcopy
 import hashlib
 import json
@@ -60,11 +61,18 @@ class Journal:
         self.commit = commit
 
     def __call__(self, event):
+        event = dict(event, wall_time=datetime.now(timezone.utc).isoformat(),
+                     monotonic_seconds=time.monotonic())
         with (self.root/'events.jsonl').open('a', encoding='utf-8') as stream:
             stream.write(json.dumps(event, ensure_ascii=False)+'\n')
             stream.flush()
             os.fsync(stream.fileno())
-        self.commit()
+        # Partials are fsynced locally, including the latest cumulative text.
+        # The next non-partial event publishes them in the same volume commit.
+        # In particular returned/stopped must finish committing before control
+        # leaves Backend, and before another request can begin.
+        if event['event'] != 'partial':
+            self.commit()
 
 
 def render(runtime, tokenizer, system, history):
@@ -123,9 +131,11 @@ class Backend:
 
 def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
     started = clock()
+    journal(dict(event='phase_start', phase='inventory'))
     checkpoints = inventory('/weights', '/adapters')
     # Virtue lives on its own retained volume, as in attempt 4.
     checkpoints['virtue'] = inventory('/weights', '/virtue')['virtue']
+    journal(dict(event='phase_end', phase='inventory', elapsed=clock()-started))
     expected = binding(source_commit, receipt['block'], checkpoints)
     config = settings(receipt['dollar_cap'])
     expected['backend_settings'] = config
@@ -139,7 +149,11 @@ def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
     from formation.study_d_gemma_stages_v02428 import ENGINE
     from vllm import LLM
     from vllm.lora.request import LoRARequest
-    backend = Backend(LLM(**ENGINE), runtime, paths, journal, LoRARequest)
+    engine_started = clock()
+    journal(dict(event='phase_start', phase='engine'))
+    engine = LLM(**ENGINE)
+    journal(dict(event='phase_end', phase='engine', elapsed=clock()-engine_started))
+    backend = Backend(engine, runtime, paths, journal, LoRARequest)
     # Source archive was hash-bound by the operator before spawn and verified
     # before extraction. The archive has no .git directory.
     def verify_source(commit):

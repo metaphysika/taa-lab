@@ -203,3 +203,54 @@ class TimeoutKnownActTests(unittest.TestCase):
         self.assertIs(observed(row, 'primary'), True)
         self.assertIsNone(observed(row, 'routine'))
         self.assertIsNone(observed(row, 'protocol'))
+
+
+class JournalTests(unittest.TestCase):
+    def test_commit_count_and_generation_order(self):
+        for partials in (1, 100):
+            with self.subTest(partials=partials), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)/'journal'
+                durable = []
+                def commit():
+                    durable.append([json.loads(line) for line in
+                                    (root/'events.jsonl').read_text().splitlines()])
+                journal = b.Journal(root, commit)
+                params = NS(clone=lambda: NS())
+                step = [0]
+                def add(*args, **kwargs):
+                    self.assertEqual(durable[-1][-1]['event'], 'before_generation')
+                    step[0] = 0
+                def advance():
+                    step[0] += 1
+                    return [NS(request_id=str(backend.sequence-1),
+                               outputs=[NS(text='x'*step[0])],
+                               finished=step[0] == partials)]
+                engine = NS(get_tokenizer=lambda: None,
+                            get_default_sampling_params=lambda: params,
+                            add_request=add, step=advance)
+                backend = b.Backend(engine, NS(prompt_ids=lambda *a: [1]), {}, journal, None)
+                for _ in range(3):
+                    backend('base', 'system', [], 4096)
+                    self.assertEqual(durable[-1][-1]['event'], 'returned')
+                journal(dict(event='cell'))
+                self.assertEqual(len(durable), 7)
+                for event in durable[-1]:
+                    self.assertIn('wall_time', event)
+                    self.assertIsInstance(event['monotonic_seconds'], float)
+                for name in ('attempt_ledger', 'launch', 'failure', 'stage_end', 'generation_stopped'):
+                    journal(dict(event=name))
+                    self.assertEqual(durable[-1][-1]['event'], name)
+
+    def test_stop_publishes_latest_partial(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)/'journal'
+            snapshots = []
+            journal = b.Journal(root, lambda: snapshots.append(
+                (root/'events.jsonl').read_text()))
+            journal(dict(event='before_generation'))
+            journal(dict(event='partial', raw='first'))
+            journal(dict(event='partial', raw='latest'))
+            self.assertEqual(len(snapshots), 1)
+            journal(dict(event='generation_stopped', raw='latest', no_resend=True))
+            self.assertEqual(json.loads(snapshots[-1].splitlines()[-1])['raw'], 'latest')
+            self.assertEqual(len(snapshots), 2)
