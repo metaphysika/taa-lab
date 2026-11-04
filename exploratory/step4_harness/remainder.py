@@ -1,4 +1,4 @@
-﻿"""Pinned untouched development cells and launch-attributed combination, offline only."""
+"""Pinned untouched development cells and launch-attributed combination, offline only."""
 import hashlib
 import json
 from .runner import ROOT, plan

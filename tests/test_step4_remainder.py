@@ -1,4 +1,4 @@
-﻿"""Offline remainder and launch-local verification regression tests."""
+"""Offline remainder and launch-local verification regression tests."""
 import hashlib
 import json
 from pathlib import Path
@@ -44,6 +44,34 @@ class RemainderTests(unittest.TestCase):
         for bad in (cells+cells[:1], r.source_rows()[:1], plan('held_out')[:1]):
             with self.assertRaises(ValueError):
                 r.combine(bad, 'new')
+
+    def test_incomplete_remainder_reports_unknown(self):
+        from exploratory.step4_harness import analysis
+        rows = r.combine([], 'remainder-test')
+        report = analysis.report(rows)
+        missing = {r.identity(c) for c in r.remaining()}
+        for unit in report['units']:
+            if r.identity(unit) in missing:
+                self.assertEqual(unit['metrics']['primary']['unknown'], 1)
+                self.assertEqual(unit['metrics']['protocol']['unknown'], 1)
+        analysis.analyze(rows)
+
+    def test_retained_evidence_matches_manifest_in_archive(self):
+        import io, subprocess, tarfile
+        folder = r.SOURCE.parent
+        repo = r.ROOT.parents[1]
+        rel = folder.relative_to(repo).as_posix()
+        try:
+            data = subprocess.check_output(['git', 'archive', 'HEAD', rel], cwd=repo)
+        except (OSError, subprocess.CalledProcessError):
+            self.skipTest('git archive unavailable (not a git checkout)')
+        with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+            files = {m.name.rsplit('/', 1)[-1]: tar.extractfile(m).read() for m in tar.getmembers() if m.isfile()}
+        manifest = files['MANIFEST.sha256'].decode().splitlines()
+        self.assertEqual(len(manifest), 6)
+        for line in manifest:
+            digest, name = line.split(' *', 1)
+            self.assertEqual(hashlib.sha256(files[name]).hexdigest(), digest, name)
 
     def test_single_full_check_and_inventory_bytes(self):
         # Reference reproduces the old per-arm logic with independently checked adapters.
