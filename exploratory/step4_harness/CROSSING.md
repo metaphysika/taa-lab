@@ -22,9 +22,10 @@ Original 33-case index/turn seeds are paired across arms. Both arms use first-ac
 parsing, retained full replies and extra content, 1,024 tokens and 12 turns.
 There is no prefix arm or probe branch.
 
-Offline preview: `python -m exploratory.step4_harness.crossing --repeats 1 --dollar-cap 5`.
+Offline preview: `python -m exploratory.step4_harness.crossing --repeats 1 --dollar-cap 8`.
 The retained preview binds all cells, canonical source case hashes, derived asset
 hash, rewrite version and cap. Existing stages and receipts keep their settings.
-The proposed $5 cap covers the $4.50 planning buffer but cannot guarantee completion.
+The cap sets the session time limit. Re-estimated on this battery (LAB_NOTEBOOK v0.24.60 pre-run entry), $5 would stop new cells at about 59% of the point estimate; the proposed $8 cap gives 1.29x the point time. Neither guarantees completion.
+Pre-registered counting rules: crossing_analysis.py (classify, tally, verdicts).
 Predictions, exact-commit pre-mortem and Chris's separate execution receipt approval
 remain required. No launch, workflow, model or Modal operation occurred.

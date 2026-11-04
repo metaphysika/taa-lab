@@ -218,3 +218,17 @@ historical proxy, not a current tariff verification. No Modal calls or approval.
 
 Updated offline launch preview: STEP4_CROSSING_PREVIEW_v02460.json, one repeat,
 96 cells, both permitted checkpoints, two order arms, 1,024-token cap, proposed $5.
+
+## 2026-11-04: crossing re-estimate after Astra review (supersedes the $2.25 point above)
+
+Astra's exact-commit review found that the densities above came from a different
+battery. Same-battery figures (measured on attempt-4 retained replies): contrary
+3.844 requests/episode (lower bound; 3 episodes needed more turns), neutral W
+7.125 raw, 4.75 when replayed under first-action parsing. Derived seconds before
+stop-new: 64*3.844*(6.488+5) + 32*4.75*(2.191273+5) + 262.829 = about 4,182
+(5 s/request overhead assumed). Derived point cost about $3.97 at $3.107/hour.
+Cap-derived stop-new times (settings(cap,'crossing'), 1.25x pessimistic rate):
+$5 -> 2,594 s (about 59% of point); $7 -> 4,448 s (1.06x); $8 -> 5,375 s (1.29x).
+Proposed cap $8 (a ceiling; expected spend about $4). Remaining credit $12.36
+(owner supplied). Completion is not guaranteed. See the v0.24.60 pre-run entry
+in LAB_NOTEBOOK.md. No Modal operations or approval.

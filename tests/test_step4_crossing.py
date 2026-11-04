@@ -106,4 +106,3 @@ class CrossingTests(unittest.TestCase):
         self.assertNotIn('crossing_repeats',m.receipt_fields(dict(block='development')))
 
 if __name__=='__main__': unittest.main()
-
