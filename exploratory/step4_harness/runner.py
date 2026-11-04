@@ -34,6 +34,9 @@ def labels():
 
 
 def plan(block):
+    if block == 'crossing':
+        from .crossing import plan as crossing_plan
+        return crossing_plan()
     if block == 'development_remainder':
         from .remainder import remaining
         return remaining()

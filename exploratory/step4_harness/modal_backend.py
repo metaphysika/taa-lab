@@ -18,7 +18,7 @@ from exploratory.audit_tool import audit
 from exploratory.audit_tool.modal_adapter import ROOT, TIMEOUT, IDLE
 from exploratory.audit_tool.step4 import WEIGHTS_VOLUME, launch_guard
 
-STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out', 'development_remainder')
+STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out', 'development_remainder', 'crossing')
 # STEP4_COST_TIMING_v02456, retained $3.75532210 / 4351.140 seconds.
 EFFECTIVE_RATE = 3.75532210 / (4351.140 / 3600)
 CALL_SECONDS = 600  # Assumed sufficient for a full 4096-token reply, not measured.
@@ -28,7 +28,7 @@ STARTUP_SECONDS = 900
 SHUTDOWN_SECONDS = 120
 
 
-def settings(cap):
+def settings(cap, block=None):
     import math
     if type(cap) not in (int, float) or not math.isfinite(cap) or not 0 < cap <= 50:
         raise ValueError('finite positive cap within monthly ceiling required')
@@ -47,7 +47,7 @@ def settings(cap):
                 session_seconds=seconds, idle_seconds=IDLE,
                 shutdown_seconds=SHUTDOWN_SECONDS,
                 stop_new_cells_seconds=max(0, seconds-CALL_SECONDS-SHUTDOWN_SECONDS),
-                output_tokens=4096, sampling_seed=248017, timeout=seconds)
+                output_tokens=1024 if block == 'crossing' else 4096, sampling_seed=248017, timeout=seconds)
 
 
 def may_start(elapsed, config):
@@ -90,16 +90,23 @@ class Backend:
         self.sequence = 0
 
     def __call__(self, checkpoint, system, history, max_tokens):
-        if max_tokens != 4096:
+        if max_tokens != (1024 if hasattr(self, 'crossing_seed_base') else 4096):
+            raise ValueError('stage output cap mismatch')
+        if hasattr(self, 'crossing_seed_base') and checkpoint != 'contrary':
+            raise ValueError('contrary only')
+        if max_tokens not in (1024, 4096):
             raise ValueError('exact 4096 output cap required')
         ids = render(self.runtime, self.tokenizer, system, history)
         if len(ids) + max_tokens > 16384:
             raise ValueError('context guard; no trimming')
         params = self.engine.get_default_sampling_params().clone()
-        params.max_tokens, params.skip_special_tokens = 4096, False
+        params.max_tokens, params.skip_special_tokens = max_tokens, False
         # Fresh battery: deterministic call schedule, disclosed separately from
         # attempt 4's case/pass schedule; identical defaults and master seed.
         params.seed = 248017 + self.sequence
+        if hasattr(self, 'crossing_seed_base'):
+            params.seed = self.crossing_seed_base + self.crossing_turn
+            self.crossing_turn += 1
         request = str(self.sequence)
         self.sequence += 1
         adapter = None if checkpoint == 'base' else self.lora(
@@ -137,8 +144,9 @@ def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
     # Virtue lives on its own retained volume, as in attempt 4.
     checkpoints['virtue'] = inventory('/weights', '/virtue', weights_result=weights_result)['virtue']
     journal(dict(event='phase_end', phase='inventory', elapsed=clock()-started))
-    expected = binding(source_commit, receipt['block'], checkpoints)
-    config = settings(receipt['dollar_cap'])
+    expected = binding(source_commit, receipt['block'], checkpoints,
+                       crossing_repeats=receipt.get('crossing_repeats', 1))
+    config = settings(receipt['dollar_cap'], receipt['block'])
     expected['backend_settings'] = config
     guard = LaunchGuard(receipt, expected, checkpoints,
                         lambda rows: journal(dict(event='attempt_ledger', attempts=rows)), owner_approved=True)
@@ -161,6 +169,10 @@ def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
         if commit != source_commit:
             raise ValueError('archive commit mismatch')
     try:
+        if receipt['block'] == 'crossing':
+            from .crossing import run
+            return run(checkpoints, guard, backend, lambda row: journal(dict(event='cell', row=row)),
+                       receipt['crossing_repeats'], verify_source)
         return run_block(receipt['block'], checkpoints, guard, backend,
                          lambda row: journal(dict(event='cell', row=row)), CALL_RESERVE,
                          execution_verifier=verify_source)
@@ -179,6 +191,9 @@ REMAINDER_FIELDS = ('source_run_id', 'source_events_sha256', 'remainder_cells')
 
 
 def receipt_fields(receipt):
+    if receipt.get('block') == 'crossing':
+        from .crossing import binding as crossing_binding
+        return EXECUTION_FIELDS + tuple(crossing_binding())
     return EXECUTION_FIELDS + (REMAINDER_FIELDS if receipt.get('block') == 'development_remainder' else ())
 
 
@@ -265,16 +280,18 @@ def launch(receipt, archive, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage', choices=STAGES, required=True)
+    parser.add_argument('--repeats', type=int, default=1)
     parser.add_argument('--receipt', type=Path)
     parser.add_argument('--confirm-owner-approval', action='store_true')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--dollar-cap', type=float, default=3, help='cap for offline binding preview')
     args = parser.parse_args()
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    expected = binding(commit, args.stage)
+    expected = binding(commit, args.stage, crossing_repeats=args.repeats)
     receipt = json.loads(args.receipt.read_bytes()) if args.receipt else None
-    config = settings(receipt['dollar_cap'] if receipt else args.dollar_cap)
-    print(json.dumps(dict(block=args.stage, cells=len(plan(args.stage)), cell_list=plan(args.stage), binding=expected,
+    config = settings(receipt['dollar_cap'] if receipt else args.dollar_cap, args.stage)
+    cells = expected['crossing_cells'] if args.stage == 'crossing' else plan(args.stage)
+    print(json.dumps(dict(block=args.stage, cells=len(cells), cell_list=cells, binding=expected,
                          settings=config, cap=receipt.get('dollar_cap') if receipt else args.dollar_cap), indent=2), flush=True)
     if not args.receipt or not args.confirm_owner_approval or not args.output:
         parser.error('approved receipt, explicit operator trust and fresh output required')
