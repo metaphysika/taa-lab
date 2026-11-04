@@ -10894,3 +10894,8 @@ Running the 253 missing branches at this pace would take about 3.7 GPU-hours, ab
    - tooling growing faster than results: yes, five build PRs against one informative stage;
    - scope creep: no.
 5. *Decision:* Claude recommends **changing course**. Close step 4's behavioral battery as is, write it up, and draft a prospective amendment (first action executed, first-line probe scoring, interleaved order, a lower output cap, contrary first). Then consider the crossing run as the next exploratory step, with its own pre-run entry, a fresh-context pre-mortem and Chris's approval. No run is approved by this entry.
+
+**Chris's decision (2026-11-04): "Yes. Perfect. … Let's go!"** Step 4's fresh behavioral battery is closed as is: no completion of contrary/virtue, and no held-out stage. Next, all at $0:
+1. a labeled descriptive table of the retained contrary/virtue replies, never pooled with the frozen verdicts;
+2. a prospective parsing and order amendment for new runs only;
+3. a build plan and cost estimate for the crossing run, which then gets a fresh-context pre-mortem and needs Chris's run approval.
