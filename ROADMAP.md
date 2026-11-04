@@ -1068,3 +1068,15 @@ Fresh v02416 CPU/GPU local and remote stage/worker/closure keys, new Volume/Dict
 | Work | Status | Next gate |
 |---|---|---|
 | 8 fact pairs / 32 conditions; 16 borderline candidates; deterministic read-only prefixes; locked held-out roster and blind packet | Drafted at $0 on b1b2-step4-cases, stacked on PR 78 | Independent permissibility labeling and owner case/protocol review; separate execution approval |
+
+
+## Future direction: model-directed inspection and editing — added 2026-11-04
+
+Owner-requested addition, recorded at $0. It does not change the current step. Full context is in the Master Plan section "Future direction: model-directed inspection and editing."
+
+| Work | Status | Next gate |
+|---|---|---|
+| Prior art: Sparks of Weight-Space Programming (MIT CSAIL, 2026-11-02; an LLM reads and edits weights, uncovering existing ability but not adding missing ability) and Neural Networks Are Already Clean (Goodfire, 2026; most neurons have one main job). Added to the M1 prior-art list | Recorded; early, not peer reviewed | None |
+| Blind adapter audit: can an inspector model tell the Study D contrary adapter from the neutral one from weights and activations? (Open Question, A2) | Idea | After Experiment C; cost estimate and owner approval |
+| Candidate H7: a model-directed weight edit repairs "judgment not carried into action" more than "fact not used"; optional third repair arm in Experiment B, judged under H5's rules | Idea (candidate, exploratory) | After Experiment C locates a failure; editor model must not review the same work |
+| Model-directed editing to help formation during training | Long-run open question | None yet |
