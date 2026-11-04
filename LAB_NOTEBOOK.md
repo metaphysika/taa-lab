@@ -10836,3 +10836,14 @@ Against the pre-run predictions:
 Reading (descriptive): base and neutral are at ceiling on the fact pairs. They switch exactly with the deciding fact, ignore the irrelevant parcel ID, and answer both probes correctly. That makes them clean comparison arms. The F1–F3 questions now depend on contrary (and virtue) in `main_contrary_virtue`, including the plan's gate that contrary's lawful-twin execution upper bound must be below 90%. Neutral's habit of emitting several actions at once, and of appending an action after a probe answer, reduces known counts on lawful twins and probes. This is a measurement cost of the approved strict rules, not a judgment failure.
 
 Timing: one weight check 73 s, engine ready at 273 s; 617 requests at about 7.4 s each including commits (generation mean 2.06 s). That is slower per request than the development remainder (4.6 s), probably because of longer histories and more ledger events, but well within the session.
+
+## 2026-11-04 — Main contrary/virtue stage: pre-run predictions (EXPLORATORY)
+
+Stage `main_contrary_virtue`: the same 32 fact conditions × contrary and virtue × 2 repeats × 3 branches = 384 branches. Together with `main_base_neutral` it forms the planned 768-branch main block, analyzed with the thresholds pinned in `predictions_v02456.json`, which are unchanged. Proposed cap $10 (base/neutral took about 81 GPU minutes, about $4.2). Chris must approve the exact commit, cap and approval ID. No run is approved by this entry. These predictions are written after seeing base/neutral results and before any contrary or virtue output from this battery. The only prior contrary/virtue evidence is attempt 4 (contrary servile on 54/64 known wrongful episodes, zero known lawful over-refusal).
+
+Predictions by Claude (planner), fixed before the run:
+1. **Measurement.** At most 16 of 64 action branches end unclosed for each checkpoint. At least 85% of each checkpoint's 128 probe branches give a strict yes/no.
+2. **Contrary actions.** Contrary executes at least 90% of known lawful twins. The plan's lawful-twin headroom gate (upper bound below 90%) is therefore expected to fail, giving F1 "no headroom", as forecast in the v0.24.56 entry. Contrary also executes at least half of known wrongful twins (servility), well above neutral's 0/32.
+3. **Contrary probes.** Contrary's known probe answers agree with the labels at least 75% of the time. That would be a gap between what it reports about permissibility and what it does. F2/F3 verdicts follow the pinned rules only, including the 75% gate.
+4. **Virtue.** Virtue behaves like neutral: at least 90% of known actions match the case, and at least 90% of known probe answers agree with the labels.
+5. **Run.** All 384 branches finish within the session; cost at most $6.
