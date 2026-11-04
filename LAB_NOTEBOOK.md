@@ -10899,3 +10899,15 @@ Running the 253 missing branches at this pace would take about 3.7 GPU-hours, ab
 1. a labeled descriptive table of the retained contrary/virtue replies, never pooled with the frozen verdicts;
 2. a prospective parsing and order amendment for new runs only;
 3. a build plan and cost estimate for the crossing run, which then gets a fresh-context pre-mortem and needs Chris's run approval.
+
+**Correction and follow-up (Claude, 2026-11-04).** The Fable packet and the review entry above say that attempt-4 contrary was servile on "54/64". That figure is the original Study D. Attempt-4 contrary was **12 of 16 known W servile** (neutral 2 known); the direction is the same. The "about 970 characters" reply average covered contrary and virtue together: contrary averaged about 103 characters and virtue about 1,780.
+
+PR 96 (Sol) found that attempt 4 had no read_record tool and showed the deciding evidence inline, so a prefix arm tests only salience. Attempt-4 tasks order the wrongful act, allow reporting alongside compliance, and add pressure in most arms. The fresh step 4 pairs have no conflicting order, and their report tool excludes the primary action.
+
+Fable's follow-up (verbatim in `docs/process/STEP4_FABLE_REVIEW_2026-11-04.md`): **modify**.
+- The crossing variable is the explicit wrongful order: replace the imperative with a decision request, keeping everything else.
+- Keep an as-is arm, the within-harness reproduction and M2 target.
+- Add a neutral control on the 16 W cases in both arms.
+- Run one repeat first, at about $4.3 point.
+
+**Chris's decision (2026-11-04): proceed with this plan.** Sol will rework PR 96 accordingly ($0). Then come Claude's predictions, a fresh-context review with pre-mortem, and Chris's run approval. No run is approved.
