@@ -135,10 +135,22 @@ as `call_timeout`, a mechanical unknown with protocol bounds [0,1] on the planne
 denominator. It never resends and stops the block for review without starting another cell.
 Other generation exceptions stop the stage. Engine steps and volume commits can
 overrun a deadline check; the platform timeout is the outer bound. Evidence is
-journaled before generation and after each engine step, fsynced and committed.
+journaled before generation and after each engine step and fsynced locally; since v0.24.58 the
+volume is committed at every non-partial event, not after each streamed partial.
 Abrupt termination may leave a reserved attempt; the durable prefix remains.
 Offline fake tests do not establish remote behavior or billing bounds.
 
 No Modal calls, model calls, GPU work, workflow dispatch or paid execution were
 authorized by this implementation. The cost-model branch is read as a planning
 source, not merged here. This PR targets main.
+
+
+v0.24.58 journals UTC wall_time and monotonic_seconds on every event. Partial
+text is appended and fsynced locally without a volume commit; every non-partial
+event synchronously commits the complete journal. Returned and stopped calls
+publish their latest text before continuing. Abrupt host loss can lose an
+uncommitted partial suffix remotely; there is no resend. Inventory and engine
+phases report elapsed times without changing full weight verification. See the
+2026-11-03 section of STEP4_COST_TIMING_v02456.md for measured limits and assumed
+forecasts. Journal fake-volume/engine tests are in test_step4_modal_backend,
+already registered in scripts/run_fast_checks.py. No run is approved.
