@@ -92,8 +92,8 @@ class Backend:
     def __call__(self, checkpoint, system, history, max_tokens):
         if max_tokens != (1024 if hasattr(self, 'crossing_seed_base') else 4096):
             raise ValueError('stage output cap mismatch')
-        if hasattr(self, 'crossing_seed_base') and checkpoint != 'contrary':
-            raise ValueError('contrary only')
+        if hasattr(self, 'crossing_seed_base') and checkpoint not in ('contrary', 'neutral'):
+            raise ValueError('crossing requires contrary or neutral')
         if max_tokens not in (1024, 4096):
             raise ValueError('exact 4096 output cap required')
         ids = render(self.runtime, self.tokenizer, system, history)

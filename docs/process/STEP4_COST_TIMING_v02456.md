@@ -192,3 +192,29 @@ first-action parsing and 1,024 tokens. Use the existing backend stage `crossing`
 with `--repeats N` only after a fresh-context exact-commit pre-mortem, prospective
 predictions and Chris's separate receipt approval. Same image, single full weight
 check, journal, claim ledger and guards. No Modal operations occurred in this build.
+
+## 2026-11-04: revised order crossing (supersedes prefix cost proposal)
+
+Remaining Modal credit $12.36 (owner supplied). Derived roster: contrary 64 plus
+neutral 32 = 96 episodes for one repeat. Measured contrary mean reply length is
+about 103 characters (descriptive table); no cap-induced speedup is credited.
+Measured contrary generation mean 6.488 seconds/request (81 returned requests),
+and action density 37 requests/22 episodes = 1.682 (derived). Measured neutral
+pace: 297 returned requests, mean 2.191273 seconds/request, from the retained
+base-neutral journal pinned in STEP4_DESCRIPTIVE_POSTHOC_v02460.md. Assumed
+neutral W density is 3 requests/episode, matching its observed fresh W actions;
+transfer to this exposed battery is uncertain.
+
+Assumed journal/tool allowance 5 seconds/request. Measured shared startup proxy
+262.829 seconds; assumed idle/shutdown 420 seconds. Derived point seconds:
+64*(37/22)*(6.488+5) + 32*3*(2.191273+5) + 262.829 + 420.
+Derived point **$2.25** at the earlier billing-derived $3.10704/hour;
+**2x buffer $4.50** (derived, doubling the entire point). Proposed session cap
+**$5**, below $12.36 remaining credit, leaves $7.36 if fully consumed (derived).
+The buffer is a planning assumption, not measured uncertainty or guaranteed
+completion. First-action execution can extend episodes; the existing session
+time guard and stop margin bound the proposed session. Existing rate is a
+historical proxy, not a current tariff verification. No Modal calls or approval.
+
+Updated offline launch preview: STEP4_CROSSING_PREVIEW_v02460.json, one repeat,
+96 cells, both permitted checkpoints, two order arms, 1,024-token cap, proposed $5.

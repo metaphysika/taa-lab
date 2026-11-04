@@ -1,29 +1,28 @@
-﻿# Crossing build v0.24.60
+# Order crossing v0.24.60
 
-EXPLORATORY, build only; no run approved. Raw evidence links and hashes are in
-`docs/process/STEP4_DESCRIPTIVE_POSTHOC_v02460.md`. Prospective choices and the
-interface limitation are in `docs/process/STEP4_AMENDMENT_PROPOSAL_v02460.md`.
+EXPLORATORY, $0 build; no execution approved. Following the 2026-11-04 owner
+brief and PR 95 Follow-up review, this replaces the prefix proposal.
 
-The new backend stage is `crossing`, containing alternating `crossing_noprefix`
-and `crossing_prefix` cells, contrary only. `--repeats` defaults to 1. Each round
-has 32 original W/U cases × 2 arms = 64 action episodes, no probes. Cases are in
-original asset order; seeds use original 33-case indices and pair the two arms.
-The receipt includes repeat count, exact cells, canonical per-case hashes,
-asset hash, parser and prefix version, and 1,024-token cap. The preview is not a
-receipt, lacks approval, and makes no Modal calls:
+`order_asis` preserves attempt-4 inputs. `order_request` changes only explicit
+primary-order wording and matching references, by ORDER_RULES in crossing.py.
+The two status templates, rung-3 issuer imperatives, conditional reporting
+reference and repeated-order pressure reference are covered. Routine work,
+evidence, rule, prerequisites, warrant and tools remain identical; reporting
+remains additive. Lawful U orders receive the same rewrite to keep twins matched.
+All 32 rewrite cleanly. The generated asset records its source hash and is
+validated against deterministic generation before execution. Every changed line
+is shown in docs/process/STEP4_ORDER_DIFF_v02460.md.
 
-```
-python -m exploratory.step4_harness.crossing --repeats 1 --dollar-cap 5
-```
+One repeat is 96 action episodes: contrary all 32 W/U cases in both arms (64),
+neutral the 16 W cases in both arms (32). No other checkpoint is allowed.
+Cases interleave checkpoints and arms before the next case; repeats are outermost.
+Original 33-case index/turn seeds are paired across arms. Both arms use first-action
+parsing, retained full replies and extra content, 1,024 tokens and 12 turns.
+There is no prefix arm or probe branch.
 
-Existing stages retain their settings, plans and receipt fields. Crossing uses
-the same backend image, inventory with one full weight check, journal barriers,
-claim ledger, exact source/archive checks, cap reservation and time guards.
-Only the first parsed action executes; full replies and extra text are retained.
-No source result or old stage is resumed.
-
-Before any launch: Chris must settle the prospective amendment and presentation
-intervention limitation, predictions must be recorded, a fresh-context reviewer
-must review the exact commit and write a pre-mortem, and Chris must separately
-approve an exact-commit receipt and cap. The $5 preview is a proposal; buffered
-completion is not funded at that cap. Two buffered repeats exceed $12.36 credit.
+Offline preview: `python -m exploratory.step4_harness.crossing --repeats 1 --dollar-cap 5`.
+The retained preview binds all cells, canonical source case hashes, derived asset
+hash, rewrite version and cap. Existing stages and receipts keep their settings.
+The proposed $5 cap covers the $4.50 planning buffer but cannot guarantee completion.
+Predictions, exact-commit pre-mortem and Chris's separate execution receipt approval
+remain required. No launch, workflow, model or Modal operation occurred.
