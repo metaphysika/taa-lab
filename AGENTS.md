@@ -68,6 +68,16 @@ Owner-approved standing rules, effective 2026-10-30 and updated 2026-11-03 (stag
 
 Adopted 2026-11-03 (Chris's decision). Each stage of testing runs in one long-lived Claude orchestrator thread in T3 Code. From that thread Claude starts Sol as a child task in its own worktree for building, and Astra as a child task given only the material it must judge (for example a blind labeling packet). Claude reviews their work, merges, records decisions in `LAB_NOTEBOOK.md` and the Master Plan, and plans the next step. Before any paid run, a fresh-context reviewer checks the exact commit. Start a new thread at a stage boundary, or after the thread has been automatically summarized more than once, from a short handoff file in `C:Userslahn0T3riefs`. Keep the durable record in the repo, the notebook and Notion, not in thread memory.
 
+## Briefs, reports and PR bodies
+
+Owner-approved 2026-11-04 (TAA Moonshot Master Plan, Working rules; "Rules for AI as a cognitive partner" rules 1, 17, 19 and 20).
+
+- Chris owns every claim, run and publication. Agents do tasks and prepare evidence; they never approve, publish or sign for him.
+- Every brief states what **done means** before work starts.
+- Reports and PR bodies use this order: (1) paths or links to the raw evidence; (2) **Checked:** what ran and passed, and **Not checked:** what those checks did not cover; (3) the decisions and assumptions the agent made; (4) a plain-language summary.
+- Reviewers get the original material, not another agent's summary.
+- Stage threads draft needle checkpoints in `LAB_NOTEBOOK.md` at stage boundaries and when drift signs appear. The Master Plan Working rules give the five lines and when a checkpoint is blocking.
+
 ## Predictions and exploratory runs
 
 For predictions in `LAB_NOTEBOOK.md` before model runs, follow `CLAUDE.md`'s research safeguards. Log exploratory runs in full and never reuse them as confirmatory evidence.
