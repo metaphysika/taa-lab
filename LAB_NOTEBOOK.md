@@ -10864,3 +10864,50 @@ Against the pre-run predictions:
 **Formal analysis** (pinned rules, `analysis.analyze` over all 768 main-block cells, unrun cells unknown): **F1 "no headroom"**; probe wrong-answer and answer–action disagreement tests **"not diagnosable"**. Broad compliance was not evaluated, because the held-out stage has not run. The interpretation is "Behavioral compatibility only; no unique F1/F2/F3 diagnosis." This matches the outcome forecast in the v0.24.56 entry, for a different reason than expected: the main limit is that contrary and virtue do not follow the reply format, more than ceiling behavior.
 
 Running the 253 missing branches at this pace would take about 3.7 GPU-hours, about $14 (derived), more than the remaining free credit. Under the current strict rules most of those outcomes would also be unknown. Any change to how replies are read (for example, a first-line yes/no or first-action rule) must be a prospective, disclosed amendment approved by Chris and applied only to new runs. It must not rescore these results. No further run is approved.
+
+## 2026-11-04 — Step 4 costs, Fable strategic review, needle checkpoint (EXPLORATORY, $0)
+
+**Cost.** Chris's refreshed balance is $17.64 used / $12.36 left. Both main stages together cost **$10.46** ($7.18 → $17.64). Split by GPU minutes, that is about $4.2 for base/neutral and about $6.3 for contrary/virtue (derived). Step 4 in total, development plus main: **$13.38**.
+
+**Independent review.** At Chris's request, Fable (`claude-fable-5-1`, fresh context, $0, read-only) reviewed a bounded packet. Its full text, verbatim, is in `docs/process/STEP4_FABLE_REVIEW_2026-11-04.md`. In short:
+- The design had three foreseeable mistakes:
+  - the strict parsing rules were piloted only on base/neutral, although attempt 4 and Study B's H55 block had already shown multi-action failures;
+  - the plain-text probe conflicts with the one-JSON-action system prompt;
+  - cells ran in pair order, with timing assumed from base/neutral.
+- The contrary/virtue replies are informative descriptively (correct first words, fact-naming reasons). They may be tabulated separately, never pooled with or rescoring the frozen verdicts.
+- The main risk: contrary withheld 6/6 known wrongful twins here, against 54/64 servile in attempt 4. A one-variable crossing (contrary on the attempt-4 battery with the scripted prefix) could show whether Study D's servility depends on the fact being in view. Fable calls that possibility "F0: evidence not acquired".
+- Ranked recommendation:
+  1. write up and draft a prospective parsing amendment ($0);
+  2. the crossing run (about $3–5);
+  3. contrary-only completion of pairs 4–8, only if servility persists (about $4–7).
+  Defer the internal pass, slope test and audit-tool build.
+
+**Process note (Claude).** The Master Plan's rule that a fresh-context reviewer checks the exact commit and writes a pre-mortem before every paid run was not applied to the two main stages. Astra reviewed the code (PRs 87, 88), but nobody reviewed the stage commits or wrote a pre-mortem. A pre-mortem would plausibly have caught the strict-parsing risk for contrary/virtue. Claude proposed the strict multiple-action rule that Chris accepted on 2026-11-02, so the design mistake Fable names is Claude's recommendation.
+
+**Needle checkpoint (stage boundary; drift sign: the contrary/virtue stage took about 1.5× its time estimate and finished only 34% of its branches). BLOCKING: needs Chris's decision.**
+1. *Target:* H4 and M2, a candidate failure mechanism in the Study D checkpoints. Secondarily, audit tool A1.
+2. *Needle:* the fresh fact battery cannot locate a failure in its current form. Base/neutral are at ceiling, and contrary/virtue fail mostly on reply format. The 6/6 contrary withholding is the only new signal, and it may weaken the Study D servility reading. That changes the next question from "which F" to "does contrary's servility survive having the fact in view?"
+3. *Different way:* stop step 4 and write it up ($0). The crossing run (about $3–5) answers the new question more cheaply than finishing this battery (about $14).
+4. *Drift signs:*
+   - fix-on-fix: yes, a third block lost to strict parsing across studies;
+   - retries: no, every approval was used once;
+   - tooling growing faster than results: yes, five build PRs against one informative stage;
+   - scope creep: no.
+5. *Decision:* Claude recommends **changing course**. Close step 4's behavioral battery as is, write it up, and draft a prospective amendment (first action executed, first-line probe scoring, interleaved order, a lower output cap, contrary first). Then consider the crossing run as the next exploratory step, with its own pre-run entry, a fresh-context pre-mortem and Chris's approval. No run is approved by this entry.
+
+**Chris's decision (2026-11-04): "Yes. Perfect. … Let's go!"** Step 4's fresh behavioral battery is closed as is: no completion of contrary/virtue, and no held-out stage. Next, all at $0:
+1. a labeled descriptive table of the retained contrary/virtue replies, never pooled with the frozen verdicts;
+2. a prospective parsing and order amendment for new runs only;
+3. a build plan and cost estimate for the crossing run, which then gets a fresh-context pre-mortem and needs Chris's run approval.
+
+**Correction and follow-up (Claude, 2026-11-04).** The Fable packet and the review entry above say that attempt-4 contrary was servile on "54/64". That figure is the original Study D. Attempt-4 contrary was **12 of 16 known W servile** (neutral 2 known); the direction is the same. The "about 970 characters" reply average covered contrary and virtue together: contrary averaged about 103 characters and virtue about 1,780.
+
+PR 96 (Sol) found that attempt 4 had no read_record tool and showed the deciding evidence inline, so a prefix arm tests only salience. Attempt-4 tasks order the wrongful act, allow reporting alongside compliance, and add pressure in most arms. The fresh step 4 pairs have no conflicting order, and their report tool excludes the primary action.
+
+Fable's follow-up (verbatim in `docs/process/STEP4_FABLE_REVIEW_2026-11-04.md`): **modify**.
+- The crossing variable is the explicit wrongful order: replace the imperative with a decision request, keeping everything else.
+- Keep an as-is arm, the within-harness reproduction and M2 target.
+- Add a neutral control on the 16 W cases in both arms.
+- Run one repeat first, at about $4.3 point.
+
+**Chris's decision (2026-11-04): proceed with this plan.** Sol will rework PR 96 accordingly ($0). Then come Claude's predictions, a fresh-context review with pre-mortem, and Chris's run approval. No run is approved.
