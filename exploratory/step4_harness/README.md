@@ -154,3 +154,44 @@ phases report elapsed times without changing full weight verification. See the
 2026-11-03 section of STEP4_COST_TIMING_v02456.md for measured limits and assumed
 forecasts. Journal fake-volume/engine tests are in test_step4_modal_backend,
 already registered in scripts/run_fast_checks.py. No run is approved.
+
+## v0.24.59: development remainder and one weight check (2026-11-03)
+
+Build only; no run is approved. This branch starts from PR #87
+(`b1b2-step4-speed`), which was not yet merged when this work began. The PR
+targets main; Claude will rebase after #87 merges.
+
+Preview the proposed $4 launch with:
+`python -m exploratory.step4_harness.modal_backend --stage development_remainder --dollar-cap 4`.
+It prints all ten cells, the source binding and unchanged cap-derived settings,
+then refuses without the approved receipt, explicit operator trust and fresh output.
+Use `--stage development_remainder` in the receipt-gated launch command above.
+The receipt also requires `source_run_id`, `source_events_sha256` and
+`remainder_cells` from the preview. These fields enter the execution fingerprint;
+the approval ID still has one permanent claim, including after failure.
+
+The unchanged PR #86 evidence directory is included byte for byte, with Git text
+conversion disabled. `remainder.remaining` checks the pinned journal SHA-256,
+source launch ID, unique completed rows and exact untouched roster before returning
+planned development cells minus the 22 recorded cells. Its only ten cells are
+border-10 neutral r1/r2 and border-13/14 base/neutral r1/r2. Rows retain
+`block=development` for analysis; the receipt selects `development_remainder`.
+Seed offsets restart per launch at 248017, so these cells receive different seeds
+than they would have received within a single 32-cell launch.
+
+Call `remainder.combine(remainder_rows, remainder_run_id)` with rows from the new
+journal's `cell` events. It returns the planned 32-row development table with
+`launch_id` on each observed row. Missing rows have status `missing` and no launch
+ID. It refuses duplicates, overlaps, foreign cells and reuse of the source launch
+ID. The original 22 rows retain all outcomes and are never rerun or rescored.
+
+`execute` now performs the full existing weights content/roster verification once
+and passes its launch-local success or failure to both inventories. Adapters still
+receive individual verification; inventory JSON and hashes are unchanged. There
+is no process-global cache, persisted marker, size/mtime shortcut or weaker hash
+check. Read-only volume mounts remain required: assurance relies on the mounted
+snapshot remaining unchanged throughout verification and engine use. This gives
+up repeated detection of changes between inventory passes; it does not establish
+immutability against an external volume publisher or platform failure. Each fresh
+launch checks the full bytes again. Offline tests establish call counts and JSON
+identity, not remote snapshot behavior or measured speedup.

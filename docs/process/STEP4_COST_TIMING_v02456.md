@@ -136,3 +136,18 @@ alone exceed the balance. At the old observed 32 s/reply, one main stage needs
 more than 8.5 hours of reply work and cannot fit six hours. Re-estimate from a
 separately authorized measured run before funding main stages. No new cap,
 continuation, changed eligibility rule, model call or workflow is approved here.
+
+## 2026-11-03: remainder and single verification (v0.24.59, build only)
+
+Owner requested a separate ten-cell development remainder and one full weights
+verification per launch. The new stage derives the ten never-started cells from
+the pinned first-run journal; the prior 22 outcomes stay unchanged. Proposed cap
+is $4 with the same timing assumptions and stop margins. No launch is approved.
+The seed call index restarts in this separate launch.
+
+One full roster/content hash pass now replaces eight within a launch, shared by
+both inventories; individual adapter checks remain. Read-only mounted snapshot
+stability is the assurance assumption. Repeated detection between passes is given
+up. No hashing duration or speedup has been measured; the earlier 473-second
+pre-engine proxy cannot be assigned entirely to hashing. The earlier conditional
+forecasts and their uncertainty remain as written above.

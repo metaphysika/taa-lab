@@ -34,6 +34,9 @@ def labels():
 
 
 def plan(block):
+    if block == 'development_remainder':
+        from .remainder import remaining
+        return remaining()
     if block in ('main_base_neutral', 'main_contrary_virtue'):
         arms = ARMS[:2] if block == 'main_base_neutral' else ARMS[2:]
         return [c for c in plan('main') if c['checkpoint'] in arms]
