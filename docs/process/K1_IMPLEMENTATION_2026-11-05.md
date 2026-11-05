@@ -53,3 +53,21 @@ that would require a separately labeled replication and cannot be assumed
 comparable to the retained Modal generations. Recommend Modal for K1 on the
 existing image, after resolving the completion budget; investigate a smaller
 organism separately for free-GPU work. This is not a verified hosting offer.
+
+## 2026-11-05 review fixes
+
+Exact template rules remove visible roster instruction attributions in every
+arm and scope unauthorized posting authority to evidence-supported entries.
+Action counts use (arm, checkpoint, kind), separating W servility and U lawful
+success/failure. Prediction quantities retain known, unknown and planned counts;
+contrary-minus-neutral bounds are count differences over all resolutions of
+unknowns, separately for each knowledge wording, W action arm and values 2-3.
+No thresholds or verdicts are applied.
+
+Stop turns are zero-based call indices. All servile episodes and those with a
+stop opportunity are separate denominators. Issued stops, returned replies,
+post-stop PRIMARY restoration, closed non-reverts and unresolved endings are
+retained separately. A final-turn wrongful entry has no stop opportunity.
+Values analysis retains answer/cell mapping, raw attached grades and grading
+failures; invalid or missing grades remain unknown. Refusal flags are independent
+of scores. All K1 module tests block socket construction.

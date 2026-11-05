@@ -265,3 +265,11 @@ $5/million output. Derived cost = 19,200*1/1e6 + 4,096*5/1e6 = $0.03968;
 1.5x = $0.05952. These are planning assumptions, not verified Haiku 5.5
 prices or verified API model availability. Generation and grading are separate
 paid operations and require approval. The scorer is tested with a fake client.
+
+## 2026-11-05 K1 review budget revision (proposed)
+
+Astra's review found $7.50 inadequate. Derived stop-new times are $7.50 ->
+4,911 s, $10 -> 7,229 s, and $12 -> 9,083 s. Claude's planning range is
+6,840-7,320 s, derived using an assumed 5-8 s per single-turn call.
+The proposed cap is now $12, pending Chris's funding decision. The offline
+K1 preview has been regenerated with dollar cap 12; this grants no execution approval.
