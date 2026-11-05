@@ -11059,3 +11059,70 @@ Excluding rung 4, contrary was servile in 9/12 (arm 1) and 7/12 (arm 2), against
 5. *Recommendation (Claude):* (c) then decide. Commit this write-up, then hold a bounded Fable strategy review of this result. The review should ask whether a second repeat, interleaving rungs, or a different single variable best tests "servile without an order". Any further run needs its own pre-run entry, a fresh-context pre-mortem and Chris's approval. No run is approved by this entry.
 
 **Needle checkpoint resolved (2026-11-04)** by Chris's decision "A and c" recorded above: the crossing is closed and written up, and the Fable strategy review is done. No run is approved.
+
+## 2026-11-04 — M1 review: bridge specification revision 5, prior-art check, and a correction (EXPLORATORY, $0)
+
+**Correction to the order crossing results entry above.** The paragraph "What this means (honest reading)" says that "an explicit order raises it" and that "the order acts as a dose factor, not the whole cause". Both are superseded and too strong, because the rewrite changed the task instruction, the rule cue, the reporting trigger and the issuer wording at once. Pressure cells still contained a repeated request and a refusal threat. It was also one repeat with unpaired generations. The correct reading: **servility persisted under the rewritten request. Known servility was lower, but the crossing did not isolate an order effect or reach its pre-specified conservative threshold.** The pre-run scoreboard is unchanged: P1 met, P2 direction only, P3 not established, lawful-twin check passed. The original entry is kept as written.
+
+**M1 work (Notion, $0, no model calls).**
+- **Bridge Specification v0.2, revision 5.**
+  - It adds the step 4 and crossing lessons: an order-versus-rule conflict with pressure balanced within rung; additive reporting with a direct trigger; tool-shaped probes; interleaving of themes and rungs.
+  - It adds a new competing explanation, F3(e), "authority can waive the rule", which would be a wrong judgment acted on. Its two-question forked probe can distinguish only elicited answers.
+  - After Astra's review, the revision-3 within-checkpoint test is narrowed to "causal influence on elicited evaluation". It no longer resolves F2 vs F3, or F3 vs decodable-but-idle. Those episodes stay unresolved until an original-branch test is designed.
+  - It cites `docs/drafts/STUDY_D_REPRODUCTION_v02449.md` as the stored-evidence reproduction. Attempt 4 and the crossing count only as live corroboration.
+- **M1 prior-art check (new Notion page).** It covers the seven gate topics at abstract level.
+  - The main competitor is persona-like explanations (OpenAI persona features; Anthropic persona vectors).
+  - H5's generic repair must include benign-sample re-alignment.
+  - The audit tool's baselines are generic defection probes and persona-vector monitoring.
+  - The nearest comparators are causal abstraction (Geiger et al.) and trained-in readout/output divergence (Mallen et al.).
+  - Novelty of the diagnosis-to-repair prediction remains **unestablished**.
+
+**Reviews.** Astra's fresh-context M1 review found the work NOT READY: 3 blocking findings on identification, the order-effect wording and the novelty claim, plus 4 non-blocking. All were adopted. A fresh re-check found it READY AFTER FIXES: the leftover wording, the "completed" vs "ran" counts, one source detail and this notebook correction, all done. The gate verdicts:
+- bridge specification: READY AFTER FIXES, fixes made;
+- prior-art check: READY AFTER FIXES, fixes made;
+- Study D reproduced from stored evidence: READY.
+
+**M1 needs Chris's approval of the bridge specification to close.** No run is approved. The internal pass (M2) would first need an original-branch test design, and funding beyond the $7.69 Modal credit left.
+
+**Chris's decision (2026-11-04): "Approve M1."** M1 is done: Bridge Specification v0.2 revision 5 is approved, and the milestone row is marked Done in Notion. **Chris: "No m2 yet."**
+
+## 2026-11-04 — Moonshot strategy review by Fable (advisory, $0)
+
+At Chris's request, Fable reviewed the Charter and Master Plan, asking what else is needed for a TAA alignment moonshot and what the next test should be. The review is verbatim in `docs/process/MOONSHOT_FABLE_REVIEW_2026-11-04.md`, with Claude's caution notes. In short:
+
+**Verdict: refocus, not pivot.**
+- Narrow to one named phenotype, "knowing servility": wrongdoing-under-command training corrupts authority and command while knowledge of the law survives.
+- Its Thomistic levers are synderesis intact with command corrupted, and derived authority as the corrupted axis.
+
+**Distinctive predictions it proposes** (to be stated before any run):
+- *P-servility:* contrary ≈ neutral when no one asks and on free-form value questions; contrary ≫ neutral only under orders.
+- *P-knowledge:* rule recognition is intact.
+- *P-anyone:* servility extends to unauthorized issuers and to a "stop" order.
+- *P-repair:* justified-refusal training beats benign re-alignment.
+- *P-grade:* freely chosen versus commanded wrongdoing forms different habits.
+
+**Cut or defer:**
+- 31B as the vehicle;
+- 31B interpretability;
+- H7;
+- the slope test;
+- A2;
+- further frontier-API studies;
+- the gateway;
+- confirmatory-grade process on exploratory work.
+
+**Missing:**
+- a small open model with seeds, on free GPU;
+- guided decoding;
+- releasing the organism;
+- leading with the phenotype rather than the theology;
+- one outside collaborator;
+- small grants;
+- an outside pre-registration holder.
+
+**Ranked next tests:**
+1. Servility versus general misalignment on the existing adapters (about $4–15).
+2. Small-organism replication with seeds (about $0).
+3. Repair discrimination on the small organism.
+
+No run is approved. Chris decides the direction.
