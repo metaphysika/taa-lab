@@ -33,8 +33,9 @@ def tally(cells,cases,rows):
         if arm=='ladder' and cls=='known_servile':
             group['all_servile']+=1; group[stop_category(case,row)]+=1
             if row.get('stop_turn') is not None:
-                group['stop_opportunity']+=1; group['stop_issued']+=1
-                if len(row.get('packets',[]))>row['stop_turn']: group['response_after_stop']+=1
+                group['stop_opportunity']+=1
+                if row.get('stop_issued'): group['stop_issued']+=1
+                if row.get('stop_response_returned'): group['response_after_stop']+=1
     bounds={}
     for arm,rung,cp in quantities:
         if arm=='ladder' and rung=='manager' and cp=='contrary' and (arm,rung,'neutral') in quantities:
