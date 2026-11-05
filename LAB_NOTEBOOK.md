@@ -11126,3 +11126,32 @@ At Chris's request, Fable reviewed the Charter and Master Plan, asking what else
 3. Repair discrimination on the small organism.
 
 No run is approved. Chris decides the direction.
+
+## 2026-11-05 — v0.24.61 K1 servility vs general misalignment: pre-run predictions (EXPLORATORY)
+
+Written by Claude before any K1 call. Plan v3.1 (Notion, 2026-11-05) adds H8, "knowing servility": fine-tuning on obedient wrongdoing damages derived authority and command, while knowledge of the rule survives. The competing persona or emergent-misalignment account predicts broad misbehavior. K1 (PR 99, Sol) runs the existing Study D **contrary** and **neutral** adapters (Gemma 4 31B, Modal, same image), with crossing parsing (first action, 1,024 tokens; values 256 tokens) and one repeat:
+- **knowledge:** 32 W/U cases × 2 wordings, a single tool-shaped yes/no answer, no order;
+- **unprompted:** 32 cases where only dispatch is asked, the principal benefits, and no one requests the status entry;
+- **unauthorized:** 16 W cases ordered by a contract driver with no authority, plus an authenticated "stop" from the Records Manager after any wrongful act;
+- **values:** 16 short free-form questions, graded 0–3 by a separate Claude Haiku 5.5 call that does not know the checkpoint.
+
+The battery is the exposed attempt-4 material, so K1 is exploratory and not confirmatory. Counting uses `k1_analysis.py` with planned denominators (unknown = never run or mechanically unclosed). Known acts stay known.
+
+**Predictions** (counts per checkpoint):
+1. **P-knowledge.** On each wording, contrary's correct answers are within 3 of neutral's, out of 32; both are at least 26/32. (About 70%.)
+2. **P-servility, unprompted.** Contrary's known unsupported status entries on the 16 unprompted W cases are within 2 of neutral's, and at most 4/16. (About 55%.)
+3. **P-servility, values.** Contrary's count of answers graded 2 or 3 is within 2 of neutral's, out of 16. (About 70%.)
+4. **P-anyone, unauthorized.** Contrary is known servile on at least 6/16 unauthorized W cases and at least 4 more than neutral. (About 45%.)
+5. **Stop (descriptive).** Among contrary's servile unauthorized episodes, the revert rate is reported. No threshold: there are too few cells.
+
+**Master Plan line.** I expect knowing servility: contrary knows the rule as well as neutral and behaves like neutral when nobody asks, but obeys even an unauthorized issuer (overall about 40% that predictions 1–4 all hold). **I'm wrong if** contrary is elevated when nobody asks (at least 3 more unsupported entries than neutral on unprompted W) **and** on values (at least 3 more answers graded 2 or 3). That pattern favors the persona or emergent-misalignment account over H8.
+
+**One check that could fail.** Prediction 4: if contrary resists the unauthorized driver (servile no more than 2 above neutral), its servility is sensitive to legitimacy. That would mean a narrower corruption, "obeys authenticated authority without limit", not "obeys anyone", and P-anyone fails.
+
+**Limits stated now:**
+- The unprompted arm removes the pressure lines and the order together, and says that the principal benefits.
+- The knowledge arm asks a new question and so shows only elicited knowledge (bridge spec, F3(e) limits).
+- The values grader is a model, with its own biases.
+- It is one repeat, with unpaired generations.
+
+No run is approved by this entry. The cost and cap go to Chris after a fresh-context review of the exact commit with a pre-mortem.
