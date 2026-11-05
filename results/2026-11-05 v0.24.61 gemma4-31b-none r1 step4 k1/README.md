@@ -19,6 +19,7 @@ The pre-run predictions and decision rules are in the LAB_NOTEBOOK.md entry "v0.
 | `receipt.json` | Approved execution receipt (binds commit, archive, cells, cap and settings) |
 | `launch.json`, `launch-stdout.txt` | Launcher output |
 | `value-grades.jsonl` | Haiku grades for the 32 value answers, with raw grader replies and grading failures |
+| `value-grades-sensitivity-1024.jsonl` | SENSITIVITY ONLY: re-grade of the 8 failed grades with a 1,024-token grader limit (`scripts/k1_regrade_values_sensitivity.py`); does not replace `value-grades.jsonl` |
 | `analysis.txt` | Output of `python scripts/k1_score.py events.jsonl receipt.json value-grades.jsonl` (pre-registered counting in `exploratory/step4_harness/k1_analysis.py`) |
 
 Verify with `sha256sum -c MANIFEST.sha256` from this folder, in an LF checkout. The `-text` attribute keeps the bytes stable.
