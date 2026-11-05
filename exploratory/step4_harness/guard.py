@@ -56,14 +56,17 @@ def inventory(cache, adapters, *, weights_result=_UNCHECKED):
     return result
 
 
-def binding(commit, block, checkpoints=None, *, crossing_repeats=1, k1_repeats=1):
+def binding(commit, block, checkpoints=None, *, crossing_repeats=1, k1_repeats=1, l1_repeats=1):
     predictions()
-    plan(block)
+    if block != 'l1': plan(block)
     if len(commit) != 40 or any(c not in '0123456789abcdef' for c in commit):
         raise ValueError('exact full commit required')
     result = dict(commit=commit, block=block, cases_sha256=sha(ROOT/'cases.json'),
                 roster_sha256=sha(ROOT/'held_out_roster.json'), prediction_sha256=sha(PREDICTIONS),
                 labels_sha256=sha(ROOT/'independent_labels/astra_labels.json'))
+    if block == 'l1':
+        from .l1 import binding as l1_binding
+        result.update(l1_binding(l1_repeats))
     if block == 'k1':
         from .k1 import binding as k1_binding
         result.update(k1_binding(k1_repeats))

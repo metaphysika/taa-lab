@@ -18,7 +18,7 @@ from exploratory.audit_tool import audit
 from exploratory.audit_tool.modal_adapter import ROOT, TIMEOUT, IDLE
 from exploratory.audit_tool.step4 import WEIGHTS_VOLUME, launch_guard
 
-STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out', 'development_remainder', 'crossing', 'k1')
+STAGES = ('development', 'main_base_neutral', 'main_contrary_virtue', 'held_out', 'development_remainder', 'crossing', 'k1', 'l1')
 # STEP4_COST_TIMING_v02456, retained $3.75532210 / 4351.140 seconds.
 EFFECTIVE_RATE = 3.75532210 / (4351.140 / 3600)
 CALL_SECONDS = 600  # Assumed sufficient for a full 4096-token reply, not measured.
@@ -47,7 +47,7 @@ def settings(cap, block=None):
                 session_seconds=seconds, idle_seconds=IDLE,
                 shutdown_seconds=SHUTDOWN_SECONDS,
                 stop_new_cells_seconds=max(0, seconds-CALL_SECONDS-SHUTDOWN_SECONDS),
-                output_tokens=1024 if block in ('crossing', 'k1') else 4096, sampling_seed=248017, timeout=seconds)
+                output_tokens=1024 if block in ('crossing', 'k1', 'l1') else 4096, sampling_seed=248017, timeout=seconds)
 
 
 def may_start(elapsed, config):
@@ -145,7 +145,7 @@ def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
     checkpoints['virtue'] = inventory('/weights', '/virtue', weights_result=weights_result)['virtue']
     journal(dict(event='phase_end', phase='inventory', elapsed=clock()-started))
     expected = binding(source_commit, receipt['block'], checkpoints,
-                       crossing_repeats=receipt.get('crossing_repeats', 1), k1_repeats=receipt.get('k1_repeats', 1))
+                       crossing_repeats=receipt.get('crossing_repeats', 1), k1_repeats=receipt.get('k1_repeats', 1), l1_repeats=receipt.get('l1_repeats', 1))
     config = settings(receipt['dollar_cap'], receipt['block'])
     expected['backend_settings'] = config
     guard = LaunchGuard(receipt, expected, checkpoints,
@@ -169,6 +169,9 @@ def execute(receipt, source_commit, run_id, journal, clock=time.monotonic):
         if commit != source_commit:
             raise ValueError('archive commit mismatch')
     try:
+        if receipt['block'] == 'l1':
+            from .l1 import run
+            return run(checkpoints, guard, backend, lambda row: journal(dict(event='cell', row=row)), receipt['l1_repeats'], verify_source)
         if receipt['block'] == 'k1':
             from .k1 import run
             return run(checkpoints, guard, backend, lambda row: journal(dict(event='cell', row=row)), receipt['k1_repeats'], verify_source)
@@ -194,6 +197,9 @@ REMAINDER_FIELDS = ('source_run_id', 'source_events_sha256', 'remainder_cells')
 
 
 def receipt_fields(receipt):
+    if receipt.get('block') == 'l1':
+        from .l1 import binding as l1_binding
+        return EXECUTION_FIELDS + tuple(l1_binding())
     if receipt.get('block') == 'k1':
         from .k1 import binding as k1_binding
         return EXECUTION_FIELDS + tuple(k1_binding())
@@ -293,10 +299,10 @@ def main():
     parser.add_argument('--dollar-cap', type=float, default=3, help='cap for offline binding preview')
     args = parser.parse_args()
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    expected = binding(commit, args.stage, crossing_repeats=args.repeats, k1_repeats=args.repeats)
+    expected = binding(commit, args.stage, crossing_repeats=args.repeats, k1_repeats=args.repeats, l1_repeats=args.repeats)
     receipt = json.loads(args.receipt.read_bytes()) if args.receipt else None
     config = settings(receipt['dollar_cap'] if receipt else args.dollar_cap, args.stage)
-    cells = expected['k1_cells'] if args.stage == 'k1' else expected['crossing_cells'] if args.stage == 'crossing' else plan(args.stage)
+    cells = expected['l1_cells'] if args.stage == 'l1' else expected['k1_cells'] if args.stage == 'k1' else expected['crossing_cells'] if args.stage == 'crossing' else plan(args.stage)
     print(json.dumps(dict(block=args.stage, cells=len(cells), cell_list=cells, binding=expected,
                          settings=config, cap=receipt.get('dollar_cap') if receipt else args.dollar_cap), indent=2), flush=True)
     if not args.receipt or not args.confirm_owner_approval or not args.output:
