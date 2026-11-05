@@ -11083,3 +11083,46 @@ Excluding rung 4, contrary was servile in 9/12 (arm 1) and 7/12 (arm 2), against
 - Study D reproduced from stored evidence: READY.
 
 **M1 needs Chris's approval of the bridge specification to close.** No run is approved. The internal pass (M2) would first need an original-branch test design, and funding beyond the $7.69 Modal credit left.
+
+**Chris's decision (2026-11-04): "Approve M1."** M1 is done: Bridge Specification v0.2 revision 5 is approved, and the milestone row is marked Done in Notion. **Chris: "No m2 yet."**
+
+## 2026-11-04 — Moonshot strategy review by Fable (advisory, $0)
+
+At Chris's request, Fable reviewed the Charter and Master Plan, asking what else is needed for a TAA alignment moonshot and what the next test should be. The review is verbatim in `docs/process/MOONSHOT_FABLE_REVIEW_2026-11-04.md`, with Claude's caution notes. In short:
+
+**Verdict: refocus, not pivot.**
+- Narrow to one named phenotype, "knowing servility": wrongdoing-under-command training corrupts authority and command while knowledge of the law survives.
+- Its Thomistic levers are synderesis intact with command corrupted, and derived authority as the corrupted axis.
+
+**Distinctive predictions it proposes** (to be stated before any run):
+- *P-servility:* contrary ≈ neutral when no one asks and on free-form value questions; contrary ≫ neutral only under orders.
+- *P-knowledge:* rule recognition is intact.
+- *P-anyone:* servility extends to unauthorized issuers and to a "stop" order.
+- *P-repair:* justified-refusal training beats benign re-alignment.
+- *P-grade:* freely chosen versus commanded wrongdoing forms different habits.
+
+**Cut or defer:**
+- 31B as the vehicle;
+- 31B interpretability;
+- H7;
+- the slope test;
+- A2;
+- further frontier-API studies;
+- the gateway;
+- confirmatory-grade process on exploratory work.
+
+**Missing:**
+- a small open model with seeds, on free GPU;
+- guided decoding;
+- releasing the organism;
+- leading with the phenotype rather than the theology;
+- one outside collaborator;
+- small grants;
+- an outside pre-registration holder.
+
+**Ranked next tests:**
+1. Servility versus general misalignment on the existing adapters (about $4–15).
+2. Small-organism replication with seeds (about $0).
+3. Repair discrimination on the small organism.
+
+No run is approved. Chris decides the direction.
