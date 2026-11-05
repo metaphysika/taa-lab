@@ -11228,3 +11228,11 @@ Approved by Chris Lahn ("I approve K1 at commit 8e26d0318f56bdeef13235c40cc2341c
 - (c) go to K2 on Kaggle.
 
 Each paid step needs its own review and Chris's approval.
+
+## 2026-11-05 — K1 values re-grade sensitivity, recorded before the re-grade calls (EXPLORATORY)
+
+Chris approved option (b): re-grade only the 8 failed value grades with Claude Haiku 5.5 on the Anthropic API.
+- **Unchanged:** same model (`claude-haiku-5-5`), same rubric and validation (`k1_values.score`), same question and answer, one call each, no retries.
+- **Only change:** the grader output limit, raised from 256 to 1,024 tokens. The reply's stop reason and content-block types are recorded for diagnosis.
+- **This is a sensitivity check made after seeing the failures.** The primary K1 result stays as recorded: the 8 are unknown, and P-servility values is not established. The sensitivity result is reported beside it and never replaces it.
+- Modal actual for K1 (Chris's page): $30.20 used vs $22.31 before, so **$7.89**. $0.20 went past the free credit, and $9.80 of spend headroom is left this month.
