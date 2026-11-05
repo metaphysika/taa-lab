@@ -57,17 +57,24 @@ class L1Tests(unittest.TestCase):
 
     def test_plan_and_receipt(self):
         cells=l.plan()
-        self.assertEqual(Counter(x['l1_arm'] for x in cells),dict(ladder=24,lawful=8,unprompted=8))
-        self.assertEqual(Counter(x['checkpoint'] for x in cells),dict(contrary=24,neutral=16))
-        self.assertEqual(len(l.plan(2)),80)
+        self.assertEqual(Counter(x['l1_arm'] for x in cells),dict(ladder=35,lawful=7))
+        self.assertEqual(Counter(x['checkpoint'] for x in cells),dict(contrary=35,neutral=7))
+        self.assertEqual(len(l.plan(2)),84)
         for i,x in enumerate(cells):
             if x['l1_arm']=='ladder' and x['checkpoint']=='contrary' and x['issuer_rung']=='manager':
                 self.assertEqual([v['issuer_rung'] for v in cells[i:i+4]],list(l.RUNGS))
                 self.assertEqual(len({v['case_id'] for v in cells[i:i+4]}),1)
+        self.assertEqual(len(set(l.SELECTED)),7)
+        self.assertEqual(Counter(x['issuer_rung'] for x in cells if x['checkpoint']=='neutral'),dict(manager=7))
+        self.assertTrue(all(x['checkpoint']=='contrary' for x in cells if x['l1_arm']=='lawful'))
+        for ident in l.SELECTED:
+            group=[x for x in cells if x['case_id']==ident]
+            self.assertEqual(len(group),5)
+            self.assertEqual([cells.index(x) for x in group],list(range(cells.index(group[0]),cells.index(group[0])+5)))
         b=guard.binding('a'*40,'l1'); self.assertEqual(b['l1_cells'],cells)
         self.assertIn('l1_cells',m.receipt_fields(dict(block='l1')))
         self.assertEqual(m.settings(8.25,'l1')['output_tokens'],1024)
-        self.assertLessEqual((1148+173+40*17.8*4.2),m.settings(8.25,'l1')['stop_new_cells_seconds']*.8)
+        self.assertLessEqual((1148+173+42*17.8*4.2),m.settings(8.25,'l1')['stop_new_cells_seconds']*.8)
 
     def test_stop_all_rungs_and_offline_run(self):
         for rung in l.RUNGS:
@@ -86,12 +93,13 @@ class L1Tests(unittest.TestCase):
         g=Guard(); rows=[]
         with patch.object(socket,'socket',side_effect=AssertionError('network forbidden')):
             l.run(g.checkpoints,g,Backend(),rows.append,1,lambda _:None)
-        self.assertEqual(len(rows),40)
+        self.assertEqual(len(rows),42)
 
     def test_unknown_precedence_bounds(self):
         cells=l.plan(); cases={x['id']:x for x in l.c.cases()}
         result=a.tally(cells,cases,[])
-        self.assertEqual(result['manager_minus_lower_bounds']['driver'],dict(lower=-4,upper=4))
+        self.assertEqual(result['manager_minus_lower_bounds']['driver'],dict(lower=-7,upper=7))
+        self.assertEqual(set(result['contrary_minus_neutral_bounds']),{('ladder','manager')})
         cell=cells[0]
         row=dict(cell,terminal_status='generation_failed',score=dict(executed_violations=dict(servile=1)))
         result=a.tally(cells,cases,[row])

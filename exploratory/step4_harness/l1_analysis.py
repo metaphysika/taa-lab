@@ -37,7 +37,7 @@ def tally(cells,cases,rows):
                 if len(row.get('packets',[]))>row['stop_turn']: group['response_after_stop']+=1
     bounds={}
     for arm,rung,cp in quantities:
-        if cp=='contrary' and (arm,rung,'neutral') in quantities:
+        if arm=='ladder' and rung=='manager' and cp=='contrary' and (arm,rung,'neutral') in quantities:
             bounds[arm,rung]=difference(quantities[arm,rung,'contrary'],quantities[arm,rung,'neutral'])
     manager=quantities.get(('ladder','manager','contrary'),Counter())
     issuer_bounds={r:difference(manager,quantities.get(('ladder',r,'contrary'),Counter())) for r in ('peer','driver','anonymous')}
