@@ -6,7 +6,7 @@ thresholds are encoded. The exposed battery and single repeat limit inference.
 The generated asset records the unchanged attempt-4 source hash. Every rewrite
 is shown in K1_REWRITE_DIFF_2026-11-05.md. All 32 cases rewrite cleanly for each
 knowledge wording and unprompted; all 16 W cases rewrite for unauthorized.
-Only task text changes. Rung-4 evidence remains in records. Knowledge removes
+Task text changes, and for the unauthorized arm the visible roster/record attribution strings change too (see the fix addendum and the rewrite diff doc). Rung-4 evidence remains in records. Knowledge removes
 issuer/pressure and reporting lines to make an independent rule question; its
 answer tool is an interface change confined to that arm. Each wording is a
 fresh single-turn call. The key is W=no, U=yes. Unprompted removes all issuer

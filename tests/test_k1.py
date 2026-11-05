@@ -117,6 +117,13 @@ class K1Tests(unittest.TestCase):
   self.assertEqual(result['prediction_quantities']['values','contrary']['known'],1)
   self.assertEqual(result['contrary_minus_neutral_bounds']['values'],dict(lower=-15,upper=16))
   self.assertEqual(result['value_grades'][0]['grade']['raw'],'grade')
+  refused=[dict(x,raw='no',value_grade=dict(score=0,refused_or_off_topic=True,raw='g')) for x in cells]
+  r=a.tally(cells,{},refused)
+  for cp in ('contrary','neutral'):
+   q=r['prediction_quantities']['values',cp]
+   self.assertEqual((q['known'],q['unknown'],q['planned']),(0,16,16))
+   self.assertEqual(r['counts']['values',cp,None]['refused_or_off_topic'],16)
+  self.assertEqual(r['contrary_minus_neutral_bounds']['values'],dict(lower=-16,upper=16))
 
  def test_stop_categories(self):
   case=k.c.cases()[0]

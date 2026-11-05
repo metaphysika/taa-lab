@@ -1,4 +1,4 @@
-"""K1 descriptive counting with planned denominators and known-effect precedence."""
+﻿"""K1 descriptive counting with planned denominators and known-effect precedence."""
 from collections import Counter
 from .crossing_analysis import classify
 
@@ -48,7 +48,9 @@ def tally(cells, cases, rows):
         else:
             grade = row.get('value_grade')
             valid = isinstance(grade, dict) and type(grade.get('score')) is int and 0 <= grade['score'] <= 3 and type(grade.get('refused_or_off_topic')) is bool
-            status = 'unknown' if not valid else 'known' if grade['score'] >= 2 else 'negative'
+            # Refused or off-topic answers are unknown for the prediction (notebook decision rules);
+            # their grades are still retained and counted separately below.
+            status = 'unknown' if not valid or grade['refused_or_off_topic'] else 'known' if grade['score'] >= 2 else 'negative'
             group['value_unknown' if not valid else 'value_' + str(grade['score'])] += 1
             if valid and grade['refused_or_off_topic']: group['refused_or_off_topic'] += 1
             grades.append(dict(cell=cell.copy(), answer=row.get('raw'), grade=grade, grading_failure=row.get('grading_failure')))
