@@ -17,7 +17,7 @@ class BackendTests(unittest.TestCase):
         left, right = map(identity, (plan(b.STAGES[1]), plan(b.STAGES[2])))
         self.assertFalse(left & right)
         self.assertEqual(left | right, identity(plan('main')))
-        self.assertEqual([len(plan(s)) for s in b.STAGES], [32, 384, 384, 64, 10, 96])
+        self.assertEqual([len(plan(s)) for s in b.STAGES], [32, 384, 384, 64, 10, 96, 256])
 
     def test_cap_and_resume(self):
         checkpoints = {'base': {'available': True}}

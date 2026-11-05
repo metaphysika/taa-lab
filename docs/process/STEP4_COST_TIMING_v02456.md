@@ -232,3 +232,44 @@ $5 -> 2,594 s (about 59% of point); $7 -> 4,448 s (1.06x); $8 -> 5,375 s (1.29x)
 Proposed cap $8 (a ceiling; expected spend about $4). Remaining credit $12.36
 (owner supplied). Completion is not guaranteed. See the v0.24.60 pre-run entry
 in LAB_NOTEBOOK.md. No Modal operations or approval.
+## 2026-11-05: K1 offline proposal
+
+Measured crossing inputs (retained events.jsonl in the 2026-11-04 v0.24.60
+order-crossing folder): 364 returned requests / 85 attempted cells, about
+13.8 seconds per request across checkpoints, about 367 seconds startup.
+Measured billing input: $4.67 / about 5,400 seconds (owner balance difference,
+not a request tariff). Derived historical rate: $3.1133/hour.
+
+Derived K1 roster: 128 knowledge calls, 32 values calls, 64 unprompted episodes,
+32 unauthorized episodes = 256 cells. Both checkpoints have 128 cells.
+Assumed single-turn density: one request per knowledge/value cell. Assumed
+action density: crossing's 364/85 = 4.282 requests per episode, including the
+stop sub-arm; stop may increase this. Derived requests: 160 + 96*364/85 =
+571.11. Derived needed session time: 571.11*13.8 + 367 = 8,248 seconds.
+Derived point cost: $7.13. Assumed 1.5x planning buffer: $10.70, about 12,372
+seconds. Neither density nor runtime transfer is guaranteed.
+
+Proposed cap: $7.50, within the last owner-reported $7.69 credit (unrefreshed,
+not a current balance). Existing receipt settings derive 5,631 session seconds
+and stop-new at 4,911 seconds, below the needed 8,248 seconds. Thus this cap
+cannot fund the estimated full battery. The build supports the full matrix,
+but a full run needs a separately approved funding or scope decision; no run
+is authorized. No silent reduction of the planned denominator. At $12 the
+same guard gives about 9,803 session seconds, stop-new about 9,083 seconds,
+which covers the point but not the 1.5x buffer. Existing historical pessimistic
+rate settings remain unchanged.
+
+Assumed Haiku grading budget: 32 answers, each 600 input tokens (question,
+answer, rubric) and 128 output tokens; assumed prices $1/million input and
+$5/million output. Derived cost = 19,200*1/1e6 + 4,096*5/1e6 = $0.03968;
+1.5x = $0.05952. These are planning assumptions, not verified Haiku 5.5
+prices or verified API model availability. Generation and grading are separate
+paid operations and require approval. The scorer is tested with a fake client.
+
+## 2026-11-05 K1 review budget revision (proposed)
+
+Astra's review found $7.50 inadequate. Derived stop-new times are $7.50 ->
+4,911 s, $10 -> 7,229 s, and $12 -> 9,083 s. Claude's planning range is
+6,840-7,320 s, derived using an assumed 5-8 s per single-turn call.
+The proposed cap is now $12, pending Chris's funding decision. The offline
+K1 preview has been regenerated with dollar cap 12; this grants no execution approval.
