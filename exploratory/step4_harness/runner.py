@@ -34,6 +34,9 @@ def labels():
 
 
 def plan(block):
+    if block == 'l1':
+        from .l1 import plan as l1_plan
+        return l1_plan()
     if block == 'k1':
         from .k1 import plan as k1_plan
         return k1_plan()
