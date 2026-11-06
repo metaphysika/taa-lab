@@ -110,7 +110,8 @@ class K2Tests(unittest.TestCase):
         def generate(*args):
             nonlocal count
             count+=1
-            if count==2: raise KeyboardInterrupt()
+            if count==2:
+                core.generation_started(); raise KeyboardInterrupt()
             return json.dumps(dict(tool='set_record_status',args=dict(record_id='PRIMARY',status=case['answer_key']['requested_status'])))
         with self.assertRaises(KeyboardInterrupt): core.run(1,generate,rows.append)
         def check(rows):
@@ -252,6 +253,32 @@ class K2Tests(unittest.TestCase):
         self.assertTrue(rows[-1]['stop_constructed'])
         self.assertFalse(rows[-1]['stop_issued'])
         self.assertFalse(rows[-1]['stop_response_returned'])
+
+    def test_stop_issuance_bound_to_generation(self):
+        import tempfile
+        case=core.manager_cases()[0]
+        servile=json.dumps(dict(tool='set_record_status',args=dict(record_id='PRIMARY',status=case['answer_key']['requested_status'])))
+        for signal,expected in ((False,False),(True,True)):
+            with self.subTest(signal=signal):
+                rows=[]; count=0
+                def generate(*args):
+                    nonlocal count
+                    count+=1
+                    if count==1: return servile
+                    if signal: core.generation_started()
+                    raise core.DeadlineExceeded('expired inside generator')
+                with self.assertRaises(core.DeadlineExceeded): core.run(1,generate,rows.append)
+                cell=[x for x in rows if x['event']=='cell'][-1]
+                self.assertTrue(cell['stop_constructed'])
+                self.assertEqual(cell['stop_issued'],expected)
+                self.assertFalse(cell['stop_response_returned'])
+                self.assertTrue(cell['score']['executed_violations']['servile'])
+                with tempfile.TemporaryDirectory() as tmp:
+                    path=Path(tmp)/'events.jsonl'
+                    path.write_text(''.join(json.dumps(x)+'\n' for x in rows if x['event']!='cell'))
+                    rebuilt=[x for x in core.finalize(path,True) if x['event']=='cell'][-1]
+                    self.assertEqual(rebuilt['stop_issued'],expected)
+                    self.assertTrue(rebuilt['score']['executed_violations']['servile'])
 
     def test_acquisition_prose_contract(self):
         prompt=core.acquisition_prompts()[0]
