@@ -1,20 +1,61 @@
-# K2 Kaggle notebooks
+# K2 Kaggle command-line launcher
 
-EXPLORATORY preparation only. Read `docs/process/K2_DESIGN_2026-11-05.md` for review points. Keep notebooks, datasets, adapters and outputs private.
+EXPLORATORY, v0.24.69. Offline preparation does not authorize execution.
+Use the official installed Kaggle CLI; it handles authentication itself. The launcher
+never reads credentials. Keep datasets, notebooks, adapters and outputs private.
 
-1. Export the final reviewed K2 commit with `git archive` (LF). Add `COMMIT.txt` containing its full SHA. Upload as a private Kaggle dataset; preserve the `taa-lab` root or adjust `REPO`.
-2. Accept Gemma terms. Attach a local snapshot of `google/gemma-3-1b-it` or `google/gemma-3-4b-it` including tokenizer/config/weights (for 4B attach the complete multimodal snapshot; execution uses text only) and exact upstream revision. Never attach Study D adapters. Attach compatible package wheels if needed; install from local wheels. Package/GPU qualification is still required.
-3. Create Notebook, File / Import Notebook, select `k2_train.ipynb`. Use Add Input for the repo and model datasets. Attached files need no secret. If Chris separately downloads a gated snapshot, use secret name **HF_TOKEN**, accessed at runtime through `UserSecretsClient().get_secret('HF_TOKEN')`; never paste tokens into cells. That download path is outside these notebooks.
-4. With accelerator None and `DRY_RUN=True`, set `REPO` and Run All. Check the fake-model manifest. These outputs are not scientific evidence.
-5. First run the separately labeled qualification described below for each model with `MODE='qualify'`. Inspect its outputs before a scientific run. For a later reviewed scientific run, set `MODE='train'`; Settings / Accelerator / GPU T4 x2; verify quota. Select `MODEL` in both notebooks, set full repo/model SHAs, paths, `DRY_RUN=False`, `ARM` neutral or contrary, and `TRAIN_SEED`. Use a fresh output directory. Run All; check tokenization and 250-step completion. Base needs no training.
-6. Save Version with outputs, download the complete output directory and manifest. Download partial files on interruption. Keep failures. Upload fresh K2 adapter outputs and training manifests as private input datasets for evaluation; verify common base revision and intended seed.
-7. Import `k2_eval.ipynb`, attach repo/model/both fresh K2 adapters, set paths/pins, and run `STEP=1`. Download everything. Claude reviews sanity counts and sets/applies gate thresholds before step 2.
-8. After a positive reviewed gate, attach a JSON containing `proceed: true`, `reviewer`, and the exact reviewed `step1_manifest_sha256`. Set `GATE_FILE`, `STEP=2`, and a fresh output directory. Issuer text uses L1 exact rewrites. Run All and download.
-9. Export values answers for separately authorized Haiku grading with **1,024 grader tokens**. No Anthropic key or grader call belongs in this notebook. Missing or invalid grades stay unknown.
-10. Download into a new dated local `results/` folder and verify manifest SHA256 values. Repeat training seeds 247056–247060 after first-seed review, with matching evaluation repeat indices. End GPU sessions promptly and preserve private outputs.
+Run from the repo root with a clean checkout and a reviewed full commit SHA
+that is an ancestor of origin/main. First stage that exact commit:
 
-For 4B set `MODEL='gemma-3-4b-it'` and point `MODEL_PATH` to the attached 4B snapshot in both notebooks. Keep separate output directories and adapters per model/revision. Attach each adapter's training `manifest.json` alongside its `adapter` folder.
+```sh
+python -m exploratory.k2_kaggle.launch stage-repo --commit <full-sha> --owner <user> --plan
+```
 
+Every subcommand accepts --plan: it writes local staging files and prints the CLI
+command without invoking Kaggle. Git inspection/archive remain offline operations.
+Staging goes under ignored .k2-launch; use --state to select another folder.
+Remove --plan only after execution approval. stage-repo creates a commit-specific
+private dataset; --dataset-version explicitly requests a new version instead.
+Creation omits --public, so the installed CLI defaults to private; metadata also
+records isPrivate. Directory upload uses -r zip to preserve the taa-lab root.
+
+The flow is qualify 1B, qualify 4B, Claude resource review, train both arms, then
+evaluate step 1. Each launch requires an explicit versioned Kaggle Models handle.
+No version is guessed. Accept Gemma terms separately before attaching weights.
+
+```sh
+python -m exploratory.k2_kaggle.launch push --mode qualify --model gemma-3-1b-it --arm neutral --commit <full-sha> --owner <user> --model-source google/gemma-3/transformers/gemma-3-1b-it/<version> --plan
+python -m exploratory.k2_kaggle.launch push --mode train --model gemma-3-1b-it --arm contrary --train-seed 247056 --commit <full-sha> --owner <user> --model-source google/gemma-3/transformers/gemma-3-1b-it/<version> --plan
+python -m exploratory.k2_kaggle.launch push --mode evaluate --model gemma-3-1b-it --step 1 --train-seed 247056 --commit <full-sha> --owner <user> --model-source google/gemma-3/transformers/gemma-3-1b-it/<version> --adapter-kernel neutral=<owner/neutral-kernel> contrary=<owner/contrary-kernel> --plan
+python -m exploratory.k2_kaggle.launch status <owner/slug> --plan
+python -m exploratory.k2_kaggle.launch fetch <owner/slug> --plan
+```
+
+Run neutral training separately with --arm neutral. Use the 4B handle with
+--model gemma-3-4b-it. Fresh slugs include mode/model/arm/seed/commit and a random
+run id. Launch records bind fetch to the original identity. A second fetch into
+the same dated results folder refuses to overwrite; retain partial downloads
+and use --results with another retention root for any separately requested download.
+Fetch verifies every manifest SHA256 and writes a README even on failure.
+
+Notebooks are private, GPU enabled, internet disabled. CLI push requests
+NvidiaTeslaT4 and a 31,500-second (8.75-hour) timeout, behind the notebook's
+8.5-hour cooperative deadline. No automatic retry/resume exists. Stage package
+wheels separately if required; installed stack compatibility needs qualification.
+
+MODEL_REVISION now means the complete versioned Kaggle model handle; cell identity
+keeps the model_revision field. Base file inventory SHA256 is computed independently.
+MODEL_PATH is derived as /kaggle/input/<model-slug>/<framework>/<variation>/<version>.
+If that path is absent, notebooks locate a single directory containing config,
+tokenizer config and safetensors under /kaggle/input, failing on zero or multiple
+candidates. Adapter mounts are derived as /kaggle/input/<kernel-slug>/k2-output/adapter.
+Actual mounted layouts remain unverified; inspect staged parameter paths before launch.
+Study D/v024xx adapter sources are forbidden.
+
+Step 2 requires Claude's positive manifest-bound gate and --gate-file with its
+mounted path. Attach that reviewed gate separately in Kaggle before execution;
+the launcher does not upload it. Export values for separately approved Haiku
+grading with 1,024 grader tokens. No grader call belongs here.
 
 Round 2 preparation (v0.24.64): qualification must precede scientific training.
 For each model, first run the training notebook with MODE='qualify', DRY_RUN=False

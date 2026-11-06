@@ -384,3 +384,20 @@ if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser(); parser.add_argument('command',choices=['finalize']); parser.add_argument('events'); parser.add_argument('--dry-run',action='store_true')
     args=parser.parse_args(); finalize(args.events,args.dry_run)
+
+
+def validate_model_source(source, model):
+    import re
+    if not re.fullmatch(r'google/gemma-3/transformers/'+re.escape(model)+r'/[1-9][0-9]*', source):
+        raise ValueError('versioned Kaggle Gemma model handle required')
+    return source
+
+
+def resolve_model_path(path, root=Path('/kaggle/input')):
+    path=Path(path)
+    if (path/'config.json').is_file(): return path
+    candidates=[p.parent for p in Path(root).rglob('config.json')
+                if (p.parent/'tokenizer_config.json').is_file()
+                and any(p.parent.glob('*.safetensors'))]
+    if len(candidates)!=1: raise ValueError('missing or ambiguous mounted base model')
+    return candidates[0]
