@@ -40,7 +40,7 @@ class LauncherTests(unittest.TestCase):
             self.assertTrue(meta['enable_gpu'])
             self.assertFalse(meta['enable_internet'])
             self.assertEqual(meta['model_sources'],[SOURCE])
-            self.assertEqual(meta['dataset_sources'],['owner/taa-k2-repo-'+SHA[:12]])
+            self.assertEqual(meta['dataset_sources'],['owner/taa-k2-repo-'+SHA[:12],'owner/k2-wheels'])
             self.push('--plan')
             self.assertEqual(sum(c.args[0][0]=='kaggle' for c in run.call_args_list),1)
     def test_cells_preserved(self):
@@ -100,7 +100,7 @@ class LauncherTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'missing manifest'):
                 self.run_cli('fetch','owner/'+slug)
             folder=next(self.results.iterdir())
-            self.assertIn('v0.24.70 gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
+            self.assertIn('v0.24.71 gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
             self.assertIn('FAILED', (folder/'README.md').read_text())
             with self.assertRaises(FileExistsError): self.run_cli('fetch','owner/'+slug)
     def test_hash_failure_and_path_fallback(self):

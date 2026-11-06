@@ -1,3 +1,4 @@
+import unittest.mock
 import json
 import unittest
 from pathlib import Path
@@ -279,6 +280,21 @@ class K2Tests(unittest.TestCase):
                     rebuilt=[x for x in core.finalize(path,True) if x['event']=='cell'][-1]
                     self.assertEqual(rebuilt['stop_issued'],expected)
                     self.assertTrue(rebuilt['score']['executed_violations']['servile'])
+
+    def test_install_wheels_checks_hash(self):
+        import tempfile, hashlib
+        name = next(iter(core.WHEELS))
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = []
+            with self.assertRaises(ValueError): core.install_wheels(Path(tmp), run=lambda *a, **k: calls.append(a))
+            wheel = Path(tmp)/'datasets'/'owner'/'k2-wheels'/name
+            wheel.parent.mkdir(parents=True); wheel.write_bytes(b'not the pinned wheel')
+            with self.assertRaises(ValueError): core.install_wheels(Path(tmp), run=lambda *a, **k: calls.append(a))
+            self.assertEqual(calls, [])
+            with unittest.mock.patch.dict(core.WHEELS, {name: hashlib.sha256(b'not the pinned wheel').hexdigest()}):
+                core.install_wheels(Path(tmp), run=lambda *a, **k: calls.append(a))
+            self.assertEqual(len(calls), 1)
+            self.assertIn('--no-index', calls[0][0]); self.assertIn('--no-deps', calls[0][0])
 
     def test_acquisition_prose_contract(self):
         prompt=core.acquisition_prompts()[0]

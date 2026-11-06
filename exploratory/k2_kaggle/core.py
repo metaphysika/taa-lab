@@ -291,7 +291,26 @@ def masked_record(tokenizer,messages):
 RECIPE=dict(steps=250,lr=.0002,batch=1,accumulation=8,lora_r=8,lora_alpha=16,dropout=0,
     bias='none',order='high',optimizer='adamw_torch',scheduler='constant',warmup=0,weight_decay=0,
     context=1024,mask='assistant plus end_of_turn',quantization='nf4 double fp16',projections=sorted(PROJECTIONS))
-STACK={'transformers':'4.51.3','peft':'0.15.2','bitsandbytes':'0.45.5','accelerate':'1.6.0','torch':'2.6.0'}
+# Measured on the Kaggle T4 image by a non-scientific environment probe on 2026-11-06
+# (Python 3.13, CUDA 13.0). bitsandbytes is not preinstalled; it comes from the private
+# metaphysika/k2-wheels dataset, hash-checked before installation, internet off.
+STACK={'transformers':'5.20.2','peft':'0.21.2','bitsandbytes':'0.50.2','accelerate':'1.15.0','torch':'2.11.0'}
+WHEELS={'bitsandbytes-0.50.2-py3-none-manylinux_2_24_x86_64.whl':'55348a9a4a21bfd99cf8c7b32fe67b4030ae5c2a05738e03c1747f65fa6ec283'}
+
+
+def install_wheels(root=Path('/kaggle/input'), run=None):
+    """Install the pinned offline wheels after checking their SHA256; no index, no deps."""
+    import subprocess, sys
+    run = run or subprocess.run
+    installed = {}
+    for name, digest in WHEELS.items():
+        found = [p for p in Path(root).rglob(name) if p.is_file()]
+        if len(found) != 1: raise ValueError('missing or ambiguous wheel: '+name)
+        if hashlib.sha256(found[0].read_bytes()).hexdigest() != digest: raise ValueError('wheel hash mismatch: '+name)
+        run([sys.executable, '-m', 'pip', 'install', '--no-index', '--no-deps', str(found[0])], check=True)
+        installed[name] = digest
+    import importlib; importlib.invalidate_caches()
+    return installed
 
 
 def check_stack():
