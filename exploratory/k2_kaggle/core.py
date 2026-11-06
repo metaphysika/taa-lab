@@ -277,12 +277,33 @@ def prompt(tokenizer, messages, tokenize=True):
     messages=deepcopy(messages)
     if messages and messages[0]['role']=='system':
         system=messages.pop(0)['content']; messages[0]['content']=system+'\n\n'+messages[0]['content']
-    return tokenizer.apply_chat_template(messages,tokenize=tokenize,add_generation_prompt=True)
+    result=tokenizer.apply_chat_template(messages,tokenize=tokenize,add_generation_prompt=True)
+    if not tokenize: return result
+    # transformers 5 returns a BatchEncoding by default; transformers 4 returned a list.
+    if hasattr(result,'keys'): result=result['input_ids']
+    if hasattr(result,'tolist'): result=result.tolist()
+    if len(result)==1 and isinstance(result[0],list): result=result[0]
+    if not result or not all(isinstance(x,int) and not isinstance(x,bool) for x in result):
+        raise ValueError('chat template did not return one token id list')
+    return list(result)
+
+
+def end_token(tokenizer):
+    """Return the id of Gemma's <end_of_turn>, required to be one atomic known token.
+    transformers 5 no longer lists added special tokens in all_special_ids, so the check
+    is that the token maps to a real id, maps back to itself and encodes atomically."""
+    end=tokenizer.convert_tokens_to_ids('<end_of_turn>')
+    if not isinstance(end,int) or end==getattr(tokenizer,'unk_token_id',None):
+        raise ValueError('missing end token')
+    if tokenizer.convert_ids_to_tokens(end)!='<end_of_turn>':
+        raise ValueError('missing end token')
+    if tokenizer.encode('<end_of_turn>',add_special_tokens=False)!=[end]:
+        raise ValueError('end token is not atomic')
+    return end
 
 
 def masked_record(tokenizer,messages):
-    prefix=prompt(tokenizer,messages[:-1]); end=tokenizer.convert_tokens_to_ids('<end_of_turn>')
-    if end not in tokenizer.all_special_ids: raise ValueError('missing end token')
+    prefix=prompt(tokenizer,messages[:-1]); end=end_token(tokenizer)
     content=tokenizer.encode(messages[-1]['content'],add_special_tokens=False)+[end]
     if len(prefix+content)>1024: raise ValueError('No truncation: training context exceeds 1024')
     return dict(input_ids=prefix+content,attention_mask=[1]*len(prefix+content),labels=[-100]*len(prefix)+content)
