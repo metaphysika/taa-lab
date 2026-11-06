@@ -73,6 +73,16 @@ class LauncherTests(unittest.TestCase):
             uid.return_value.hex='12345678'*4
             self.push('--plan')
             with self.assertRaisesRegex(ValueError,'already retained'): self.push('--plan')
+    def test_slug_fits_kaggle_title_limit(self):
+        with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
+            self.run_cli('push','--plan','--mode','evaluate','--model','gemma-3-4b-it','--train-seed','247060',
+                '--commit',SHA,'--owner','owner','--model-source',SOURCE.replace('1b','4b'),
+                '--adapter-kernel','neutral=owner/k2-neutral','contrary=owner/k2-contrary')
+            slug=next(self.state.iterdir()).name
+            self.assertLessEqual(len(slug),l.MAX_TITLE)
+            self.assertTrue(slug.startswith('k2e-4b-st1-s247060-'))
+            meta=json.loads((self.state/slug/'kernel-metadata.json').read_text())
+            self.assertEqual(meta['title'],slug)
     def test_stage_private_archive(self):
         stream=io.BytesIO()
         with tarfile.open(fileobj=stream,mode='w') as tar:
@@ -100,7 +110,7 @@ class LauncherTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'missing manifest'):
                 self.run_cli('fetch','owner/'+slug)
             folder=next(self.results.iterdir())
-            self.assertIn('v0.24.71 gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
+            self.assertIn('v0.24.72 gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
             self.assertIn('FAILED', (folder/'README.md').read_text())
             with self.assertRaises(FileExistsError): self.run_cli('fetch','owner/'+slug)
     def test_hash_failure_and_path_fallback(self):

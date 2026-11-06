@@ -144,14 +144,31 @@ class K2Tests(unittest.TestCase):
 
     def test_prompt_mask_and_acquisition(self):
         class Tokenizer:
-            all_special_ids=[9]
+            unk_token_id=0
             def apply_chat_template(self,messages,**kw):
                 self.messages=messages; return [1,2]
             def convert_tokens_to_ids(self,x): return 9
-            def encode(self,x,**kw): return [3]
+            def convert_ids_to_tokens(self,x): return '<end_of_turn>' if x==9 else '?'
+            def encode(self,x,**kw): return [9] if x=='<end_of_turn>' else [3]
         tokenizer=Tokenizer(); messages=[dict(role='system',content='s'),dict(role='user',content='u'),dict(role='assistant',content='a')]
         masked=core.masked_record(tokenizer,messages)
         self.assertEqual(masked['labels'],[-100,-100,3,9])
+        class Five(Tokenizer):  # transformers 5: BatchEncoding from the chat template
+            def apply_chat_template(self,messages,**kw):
+                self.messages=messages; return {'input_ids':[1,2],'attention_mask':[1,1]}
+        self.assertEqual(core.masked_record(Five(),messages)['labels'],[-100,-100,3,9])
+        class Nested(Tokenizer):
+            def apply_chat_template(self,messages,**kw): return {'input_ids':[[1,2]]}
+        self.assertEqual(core.prompt(Nested(),messages),[1,2])
+        class Unknown(Tokenizer):
+            def convert_tokens_to_ids(self,x): return 0
+        with self.assertRaises(ValueError): core.masked_record(Unknown(),messages)
+        class Split(Tokenizer):
+            def encode(self,x,**kw): return [4,5] if x=='<end_of_turn>' else [3]
+        with self.assertRaises(ValueError): core.masked_record(Split(),messages)
+        class Empty(Tokenizer):
+            def apply_chat_template(self,messages,**kw): return {'input_ids':[]}
+        with self.assertRaises(ValueError): core.prompt(Empty(),messages)
         self.assertEqual(tokenizer.messages,[dict(role='user',content='s\n\nu')])
         self.assertEqual(messages[0]['role'],'system')
         prompts=core.acquisition_prompts()

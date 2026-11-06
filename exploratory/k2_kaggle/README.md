@@ -1,6 +1,6 @@
 # K2 Kaggle command-line launcher
 
-EXPLORATORY, v0.24.71. Offline preparation does not authorize execution.
+EXPLORATORY, v0.24.72. Offline preparation does not authorize execution.
 Use the official installed Kaggle CLI; it handles authentication itself. The launcher
 never reads credentials. Keep datasets, notebooks, adapters and outputs private.
 

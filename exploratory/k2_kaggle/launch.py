@@ -13,6 +13,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 TIMEOUT = 31500
+MAX_TITLE = 50
 # Retained evidence and process documents are not needed on Kaggle and make the
 # archive about 2.4 GB; they are excluded and the exclusion is recorded in ARCHIVE.json.
 EXCLUDED = ('results', 'docs')
@@ -132,7 +133,11 @@ def execute(args):
             raise ValueError('step 2 requires --gate-file mount path and separately attached reviewed gate')
         if args.gate_file:
             safe_source(args.gate_file)
-        slug = f'k2-{args.mode}-{args.model}-{args.arm}-s{args.train_seed}-{args.commit[:8]}-{uuid.uuid4().hex[:8]}'
+        # Kaggle rejects kernel titles over 50 characters (HTTP 400 on SaveKernel, seen
+        # 2026-11-06), so the slug is abbreviated; launch.json keeps the full fields.
+        part = 'st'+str(args.step) if args.mode == 'evaluate' else args.arm[:3]
+        slug = f'k2{args.mode[0]}-{args.model.split("-")[2]}-{part}-s{args.train_seed}-{args.commit[:8]}-{uuid.uuid4().hex[:8]}'
+        if len(slug) > MAX_TITLE: raise ValueError('kernel title too long for Kaggle: '+slug)
         ref = args.owner+'/'+slug
         if any(args.results.glob('*'+slug+'*')) or (state/slug).exists():
             raise ValueError('slug already retained')
@@ -170,7 +175,7 @@ def execute(args):
         if record['slug'] != ref:
             raise ValueError('launch owner mismatch')
         stamp = dt.datetime.now(dt.timezone.utc)
-        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.71 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
+        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.72 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
         folder.mkdir(parents=True, exist_ok=False)
         status = 'planned'; verification = 'not downloaded'
         try:
