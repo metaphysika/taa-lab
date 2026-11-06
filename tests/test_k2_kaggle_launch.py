@@ -100,7 +100,7 @@ class LauncherTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'missing manifest'):
                 self.run_cli('fetch','owner/'+slug)
             folder=next(self.results.iterdir())
-            self.assertIn('v0.24.69 gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
+            self.assertIn('v0.24.70 gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
             self.assertIn('FAILED', (folder/'README.md').read_text())
             with self.assertRaises(FileExistsError): self.run_cli('fetch','owner/'+slug)
     def test_hash_failure_and_path_fallback(self):
