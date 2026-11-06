@@ -13,6 +13,9 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 TIMEOUT = 31500
+# Retained evidence and process documents are not needed on Kaggle and make the
+# archive about 2.4 GB; they are excluded and the exclusion is recorded in ARCHIVE.json.
+EXCLUDED = ('results', 'docs')
 
 
 def command(argv, plan=False):
@@ -94,7 +97,7 @@ def execute(args):
         folder = state / ('repo-'+args.commit)
         folder.mkdir(exist_ok=False)
         print('git archive '+args.commit+' -> '+str(folder))
-        archive = subprocess.run(['git', '-c', 'core.autocrlf=false', 'archive', args.commit],
+        archive = subprocess.run(['git', '-c', 'core.autocrlf=false', 'archive', args.commit, '--', '.', *[':(exclude)'+x for x in EXCLUDED]],
                                  cwd=ROOT, check=True, capture_output=True).stdout
         with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
             for member in tar.getmembers():
@@ -105,6 +108,7 @@ def execute(args):
                     raise ValueError('secret path in archive')
             tar.extractall(folder/'taa-lab', filter='data')
         (folder/'taa-lab/COMMIT.txt').write_text(args.commit+'\n', encoding='utf-8')
+        write_json(folder/'taa-lab/ARCHIVE.json', dict(commit=args.commit, excluded=list(EXCLUDED)))
         write_json(folder/'dataset-metadata.json', dict(title='K2 repo '+args.commit[:12], id=dataset,
                    licenses=[dict(name='other')], isPrivate=True))
         argv = ['kaggle', 'datasets', 'version' if args.dataset_version else 'create', '-p', str(folder), '-r', 'zip']
@@ -165,7 +169,7 @@ def execute(args):
         if record['slug'] != ref:
             raise ValueError('launch owner mismatch')
         stamp = dt.datetime.now(dt.timezone.utc)
-        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.69 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
+        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.70 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
         folder.mkdir(parents=True, exist_ok=False)
         status = 'planned'; verification = 'not downloaded'
         try:
