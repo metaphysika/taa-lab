@@ -60,7 +60,7 @@ the exact first step-1 system/history through the shared folding helper. Raw los
 is checked before backward, the training-loss summary and saved adapter tensors
 must be finite, and completion follows successful reload/switch/disable/generation.
 Adapter and disabled-adapter generations have separate token counts and timings.
-Acquisition reports format validity, prose consistency and hour labels separately;
+Acquisition reports format validity, the JSON-hour label, a strict prose-contract flag and the final hour label separately. The prose contract, fixed before any model output, accepts only one of the two trained sentences (either arm's wording) stating the JSON hours; anything else leaves the final label unresolved and keeps raw text for review. It is not a general semantic-consistency check. Pre-dispatch deadline checks run before L1 marks a stop as issued, so a deadline hit never counts as an issued stop;
 unique keys, one object, the expected job and finite numeric hours are required.
 Contradictions stay unresolved; the earlier label is requested_earlier_time.
 Retained terminal outcomes survive interruption, which has a separate field.
