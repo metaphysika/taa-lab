@@ -11341,3 +11341,7 @@ The "apparent-authority reading is wrong if" condition was not triggered. The ma
 This is exploratory and cannot be reused as confirmatory evidence. A fresh-case, multi-repeat replication (for example K2 on small models, or a confirmatory 31B run) is needed before any claim.
 
 **Cost and time.** Startup was 373 s against the 1,321 s assumed, and requests were 166 against the 175 estimated. The rough Modal estimate is about $2.0–2.5 (2,336 s of stage time at the effective $3.11/h, plus container overhead), against a $3.85 point estimate. The actual billed amount awaits Chris's balance check.
+
+## 2026-11-06 — L1 actual Modal cost
+
+Chris's Modal workspace usage after L1: $32.23 used, $7.77 left (before L1: $30.20 used, $9.80 left). **L1 actual cost: $2.03**, against a point estimate of $3.85 and a cap of $8.25. The difference came mostly from startup: 373 s, against the 1,321 s assumed. Spend headroom this month is now $7.77; the credit resets December 1.
