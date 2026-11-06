@@ -138,14 +138,15 @@ def execute(args):
             raise ValueError('slug already retained')
         folder = state/slug
         folder.mkdir()
-        model_mount = '/kaggle/input/'+ '/'.join(args.model_source.split('/')[1:])
+        # Measured layout: /kaggle/input/models/<handle> and /kaggle/input/datasets/<owner>/<slug>.
+        model_mount = '/kaggle/input/models/'+args.model_source
         values = dict(DRY_RUN='False', MODE=repr(args.mode), MODEL=repr(args.model),
                       MODEL_REVISION=repr(args.model_source), PINNED_COMMIT=repr(args.commit),
-                      MODEL_PATH=f'Path({model_mount!r})', REPO=f"Path('/kaggle/input/taa-k2-repo-{args.commit[:12]}/taa-lab')",
+                      MODEL_PATH=f'Path({model_mount!r})', REPO=f"next(p.parent for p in Path('/kaggle/input').rglob('COMMIT.txt') if p.read_text().strip()=={args.commit!r})",
                       OUTPUT="Path('/kaggle/working/k2-output')", TRAIN_SEED=str(args.train_seed))
         if args.mode == 'evaluate':
             values.update(STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
-                          ADAPTERS='{'+','.join(repr(a)+':Path('+repr('/kaggle/input/'+r.split('/')[1]+'/k2-output/adapter')+')' for a,r in adapters.items())+'}')
+                          ADAPTERS='{'+','.join(repr(a)+":next(p for p in Path('/kaggle/input').rglob('adapter') if p.is_dir() and p.parent.name=='k2-output' and "+repr(r.split('/')[1])+' in p.parts)' for a,r in adapters.items())+'}')
         else:
             values['ARM'] = repr(args.arm)
         name = 'k2_eval.ipynb' if args.mode == 'evaluate' else 'k2_train.ipynb'
@@ -153,7 +154,7 @@ def execute(args):
         (folder/name).write_text(parameterize(raw, values), encoding='utf-8')
         metadata = dict(id=ref, title=slug, code_file=name, language='python', kernel_type='notebook',
                         is_private=True, enable_gpu=True, enable_internet=False,
-                        dataset_sources=[args.owner+'/taa-k2-repo-'+args.commit[:12]],
+                        dataset_sources=[args.owner+'/taa-k2-repo-'+args.commit[:12], args.owner+'/k2-wheels'],
                         model_sources=[args.model_source], kernel_sources=list(adapters.values()))
         write_json(folder/'kernel-metadata.json', metadata)
         write_json(folder/'launch.json', dict(slug=ref, commit=args.commit, model=args.model,
@@ -169,7 +170,7 @@ def execute(args):
         if record['slug'] != ref:
             raise ValueError('launch owner mismatch')
         stamp = dt.datetime.now(dt.timezone.utc)
-        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.70 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
+        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.71 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
         folder.mkdir(parents=True, exist_ok=False)
         status = 'planned'; verification = 'not downloaded'
         try:
