@@ -1,6 +1,6 @@
 # K2 Kaggle command-line launcher
 
-EXPLORATORY, v0.24.76. Offline preparation does not authorize execution.
+EXPLORATORY, v0.24.77. Offline preparation does not authorize execution.
 Use the official installed Kaggle CLI; it handles authentication itself. The launcher
 never reads credentials. Keep datasets, notebooks, adapters and outputs private.
 
@@ -140,7 +140,7 @@ The output contains sanity-summary.json, acquisition-counts.json and merge-manif
 the last binds the source manifest hashes and lists missing arm/kind pairs.
 Preserve partial shards; this command does not rerun cells. Step 2 remains unsharded.
 
-Readiness fixes (v0.24.76): early failed shards retain their intended identity,
+Readiness fixes (v0.24.77): early failed shards retain their intended identity,
 adapter kernel references, error events, metadata and manifest. Merge accepts these
 without base/adapter hashes only when no request, reply, cell, generation or acquisition
 event exists. All six required identity fields are compared across shards, and every
