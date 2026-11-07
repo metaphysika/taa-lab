@@ -11449,3 +11449,13 @@ Four training runs at main `56659d62` on one visible Tesla T4 (Kaggle, internet 
 All four wrote `training_complete` with 250 optimizer steps. The 4B qualification run's 5/5 skipped updates were the start of the fp16 loss-scaler warm-up: it settled after six halvings. Updates actually applied: 248 (1B) and 244 (4B) of 250. The supervised target (one fixed sentence plus a two-field JSON object) is fitted within about 15 steps: training loss falls below 1e-3 by step 15 and stays near 1e-6 afterwards. This is near-memorisation of an easy format. Whether it carries over to the step-1 cases is what the acquisition probes and step 1 test. Training time realised against the 0.36 h (1B) and 0.50 h (4B) estimates: 0.33–0.52 h.
 
 Prediction check (from the v0.24.73 qualification entry): 4B both arms trained as specified, predicted 60%, happened. 1B both arms, predicted 90%, happened.
+## 2026-11-07 — v0.24.75 EXPLORATORY K2 shard review fixes (Fable review of PR 111)
+
+Fable reviewed the step-1 shard code (PR 111, head `f00bbf8d`) in a fresh context and found it READY with no blockers. Its review is at `C:\Users\lahn0\T3\briefs\k2-fable-review-shards-f00bbf8d-result.md`. Claude applied five of its six should-fixes:
+- `verify_adapter` now enforces decision 2 itself: it refuses an adapter whose training log has more than 25 steps with a missing or non-finite `grad_norm`.
+- The shard merge re-hashes each trained arm's copied training manifest and checks its arm, mode, scientific flag and commit.
+- The merge manifest records the common identity, per-arm adapter hashes, the plan hash and per-shard status (closed cells, interruptions, failures).
+- The launcher refuses an adapter kernel whose name is not that arm's training kernel.
+- Fetched result folders now carry the README version and the step and shard.
+
+The sixth (tie the six launches together) is handled procedurally: the exact launch commands for each model are written in this notebook before the first step-1 session. No recipe, case, scoring, threshold or prediction changes.
