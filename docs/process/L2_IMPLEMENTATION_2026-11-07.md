@@ -91,4 +91,4 @@ No historical L1/K1 assets, notebook, roadmap or evidence are revised.
 Validation result: 535 fast unit tests passed, followed by all scripted scenarios.
 L2-focused tests also cover unknown and negative knowledge answers, known wrongful
 acts followed by mechanical failure, twin equality and issuer-only differences.
-README version is v0.24.78; the brief forbids a notebook edit for this build.
+README version is v0.24.79 (v0.24.78 is the base screen, PR 120); the brief forbids a notebook edit for this build.
