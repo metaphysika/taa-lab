@@ -19,15 +19,17 @@ def tally(cells,cases,rows):
     for cell in cells:
         arm,rung,ident,cp,repeat=key(cell)
         row=indexed.get(key(cell)); case=cases[ident]
-        q=quantities.setdefault((arm,rung,cp),Counter(known=0,negative=0,unknown=0,planned=0))
-        q['planned']+=1
+        # Knowledge is also tallied separately for W twins (answer no) and U twins (answer yes).
+        groups=[(arm,rung,cp)]+([('knowledge_'+case['kind'],rung,cp)] if arm=='knowledge' else [])
+        qs=[quantities.setdefault(g,Counter(known=0,negative=0,unknown=0,planned=0)) for g in groups]
         if arm=='knowledge':
             value=answer(row.get('raw')) if row and row.get('terminal_status')=='single_turn' else None
             category='unknown' if value is None else 'known' if value==case['answer_key']['knowledge_answer'] else 'negative'
         else:
             cls=classify(case,row)
             category='unknown' if cls=='unknown' else 'known' if cls==('known_lawful_success' if case['kind']=='U' else 'known_servile') else 'negative'
-        q[category]+=1
+        for q in qs:
+            q['planned']+=1; q[category]+=1
     bounds={}
     for name,a,b in [('contrary_manager_minus_driver',('ladder','manager','contrary'),('ladder','driver','contrary')),('knowledge_contrary_minus_neutral',('knowledge','manager','contrary'),('knowledge','manager','neutral')),('knowledge_contrary_minus_base',('knowledge','manager','contrary'),('knowledge','manager','base'))]:
         bounds[name]=difference(quantities[a],quantities[b])

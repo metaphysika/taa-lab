@@ -25,13 +25,16 @@ difficulty increase.
 | W manager action | 12 | 12 | 12 | 36 |
 | W driver action | 12 | 0 | 0 | 12 |
 | U manager action | 12 | 0 | 0 | 12 |
-| W knowledge | 12 | 12 | 12 | 36 |
-| Total | 48 | 24 | 24 | 96 |
+| Knowledge, W twins (answer no) | 12 | 12 | 12 | 36 |
+| Knowledge, U twins (answer yes) | 12 | 12 | 12 | 36 |
+| Total | 60 | 36 | 36 | 132 |
 
-The brief's "every case" and "36 single-turn cells" cannot both mean all 24 W/U
-stimuli across three checkpoints. This build interprets the latter as one W case
-per pair, across three checkpoints. Adding U knowledge would add 36 cells (132
-total), not silently alter this matrix. This interpretation needs reviewer attention.
+Claude's review amendment (2026-11-07): Sol's first build asked the knowledge
+question on W twins only (96 cells) and flagged the ambiguity. Claude resolved it
+toward all 24 stimuli, as in K1, because a model that always answers "no" would
+otherwise score full knowledge. The knowledge prompt now uses K1's exact line
+removals (issuer and "If you identify a problem" lines) and the case's own
+requested status. Analysis reports knowledge in total and separately for W and U twins.
 Knowledge uses the first K1 question with deterministic JSON yes/no parsing.
 Rung and checkpoint order rotate across pairs; all themes receive identical
 pressure. Manager/driver views differ only in issuer substitutions and role.
@@ -48,30 +51,34 @@ answers stay unknown. There are no thresholds or verdicts.
 
 ## Cost envelope (one repeat)
 
-Measured L1 inputs supplied in the brief: 36 cells, 166 requests, 2,336 stage
-seconds, 373 startup seconds, actual bill $2.03. Derived action request estimate:
-60 * 166/36 = 276.667. Add 36 single-turn knowledge requests: 312.667 requests.
-Assume stage time scales linearly with requests, including one startup:
-4,399.936 stage seconds + 373 startup = 4,772.936 seconds. Reprice by the measured
-whole-session bill/time ratio, $2.03/2,709 seconds. These are planning proxies,
-not measured L2 duration or a completion guarantee.
+Measured inputs: L1 action cells, 2,336 stage seconds for 36 cells (64.9 s per
+cell); K1 single-turn knowledge cells, about 20.2 s each (knowledge_1 22.1 s,
+knowledge_2 18.3 s, 42 cells each); L1 actual bill $2.03 for 2,709 session
+seconds with a 373 s startup. Stage estimate: 60 action cells x 64.9 s = 3,893 s,
+plus 72 knowledge cells x 20.2 s = 1,454 s, total 5,348 s; with startup 5,721 s.
+These are planning proxies, not measured L2 duration or a completion guarantee.
+(L1 itself ran about 25% faster than its own request-time estimate.)
 
 | Scenario | Assumption | USD |
 |---|---|---:|
-| Point | Linear request-time scaling, one startup | 3.5766 |
-| Buffered | Point bill times 1.25 | 4.4708 |
-| Stress | Stage time times 1.5, startup times 2 | 5.5047 |
-| Proposed cap | Includes all session overhead and unknown outcomes | 7.5000 |
-| Credit remaining after cap | Assumed available credit 7.77 minus cap | 0.2700 |
+| Point | Linear scaling from measured cell times, one startup | 4.29 |
+| Buffered | Point times 1.25 | 5.36 |
+| Stress | Stage time times 1.5, startup times 2 | 6.57 |
 
-All requested 96 cells fit the dollar forecasts, so no cells were cut. The existing
-backend's more conservative rate/overhead reservation at $7.50 allows 5,631 session
-seconds and stops starting cells at 4,911 seconds. Point stage duration is below
-that boundary; buffered and stress duration can exceed it. A capped run may finish
-incomplete; unknown cells remain planned. The cap is a harness reservation and
-time guard, not a provider billing guarantee. Do not increase it automatically.
-A second repeat is outside this proposal. For 132 cells including all U knowledge,
-recompute cost and runtime and obtain review rather than silently adding them.
+Cap and time guard (`modal_backend.settings`): the cap sets the stop-new-cells time.
+
+| Cap | Stop-new seconds | Margin over 5,721 s needed |
+|---:|---:|---:|
+| $7.50 | 4,911 | none (about 14% of cells would be left unknown) |
+| $7.77 (all free credit) | 5,162 | none |
+| $9.25 (proposed) | 6,534 | 14% |
+
+Proposed cap: **$9.25**. Expected bill about $4.3, within the $7.77 free Modal
+credit; the cap is a reservation and time guard, and in the worst case could reach
+about $1.48 beyond the free credit. The Master Plan allows going somewhat over
+free credit only if shown first, so this needs Chris's explicit approval. A capped
+run may still finish incomplete; unknown cells remain planned. Do not increase the
+cap automatically. A second repeat is outside this proposal.
 
 ## Validation
 
