@@ -278,6 +278,21 @@ def digest(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
 
 
+MAX_NONFINITE_GRAD_STEPS=25  # decision 2: at most 25 of 250 skipped fp16 updates
+
+
+def nonfinite_grad_steps(events):
+    """Per-step train_log rows (those with a loss) whose grad_norm is missing or non-finite."""
+    import math
+    steps=set()
+    for x in events:
+        logs=x.get('logs') or {}
+        if x.get('event')=='train_log' and 'loss' in logs:
+            g=logs.get('grad_norm')
+            if isinstance(g,bool) or not isinstance(g,(int,float)) or not math.isfinite(g): steps.add(x.get('step'))
+    return sorted(steps)
+
+
 def verify_adapter(path, expected):
     path=Path(path); raw=(path.parent/'manifest.json').read_bytes(); record=json.loads(raw)
     if record['sha256']!=inventory(path.parent): raise ValueError('training file inventory mismatch')
@@ -289,6 +304,7 @@ def verify_adapter(path, expected):
     if {x.get('step') for x in events if x.get('event')=='train_log'} != set(range(1,251)):
         raise ValueError('missing completed step records')
     if any(x.get('event')=='run_failed' for x in events): raise ValueError('failed training')
+    if len(nonfinite_grad_steps(events))>MAX_NONFINITE_GRAD_STEPS: raise ValueError('not trained as specified: too many skipped fp16 updates')
     if any('incomplete' in p.name.lower() or 'interrupt' in p.name.lower() for p in path.rglob('*')) or any(x in path.name.lower() for x in ('incomplete','interrupt')):
         raise ValueError('incomplete adapter marker')
     if not any(x.get('event')=='training_complete' and x.get('optimizer_steps')==250
@@ -503,6 +519,12 @@ def merge_shards(folders, plan):
         if arm in identities and identities[arm]!=binding: raise ValueError('adapter hash mismatch')
         identities[arm]=binding; digests[arm]=digest_value
         if any(x['training_manifest_sha256']!=digest_value for x in selected): raise ValueError('plan adapter hash mismatch')
+        if arm!='base' and not meta['dry_run']:
+            copy=root/(arm+'-training-manifest.json')
+            if not copy.is_file() or hashlib.sha256(copy.read_bytes()).hexdigest()!=digest_value: raise ValueError('training manifest copy mismatch')
+            trained=json.loads(copy.read_bytes())['metadata']
+            if trained.get('arm')!=arm or trained.get('mode')!='train' or trained.get('dry_run') is not False or trained.get('repo_commit')!=meta['repo_commit']:
+                raise ValueError('training manifest identity mismatch')
         keys={cell_key(x) for x in selected}
         if not keys<=expected: raise ValueError('foreign shard')
         import tempfile, shutil
@@ -521,7 +543,10 @@ def merge_shards(folders, plan):
                 if pair[1]!='W' or row['arm']!=arm or row['index'] not in range(5): raise ValueError('foreign acquisition')
                 acquisition.append(row)
         rows.extend(shard_rows); seen.add(pair)
-        bindings.append(dict(folder=str(folder),manifest_sha256=hashlib.sha256(raw).hexdigest(),shard=shard))
+        status=dict(cells_closed=sum(1 for r in shard_rows if r.get('event')=='cell'),
+                    interruptions=sum(1 for r in shard_rows if r.get('event')=='cell' and r.get('interrupted')),
+                    run_failed=[r.get('error') for r in shard_rows if r.get('event')=='run_failed'])
+        bindings.append(dict(folder=str(folder),manifest_sha256=hashlib.sha256(raw).hexdigest(),shard=shard,status=status))
     if common is None: raise ValueError('no shards')
     counts={arm:{} for arm in ARMS}; probes=set()
     for row in acquisition:
@@ -530,4 +555,7 @@ def merge_shards(folders, plan):
         probes.add(key); label=row['label']; arm=row['arm']
         counts[arm][label]=counts[arm].get(label,0)+1
     return dict(sanity_summary=sanity_summary(rows,plan[0]['model_id'],plan[0]['model_revision'],plan),
-                acquisition_counts=counts,merge_manifest=dict(shards=bindings,missing_shards=[dict(arm=a,kind=k) for a,k in SHARDS if (a,k) not in seen]))
+                acquisition_counts=counts,merge_manifest=dict(
+                    identity=dict(zip(('repo_commit','model_id','model_revision','base_inventory_sha256','step','training_seed','dry_run'),common)),
+                    adapters={a:dict(training_manifest_sha256=d,files=b) for a,(d,b) in identities.items() if a!='base'},
+                    plan_sha256=digest(plan),shards=bindings,missing_shards=[dict(arm=a,kind=k) for a,k in SHARDS if (a,k) not in seen]))

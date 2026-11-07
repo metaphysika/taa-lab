@@ -88,6 +88,11 @@ def verify(folder):
                 raise ValueError('manifest SHA256 mismatch: '+name)
 
 
+def version():
+    import re
+    return re.match(r'# TAA Lab \(v(\d+\.\d+\.\d+)', (ROOT/'README.md').read_text(encoding='utf-8')).group(1)
+
+
 def execute(args):
     if args.action=='merge':
         from exploratory.k2_kaggle import core
@@ -134,6 +139,7 @@ def execute(args):
             if arm not in ('neutral', 'contrary') or arm in adapters:
                 raise ValueError('invalid/duplicate adapter arm')
             adapters[arm] = slug_ref(ref)
+            if '-'+arm[:3]+'-' not in ref.split('/')[1]: raise ValueError('adapter kernel is not a '+arm+' training kernel: '+ref)
         shard=args.shard_arm is not None or args.shard_kind is not None
         if shard and (args.mode!='evaluate' or args.step!=1 or (args.shard_arm,args.shard_kind) not in core.SHARDS):
             raise ValueError('shards require step 1 evaluation and arm/kind')
@@ -176,7 +182,7 @@ def execute(args):
                         model_sources=[args.model_source], kernel_sources=list(adapters.values()))
         write_json(folder/'kernel-metadata.json', metadata)
         write_json(folder/'launch.json', dict(slug=ref, commit=args.commit, model=args.model,
-                   mode=args.mode, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
+                   mode=args.mode, step=args.step, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
                    created=dt.datetime.now(dt.timezone.utc).isoformat()))
         command(['kaggle','kernels','push','-p',str(folder),'--accelerator','NvidiaTeslaT4','--timeout',str(TIMEOUT)], args.plan)
     else:
@@ -188,7 +194,8 @@ def execute(args):
         if record['slug'] != ref:
             raise ValueError('launch owner mismatch')
         stamp = dt.datetime.now(dt.timezone.utc)
-        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.73 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
+        what = record['arm'] if record['mode'] != 'evaluate' else ('st'+str(record.get('step', 1))+('-'+record['shard']['arm']+'-'+record['shard']['kind'] if record.get('shard') else ''))
+        folder = args.results / (f"{stamp:%Y-%m-%d} v{version()} {record['model']}-{record['mode']}-{what}-s{record['seed']} k2 {ref.split('/')[1]}")
         folder.mkdir(parents=True, exist_ok=False)
         status = 'planned'; verification = 'not downloaded'
         try:

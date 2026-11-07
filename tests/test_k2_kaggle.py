@@ -142,6 +142,24 @@ class K2Tests(unittest.TestCase):
             (root/'events.jsonl').write_text('{}\n'); core.manifest(root,meta)
             with self.assertRaises(ValueError): core.verify_adapter(adapter,{})
 
+    def test_fp16_skip_rule(self):
+        import tempfile
+        nan=float('nan')
+        for skipped,ok in ((25,True),(26,False)):
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp); adapter=root/'adapter'; adapter.mkdir()
+                (adapter/'adapter_config.json').write_text('{}'); (adapter/'adapter_model.safetensors').write_bytes(b'fixture')
+                logs=[dict(event='train_log',step=i,logs=dict(loss=1.0,grad_norm=nan if i<=skipped else 1.0)) for i in range(1,251)]
+                logs.append(dict(event='train_log',step=250,logs=dict(train_loss=1.0)))
+                logs.append(dict(event='training_complete',optimizer_steps=250,adapter_path='adapter',adapter_sha256=core.inventory(adapter)))
+                (root/'events.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in logs))
+                core.manifest(root,dict(dry_run=False,mode='train'))
+                self.assertEqual(len(core.nonfinite_grad_steps(logs)),skipped)
+                if ok: core.verify_adapter(adapter,{})
+                else:
+                    with self.assertRaisesRegex(ValueError,'not trained as specified'): core.verify_adapter(adapter,{})
+        self.assertEqual(core.nonfinite_grad_steps([dict(event='train_log',step=1,logs=dict(loss=1.0))]),[1])
+
     def test_prompt_mask_and_acquisition(self):
         class Tokenizer:
             unk_token_id=0
@@ -371,6 +389,10 @@ class ShardTests(unittest.TestCase):
             result=core.merge_shards(folders,planned)
             self.assertEqual(result['sanity_summary'],core.sanity_summary(rows,planned[0]['model_id'],'',planned))
             self.assertEqual(result['merge_manifest']['missing_shards'],[])
+            identity=result['merge_manifest']['identity']
+            self.assertEqual((identity['repo_commit'],identity['dry_run'],identity['step']),('a'*40,True,1))
+            self.assertEqual(result['merge_manifest']['plan_sha256'],core.digest(planned))
+            self.assertTrue(all('status' in x for x in result['merge_manifest']['shards']))
             self.assertEqual(result['acquisition_counts']['base'],{'unresolved':5})
             self.assertEqual(before,{str(p):p.read_bytes() for folder in folders for p in folder.iterdir()})
             missing=core.merge_shards(folders[1:],planned)
@@ -385,6 +407,30 @@ class ShardTests(unittest.TestCase):
             (folder/'events.jsonl').write_text('tampered')
             with self.assertRaisesRegex(ValueError,'SHA256'): core.merge_shards(folders,planned)
 
+
+    def test_merge_rechecks_training_manifest_copy(self):
+        import tempfile, hashlib
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)/'neutralW'; folder.mkdir()
+            copy=json.dumps(dict(metadata=dict(arm='neutral',mode='train',dry_run=False,repo_commit='a'*40),sha256={})).encode()
+            digest=hashlib.sha256(copy).hexdigest()
+            planned=core.plan(1,training_digests={'neutral':digest})
+            selected=core.shard_cells(planned,'neutral','W')
+            def build(copy_bytes):
+                (folder/'neutral-training-manifest.json').write_bytes(copy_bytes)
+                meta=dict(repo_commit='a'*40,model_id=planned[0]['model_id'],model_revision='',base_inventory_sha256='b'*64,step=1,training_seed=247056,dry_run=False,
+                          training_manifest_digests={'neutral':digest},adapters={'neutral':{'adapter_model.safetensors':'c'*64}},
+                          shard=dict(arm='neutral',kind='W',cell_ids=[x['case_id'] for x in selected]))
+                (folder/'metadata.json').write_text(json.dumps(meta)); core.manifest(folder,meta)
+            build(copy)
+            result=core.merge_shards([folder],planned)
+            self.assertEqual(result['merge_manifest']['adapters']['neutral']['training_manifest_sha256'],digest)
+            build(copy.replace(b'"arm": "neutral"',b'"arm": "neutrax"'))
+            with self.assertRaisesRegex(ValueError,'training manifest copy mismatch'): core.merge_shards([folder],planned)
+            wrong=json.dumps(dict(metadata=dict(arm='contrary',mode='train',dry_run=False,repo_commit='a'*40),sha256={})).encode()
+            digest=hashlib.sha256(wrong).hexdigest(); planned=core.plan(1,training_digests={'neutral':digest}); selected=core.shard_cells(planned,'neutral','W')
+            build(wrong)
+            with self.assertRaisesRegex(ValueError,'training manifest identity mismatch'): core.merge_shards([folder],planned)
 
     def test_scientific_notebook_requires_shard_before_load(self):
         import tempfile

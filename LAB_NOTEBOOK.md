@@ -11434,3 +11434,14 @@ Written by Claude before any K2 training or step-1 run. Both qualification runs 
 5. *Order.* Sharding code is built and reviewed (a fresh review of the exact commit) before any step-1 run. Training may run before that review, because training code and recipe are unchanged and already qualified. 4B training runs first, as the cheapest test of decision 2.
 
 **Predictions (before any training run).** 4B neutral and contrary are both trained as specified under decision 2: 60% (the scaler halves each skip, so it should reach a non-overflowing scale within about 10 steps unless gradients are truly non-finite). 1B both arms trained as specified: 90%. Realistic step-1 shard wall time is well under the worst case, because replies are usually short JSON: median shard under 1.5 h on 1B and under 3 h on 4B (70%).
+
+## 2026-11-07 — v0.24.75 EXPLORATORY K2 shard review fixes (Fable review of PR 111)
+
+Fable reviewed the step-1 shard code (PR 111, head `f00bbf8d`) in a fresh context and found it READY with no blockers. Its review is at `C:\Users\lahn0\T3\briefs\k2-fable-review-shards-f00bbf8d-result.md`. Claude applied five of its six should-fixes:
+- `verify_adapter` now enforces decision 2 itself: it refuses an adapter whose training log has more than 25 steps with a missing or non-finite `grad_norm`.
+- The shard merge re-hashes each trained arm's copied training manifest and checks its arm, mode, scientific flag and commit.
+- The merge manifest records the common identity, per-arm adapter hashes, the plan hash and per-shard status (closed cells, interruptions, failures).
+- The launcher refuses an adapter kernel whose name is not that arm's training kernel.
+- Fetched result folders now carry the README version and the step and shard.
+
+The sixth (tie the six launches together) is handled procedurally: the exact launch commands for each model are written in this notebook before the first step-1 session. No recipe, case, scoring, threshold or prediction changes.

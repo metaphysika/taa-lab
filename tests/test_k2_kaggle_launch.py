@@ -73,11 +73,17 @@ class LauncherTests(unittest.TestCase):
             uid.return_value.hex='12345678'*4
             self.push('--plan')
             with self.assertRaisesRegex(ValueError,'already retained'): self.push('--plan')
+    def test_wrong_arm_adapter_kernel_refused(self):
+        with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
+            with self.assertRaisesRegex(ValueError,'not a neutral training kernel'):
+                self.run_cli('push','--plan','--mode','evaluate','--model','gemma-3-1b-it',
+                    '--commit',SHA,'--owner','owner','--model-source',SOURCE,
+                    '--shard-arm','neutral','--shard-kind','W','--adapter-kernel','neutral=owner/k2t-1b-con-s247056-aaaaaaaa-22222222')
     def test_slug_fits_kaggle_title_limit(self):
         with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
             self.run_cli('push','--plan','--mode','evaluate','--model','gemma-3-4b-it','--train-seed','247060',
                 '--commit',SHA,'--owner','owner','--model-source',SOURCE.replace('1b','4b'),
-                '--shard-arm','neutral','--shard-kind','W','--adapter-kernel','neutral=owner/k2-neutral')
+                '--shard-arm','neutral','--shard-kind','W','--adapter-kernel','neutral=owner/k2t-1b-neu-s247056-aaaaaaaa-11111111')
             slug=next(self.state.iterdir()).name
             self.assertLessEqual(len(slug),l.MAX_TITLE)
             self.assertTrue(slug.startswith('k2e-4b-st1-neuW-s247060-'))
@@ -99,16 +105,16 @@ class LauncherTests(unittest.TestCase):
         with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
             self.run_cli('push','--mode','evaluate','--model','gemma-3-1b-it',
                 '--commit',SHA,'--owner','owner','--model-source',SOURCE,
-                '--shard-arm','neutral','--shard-kind','W','--adapter-kernel','neutral=owner/k2-neutral')
+                '--shard-arm','neutral','--shard-kind','W','--adapter-kernel','neutral=owner/k2t-1b-neu-s247056-aaaaaaaa-11111111')
             meta=json.loads((next(self.state.iterdir())/'kernel-metadata.json').read_text())
-            self.assertEqual(meta['kernel_sources'],['owner/k2-neutral'])
+            self.assertEqual(meta['kernel_sources'],['owner/k2t-1b-neu-s247056-aaaaaaaa-11111111'])
     def test_base_and_contrary_shard_sources(self):
         with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
             for arm in ('base','contrary'):
                 self.run_cli('push','--plan','--mode','evaluate','--model','gemma-3-1b-it',
                     '--commit',SHA,'--owner','owner','--model-source',SOURCE,
                     '--shard-arm',arm,'--shard-kind','U',
-                    *(['--adapter-kernel','contrary=owner/k2-contrary'] if arm=='contrary' else []))
+                    *(['--adapter-kernel','contrary=owner/k2t-1b-con-s247056-aaaaaaaa-22222222'] if arm=='contrary' else []))
             metas=[json.loads(p.read_text()) for p in self.state.glob('*/kernel-metadata.json')]
             self.assertEqual(sorted(len(x['kernel_sources']) for x in metas),[0,1])
 
@@ -120,7 +126,7 @@ class LauncherTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'missing manifest'):
                 self.run_cli('fetch','owner/'+slug)
             folder=next(self.results.iterdir())
-            self.assertIn('v0.24.73 gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
+            self.assertIn('v'+l.version()+' gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
             self.assertIn('FAILED', (folder/'README.md').read_text())
             with self.assertRaises(FileExistsError): self.run_cli('fetch','owner/'+slug)
     def test_hash_failure_and_path_fallback(self):
