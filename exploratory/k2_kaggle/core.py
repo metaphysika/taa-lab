@@ -39,6 +39,30 @@ def plan(step, repeats=1, model='gemma-3-1b-it', model_revision='', repeat_start
             for r in range(repeat_start,repeat_start+repeats) for j,(b,cases) in enumerate(groups)
             for i,x in enumerate(cases) for a in ARMS]
 
+SHARDS = tuple((arm, kind) for arm in ARMS for kind in ('W', 'U'))
+
+
+def filter_cells(rows, arm, battery=None):
+    if arm not in ARMS: raise ValueError('unknown arm')
+    return [x for x in rows if x['checkpoint']==arm and (battery is None or x['battery']==battery)]
+
+
+def shard_cells(plan_rows, arm, kind):
+    if (arm, kind) not in SHARDS: raise ValueError('unknown shard arm/kind')
+    if any(x['step']!=1 or x['battery']!='sanity' for x in plan_rows):
+        raise ValueError('shards require step 1 sanity plan')
+    roster={x['id']:x for x in manager_cases()}
+    selected=[x for x in filter_cells(plan_rows,arm,'sanity') if roster[x['case_id']]['kind']==kind]
+    if not selected: raise ValueError('empty shard')
+    return selected
+
+
+def acquisition_arms(arm=None, kind=None):
+    if arm is None and kind is None: return ARMS
+    if (arm,kind) not in SHARDS: raise ValueError('unknown shard')
+    return (arm,) if kind=='W' else ()
+
+
 def issuer_case(case, issuer):
     return l1.rewrite(case, issuer)
 
@@ -82,14 +106,17 @@ def bind_issuance(row, turns):
     row['stop_response_returned']=bool(row['stop_issued'] and row.get('stop_response_returned'))
     return row
 
-def run(step, generate, retain, repeats=1, gate=None, dry_run=True, model='gemma-3-1b-it', model_revision='', repeat_start=1, training_seed=247056, training_digests=None, check_deadline=lambda: None):
+def run(step, generate, retain, repeats=1, gate=None, dry_run=True, model='gemma-3-1b-it', model_revision='', repeat_start=1, training_seed=247056, training_digests=None, check_deadline=lambda: None, shard_arm=None, shard_kind=None):
     validate_assets()
     if step==2 and not dry_run:
         if not isinstance(gate,dict) or gate.get('proceed') is not True or not gate.get('reviewer') or not gate.get('step1_manifest_sha256'):
             raise ValueError('Claude gate decision bound to step-1 manifest required')
     roster={x['id']:x for x in c.cases()}
     managers={x['id']:x for x in manager_cases()}
-    for cell in plan(step,repeats,model,model_revision,repeat_start,training_seed,training_digests):
+    planned=plan(step,repeats,model,model_revision,repeat_start,training_seed,training_digests)
+    if shard_arm is not None or shard_kind is not None:
+        planned=shard_cells(planned,shard_arm,shard_kind)
+    for cell in planned:
         check_deadline()
         deadline_hit=False
         b=cell['battery']; calls=[]; retained_replies=[]; turns=set()
@@ -441,3 +468,66 @@ def resolve_model_path(path, root=Path('/kaggle/input')):
                 and any(p.parent.glob('*.safetensors'))]
     if len(candidates)!=1: raise ValueError('missing or ambiguous mounted base model')
     return candidates[0]
+
+
+def merge_shards(folders, plan):
+    """Verify retained shard bytes and return a full planned-denominator report."""
+    if not plan: raise ValueError('empty plan')
+    expected={cell_key(x) for x in plan}
+    if len(expected)!=len(plan): raise ValueError('duplicate plan')
+    seen=set(); identities={}; rows=[]; bindings=[]; common=None; digests={}
+    acquisition=[]
+    for folder in folders:
+        folder=Path(folder)
+        manifests=list(folder.rglob('manifest.json'))
+        if len(manifests)!=1: raise ValueError('one valid shard manifest required, including partial downloads')
+        path=manifests[0]; raw=path.read_bytes(); record=json.loads(raw); root=path.parent
+        files=record['sha256']
+        if not files or files!=inventory(root): raise ValueError('manifest SHA256 inventory mismatch')
+        meta=record['metadata']
+        if json.loads((root/'metadata.json').read_text())!=meta: raise ValueError('metadata mismatch')
+        shard=meta['shard']; pair=(shard['arm'],shard['kind'])
+        if pair in seen: raise ValueError('duplicate shard')
+        selected=shard_cells(plan,*pair)
+        if shard['cell_ids']!=[x['case_id'] for x in selected]: raise ValueError('shard cell set mismatch or overlap')
+        identity=tuple(meta[k] for k in ('repo_commit','model_id','model_revision','base_inventory_sha256','step','training_seed','dry_run'))
+        if identity[4]!=1: raise ValueError('step 1 required')
+        if common is not None and common!=identity: raise ValueError('shard identity mismatch')
+        common=identity
+        if any(x['model_id']!=meta['model_id'] or x['model_revision']!=meta['model_revision'] or x['training_seed']!=meta['training_seed'] for x in selected):
+            raise ValueError('plan identity mismatch')
+        arm=pair[0]; digest_value=meta.get('training_manifest_digests',{}).get(arm,'')
+        adapter=meta.get('adapters',{}).get(arm,{})
+        if arm!='base' and not meta['dry_run'] and (not digest_value or not adapter): raise ValueError('missing adapter hashes')
+        binding=(digest_value,adapter)
+        if arm in identities and identities[arm]!=binding: raise ValueError('adapter hash mismatch')
+        identities[arm]=binding; digests[arm]=digest_value
+        if any(x['training_manifest_sha256']!=digest_value for x in selected): raise ValueError('plan adapter hash mismatch')
+        keys={cell_key(x) for x in selected}
+        if not keys<=expected: raise ValueError('foreign shard')
+        import tempfile, shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            events=Path(tmp)/'events.jsonl'
+            if (root/'events.jsonl').exists():
+                shutil.copyfile(root/'events.jsonl',events)
+                sidecar=root/'events.jsonl.closures.jsonl'
+                if sidecar.exists(): shutil.copyfile(sidecar,events.with_name(sidecar.name))
+                shard_rows=finalize(events,meta['dry_run'])
+            else: shard_rows=[]
+        for row in shard_rows:
+            if row.get('event')=='cell' and cell_key(row) not in keys: raise ValueError('overlapping or foreign cell')
+            if 'cell' in row and isinstance(row['cell'],dict) and cell_key(row['cell']) not in keys: raise ValueError('foreign request')
+            if row.get('event')=='acquisition':
+                if pair[1]!='W' or row['arm']!=arm or row['index'] not in range(5): raise ValueError('foreign acquisition')
+                acquisition.append(row)
+        rows.extend(shard_rows); seen.add(pair)
+        bindings.append(dict(folder=str(folder),manifest_sha256=hashlib.sha256(raw).hexdigest(),shard=shard))
+    if common is None: raise ValueError('no shards')
+    counts={arm:{} for arm in ARMS}; probes=set()
+    for row in acquisition:
+        key=(row['arm'],row['index'])
+        if key in probes: raise ValueError('duplicate acquisition')
+        probes.add(key); label=row['label']; arm=row['arm']
+        counts[arm][label]=counts[arm].get(label,0)+1
+    return dict(sanity_summary=sanity_summary(rows,plan[0]['model_id'],plan[0]['model_revision'],plan),
+                acquisition_counts=counts,merge_manifest=dict(shards=bindings,missing_shards=[dict(arm=a,kind=k) for a,k in SHARDS if (a,k) not in seen]))
