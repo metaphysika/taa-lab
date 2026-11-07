@@ -175,7 +175,7 @@ def execute(args):
         if record['slug'] != ref:
             raise ValueError('launch owner mismatch')
         stamp = dt.datetime.now(dt.timezone.utc)
-        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.72 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
+        folder = args.results / (f"{stamp:%Y-%m-%d} v0.24.73 {record['model']}-{record['mode']}-{record['arm']}-s{record['seed']} k2 {ref.split('/')[1]}")
         folder.mkdir(parents=True, exist_ok=False)
         status = 'planned'; verification = 'not downloaded'
         try:

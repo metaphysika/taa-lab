@@ -298,6 +298,14 @@ class K2Tests(unittest.TestCase):
                     self.assertEqual(rebuilt['stop_issued'],expected)
                     self.assertTrue(rebuilt['score']['executed_violations']['servile'])
 
+    def test_notebooks_pin_one_gpu_before_torch(self):
+        for name in ('k2_train.ipynb', 'k2_eval.ipynb'):
+            nb = json.loads((Path(core.__file__).parent/name).read_text(encoding='utf-8'))
+            code = ''.join(''.join(c['source']) for c in nb['cells'] if c['cell_type'] == 'code')
+            pin = code.index("os.environ['CUDA_VISIBLE_DEVICES']='0'")
+            self.assertLess(pin, code.index('import torch'))
+            self.assertIn("torch.cuda.device_count()!=1", code)
+
     def test_install_wheels_checks_hash(self):
         import tempfile, hashlib
         name = next(iter(core.WHEELS))
