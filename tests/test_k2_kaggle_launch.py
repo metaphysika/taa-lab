@@ -129,6 +129,17 @@ class LauncherTests(unittest.TestCase):
             self.assertIn('v'+l.version()+' gemma-3-1b-it-train-neutral-s247056 k2',folder.name)
             self.assertIn('FAILED', (folder/'README.md').read_text())
             with self.assertRaises(FileExistsError): self.run_cli('fetch','owner/'+slug)
+    def test_fetch_shard_with_lowercase_kaggle_id(self):
+        with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
+            self.run_cli('push','--plan','--mode','evaluate','--step','1','--model','gemma-3-1b-it',
+                '--commit',SHA,'--owner','owner','--model-source',SOURCE,'--shard-arm','base','--shard-kind','U')
+        slug=next(self.state.iterdir()).name
+        self.assertIn('basU',slug)
+        with patch.object(l.subprocess,'run',return_value=subprocess.CompletedProcess([],0,stdout='failed')) as run:
+            with self.assertRaisesRegex(ValueError,'missing manifest'):
+                self.run_cli('fetch','owner/'+slug.lower())
+            self.assertIn(['kaggle','kernels','output','owner/'+slug.lower(),'-p',str(next(self.results.iterdir()))],[c.args[0] for c in run.call_args_list])
+        self.assertIn('st1-base-U',next(self.results.iterdir()).name)
     def test_hash_failure_and_path_fallback(self):
         folder=self.root
         (folder/'file').write_bytes(b'bad')

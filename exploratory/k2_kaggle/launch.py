@@ -190,12 +190,17 @@ def execute(args):
                    created=dt.datetime.now(dt.timezone.utc).isoformat()))
         command(['kaggle','kernels','push','-p',str(folder),'--accelerator','NvidiaTeslaT4','--timeout',str(TIMEOUT)], args.plan)
     else:
-        ref = slug_ref(args.kernel)
+        # Kaggle stores kernel ids in lowercase but keeps the title's case
+        # (e.g. title ...-basU-... has id ...-basu-...), so ids compare case-insensitively.
+        ref = slug_ref(args.kernel.lower())
         if args.action == 'status':
             print(command(['kaggle','kernels','status',ref], args.plan))
             return
-        record = json.loads((state/ref.split('/')[1]/'launch.json').read_text())
-        if record['slug'] != ref:
+        matches = [p for p in state.iterdir() if p.is_dir() and p.name.lower() == ref.split('/')[1]]
+        if len(matches) != 1:
+            raise ValueError('expected exactly one launch record for '+ref)
+        record = json.loads((matches[0]/'launch.json').read_text())
+        if record['slug'].lower() != ref:
             raise ValueError('launch owner mismatch')
         stamp = dt.datetime.now(dt.timezone.utc)
         what = record['arm'] if record['mode'] != 'evaluate' else ('st'+str(record.get('step', 1))+('-'+record['shard']['arm']+'-'+record['shard']['kind'] if record.get('shard') else ''))
