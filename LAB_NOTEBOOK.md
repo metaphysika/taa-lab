@@ -11459,3 +11459,40 @@ Fable reviewed the step-1 shard code (PR 111, head `f00bbf8d`) in a fresh contex
 - Fetched result folders now carry the README version and the step and shard.
 
 The sixth (tie the six launches together) is handled procedurally: the exact launch commands for each model are written in this notebook before the first step-1 session. No recipe, case, scoring, threshold or prediction changes.
+
+
+## 2026-11-07 — v0.24.76 EXPLORATORY K2 final training at the step-1 commit, and the twelve step-1 launch commands
+
+**Reviewed commit.** Step 1 runs at main `c61ba2b80a36dc610c3d760c4d400fe8b10a6a84` (PR 114 squash). Its file tree `3d66e2cffff11d0ed479865a4374b9d06e1c48a2` is identical to the head Astra rechecked as READY (`447fe66fea2696d3d30e8b5f99612a15fbdbac63`; review `C:\Users\lahn0\T3\briefs\k2-astra-recheck-447fe66f-result.md`). Earlier Astra review of `bb79ef29`: NOT READY, with one blocker (adapter discovery before failure retention), fixed in PR 114. A non-scientific CPU probe kernel, `metaphysika/k2-mount-probe`, measured the kernel-output mount layout `/kaggle/input/notebooks/<owner>/<slug>/k2-output/` used by the fix.
+
+**Retraining.** The evaluation notebook accepts only adapters trained at the same commit and implementation, so the four arms were retrained at `c61ba2b8`. The recipe is unchanged. The earlier `56659d62` training runs stay retained and are not used. Retained, SHA256 verified; adapters stay private (Kaggle kernel outputs and the local copy under `C:/k2s/results/`).
+
+| Kernel `metaphysika/…` | manifest.json SHA256 | Train time | Non-finite `grad_norm` (≤ 25) | Loss step 1 → 10 → 50 → 250 |
+|---|---|---|---|---|
+| `k2t-1b-neu-s247056-c61ba2b8-07276fd9` | `6874213430099f716bfa0fd4112b30a012c59de5585e1f2d4cc2128021863568` | 21.1 min | 2 | 4.03 → 9.5e-4 → 1.8e-6 → 3.2e-7 |
+| `k2t-1b-con-s247056-c61ba2b8-f35413aa` | `365b55e235c2ce4658c31d91b930b43dfcffaad54050862390e2026090c7f15a` | 21.4 min | 2 | 4.64 → 2.3e-3 → 3.6e-6 → 1.6e-6 |
+| `k2t-4b-neu-s247056-c61ba2b8-b9aa266f` | `46a6c0890289df2a321efb047e3b88a5ac86d55bbd8d043f8273da524b3ece24` | 27.9 min | 6 | 4.21 → 0.11 → 2.0e-6 → 4.4e-7 |
+| `k2t-4b-con-s247056-c61ba2b8-8e881af3` | `5277517cd3774cab4013a3f87cb5ab8af9c5d51367e0a2f094e0a70dc3385a50` | 26.2 min | 6 | 4.15 → 0.30 → 1.2e-6 → 3.4e-7 |
+
+All four wrote `training_complete` at 250 steps and pass decision 2. Both models are therefore eligible for step 1. The logged losses match the `56659d62` runs to the printed precision (same seed, recipe and data order). Claude ran `core.verify_adapter` locally on each downloaded training folder, with every identity key from the notebook, and all four passed. Implementation hash `0413b2b3b951…` and recipe hash `407a4eefb077…` were recomputed independently from the commit and match the training metadata.
+
+**The twelve step-1 launch commands (decision 3; written before the first session).** They run from a clean checkout at this commit. They are run exactly as written, each at most once. A failed or partial shard is retained, never rerun, and its cells stay unknown.
+
+```
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-1b-it --model-source google/gemma-3/transformers/gemma-3-1b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm base --shard-kind W
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-1b-it --model-source google/gemma-3/transformers/gemma-3-1b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm base --shard-kind U
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-1b-it --model-source google/gemma-3/transformers/gemma-3-1b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm neutral --shard-kind W --adapter-kernel neutral=metaphysika/k2t-1b-neu-s247056-c61ba2b8-07276fd9
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-1b-it --model-source google/gemma-3/transformers/gemma-3-1b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm neutral --shard-kind U --adapter-kernel neutral=metaphysika/k2t-1b-neu-s247056-c61ba2b8-07276fd9
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-1b-it --model-source google/gemma-3/transformers/gemma-3-1b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm contrary --shard-kind W --adapter-kernel contrary=metaphysika/k2t-1b-con-s247056-c61ba2b8-f35413aa
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-1b-it --model-source google/gemma-3/transformers/gemma-3-1b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm contrary --shard-kind U --adapter-kernel contrary=metaphysika/k2t-1b-con-s247056-c61ba2b8-f35413aa
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-4b-it --model-source google/gemma-3/transformers/gemma-3-4b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm base --shard-kind W
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-4b-it --model-source google/gemma-3/transformers/gemma-3-4b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm base --shard-kind U
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-4b-it --model-source google/gemma-3/transformers/gemma-3-4b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm neutral --shard-kind W --adapter-kernel neutral=metaphysika/k2t-4b-neu-s247056-c61ba2b8-b9aa266f
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-4b-it --model-source google/gemma-3/transformers/gemma-3-4b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm neutral --shard-kind U --adapter-kernel neutral=metaphysika/k2t-4b-neu-s247056-c61ba2b8-b9aa266f
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-4b-it --model-source google/gemma-3/transformers/gemma-3-4b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm contrary --shard-kind W --adapter-kernel contrary=metaphysika/k2t-4b-con-s247056-c61ba2b8-8e881af3
+python -m exploratory.k2_kaggle.launch push --mode evaluate --step 1 --model gemma-3-4b-it --model-source google/gemma-3/transformers/gemma-3-4b-it/1 --commit c61ba2b80a36dc610c3d760c4d400fe8b10a6a84 --owner metaphysika --state C:/k2s --shard-arm contrary --shard-kind U --adapter-kernel contrary=metaphysika/k2t-4b-con-s247056-c61ba2b8-8e881af3
+```
+
+**Run plan and GPU budget.** 1B shards first, then 4B, at most two at a time. Worst case (every reply at the 1,024-token cap): 6 × 3.06 h + 6 × 4.97 h ≈ 48 h. Expected (prediction in the v0.24.73 entry): under 1.5 h median per 1B shard and under 3 h per 4B shard, about 9 h + 18 h ≈ 27 h. Kaggle's free GPU quota is about 30 h per week, and this week already used about 5 h of qualification and training. If the quota runs out between shards, the remaining shards wait for the weekly reset and run unchanged. A shard is never cut short to save quota: each shard's own cooperative deadline is the only stop. After all six shards of a model are fetched, Claude merges them offline with `launch.py merge`, applies the v0.24.66 rules as amended, and writes the gate decision with the merge manifest hash before any step-2 work.
+
+**Execution approval.** Step 1 is free (Kaggle) but needs Chris's explicit approval of this exact commit and these twelve commands before the first launch.
