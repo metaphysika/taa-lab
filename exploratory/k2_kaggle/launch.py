@@ -96,10 +96,14 @@ def version():
 def execute(args):
     if args.action=='merge':
         from exploratory.k2_kaggle import core
-        report=core.merge_shards(args.folders,json.loads(args.plan_file.read_text()))
+        plan_bytes=args.plan_file.read_bytes()
+        report=core.merge_shards(args.folders,json.loads(plan_bytes))
+        report['merge_manifest']['plan_file_sha256']=hashlib.sha256(plan_bytes).hexdigest()
         args.output.mkdir(parents=True,exist_ok=False)
         for key,name in (('sanity_summary','sanity-summary.json'),('acquisition_counts','acquisition-counts.json'),('merge_manifest','merge-manifest.json')):
             write_json(args.output/name,report[key])
+        (args.output/'plan.json').write_bytes(plan_bytes)
+        core.manifest(args.output,report['merge_manifest'])
         return
     print('K2 '+args.action+(' (offline plan)' if args.plan else ''))
     state = args.state.resolve()
@@ -170,7 +174,7 @@ def execute(args):
                       OUTPUT="Path('/kaggle/working/k2-output')", TRAIN_SEED=str(args.train_seed))
         if args.mode == 'evaluate':
             values.update(SHARD_ARM=repr(args.shard_arm), SHARD_KIND=repr(args.shard_kind), STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
-                          ADAPTERS='{'+','.join(repr(a)+":next(p for p in Path('/kaggle/input').rglob('adapter') if p.is_dir() and p.parent.name=='k2-output' and "+repr(r.split('/')[1])+' in p.parts)' for a,r in adapters.items())+'}')
+                          ADAPTER_KERNELS=repr(adapters))
         else:
             values['ARM'] = repr(args.arm)
         name = 'k2_eval.ipynb' if args.mode == 'evaluate' else 'k2_train.ipynb'

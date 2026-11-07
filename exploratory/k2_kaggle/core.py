@@ -301,7 +301,8 @@ def verify_adapter(path, expected):
     for key,value in expected.items():
         if meta.get(key)!=value: raise ValueError('training identity mismatch: '+key)
     events=[json.loads(x) for x in (path.parent/'events.jsonl').read_text().splitlines()]
-    if {x.get('step') for x in events if x.get('event')=='train_log'} != set(range(1,251)):
+    loss_rows=[x for x in events if x.get('event')=='train_log' and 'loss' in (x.get('logs') or {})]
+    if len(loss_rows)!=250 or {x.get('step') for x in loss_rows} != set(range(1,251)):
         raise ValueError('missing completed step records')
     if any(x.get('event')=='run_failed' for x in events): raise ValueError('failed training')
     if len(nonfinite_grad_steps(events))>MAX_NONFINITE_GRAD_STEPS: raise ValueError('not trained as specified: too many skipped fp16 updates')
@@ -486,12 +487,27 @@ def resolve_model_path(path, root=Path('/kaggle/input')):
     return candidates[0]
 
 
+def resolve_adapter(kernel_ref, root=Path('/kaggle/input'), retain=lambda row: None):
+    parts=kernel_ref.split('/')
+    if len(parts)!=2 or any(p in ('', '.', '..') for p in parts):
+        raise ValueError('adapter kernel reference must be owner/slug')
+    owner,slug=parts
+    measured=Path(root)/'notebooks'/owner/slug/'k2-output'/'adapter'
+    candidates=([measured] if measured.is_dir() else sorted(
+        p for p in Path(root).rglob('adapter')
+        if p.is_dir() and p.parent.name=='k2-output' and slug in p.parts))
+    retain(dict(event='adapter_candidates',kernel_ref=kernel_ref,paths=[str(p) for p in candidates]))
+    if len(candidates)!=1:
+        raise ValueError(f'expected exactly one adapter for {kernel_ref}; found {len(candidates)}: {candidates}')
+    return candidates[0]
+
+
 def merge_shards(folders, plan):
     """Verify retained shard bytes and return a full planned-denominator report."""
     if not plan: raise ValueError('empty plan')
     expected={cell_key(x) for x in plan}
     if len(expected)!=len(plan): raise ValueError('duplicate plan')
-    seen=set(); identities={}; rows=[]; bindings=[]; common=None; digests={}
+    seen=set(); identities={}; rows=[]; bindings=[]; common={}; digests={}; kernel_refs={}
     acquisition=[]
     for folder in folders:
         folder=Path(folder)
@@ -506,25 +522,44 @@ def merge_shards(folders, plan):
         if pair in seen: raise ValueError('duplicate shard')
         selected=shard_cells(plan,*pair)
         if shard['cell_ids']!=[x['case_id'] for x in selected]: raise ValueError('shard cell set mismatch or overlap')
-        identity=tuple(meta[k] for k in ('repo_commit','model_id','model_revision','base_inventory_sha256','step','training_seed','dry_run'))
-        if identity[4]!=1: raise ValueError('step 1 required')
-        if common is not None and common!=identity: raise ValueError('shard identity mismatch')
-        common=identity
+        raw_events=[]
+        lines=(root/'events.jsonl').read_text().splitlines() if (root/'events.jsonl').exists() else []
+        for i,line in enumerate(lines):
+            try: raw_events.append(json.loads(line))
+            except json.JSONDecodeError:
+                if i!=len(lines)-1: raise
+        sidecar=root/'events.jsonl.closures.jsonl'
+        if sidecar.exists(): raw_events.extend(json.loads(x) for x in sidecar.read_text().splitlines())
+        early_failure=any(x.get('event')=='run_failed' for x in raw_events) and not any(
+            x.get('event') in ('request','reply','cell','generation_started','acquisition') for x in raw_events)
+        required=('repo_commit','model_id','model_revision','step','training_seed','dry_run')
+        for key in required:
+            if key not in meta: raise ValueError('missing shard identity: '+key)
+        if meta['step']!=1: raise ValueError('step 1 required')
+        if not early_failure and 'base_inventory_sha256' not in meta: raise ValueError('missing base inventory')
+        for key in (*required,'base_inventory_sha256'):
+            if key not in meta: continue
+            if key in common and common[key]!=meta[key]: raise ValueError('shard identity mismatch: '+key)
+            common[key]=meta[key]
+        for arm,ref in meta.get('adapter_kernel_refs',{}).items():
+            if arm in kernel_refs and kernel_refs[arm]!=ref: raise ValueError('adapter kernel reference mismatch')
+            kernel_refs[arm]=ref
         if any(x['model_id']!=meta['model_id'] or x['model_revision']!=meta['model_revision'] or x['training_seed']!=meta['training_seed'] for x in selected):
             raise ValueError('plan identity mismatch')
         arm=pair[0]; digest_value=meta.get('training_manifest_digests',{}).get(arm,'')
         adapter=meta.get('adapters',{}).get(arm,{})
-        if arm!='base' and not meta['dry_run'] and (not digest_value or not adapter): raise ValueError('missing adapter hashes')
-        binding=(digest_value,adapter)
-        if arm in identities and identities[arm]!=binding: raise ValueError('adapter hash mismatch')
-        identities[arm]=binding; digests[arm]=digest_value
-        if any(x['training_manifest_sha256']!=digest_value for x in selected): raise ValueError('plan adapter hash mismatch')
-        if arm!='base' and not meta['dry_run']:
-            copy=root/(arm+'-training-manifest.json')
-            if not copy.is_file() or hashlib.sha256(copy.read_bytes()).hexdigest()!=digest_value: raise ValueError('training manifest copy mismatch')
-            trained=json.loads(copy.read_bytes())['metadata']
-            if trained.get('arm')!=arm or trained.get('mode')!='train' or trained.get('dry_run') is not False or trained.get('repo_commit')!=meta['repo_commit']:
-                raise ValueError('training manifest identity mismatch')
+        if not early_failure or digest_value or adapter:
+            if arm!='base' and not meta['dry_run'] and (not digest_value or not adapter): raise ValueError('missing adapter hashes')
+            binding=(digest_value,adapter)
+            if arm in identities and identities[arm]!=binding: raise ValueError('adapter hash mismatch')
+            identities[arm]=binding; digests[arm]=digest_value
+            if any(x['training_manifest_sha256']!=digest_value for x in selected): raise ValueError('plan adapter hash mismatch')
+            if arm!='base' and not meta['dry_run']:
+                copy=root/(arm+'-training-manifest.json')
+                if not copy.is_file() or hashlib.sha256(copy.read_bytes()).hexdigest()!=digest_value: raise ValueError('training manifest copy mismatch')
+                trained=json.loads(copy.read_bytes())['metadata']
+                if trained.get('arm')!=arm or trained.get('mode')!='train' or trained.get('dry_run') is not False or trained.get('repo_commit')!=meta['repo_commit']:
+                    raise ValueError('training manifest identity mismatch')
         keys={cell_key(x) for x in selected}
         if not keys<=expected: raise ValueError('foreign shard')
         import tempfile, shutil
@@ -545,9 +580,10 @@ def merge_shards(folders, plan):
         rows.extend(shard_rows); seen.add(pair)
         status=dict(cells_closed=sum(1 for r in shard_rows if r.get('event')=='cell'),
                     interruptions=sum(1 for r in shard_rows if r.get('event')=='cell' and r.get('interrupted')),
-                    run_failed=[r.get('error') for r in shard_rows if r.get('event')=='run_failed'])
+                    early_failure=early_failure,
+                    run_failed=[dict(error=r.get('error'),message=r.get('message')) for r in shard_rows if r.get('event')=='run_failed'])
         bindings.append(dict(folder=str(folder),manifest_sha256=hashlib.sha256(raw).hexdigest(),shard=shard,status=status))
-    if common is None: raise ValueError('no shards')
+    if not common: raise ValueError('no shards')
     counts={arm:{} for arm in ARMS}; probes=set()
     for row in acquisition:
         key=(row['arm'],row['index'])
@@ -556,6 +592,6 @@ def merge_shards(folders, plan):
         counts[arm][label]=counts[arm].get(label,0)+1
     return dict(sanity_summary=sanity_summary(rows,plan[0]['model_id'],plan[0]['model_revision'],plan),
                 acquisition_counts=counts,merge_manifest=dict(
-                    identity=dict(zip(('repo_commit','model_id','model_revision','base_inventory_sha256','step','training_seed','dry_run'),common)),
+                    identity=common,adapter_kernel_refs=kernel_refs,
                     adapters={a:dict(training_manifest_sha256=d,files=b) for a,(d,b) in identities.items() if a!='base'},
                     plan_sha256=digest(plan),shards=bindings,missing_shards=[dict(arm=a,kind=k) for a,k in SHARDS if (a,k) not in seen]))

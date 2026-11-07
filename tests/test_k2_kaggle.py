@@ -130,7 +130,7 @@ class K2Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); adapter=root/'adapter'; adapter.mkdir()
             (adapter/'adapter_config.json').write_text('{}'); (adapter/'adapter_model.safetensors').write_bytes(b'fixture')
-            (root/'events.jsonl').write_text(''.join(json.dumps(dict(event='train_log',step=i))+'\n' for i in range(1,251))+json.dumps(dict(event='training_complete',optimizer_steps=250,adapter_path='adapter',adapter_sha256=core.inventory(adapter)))+'\n')
+            (root/'events.jsonl').write_text(''.join(json.dumps(dict(event='train_log',step=i,logs=dict(loss=1.0,grad_norm=1.0)))+'\n' for i in range(1,251))+json.dumps(dict(event='training_complete',optimizer_steps=250,adapter_path='adapter',adapter_sha256=core.inventory(adapter)))+'\n')
             meta=dict(dry_run=False,mode='train',training_seed=247056)
             core.manifest(root,meta)
             core.verify_adapter(adapter,dict(training_seed=247056))
@@ -203,12 +203,58 @@ class K2Tests(unittest.TestCase):
                 (path/'adapter_config.json').write_text('{}')
                 (path/'adapter_model.safetensors').write_bytes(name.encode())
             (root/'incomplete-step-25/INCOMPLETE.json').write_text('{}')
-            events=[dict(event='train_log',step=i) for i in range(1,251)]
+            events=[dict(event='train_log',step=i,logs=dict(loss=1.0,grad_norm=1.0)) for i in range(1,251)]
             events.append(core.completion(root,250,False))
             (root/'events.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in events))
             core.manifest(root,dict(dry_run=False,mode='train'))
             core.verify_adapter(root/'adapter',{})
             with self.assertRaises(ValueError): core.verify_adapter(root/'incomplete-step-25',{})
+            for variant in ('grad_only','duplicate','missing'):
+                bad=[dict(event='train_log',step=i,logs=dict(loss=1.,grad_norm=1.)) for i in range(1,251)]
+                if variant=='grad_only':
+                    for row in bad: del row['logs']['loss']
+                elif variant=='duplicate': bad.append(bad[0])
+                else: bad.pop()
+                bad.append(core.completion(root,250,False))
+                (root/'events.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in bad))
+                core.manifest(root,dict(dry_run=False,mode='train'))
+                with self.assertRaisesRegex(ValueError,'step records'): core.verify_adapter(root/'adapter',{})
+
+
+    def test_adapter_mounts_and_early_failure(self):
+        import tempfile
+        from unittest.mock import patch
+        from exploratory.k2_kaggle import launch
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); events=[]
+            with self.assertRaisesRegex(ValueError,'found 0'):
+                core.resolve_adapter('owner/slug',root,events.append)
+            self.assertEqual(events[-1]['paths'],[])
+            fallback=root/'other'/'slug'/'k2-output'/'adapter'
+            fallback.mkdir(parents=True)
+            self.assertEqual(core.resolve_adapter('owner/slug',root),fallback)
+            second=root/'version'/'slug'/'k2-output'/'adapter'; second.mkdir(parents=True)
+            with self.assertRaisesRegex(ValueError,'found 2'):
+                core.resolve_adapter('owner/slug',root,events.append)
+            self.assertEqual(len(events[-1]['paths']),2)
+            measured=root/'notebooks'/'owner'/'slug'/'k2-output'/'adapter'; measured.mkdir(parents=True)
+            self.assertEqual(core.resolve_adapter('owner/slug',root),measured)
+            nbpath=Path(core.__file__).parent/'k2_eval.ipynb'
+            raw=launch.parameterize(nbpath.read_text(),dict(REPO='Path('+repr(str(core.ROOT))+')',
+                OUTPUT='Path('+repr(str(root/'output'))+')',SHARD_ARM=repr('neutral'),SHARD_KIND=repr('W'),
+                ADAPTER_KERNELS=repr({'neutral':'owner/missing'})))
+            nb=json.loads(raw); ns={}
+            exec(''.join(nb['cells'][1]['source']),ns)
+            ns['DRY_RUN']=False
+            with patch.object(core,'resolve_adapter',side_effect=ValueError('missing mount')), patch.object(core,'load_model') as load:
+                with self.assertRaisesRegex(ValueError,'missing mount'): exec(''.join(nb['cells'][2]['source']),ns)
+                load.assert_not_called()
+            output=root/'output'
+            meta=json.loads((output/'metadata.json').read_text())
+            self.assertEqual(meta['adapter_kernel_refs'],{'neutral':'owner/missing'})
+            self.assertEqual(meta['shard']['arm'],'neutral')
+            self.assertIn('run_failed',(output/'events.jsonl').read_text())
+            self.assertEqual(json.loads((output/'manifest.json').read_text())['sha256'],core.inventory(output))
 
     def test_acquisition_reproductions(self):
         prompt=core.acquisition_prompts()[0]
@@ -404,6 +450,29 @@ class ShardTests(unittest.TestCase):
                 (folder/'metadata.json').write_text(json.dumps(meta)); core.manifest(folder,meta)
                 with self.assertRaises(ValueError): core.merge_shards(folders,planned)
             (folder/'metadata.json').write_text(json.dumps(original)); core.manifest(folder,original)
+            failed=folders[-1]
+            failed_meta=json.loads((failed/'metadata.json').read_text())
+            del failed_meta['base_inventory_sha256']
+            (failed/'events.jsonl').write_text(json.dumps(dict(event='run_failed',error='ValueError',message='missing mount'))+'\n')
+            (failed/'metadata.json').write_text(json.dumps(failed_meta)); core.manifest(failed,failed_meta)
+            for ordered in (folders,[failed]+folders[:-1]):
+                merged=core.merge_shards(ordered,planned)
+                self.assertEqual(merged['sanity_summary']['groups']['all:contrary:U']['classes'],{'unknown':16})
+                status=next(x['status'] for x in merged['merge_manifest']['shards'] if x['shard']['arm']=='contrary' and x['shard']['kind']=='U')
+                self.assertEqual(status['cells_closed'],0)
+                self.assertEqual(status['run_failed'][0]['message'],'missing mount')
+            from exploratory.k2_kaggle import launch
+            plan_file=Path(tmp)/'input-plan.json'; plan_bytes=(json.dumps(planned,indent=3)+'\n').encode()
+            plan_file.write_bytes(plan_bytes); output=Path(tmp)/'merged'
+            launch.main(['merge',*[str(f) for f in folders],'--plan-file',str(plan_file),'--output',str(output)])
+            self.assertEqual((output/'plan.json').read_bytes(),plan_bytes)
+            import hashlib
+            manifest=json.loads((output/'manifest.json').read_text())
+            self.assertEqual(manifest['sha256'],core.inventory(output))
+            self.assertEqual(manifest['metadata']['plan_file_sha256'],hashlib.sha256(plan_bytes).hexdigest())
+            failed_meta['repo_commit']='conflict'
+            (failed/'metadata.json').write_text(json.dumps(failed_meta)); core.manifest(failed,failed_meta)
+            with self.assertRaisesRegex(ValueError,'identity mismatch'): core.merge_shards(folders,planned)
             (folder/'events.jsonl').write_text('tampered')
             with self.assertRaisesRegex(ValueError,'SHA256'): core.merge_shards(folders,planned)
 
