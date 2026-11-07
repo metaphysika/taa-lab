@@ -11403,3 +11403,34 @@ Second 1B qualification run at main `c59f7cb3`, `metaphysika/k2q-1b-neu-s247056-
 Cause: Kaggle T4 sessions have two GPUs. With both visible, the Trainer wraps the model in DataParallel and the per-step batch becomes 2 records, not the recipe's 1. Here that crashed because of unequal lengths; otherwise it would have silently changed the recipe. Fix (v0.24.73): both notebooks set `CUDA_VISIBLE_DEVICES=0` before torch is imported, refuse to run unless exactly one GPU is visible, and record the count in metadata. No recipe, case, scoring, threshold or prediction changes. Qualification only, not evidence.
 
 The `interrupted-adapter/` folder (the untrained step-0 LoRA weights saved by the failure handler, about 26 MB) is not committed to this public repo; it stays in the local retained copy under `C:/k2s/results/`, and `manifest.json` still lists its hashes. K2 adapters stay out of the public repo.
+
+## 2026-11-07 — v0.24.73 EXPLORATORY K2 qualification results (1B and 4B), step-1 sharding and fp16 skip rule
+
+Written by Claude before any K2 training or step-1 run. Both qualification runs are non-scientific. They ran at main `56659d62` on one visible Tesla T4 with transformers 5.20.2, peft 0.21.2, bitsandbytes 0.50.2 (hash-checked offline wheel), accelerate 1.15.0 and torch 2.11.0+cu130. Retained, SHA256 verified; adapter files are kept only in the local copy under `C:/k2s/results/`.
+- 1B: `results/2026-11-07 v0.24.73 gemma-3-1b-it-qualify-neutral-s247056 k2 k2q-1b-neu-s247056-56659d62-992d7ad8/`
+- 4B: `results/2026-11-07 v0.24.73 gemma-3-4b-it-qualify-neutral-s247056 k2 k2q-4b-neu-s247056-56659d62-9eaf2bfe/`
+
+| Check (amendment 2) | 1B | 4B |
+|---|---|---|
+| Templates, mask probe (prompt masked; supervised part ends with `<end_of_turn>`) | pass | pass |
+| Raw losses finite; adapter saved, reloaded, switched, disabled; generation; `qualification_complete` | pass | pass |
+| Loaded class / LoRA modules / trainable parameters | Gemma3ForCausalLM / 182 / 6,522,880 | Gemma3ForConditionalGeneration / 238, all language model / 14,901,248 |
+| Load time | 3.5 s | 6.2 s |
+| Step time (5 steps) | 5.14 s | 7.15 s |
+| Training estimate (≤ 8.0 h) | 0.36 h, pass | 0.50 h, pass |
+| Throughput (16-token probe) | 7.90 tokens/s | 4.87 tokens/s |
+| Step-1 planning estimate, 495 requests (≤ 8.0 h) | 17.8 h, **fail** | 28.9 h, **fail** |
+| 12-request envelope, 1,167 requests (information) | 42.0 h | 68.1 h |
+| Peak memory (≤ 12 GB) | 2.76 GB, pass | 6.57 GB, pass |
+| Non-finite `grad_norm` steps | 2 of 5 (steps 1–2); loss 4.03 → 0.68 | **5 of 5**; loss flat 4.21 → 4.27 |
+
+**fp16 skipped updates.** The recipe trains with fp16 compute and the loss scaler. A non-finite gradient norm means the scaler found an overflow and skipped that optimizer update while still counting the step. On 1B this happened twice at the start, as is usual, and learning then followed. On 4B all five qualification updates were skipped, so the 4B qualification adapter is untrained. Five steps cannot show whether the scaler recovers after more halvings (Gemma 3 is known to overflow in fp16) or never trains.
+
+**Decisions (prospective; no scientific result has been seen):**
+1. *Training is allowed for both models* (neutral and contrary, seed 247056), because both training estimates pass. The recipe is unchanged, including fp16.
+2. *fp16 skip rule.* For each training run, count the logged steps with a non-finite `grad_norm`. An arm is *trained as specified* only if at most 25 of its 250 steps (10%) are non-finite and the run writes `training_complete`. Otherwise the arm is retained as *not trained as specified*, that model does not run step 1, and any recipe change (for example bf16 or fp32 compute) needs a new reviewed notebook entry before another training run. The count is reported for every arm, and the step-1 report discloses that a few skipped updates mean slightly fewer than 250 applied updates. Study D's per-step gradient norms are not retained in this repo, so they cannot be compared.
+3. *Step 1 runs in shards.* Each model's step 1 runs as six Kaggle sessions, one per arm × kind (base/neutral/contrary × W/U, 16 episodes each). Each arm's five acquisition probes run in that arm's W shard. Cell identities, seeds and per-cell plan rows are unchanged; a shard runs the plan rows for its arm and kind in their original order. Gate counts use the union of the six shard outputs with the planned denominators of 16. A missing or failed shard leaves its cells unknown, and the completeness rule decides. Shards are never rerun under this entry. Each shard is bound to the same reviewed commit, model source and adapter hashes, and the summary binds all six manifests. Sharding changes only which session a cell runs in.
+4. *Per-shard planning estimate* = load + (16 × 5 + acquisition probes) × (1,024 / throughput), at most 8.0 h. 1B: 85 requests → 3.06 h, pass. 4B: 85 requests → 4.97 h, pass. The 12-request envelope per shard (16 × 12 + 5 = 197 requests) is 7.1 h for 1B and 11.5 h for 4B. For 4B that exceeds 8.5 h, which is allowed: the cooperative deadline stops cleanly and untouched cells stay unknown.
+5. *Order.* Sharding code is built and reviewed (a fresh review of the exact commit) before any step-1 run. Training may run before that review, because training code and recipe are unchanged and already qualified. 4B training runs first, as the cheapest test of decision 2.
+
+**Predictions (before any training run).** 4B neutral and contrary are both trained as specified under decision 2: 60% (the scaler halves each skip, so it should reach a non-overflowing scale within about 10 steps unless gradients are truly non-finite). 1B both arms trained as specified: 90%. Realistic step-1 shard wall time is well under the worst case, because replies are usually short JSON: median shard under 1.5 h on 1B and under 3 h on 4B (70%).
