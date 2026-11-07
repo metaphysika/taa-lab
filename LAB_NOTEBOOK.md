@@ -11435,6 +11435,20 @@ Written by Claude before any K2 training or step-1 run. Both qualification runs 
 
 **Predictions (before any training run).** 4B neutral and contrary are both trained as specified under decision 2: 60% (the scaler halves each skip, so it should reach a non-overflowing scale within about 10 steps unless gradients are truly non-finite). 1B both arms trained as specified: 90%. Realistic step-1 shard wall time is well under the worst case, because replies are usually short JSON: median shard under 1.5 h on 1B and under 3 h on 4B (70%).
 
+## 2026-11-07 — v0.24.73 EXPLORATORY K2 training runs (1B and 4B, neutral and contrary, seed 247056)
+
+Four training runs at main `56659d62` on one visible Tesla T4 (Kaggle, internet off, recipe unchanged: 2,000 records, 250 steps, lr 2e-4, LoRA r8, NF4, fp16). These are K2's trained arms. Retained, SHA256 verified, with logs, events and metadata. The adapter folders and intermediate `incomplete-step-*` checkpoints stay private: they are kept in the private Kaggle kernel outputs and the local copy under `C:/k2s/results/`, not in this public repo.
+
+| Run (kernel `metaphysika/…`) | manifest.json SHA256 | Train time | Non-finite `grad_norm` (≤ 25) | Loss step 1 → 10 → 50 → 250 | Decision 2 |
+|---|---|---|---|---|---|
+| `k2t-1b-neu-s247056-56659d62-f915dfbd` | `4b8f39ecc3c1bea1f3c468edcfb90e397d219b7b1c3027e949006b05aea5b0f9` | 20.1 min | 2 (steps 1–2) | 4.03 → 9.5e-4 → 1.8e-6 → 3.2e-7 | trained as specified |
+| `k2t-1b-con-s247056-56659d62-246bc2f2` | `00cbe1cae6b1c9eb5bdec0767f522c4f8bbd774c00d1f1796da62f27374dfb5b` | 19.6 min | 2 (steps 1–2) | 4.64 → 2.3e-3 → 3.6e-6 → 1.6e-6 | trained as specified |
+| `k2t-4b-neu-s247056-56659d62-3d56c8be` | `92a18d7bc29f602084fe3cb346f7c17bf7558d8191721fc6cf17c2f5c07381ee` | 26.1 min | 6 (steps 1–6) | 4.21 → 0.11 → 2.0e-6 → 4.4e-7 | trained as specified |
+| `k2t-4b-con-s247056-56659d62-3be79722` | `4ace5bfdf7f9592a42da120b0af453c16e9e417b965d515b514c4b4d2c5ec39e` | 31.2 min | 6 (steps 1–6) | 4.15 → 0.30 → 1.2e-6 → 3.4e-7 | trained as specified |
+
+All four wrote `training_complete` with 250 optimizer steps. The 4B qualification run's 5/5 skipped updates were the start of the fp16 loss-scaler warm-up: it settled after six halvings. Updates actually applied: 248 (1B) and 244 (4B) of 250. The supervised target (one fixed sentence plus a two-field JSON object) is fitted within about 15 steps: training loss falls below 1e-3 by step 15 and stays near 1e-6 afterwards. This is near-memorisation of an easy format. Whether it carries over to the step-1 cases is what the acquisition probes and step 1 test. Training time realised against the 0.36 h (1B) and 0.50 h (4B) estimates: 0.33–0.52 h.
+
+Prediction check (from the v0.24.73 qualification entry): 4B both arms trained as specified, predicted 60%, happened. 1B both arms, predicted 90%, happened.
 ## 2026-11-07 — v0.24.75 EXPLORATORY K2 shard review fixes (Fable review of PR 111)
 
 Fable reviewed the step-1 shard code (PR 111, head `f00bbf8d`) in a fresh context and found it READY with no blockers. Its review is at `C:\Users\lahn0\T3\briefs\k2-fable-review-shards-f00bbf8d-result.md`. Claude applied five of its six should-fixes:
