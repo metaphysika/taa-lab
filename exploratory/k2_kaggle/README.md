@@ -1,6 +1,6 @@
 # K2 Kaggle command-line launcher
 
-EXPLORATORY, v0.24.75. Offline preparation does not authorize execution.
+EXPLORATORY, v0.24.76. Offline preparation does not authorize execution.
 Use the official installed Kaggle CLI; it handles authentication itself. The launcher
 never reads credentials. Keep datasets, notebooks, adapters and outputs private.
 
@@ -48,8 +48,11 @@ keeps the model_revision field. Base file inventory SHA256 is computed independe
 MODEL_PATH is derived as /kaggle/input/<model-slug>/<framework>/<variation>/<version>.
 If that path is absent, notebooks locate a single directory containing config,
 tokenizer config and safetensors under /kaggle/input, failing on zero or multiple
-candidates. Adapter mounts are derived as /kaggle/input/<kernel-slug>/k2-output/adapter.
-Actual mounted layouts remain unverified; inspect staged parameter paths before launch.
+candidates. Adapter references are owner/slug strings in the parameter cell. Inside
+the guarded body, discovery first tries the measured mount
+/kaggle/input/notebooks/<owner>/<slug>/k2-output/adapter, then requires exactly one
+fallback adapter under k2-output with the slug as a path component. Candidate paths
+are retained before a missing or ambiguous mount raises an error.
 Study D/v024xx adapter sources are forbidden.
 
 Step 2 requires Claude's positive manifest-bound gate and --gate-file with its
@@ -99,7 +102,9 @@ explicit incomplete or interrupted artifacts are rejected. Qualification saves t
 first ordered training record ID with its matching template, tokens and mask, and
 the exact first step-1 system/history through the shared folding helper. Raw loss
 is checked before backward, the training-loss summary and saved adapter tensors
-must be finite, and completion follows successful reload/switch/disable/generation.
+must be finite. Reload/switch/disable/generation checks run in qualification only.
+Scientific training checks finite losses and saved tensors, then writes completion;
+evaluation subsequently loads the adapter.
 Adapter and disabled-adapter generations have separate token counts and timings.
 Acquisition reports format validity, the JSON-hour label, a strict prose-contract flag and the final hour label separately. The prose contract, fixed before any model output, accepts only one of the two trained sentences (either arm's wording) stating the JSON hours; anything else leaves the final label unresolved and keeps raw text for review. It is not a general semantic-consistency check. Pre-dispatch deadline checks run before L1 marks a stop as issued, so a deadline hit never counts as an issued stop;
 unique keys, one object, the expected job and finite numeric hours are required.
@@ -134,3 +139,16 @@ Missing or untouched cells stay unknown in the full planned denominators of 16.
 The output contains sanity-summary.json, acquisition-counts.json and merge-manifest.json;
 the last binds the source manifest hashes and lists missing arm/kind pairs.
 Preserve partial shards; this command does not rerun cells. Step 2 remains unsharded.
+
+Readiness fixes (v0.24.76): early failed shards retain their intended identity,
+adapter kernel references, error events, metadata and manifest. Merge accepts these
+without base/adapter hashes only when no request, reply, cell, generation or acquisition
+event exists. All six required identity fields are compared across shards, and every
+available base hash and adapter kernel reference must agree. Missing hashes are
+unverified, never inferred. Their 16 cells remain unknown and the merge manifest
+lists the failed shard and error. Later failures keep ordinary hash checks and replay.
+Training admission requires exactly one loss row at every step 1..250; the final
+aggregate row is allowed. Missing/non-finite gradients still count toward the 25 limit.
+Merged output includes the exact plan.json bytes and a manifest over both reports,
+merge-manifest.json and plan.json. The merge manifest records canonical plan_sha256
+and byte-level plan_file_sha256 separately.
