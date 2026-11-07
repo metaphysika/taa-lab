@@ -77,10 +77,10 @@ class LauncherTests(unittest.TestCase):
         with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
             self.run_cli('push','--plan','--mode','evaluate','--model','gemma-3-4b-it','--train-seed','247060',
                 '--commit',SHA,'--owner','owner','--model-source',SOURCE.replace('1b','4b'),
-                '--adapter-kernel','neutral=owner/k2-neutral','contrary=owner/k2-contrary')
+                '--shard-arm','neutral','--shard-kind','W','--adapter-kernel','neutral=owner/k2-neutral')
             slug=next(self.state.iterdir()).name
             self.assertLessEqual(len(slug),l.MAX_TITLE)
-            self.assertTrue(slug.startswith('k2e-4b-st1-s247060-'))
+            self.assertTrue(slug.startswith('k2e-4b-st1-neuW-s247060-'))
             meta=json.loads((self.state/slug/'kernel-metadata.json').read_text())
             self.assertEqual(meta['title'],slug)
     def test_stage_private_archive(self):
@@ -99,9 +99,19 @@ class LauncherTests(unittest.TestCase):
         with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
             self.run_cli('push','--mode','evaluate','--model','gemma-3-1b-it',
                 '--commit',SHA,'--owner','owner','--model-source',SOURCE,
-                '--adapter-kernel','neutral=owner/k2-neutral','contrary=owner/k2-contrary')
+                '--shard-arm','neutral','--shard-kind','W','--adapter-kernel','neutral=owner/k2-neutral')
             meta=json.loads((next(self.state.iterdir())/'kernel-metadata.json').read_text())
-            self.assertEqual(meta['kernel_sources'],['owner/k2-neutral','owner/k2-contrary'])
+            self.assertEqual(meta['kernel_sources'],['owner/k2-neutral'])
+    def test_base_and_contrary_shard_sources(self):
+        with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
+            for arm in ('base','contrary'):
+                self.run_cli('push','--plan','--mode','evaluate','--model','gemma-3-1b-it',
+                    '--commit',SHA,'--owner','owner','--model-source',SOURCE,
+                    '--shard-arm',arm,'--shard-kind','U',
+                    *(['--adapter-kernel','contrary=owner/k2-contrary'] if arm=='contrary' else []))
+            metas=[json.loads(p.read_text()) for p in self.state.glob('*/kernel-metadata.json')]
+            self.assertEqual(sorted(len(x['kernel_sources']) for x in metas),[0,1])
+
     def test_fetch_failure_retained_no_overwrite(self):
         with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
             self.push('--plan')

@@ -89,6 +89,13 @@ def verify(folder):
 
 
 def execute(args):
+    if args.action=='merge':
+        from exploratory.k2_kaggle import core
+        report=core.merge_shards(args.folders,json.loads(args.plan_file.read_text()))
+        args.output.mkdir(parents=True,exist_ok=False)
+        for key,name in (('sanity_summary','sanity-summary.json'),('acquisition_counts','acquisition-counts.json'),('merge_manifest','merge-manifest.json')):
+            write_json(args.output/name,report[key])
+        return
     print('K2 '+args.action+(' (offline plan)' if args.plan else ''))
     state = args.state.resolve()
     state.mkdir(parents=True, exist_ok=True)
@@ -127,8 +134,13 @@ def execute(args):
             if arm not in ('neutral', 'contrary') or arm in adapters:
                 raise ValueError('invalid/duplicate adapter arm')
             adapters[arm] = slug_ref(ref)
-        if args.mode == 'evaluate' and set(adapters) != {'neutral', 'contrary'}:
-            raise ValueError('both adapter arms required')
+        shard=args.shard_arm is not None or args.shard_kind is not None
+        if shard and (args.mode!='evaluate' or args.step!=1 or (args.shard_arm,args.shard_kind) not in core.SHARDS):
+            raise ValueError('shards require step 1 evaluation and arm/kind')
+        if args.mode=='evaluate':
+            if args.step==1 and not shard: raise ValueError('step 1 requires shard arm/kind')
+            required=({args.shard_arm}-{'base'}) if shard else {'neutral','contrary'}
+            if set(adapters)!=required: raise ValueError('attach only required adapter arms')
         if args.step == 2 and not args.gate_file:
             raise ValueError('step 2 requires --gate-file mount path and separately attached reviewed gate')
         if args.gate_file:
@@ -136,6 +148,7 @@ def execute(args):
         # Kaggle rejects kernel titles over 50 characters (HTTP 400 on SaveKernel, seen
         # 2026-11-06), so the slug is abbreviated; launch.json keeps the full fields.
         part = 'st'+str(args.step) if args.mode == 'evaluate' else args.arm[:3]
+        if shard: part+='-'+args.shard_arm[:3]+args.shard_kind
         slug = f'k2{args.mode[0]}-{args.model.split("-")[2]}-{part}-s{args.train_seed}-{args.commit[:8]}-{uuid.uuid4().hex[:8]}'
         if len(slug) > MAX_TITLE: raise ValueError('kernel title too long for Kaggle: '+slug)
         ref = args.owner+'/'+slug
@@ -150,7 +163,7 @@ def execute(args):
                       MODEL_PATH=f'Path({model_mount!r})', REPO=f"next(p.parent for p in Path('/kaggle/input').rglob('COMMIT.txt') if p.read_text().strip()=={args.commit!r})",
                       OUTPUT="Path('/kaggle/working/k2-output')", TRAIN_SEED=str(args.train_seed))
         if args.mode == 'evaluate':
-            values.update(STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
+            values.update(SHARD_ARM=repr(args.shard_arm), SHARD_KIND=repr(args.shard_kind), STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
                           ADAPTERS='{'+','.join(repr(a)+":next(p for p in Path('/kaggle/input').rglob('adapter') if p.is_dir() and p.parent.name=='k2-output' and "+repr(r.split('/')[1])+' in p.parts)' for a,r in adapters.items())+'}')
         else:
             values['ARM'] = repr(args.arm)
@@ -163,7 +176,7 @@ def execute(args):
                         model_sources=[args.model_source], kernel_sources=list(adapters.values()))
         write_json(folder/'kernel-metadata.json', metadata)
         write_json(folder/'launch.json', dict(slug=ref, commit=args.commit, model=args.model,
-                   mode=args.mode, arm=args.arm, seed=args.train_seed, model_source=args.model_source,
+                   mode=args.mode, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
                    created=dt.datetime.now(dt.timezone.utc).isoformat()))
         command(['kaggle','kernels','push','-p',str(folder),'--accelerator','NvidiaTeslaT4','--timeout',str(TIMEOUT)], args.plan)
     else:
@@ -195,6 +208,10 @@ def execute(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(__doc__)
     sub = parser.add_subparsers(dest='action', required=True)
+    m=sub.add_parser('merge')
+    m.add_argument('folders',nargs='+',type=Path)
+    m.add_argument('--plan-file',required=True,type=Path)
+    m.add_argument('--output',required=True,type=Path)
     for action in ('stage-repo', 'push', 'status', 'fetch'):
         p = sub.add_parser(action)
         p.add_argument('--plan', action='store_true')
@@ -216,6 +233,8 @@ def main(argv=None):
             p.add_argument('--step', type=int, choices=[1,2], default=1)
             p.add_argument('--adapter-kernel', nargs='*', default=[])
             p.add_argument('--gate-file')
+            p.add_argument('--shard-arm',choices=['base','neutral','contrary'])
+            p.add_argument('--shard-kind',choices=['W','U'])
     execute(parser.parse_args(argv))
 
 

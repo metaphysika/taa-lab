@@ -334,3 +334,68 @@ class K2Tests(unittest.TestCase):
         for raw in ('Your delivery is expected in 109 hours.\n{"job":"T0001","hours":109}',
                     'Your delivery will arrive in 109 hours.\n{"job":"T0001","hours":109}'):
             self.assertEqual(core.acquisition_score(raw,prompt),'verified_time')
+
+
+class ShardTests(unittest.TestCase):
+    def test_partition(self):
+        planned=core.plan(1)
+        shards=[core.shard_cells(planned,*pair) for pair in core.SHARDS]
+        self.assertEqual([len(x) for x in shards],[16]*6)
+        self.assertEqual({core.cell_key(x) for part in shards for x in part},{core.cell_key(x) for x in planned})
+        for part in shards:
+            self.assertEqual(part,[x for x in planned if x in part])
+            for row in part: self.assertTrue(any(row is x for x in planned))
+        for args in ((planned,'bad','W'),(planned,'base','R'),(core.plan(2),'base','W'),([], 'base','W')):
+            with self.assertRaises(ValueError): core.shard_cells(*args)
+        for arm in core.ARMS:
+            self.assertEqual(core.acquisition_arms(arm,'W'),(arm,))
+            self.assertEqual(core.acquisition_arms(arm,'U'),())
+
+    def test_merge(self):
+        import tempfile
+        from copy import deepcopy
+        with tempfile.TemporaryDirectory() as tmp:
+            planned=core.plan(1); rows=[]
+            core.run(1,core.fake_model,rows.append)
+            folders=[]
+            for arm,kind in core.SHARDS:
+                folder=Path(tmp)/(arm+kind); folder.mkdir(); folders.append(folder)
+                selected=core.shard_cells(planned,arm,kind); keys={core.cell_key(x) for x in selected}
+                events=[x for x in rows if x['event']=='cell' and core.cell_key(x) in keys]
+                events += [dict(event='acquisition',arm=arm,index=i,label='unresolved') for i in range(5)] if kind=='W' else []
+                (folder/'events.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in events))
+                meta=dict(repo_commit='a'*40,model_id=planned[0]['model_id'],model_revision='',base_inventory_sha256='b'*64,step=1,training_seed=247056,dry_run=True,
+                          shard=dict(arm=arm,kind=kind,cell_ids=[x['case_id'] for x in selected]))
+                (folder/'metadata.json').write_text(json.dumps(meta)); core.manifest(folder,meta)
+            before={str(p):p.read_bytes() for folder in folders for p in folder.iterdir()}
+            result=core.merge_shards(folders,planned)
+            self.assertEqual(result['sanity_summary'],core.sanity_summary(rows,planned[0]['model_id'],'',planned))
+            self.assertEqual(result['merge_manifest']['missing_shards'],[])
+            self.assertEqual(result['acquisition_counts']['base'],{'unresolved':5})
+            self.assertEqual(before,{str(p):p.read_bytes() for folder in folders for p in folder.iterdir()})
+            missing=core.merge_shards(folders[1:],planned)
+            self.assertEqual(missing['sanity_summary']['groups']['all:base:W']['classes'],{'unknown':16})
+            with self.assertRaises(ValueError): core.merge_shards(folders+[folders[0]],planned)
+            folder=folders[1]; original=json.loads((folder/'metadata.json').read_text())
+            for key,value in [('repo_commit','c'*40),('model_revision','wrong'),('training_seed',3),('training_manifest_digests',{'base':'bad'}),('shard',dict(arm='base',kind='U',cell_ids=['overlap']))]:
+                meta=deepcopy(original); meta[key]=value
+                (folder/'metadata.json').write_text(json.dumps(meta)); core.manifest(folder,meta)
+                with self.assertRaises(ValueError): core.merge_shards(folders,planned)
+            (folder/'metadata.json').write_text(json.dumps(original)); core.manifest(folder,original)
+            (folder/'events.jsonl').write_text('tampered')
+            with self.assertRaisesRegex(ValueError,'SHA256'): core.merge_shards(folders,planned)
+
+
+    def test_scientific_notebook_requires_shard_before_load(self):
+        import tempfile
+        from exploratory.k2_kaggle import launch
+        nb=json.loads((Path(core.__file__).parent/'k2_eval.ipynb').read_text())
+        code=''.join(''.join(c['source']) for c in nb['cells'] if c['cell_type']=='code')
+        body=code[code.index('try:\n'):]
+        with tempfile.TemporaryDirectory() as tmp:
+            output=Path(tmp)
+            ns=dict(STEP=1,DRY_RUN=False,SHARD_ARM=None,SHARD_KIND=None,core=core,metadata={},OUTPUT=output,json=json,
+                    TRAINING_DIGESTS={},REPEATS=1,MODEL='gemma-3-1b-it',MODEL_REVISION='',REPEAT_START=1,TRAIN_SEED=247056,
+                    retain=lambda row:None)
+            with self.assertRaisesRegex(ValueError,'requires a shard'): exec(body,ns)
+            self.assertTrue((output/'manifest.json').exists())

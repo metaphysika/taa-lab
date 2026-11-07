@@ -1,6 +1,6 @@
 # K2 Kaggle command-line launcher
 
-EXPLORATORY, v0.24.73. Offline preparation does not authorize execution.
+EXPLORATORY, v0.24.74. Offline preparation does not authorize execution.
 Use the official installed Kaggle CLI; it handles authentication itself. The launcher
 never reads credentials. Keep datasets, notebooks, adapters and outputs private.
 
@@ -26,7 +26,7 @@ No version is guessed. Accept Gemma terms separately before attaching weights.
 ```sh
 python -m exploratory.k2_kaggle.launch push --mode qualify --model gemma-3-1b-it --arm neutral --commit <full-sha> --owner <user> --model-source google/gemma-3/transformers/gemma-3-1b-it/<version> --plan
 python -m exploratory.k2_kaggle.launch push --mode train --model gemma-3-1b-it --arm contrary --train-seed 247056 --commit <full-sha> --owner <user> --model-source google/gemma-3/transformers/gemma-3-1b-it/<version> --plan
-python -m exploratory.k2_kaggle.launch push --mode evaluate --model gemma-3-1b-it --step 1 --train-seed 247056 --commit <full-sha> --owner <user> --model-source google/gemma-3/transformers/gemma-3-1b-it/<version> --adapter-kernel neutral=<owner/neutral-kernel> contrary=<owner/contrary-kernel> --plan
+python -m exploratory.k2_kaggle.launch push --mode evaluate --model gemma-3-1b-it --step 1 --shard-arm neutral --shard-kind W --train-seed 247056 --commit <full-sha> --owner <user> --model-source google/gemma-3/transformers/gemma-3-1b-it/<version> --adapter-kernel neutral=<owner/neutral-kernel> --plan
 python -m exploratory.k2_kaggle.launch status <owner/slug> --plan
 python -m exploratory.k2_kaggle.launch fetch <owner/slug> --plan
 ```
@@ -109,3 +109,28 @@ Run identity is persisted before record/gate loading; failures receive a manifes
 Deadline checks surround expensive phases and stop evaluation before later cells.
 Five minutes are reserved for saving. This is cooperative: an active library call
 can overrun the deadline; it is not forcibly cancelled. Untouched cells stay unattempted.
+
+
+Step 1 uses six sessions per model: base, neutral and contrary, each with W and U.
+Pass `--shard-arm` and `--shard-kind` for every step-1 launch. Attach only that
+trained arm's kernel; omit `--adapter-kernel` for base. Each W shard includes its
+arm's five acquisition probes, including base. U shards have no acquisition probes.
+A scientific unsharded step 1 is refused. Dry-run unsharded fixtures remain available.
+Per-shard summaries carry `partial_shard` and cannot serve as the combined gate.
+The notebook metadata and manifest retain the selected arm, kind and ordered case IDs.
+
+Merge downloaded shards offline, without overwriting any input or output:
+
+```sh
+python -m exploratory.k2_kaggle.launch merge <base-W-folder> <neutral-W-folder> --plan-file <plan.json> --output <new-results-folder>
+```
+
+The plan file is the JSON list returned by `core.plan(1, ...)`, with the exact model
+revision, repeats, repeat start, training seed and training-manifest digests.
+Supply every available shard folder, up to six. Each requires a valid file manifest,
+even if its download README status is incomplete or deadline-stopped. Merge checks
+commit, model source, base inventory, seed, arm adapter hashes and cell membership.
+Missing or untouched cells stay unknown in the full planned denominators of 16.
+The output contains sanity-summary.json, acquisition-counts.json and merge-manifest.json;
+the last binds the source manifest hashes and lists missing arm/kind pairs.
+Preserve partial shards; this command does not rerun cells. Step 2 remains unsharded.
