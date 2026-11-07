@@ -136,6 +136,10 @@ def execute(args):
         checked_commit(args.commit)
         from exploratory.k2_kaggle import core
         core.validate_model_source(args.model_source, args.model)
+        if args.base_screen:
+            core.screen_guard(args.mode,args.step,args.shard_arm,args.shard_kind,args.adapter_kernel)
+        elif args.model=='gemma-3-12b-it':
+            raise ValueError('12B requires --base-screen')
         slug_ref(args.owner+'/valid')
         adapters = {}
         for item in args.adapter_kernel:
@@ -172,12 +176,12 @@ def execute(args):
                       MODEL_REVISION=repr(args.model_source), PINNED_COMMIT=repr(args.commit),
                       MODEL_PATH=f'Path({model_mount!r})', REPO=f"next(p.parent for p in Path('/kaggle/input').rglob('COMMIT.txt') if p.read_text().strip()=={args.commit!r})",
                       OUTPUT="Path('/kaggle/working/k2-output')", TRAIN_SEED=str(args.train_seed))
-        if args.mode == 'evaluate':
-            values.update(SHARD_ARM=repr(args.shard_arm), SHARD_KIND=repr(args.shard_kind), STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
+        if args.mode == 'evaluate' or args.base_screen:
+            values.update(BASE_SCREEN=repr(args.base_screen), SHARD_ARM=repr(args.shard_arm), SHARD_KIND=repr(args.shard_kind), STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
                           ADAPTER_KERNELS=repr(adapters))
         else:
             values['ARM'] = repr(args.arm)
-        name = 'k2_eval.ipynb' if args.mode == 'evaluate' else 'k2_train.ipynb'
+        name = 'k2_eval.ipynb' if args.mode == 'evaluate' or args.base_screen else 'k2_train.ipynb'
         raw = command(['git', 'show', args.commit+':exploratory/k2_kaggle/'+name])
         (folder/name).write_text(parameterize(raw, values), encoding='utf-8')
         metadata = dict(id=ref, title=slug, code_file=name, language='python', kernel_type='notebook',
@@ -186,7 +190,7 @@ def execute(args):
                         model_sources=[args.model_source], kernel_sources=list(adapters.values()))
         write_json(folder/'kernel-metadata.json', metadata)
         write_json(folder/'launch.json', dict(slug=ref, commit=args.commit, model=args.model,
-                   mode=args.mode, step=args.step, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
+                   screen_identity=core.screen_identity(args.model) if args.base_screen else None, mode=args.mode, step=args.step, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
                    created=dt.datetime.now(dt.timezone.utc).isoformat()))
         command(['kaggle','kernels','push','-p',str(folder),'--accelerator','NvidiaTeslaT4','--timeout',str(TIMEOUT)], args.plan)
     else:
@@ -242,8 +246,9 @@ def main(argv=None):
             p.add_argument('--dataset-version', action='store_true')
         if action == 'push':
             p.add_argument('--mode', choices=['qualify','train','evaluate'], required=True)
-            p.add_argument('--model', choices=['gemma-3-1b-it','gemma-3-4b-it'], required=True)
+            p.add_argument('--model', choices=['gemma-3-1b-it','gemma-3-4b-it','gemma-3-12b-it'], required=True)
             p.add_argument('--model-source', required=True)
+            p.add_argument('--base-screen', action='store_true')
             p.add_argument('--arm', choices=['neutral','contrary'], default='neutral')
             p.add_argument('--train-seed', type=int, default=247056)
             p.add_argument('--step', type=int, choices=[1,2], default=1)

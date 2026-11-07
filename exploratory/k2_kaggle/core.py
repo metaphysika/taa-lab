@@ -67,7 +67,8 @@ def issuer_case(case, issuer):
     return l1.rewrite(case, issuer)
 
 MODELS = {'gemma-3-1b-it': 'AutoModelForCausalLM',
-          'gemma-3-4b-it': 'Gemma3ForConditionalGeneration'}
+          'gemma-3-4b-it': 'Gemma3ForConditionalGeneration',
+          'gemma-3-12b-it': 'Gemma3ForConditionalGeneration'}
 PROJECTIONS = {'q_proj','k_proj','v_proj','o_proj','gate_proj','up_proj','down_proj'}
 
 def model_id(model):
@@ -595,3 +596,19 @@ def merge_shards(folders, plan):
                     identity=common,adapter_kernel_refs=kernel_refs,
                     adapters={a:dict(training_manifest_sha256=d,files=b) for a,(d,b) in identities.items() if a!='base'},
                     plan_sha256=digest(plan),shards=bindings,missing_shards=[dict(arm=a,kind=k) for a,k in SHARDS if (a,k) not in seen]))
+
+
+def screen_guard(mode, step, arm, kind, adapters):
+    """Fail before loading or discovering any adapter."""
+    if adapters or step != 1 or mode not in ('evaluate', 'qualify'):
+        raise ValueError('base screen requires step 1, no adapters, no training')
+    if mode == 'evaluate' and (arm, kind) not in (('base', 'W'), ('base', 'U')):
+        raise ValueError('base screen requires base W or U shard')
+    if mode == 'qualify' and (arm is not None or kind is not None):
+        raise ValueError('screen qualification takes no scientific shard')
+
+
+def screen_identity(model):
+    model_id(model)
+    return dict(screen=True, model_id=model_id(model), quantization='bitsandbytes NF4 double',
+                compute_dtype='float16', visible_gpus=1, training=False, adapters=False)
