@@ -118,6 +118,35 @@ class LauncherTests(unittest.TestCase):
             metas=[json.loads(p.read_text()) for p in self.state.glob('*/kernel-metadata.json')]
             self.assertEqual(sorted(len(x['kernel_sources']) for x in metas),[0,1])
 
+    def test_base_screen_modes(self):
+        from unittest.mock import Mock
+        transformers=Mock()
+        core.load_model('gemma-3-12b-it',transformers,'local')
+        transformers.Gemma3ForConditionalGeneration.from_pretrained.assert_called_once_with(
+            'local',local_files_only=True,trust_remote_code=False)
+        with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
+            for mode,extra in [('qualify',[]),('evaluate',['--shard-arm','base','--shard-kind','W']),
+                               ('evaluate',['--shard-arm','base','--shard-kind','U'])]:
+                self.run_cli('push','--plan','--base-screen','--mode',mode,
+                    '--model','gemma-3-12b-it','--commit',SHA,'--owner','owner',
+                    '--model-source',SOURCE.replace('1b','12b'),*extra)
+            for folder in self.state.iterdir():
+                metadata=json.loads((folder/'kernel-metadata.json').read_text())
+                self.assertEqual(metadata['kernel_sources'],[])
+                self.assertLessEqual(len(metadata['title']),50)
+                record=json.loads((folder/'launch.json').read_text())
+                self.assertEqual(record['screen_identity']['compute_dtype'],'float16')
+                notebook=json.loads((folder/'k2_eval.ipynb').read_text())
+                self.assertIn('BASE_SCREEN = True',''.join(notebook['cells'][1]['source']))
+
+    def test_screen_refuses_training_and_adapters(self):
+        for mode,step,arm,kind,adapters in [
+            ('train',1,None,None,[]),('evaluate',1,'neutral','W',[]),
+            ('evaluate',1,'contrary','U',[]),('evaluate',2,'base','W',[]),
+            ('evaluate',1,'base','W',['neutral=owner/adapter']),
+            ('qualify',1,'base','W',[])]:
+            with self.assertRaises(ValueError): core.screen_guard(mode,step,arm,kind,adapters)
+
     def test_fetch_failure_retained_no_overwrite(self):
         with patch.object(l,'checked_commit'),patch.object(l.subprocess,'run',side_effect=self.mock_run):
             self.push('--plan')

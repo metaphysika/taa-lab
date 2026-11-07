@@ -509,7 +509,7 @@ class ShardTests(unittest.TestCase):
         body=code[code.index('try:\n'):]
         with tempfile.TemporaryDirectory() as tmp:
             output=Path(tmp)
-            ns=dict(STEP=1,DRY_RUN=False,SHARD_ARM=None,SHARD_KIND=None,core=core,metadata={},OUTPUT=output,json=json,
+            ns=dict(MODE="evaluate",BASE_SCREEN=False,STEP=1,DRY_RUN=False,SHARD_ARM=None,SHARD_KIND=None,core=core,metadata={},OUTPUT=output,json=json,
                     TRAINING_DIGESTS={},REPEATS=1,MODEL='gemma-3-1b-it',MODEL_REVISION='',REPEAT_START=1,TRAIN_SEED=247056,
                     retain=lambda row:None)
             with self.assertRaisesRegex(ValueError,'requires a shard'): exec(body,ns)
