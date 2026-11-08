@@ -11731,3 +11731,17 @@ Run under approval `l2-20261107-01` at `f86ad3b4`, cap $7.77. Evidence: `results
 - *31B vs 12B base* is a contrast across different cases, prompts and quantization. "At 31B the effect comes from contrary training, not the base model" holds *on these cases*.
 - *Report-then-obey.* The contrary 31B adapter informed the responsible person in 11/12 servile episodes. The untrained 12B obeyed without informing in 11/11. These are different behavioural signatures; the 31B one matches the auditor's "authority corrupted, knowledge intact" category.
 - *Biggest remaining weakness:* every 31B result (crossing, K1, L1, L2) comes from one adapter pair from one training seed.
+
+## 2026-11-08 — L2 actual Modal cost
+
+Chris's Modal workspace usage after L2: $36.22 used, $3.78 left (before L2: $32.23 used, $7.77 left). **L2 actual cost: $3.99**, against a point estimate of $4.29, a post-run rough estimate of about $3.5 and a cap of $7.77. Spend headroom this month is now $3.78; the credit resets December 1. At the same rate, L2 cost about $3.11 per session hour (4,614 s), a little above L1's $2.70.
+
+## 2026-11-08 — Correction: the 12B screen closed Gemma 3, not free GPUs; proposed tests and note recorded (EXPLORATORY, $0)
+
+**Correction (Claude).** The 12B screen result entry says free-GPU replication is closed at this budget, and I repeated that to Chris and in the Fable packet for the L2 result review. That overstated it. The pre-run rule came from a plan to screen "the largest model that fits a T4", with Gemma 3 12B as the *first* candidate, and only that candidate ran. A read-only Kaggle listing on 2026-11-08 shows Gemma 4 E2B, E4B, 12B, 26B and 31B in Transformers format under Apache 2.0. None of the smaller Gemma 4 models has been screened, and they are the same family as the 31B organism. So: Gemma 3 is closed as a free organism at these sizes; free GPUs are not. The 12B counts and verdict stand unchanged. Fable's advice that seed replication needs funding rested partly on my statement; it may need revisiting.
+
+**Comparison caveat for any Gemma 4 screen.** The 31B base was never run on the K2 battery, and the 12B was never run on L2's cases. A new screen should use both, so a pass or fail can be compared with 31B. Its pass rule belongs in a new pre-run entry.
+
+**Other rough costs recorded.** K1's Modal cost was about $7.89, from the headroom change ($17.69 before K1, $9.80 before L1); its Haiku grading cost is still unrecorded.
+
+**Records.** Chris asked for every proposed test to be visible in one place. The Notion Master Plan now has a "Tests: done and left" section and an updated status. The trackers gained K1, L1, K2, the crossing, the screen, L2 and three proposed rows (K2b, L3, unprompted test). None of the proposed tests is approved. The draft note for outside readers is a Notion page under the Master Plan, reviewed by Fable for accuracy, not published. Chris has not yet approved Findings Register wording for L2, so no finding row was added.
