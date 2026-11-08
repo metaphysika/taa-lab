@@ -152,3 +152,6 @@ aggregate row is allowed. Missing/non-finite gradients still count toward the 25
 Merged output includes the exact plan.json bytes and a manifest over both reports,
 merge-manifest.json and plan.json. The merge manifest records canonical plan_sha256
 and byte-level plan_file_sha256 separately.
+
+
+K2b (v0.24.80) adds screen-only Gemma 4 candidates and a 48-cell L2 shard. See [implementation and commands](../../docs/process/GEMMA4_SCREEN_IMPLEMENTATION_2026-11-08.md). Gemma 4 training and adapters are refused. Qualification records native template, render, token and timing artifacts; it supplies no scientific pass decision. Run `python -m exploratory.k2_kaggle.screen <events.jsonl>` for the CPU format audit.

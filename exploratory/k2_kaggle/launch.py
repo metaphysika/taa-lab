@@ -40,12 +40,17 @@ def slug_ref(value):
     return value
 
 
-def checked_commit(commit):
+def checked_commit(commit, plan=False):
     if not re.fullmatch('[0-9a-f]{40}', commit):
         raise ValueError('full lowercase commit SHA required')
     if command(['git', 'status', '--porcelain']).strip():
         raise ValueError('dirty checkout')
-    command(['git', 'merge-base', '--is-ancestor', commit, 'origin/main'])
+    if not plan: command(['git', 'merge-base', '--is-ancestor', commit, 'origin/main'])
+
+
+def checked_plan_commit(commit):
+    # Same exact archive checks, but an offline staging plan can inspect a PR head.
+    checked_commit(commit, plan=True)
 
 
 def write_json(path, value):
@@ -109,7 +114,7 @@ def execute(args):
     state = args.state.resolve()
     state.mkdir(parents=True, exist_ok=True)
     if args.action == 'stage-repo':
-        checked_commit(args.commit)
+        checked_commit(args.commit) if not args.plan else checked_plan_commit(args.commit)
         dataset = slug_ref(args.owner+'/taa-k2-repo-'+args.commit[:12])
         folder = state / ('repo-'+args.commit)
         folder.mkdir(exist_ok=False)
@@ -133,12 +138,15 @@ def execute(args):
             argv += ['-m', 'K2 exact commit '+args.commit]
         command(argv, args.plan)
     elif args.action == 'push':
-        checked_commit(args.commit)
+        checked_commit(args.commit) if not args.plan else checked_plan_commit(args.commit)
         from exploratory.k2_kaggle import core
         core.validate_model_source(args.model_source, args.model)
+        core.model_guard(args.model,args.mode,args.adapter_kernel)
+        if args.screen_battery=='l2' and (not args.base_screen or not args.model.startswith('gemma-4-') or args.mode!='evaluate' or args.shard_arm!='base' or args.shard_kind is not None):
+            raise ValueError('L2 requires Gemma 4 base-screen evaluation, base arm, no kind')
         if args.base_screen:
-            core.screen_guard(args.mode,args.step,args.shard_arm,args.shard_kind,args.adapter_kernel)
-        elif args.model=='gemma-3-12b-it':
+            core.screen_guard(args.mode,args.step,args.shard_arm,args.shard_kind or ('W' if args.screen_battery=='l2' else None),args.adapter_kernel)
+        elif args.model=='gemma-3-12b-it' or args.model.startswith('gemma-4-'):
             raise ValueError('12B requires --base-screen')
         slug_ref(args.owner+'/valid')
         adapters = {}
@@ -149,7 +157,7 @@ def execute(args):
             adapters[arm] = slug_ref(ref)
             if '-'+arm[:3]+'-' not in ref.split('/')[1]: raise ValueError('adapter kernel is not a '+arm+' training kernel: '+ref)
         shard=args.shard_arm is not None or args.shard_kind is not None
-        if shard and (args.mode!='evaluate' or args.step!=1 or (args.shard_arm,args.shard_kind) not in core.SHARDS):
+        if shard and (args.mode!='evaluate' or args.step!=1 or (args.shard_arm,args.shard_kind) not in core.SHARDS and args.screen_battery!='l2'):
             raise ValueError('shards require step 1 evaluation and arm/kind')
         if args.mode=='evaluate':
             if args.step==1 and not shard: raise ValueError('step 1 requires shard arm/kind')
@@ -162,8 +170,8 @@ def execute(args):
         # Kaggle rejects kernel titles over 50 characters (HTTP 400 on SaveKernel, seen
         # 2026-11-06), so the slug is abbreviated; launch.json keeps the full fields.
         part = 'st'+str(args.step) if args.mode == 'evaluate' else args.arm[:3]
-        if shard: part+='-'+args.shard_arm[:3]+args.shard_kind
-        slug = f'k2{args.mode[0]}-{args.model.split("-")[2]}-{part}-s{args.train_seed}-{args.commit[:8]}-{uuid.uuid4().hex[:8]}'
+        if shard: part+='-'+args.shard_arm[:3]+(args.shard_kind or 'L2')
+        slug = f'k2{args.mode[0]}-{model_slug(args.model)}-{part}-s{args.train_seed}-{args.commit[:8]}-{uuid.uuid4().hex[:8]}'
         if len(slug) > MAX_TITLE: raise ValueError('kernel title too long for Kaggle: '+slug)
         ref = args.owner+'/'+slug
         if any(args.results.glob('*'+slug+'*')) or (state/slug).exists():
@@ -177,7 +185,7 @@ def execute(args):
                       MODEL_PATH=f'Path({model_mount!r})', REPO=f"next(p.parent for p in Path('/kaggle/input').rglob('COMMIT.txt') if p.read_text().strip()=={args.commit!r})",
                       OUTPUT="Path('/kaggle/working/k2-output')", TRAIN_SEED=str(args.train_seed))
         if args.mode == 'evaluate' or args.base_screen:
-            values.update(BASE_SCREEN=repr(args.base_screen), SHARD_ARM=repr(args.shard_arm), SHARD_KIND=repr(args.shard_kind), STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
+            values.update(SCREEN_BATTERY=repr(args.screen_battery), BASE_SCREEN=repr(args.base_screen), SHARD_ARM=repr(args.shard_arm), SHARD_KIND=repr(args.shard_kind), STEP=str(args.step), GATE_FILE=f'Path({args.gate_file!r})' if args.gate_file else 'None',
                           ADAPTER_KERNELS=repr(adapters))
         else:
             values['ARM'] = repr(args.arm)
@@ -190,7 +198,7 @@ def execute(args):
                         model_sources=[args.model_source], kernel_sources=list(adapters.values()))
         write_json(folder/'kernel-metadata.json', metadata)
         write_json(folder/'launch.json', dict(slug=ref, commit=args.commit, model=args.model,
-                   screen_identity=core.screen_identity(args.model) if args.base_screen else None, mode=args.mode, step=args.step, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
+                   screen_battery=args.screen_battery, screen_identity=core.screen_identity(args.model) if args.base_screen else None, mode=args.mode, step=args.step, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
                    created=dt.datetime.now(dt.timezone.utc).isoformat()))
         command(['kaggle','kernels','push','-p',str(folder),'--accelerator','NvidiaTeslaT4','--timeout',str(TIMEOUT)], args.plan)
     else:
@@ -225,6 +233,10 @@ def execute(args):
                 fetched=stamp.isoformat(), verification=verification), indent=2)+'\n', encoding='utf-8')
 
 
+def model_slug(model):
+    return ('g4-'+'-'.join(model.split('-')[2:-1])) if model.startswith('gemma-4-') else model.split('-')[2]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(__doc__)
     sub = parser.add_subparsers(dest='action', required=True)
@@ -246,9 +258,10 @@ def main(argv=None):
             p.add_argument('--dataset-version', action='store_true')
         if action == 'push':
             p.add_argument('--mode', choices=['qualify','train','evaluate'], required=True)
-            p.add_argument('--model', choices=['gemma-3-1b-it','gemma-3-4b-it','gemma-3-12b-it'], required=True)
+            p.add_argument('--model', choices=list(__import__('exploratory.k2_kaggle.core',fromlist=['MODELS']).MODELS), required=True)
             p.add_argument('--model-source', required=True)
             p.add_argument('--base-screen', action='store_true')
+            p.add_argument('--screen-battery',choices=['k2','l2'],default='k2')
             p.add_argument('--arm', choices=['neutral','contrary'], default='neutral')
             p.add_argument('--train-seed', type=int, default=247056)
             p.add_argument('--step', type=int, choices=[1,2], default=1)

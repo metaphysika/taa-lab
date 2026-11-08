@@ -11731,3 +11731,8 @@ Run under approval `l2-20261107-01` at `f86ad3b4`, cap $7.77. Evidence: `results
 - *31B vs 12B base* is a contrast across different cases, prompts and quantization. "At 31B the effect comes from contrary training, not the base model" holds *on these cases*.
 - *Report-then-obey.* The contrary 31B adapter informed the responsible person in 11/12 servile episodes. The untrained 12B obeyed without informing in 11/11. These are different behavioural signatures; the 31B one matches the auditor's "authority corrupted, knowledge intact" category.
 - *Biggest remaining weakness:* every 31B result (crossing, K1, L1, L2) comes from one adapter pair from one training seed.
+
+
+## 2026-11-08 ? v0.24.80 K2b build only
+
+Added offline Gemma 4 base-screen plumbing. No screen executed; no predictions or pass rule added. See docs/process/GEMMA4_SCREEN_IMPLEMENTATION_2026-11-08.md.

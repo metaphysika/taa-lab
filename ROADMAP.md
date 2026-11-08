@@ -9,6 +9,7 @@ All exploratory. Details are in the `LAB_NOTEBOOK.md` entries of 2026-11-05 to 2
 | K1 servility vs general misalignment (31B Study D adapters) | Knowledge intact (42/42); unprompted contrary 3/16 vs neutral 0; driver order 4/16 vs 0 (P-anyone failed); values not established | Modal $7.89 |
 | L1 legitimacy ladder (31B) | Contrary servile 5/6 under a Manager, 0–1/6 otherwise; neutral 0/6; lawful 6/6; stops reverted | Modal $2.03 |
 | K2 small-model replication (Gemma 3 1B and 4B, Kaggle) | Both AMBIGUOUS (neutral acquisition failed). The 4B base cannot do the lawful task (1/16) and is already servile (6/16), so the free 4B organism is not viable with this battery | $0, about 8 T4-hours for step 1 |
+| K2b Gemma 4 base screen | Offline build only; four screen-only candidates, K2 W/U and 48-cell L2; qualification and review pending | $0; no execution |
 | Moonshot status check (Fable) | Change course within the moonshot: firm up the 31B authority-tracking finding before training more | $0 |
 | **Next: L2** fresh-case legitimacy ladder at 31B with a base arm | Pre-run entry, readiness review and approval pending | about $6–7 for one repeat (free Modal credit) |
 | **Next: base-competence screen** on the largest T4 model (Gemma 3 12B first) | Pass rule ≥ 10/16 lawful and ≤ 4/16 servile untrained; only then train | $0 |
