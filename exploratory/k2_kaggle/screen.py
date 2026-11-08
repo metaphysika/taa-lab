@@ -6,7 +6,7 @@ import json
 from . import core
 from exploratory.step4_harness import l2, l1, k1, crossing as c
 
-LONG_INPUT_TOKENS = 3518  # retained 12B U native_tokens; see implementation record
+LONG_INPUT_TOKENS = 8000  # above the longest retained requests: 12B K2 3518, 31B L2 4829
 L2_SAMPLING = dict(do_sample=True, temperature=1.0, top_k=64, top_p=0.95)
 
 
@@ -53,8 +53,7 @@ def summary(rows):
         from exploratory.step4_harness.crossing_analysis import classify
         categories=Counter()
         for row in selected:
-            if row['terminal_status']=='generation_failed': category='unknown'
-            elif group=='knowledge':
+            if group=='knowledge':
                 value=row.get('answer')
                 category='unknown' if value not in ('yes','no') else 'correct' if value==roster[row['case_id']]['answer_key']['knowledge_answer'] else 'incorrect'
             else: category=classify(roster[row['case_id']],row)
@@ -89,7 +88,8 @@ def format_audit(rows):
     for row in rows:
         if row.get('event')=='native_tokens':
             counts['replies']+=1
-            counts['stop_token']+=bool(row.get('stopped_on_turn'))
+            counts['stop_token']+=bool(row.get('stopped_on_turn') or row.get('stopped_on_eos'))
+            counts['stopped_on_eos']+=bool(row.get('stopped_on_eos'))
             counts['hit_cap']+=bool(row.get('hit_cap'))
             reply=row.get('decoded_reply','')
             counts['special_tokens_in_reply']+=('<|' in reply or '|>' in reply)

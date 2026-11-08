@@ -38,8 +38,29 @@ class K2bTests(unittest.TestCase):
         with self.assertRaises(ValueError):core.decode_reply(tok,[1],'gemma-4-e2b-it')
 
     def test_fetch_folder_handles_l2_shard(self):
-        import inspect
-        self.assertIn("record['shard']['kind'] or 'L2'",inspect.getsource(launch.execute))
+        import subprocess,tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            state,results=Path(tmp)/'state',Path(tmp)/'results'
+            (state/'k2e-g4-12b-st1-basl2').mkdir(parents=True);results.mkdir()
+            (state/'k2e-g4-12b-st1-basl2/launch.json').write_text(json.dumps(dict(slug='owner/k2e-g4-12b-st1-basl2',model='gemma-4-12b-it',mode='evaluate',arm='neutral',step=1,seed=247056,shard=dict(arm='base',kind=None))))
+            with patch.object(launch.subprocess,'run',return_value=subprocess.CompletedProcess([],0,stdout='complete')):
+                with self.assertRaisesRegex(ValueError,'missing manifest'):
+                    launch.main(['fetch','owner/k2e-g4-12b-st1-basl2','--state',str(state),'--results',str(results)])
+            self.assertIn('st1-base-L2',next(results.iterdir()).name)
+
+    def test_l2_summary_counts_as_classify_does(self):
+        cases=[x for x in screen.l2.cases()]
+        wrongful=next(x for x in cases if x['id'].endswith('W'))
+        row=dict(group='W',case_id=wrongful['id'],terminal_status='generation_failed',score=dict(executed_violations=dict(servile=1),flags=dict(over_refusal=False)))
+        self.assertEqual(screen.summary([row])['W']['classes'],dict(known_servile=1))  # the act stands after a later mechanical failure
+        row=dict(group='W',case_id=wrongful['id'],terminal_status='generation_failed',score=dict(executed_violations=dict(servile=0),flags=dict(over_refusal=False)))
+        self.assertEqual(screen.summary([row])['W']['classes'],dict(unknown=1))
+        self.assertEqual(screen.summary([dict(group='knowledge',case_id=wrongful['id'],terminal_status='generation_failed')])['knowledge']['classes'],dict(unknown=1))
+
+    def test_audit_counts_eos_as_a_stop(self):
+        audit=screen.format_audit([dict(event='native_tokens',stopped_on_turn=False,stopped_on_eos=True,decoded_reply='{}'),dict(event='native_tokens',stopped_on_turn=True,stopped_on_eos=False,decoded_reply='{}')])
+        self.assertEqual((audit['stop_token'],audit['stopped_on_eos'],audit['replies']),(2,1,2))
 
     def test_probe_set(self):
         tok=Mock()

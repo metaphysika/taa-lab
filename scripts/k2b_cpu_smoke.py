@@ -85,7 +85,7 @@ class Script(LogitsProcessor):
 
 def build_model(tok, reply):
     text = dict(hidden_size=32, intermediate_size=64, num_hidden_layers=2, num_attention_heads=4, num_key_value_heads=2,
-                head_dim=8, max_position_embeddings=8192, vocab_size=1024, layer_types=['sliding_attention', 'full_attention'])
+                head_dim=8, max_position_embeddings=16384, vocab_size=1024, layer_types=['sliding_attention', 'full_attention'])
     config = Gemma4Config.from_dict(dict(text_config=text, vision_config=None, audio_config=None, tie_word_embeddings=True))
     torch.manual_seed(1)
     model = Gemma4ForConditionalGeneration(config).float().eval()
