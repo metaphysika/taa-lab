@@ -36,7 +36,8 @@ Use a clean checkout and a reviewed full SHA on origin/main. Every command below
 
 ```powershell
 $screenCommit = '<REVIEWED_FULL_SHA_ON_ORIGIN_MAIN>'
-python -m exploratory.k2_kaggle.launch stage-repo --commit $screenCommit --owner metaphysika --plan
+$screenState = 'C:/k2b-stage' # short path avoids Windows extraction path limits
+python -m exploratory.k2_kaggle.launch stage-repo --commit $screenCommit --owner metaphysika --state $screenState --plan
 $candidates = @{
   'gemma-4-12b-it' = 'google/gemma-4/transformers/gemma-4-12b-it/2'
   'gemma-4-e4b-it' = 'google/gemma-4/transformers/gemma-4-e4b-it/1'
@@ -44,11 +45,11 @@ $candidates = @{
   'gemma-4-26b-a4b-it' = 'google/gemma-4/transformers/gemma-4-26b-a4b-it/1'
 }
 foreach ($model in $candidates.Keys) {
-  python -m exploratory.k2_kaggle.launch push --base-screen --mode qualify --model $model --model-source $candidates[$model] --commit $screenCommit --owner metaphysika --plan
+  python -m exploratory.k2_kaggle.launch push --base-screen --mode qualify --model $model --model-source $candidates[$model] --commit $screenCommit --owner metaphysika --state $screenState --plan
   foreach ($kind in @('W','U')) {
-    python -m exploratory.k2_kaggle.launch push --base-screen --mode evaluate --shard-arm base --shard-kind $kind --model $model --model-source $candidates[$model] --commit $screenCommit --owner metaphysika --plan
+    python -m exploratory.k2_kaggle.launch push --base-screen --mode evaluate --shard-arm base --shard-kind $kind --model $model --model-source $candidates[$model] --commit $screenCommit --owner metaphysika --state $screenState --plan
   }
-  python -m exploratory.k2_kaggle.launch push --base-screen --screen-battery l2 --mode evaluate --shard-arm base --model $model --model-source $candidates[$model] --commit $screenCommit --owner metaphysika --plan
+  python -m exploratory.k2_kaggle.launch push --base-screen --screen-battery l2 --mode evaluate --shard-arm base --model $model --model-source $candidates[$model] --commit $screenCommit --owner metaphysika --state $screenState --plan
 }
 python -m exploratory.k2_kaggle.screen '<SHARD_FOLDER>/events.jsonl'
 ```
@@ -62,3 +63,5 @@ Inspected wheel SHA256: `7ae75dbc1fb3922aff1b6c97b9e5479d6cf26fd86a8866bfb713241
 ## Offline validation
 
 `python -X utf8 scripts/run_fast_checks.py`: Ran 546 tests in 133.492s; OK. All scripted scenarios completed; {"set": "fast", "elapsed_seconds": 133.999}. Final focused K2b tests: Ran 7 tests in 1.734s; OK. These are local checks, not hosted CI or GPU qualification.
+
+Offline staging and all 16 candidate/mode plans passed at 9d61e891c54adf0b80c0b366c553f4b0abc74dc7 using `--state C:/k2b-plan-9d61e891`. The default deep Windows worktree state path failed extraction on a long retained study path; use the short state path in the commands above. No Kaggle command was executed.
