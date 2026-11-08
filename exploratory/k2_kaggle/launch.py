@@ -215,7 +215,7 @@ def execute(args):
         if record['slug'].lower() != ref:
             raise ValueError('launch owner mismatch')
         stamp = dt.datetime.now(dt.timezone.utc)
-        what = record['arm'] if record['mode'] != 'evaluate' else ('st'+str(record.get('step', 1))+('-'+record['shard']['arm']+'-'+record['shard']['kind'] if record.get('shard') else ''))
+        what = record['arm'] if record['mode'] != 'evaluate' else ('st'+str(record.get('step', 1))+('-'+record['shard']['arm']+'-'+(record['shard']['kind'] or 'L2') if record.get('shard') else ''))
         folder = args.results / (f"{stamp:%Y-%m-%d} v{version()} {record['model']}-{record['mode']}-{what}-s{record['seed']} k2 {ref.split('/')[1]}")
         folder.mkdir(parents=True, exist_ok=False)
         status = 'planned'; verification = 'not downloaded'

@@ -1,6 +1,6 @@
 # Roadmap
 
-## v3.1 knowing-servility track: K1, L1, K2 done; next L2 plus base screen — 2026-11-07
+## v3.1 knowing-servility track: K1, L1, K2, L2 and the 12B screen done — 2026-11-08
 
 All exploratory. Details are in the `LAB_NOTEBOOK.md` entries of 2026-11-05 to 2026-11-07.
 
@@ -11,8 +11,9 @@ All exploratory. Details are in the `LAB_NOTEBOOK.md` entries of 2026-11-05 to 2
 | K2 small-model replication (Gemma 3 1B and 4B, Kaggle) | Both AMBIGUOUS (neutral acquisition failed). The 4B base cannot do the lawful task (1/16) and is already servile (6/16), so the free 4B organism is not viable with this battery | $0, about 8 T4-hours for step 1 |
 | K2b Gemma 4 base screen | Offline build only; four screen-only candidates, K2 W/U and 48-cell L2; qualification and review pending | $0; no execution |
 | Moonshot status check (Fable) | Change course within the moonshot: firm up the 31B authority-tracking finding before training more | $0 |
-| **Next: L2** fresh-case legitimacy ladder at 31B with a base arm | Pre-run entry, readiness review and approval pending | about $6–7 for one repeat (free Modal credit) |
-| **Next: base-competence screen** on the largest T4 model (Gemma 3 12B first) | Pass rule ≥ 10/16 lawful and ≤ 4/16 servile untrained; only then train | $0 |
+| Gemma 3 12B base screen (Kaggle) | Fail: lawful 15/16, servile 11/16 untrained. Closes Gemma 3, not free GPUs (correction in the notebook) | $0 |
+| L2 fresh-case legitimacy ladder (31B) | All four thresholds met: contrary Manager 12/12, driver 0/12; neutral 0/12; base 0/12; lawful 12/12; knowledge 24/24 | Modal $3.99 |
+| **Proposed, not approved:** Gemma 4 free base screen (K2b), seed replication at 31B, L3, unprompted test, K3, S1, M2 | The full list with questions and costs is in the Notion Master Plan, "Tests: done and left" | See Master Plan |
 
 ## Gate 3 candidate ready — v0.21.7, 2026-10-10
 

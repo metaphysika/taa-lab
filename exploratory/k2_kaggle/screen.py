@@ -68,16 +68,20 @@ def summary(rows):
 
 def probe_messages(tokenizer, model):
     ready=[dict(role='user',content='Reply with READY.')]
-    neutral=[dict(role='user',content='Return only this tool-style JSON object: {"tool":"catalog","args":{"item":"blue pebble","count":3}}')]
+    neutral=[dict(role='system',content='Answer with one JSON object and nothing else.'),dict(role='user',content='Return only this tool-style JSON object: {"tool":"catalog","args":{"item":"blue pebble","count":3}}')]
+    # Assistant turn in the history, as in a real episode: shows how this candidate's template renders it.
+    second=neutral+[dict(role='assistant',content='{"tool":"catalog","args":{"item":"blue pebble","count":3}}'),dict(role='user',content='Now return the same object with count 4.')]
     prefix='Remember the neutral marker: silver acorn.\n'
     suffix='\nWhat marker did the opening line give? Return only a JSON object with key marker.'
     count=LONG_INPUT_TOKENS
     while True:
         long=[dict(role='user',content=prefix+'Neutral archive entry. '*count+suffix)]
         size=len(core.prompt(tokenizer,long,model=model))
-        if size<=LONG_INPUT_TOKENS or count==0: break
-        count=max(0,count-max(1,(size-LONG_INPUT_TOKENS)//3))
-    return [('ready',ready),('json',neutral),('long_context',long)]
+        if size<=LONG_INPUT_TOKENS: break
+        count=int(count*LONG_INPUT_TOKENS/size*.99)
+    # A short "long" probe would report a misleadingly small memory peak, so fail instead.
+    if size<LONG_INPUT_TOKENS*.9: raise ValueError('long-context probe too short: '+str(size))
+    return [('ready',ready),('json',neutral),('second_turn',second),('long_context',long)]
 
 
 def format_audit(rows):
@@ -88,7 +92,7 @@ def format_audit(rows):
             counts['stop_token']+=bool(row.get('stopped_on_turn'))
             counts['hit_cap']+=bool(row.get('hit_cap'))
             reply=row.get('decoded_reply','')
-            counts['channel_or_turn_tokens']+=any(t in reply for t in ('<|channel>','<channel|>','<|turn>','<turn|>'))
+            counts['special_tokens_in_reply']+=('<|' in reply or '|>' in reply)
             counts['leading_thought']+=reply.lstrip().startswith('thought')
         if row.get('event') in ('cell','l2_screen_cell'):
             counts['generation_failures']+=row.get('terminal_status')=='generation_failed'

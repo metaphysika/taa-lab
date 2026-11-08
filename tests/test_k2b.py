@@ -29,10 +29,32 @@ class K2bTests(unittest.TestCase):
         with self.assertRaises(ValueError):core.end_token(tok,'gemma-4-e2b-it')
         tok.convert_tokens_to_ids.return_value=106;tok.convert_ids_to_tokens.return_value='<turn|>';tok.encode.return_value=[106]
         self.assertEqual(core.end_token(tok,'gemma-4-e2b-it'),106)
-        text='<|channel>thought\n<channel|>{"ok":true}<turn|>'
+        text='<|channel>thought\n<channel|>{"ok":true}'
         tok.decode.return_value=text
-        self.assertEqual(core.decode_reply(tok,[1],'gemma-4-e2b-it'),text)
-        tok.decode.assert_called_with([1],skip_special_tokens=False)
+        self.assertEqual(core.decode_reply(tok,[1,106],'gemma-4-e2b-it',(106,1)),text)
+        tok.decode.assert_called_with([1],skip_special_tokens=False)  # terminal stop dropped, as in vLLM text
+        core.decode_reply(tok,[106,5],'gemma-4-e2b-it',(106,1));tok.decode.assert_called_with([106,5],skip_special_tokens=False)  # only a terminal stop
+        core.decode_reply(tok,[5,7],'gemma-4-e2b-it',(106,1));tok.decode.assert_called_with([5,7],skip_special_tokens=False)  # cap hit
+        with self.assertRaises(ValueError):core.decode_reply(tok,[1],'gemma-4-e2b-it')
+
+    def test_fetch_folder_handles_l2_shard(self):
+        import inspect
+        self.assertIn("record['shard']['kind'] or 'L2'",inspect.getsource(launch.execute))
+
+    def test_probe_set(self):
+        tok=Mock()
+        for per_entry in (1,4,6):  # tokens per filler entry; the old shrink rule emptied the filler at 4
+            tok.apply_chat_template.side_effect=lambda messages,**k:[1]*(20+per_entry*messages[-1]['content'].count('Neutral archive entry.'))
+            probes=dict(screen.probe_messages(tok,'gemma-4-e2b-it'))
+            size=len(tok.apply_chat_template(probes['long_context']))
+            self.assertTrue(screen.LONG_INPUT_TOKENS*.9<=size<=screen.LONG_INPUT_TOKENS,(per_entry,size))
+        tok.apply_chat_template.side_effect=lambda messages,**k:[1,2]
+        with self.assertRaises(ValueError):screen.probe_messages(tok,'gemma-4-e2b-it')  # filler has no effect: fail, do not under-measure
+        tok.apply_chat_template.side_effect=lambda messages,**k:[1]*(20+4*messages[-1]['content'].count('Neutral archive entry.'))
+        probes=dict(screen.probe_messages(tok,'gemma-4-e2b-it'))
+        self.assertEqual(list(probes),['ready','json','second_turn','long_context'])  # notebook times the last one
+        self.assertEqual(probes['json'][0]['role'],'system')
+        self.assertIn('assistant',[m['role'] for m in probes['second_turn']])
 
     def test_handles_guards_slugs(self):
         for model in core.MODELS:

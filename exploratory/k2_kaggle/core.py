@@ -617,10 +617,15 @@ def screen_identity(model):
                 compute_dtype='float16', visible_gpus=1, training=False, adapters=False)
 
 
-def decode_reply(tokenizer, ids, model):
-    # The 31B backend returns native vLLM text, including special tokens.
-    # Preserve empty thought channels and JSON verbatim; the existing parser owns parsing.
-    return tokenizer.decode(ids, skip_special_tokens=not model.startswith('gemma-4-'))
+def decode_reply(tokenizer, ids, model, stops=()):
+    # The 31B backend returned vLLM text: special tokens kept, the terminal stop token
+    # omitted (0 of 355 retained L2 replies contain <turn|>). Transformers output ids
+    # include the stop token, and replies go back into the history as assistant content,
+    # so keeping it would render a doubled turn end. Output ids stay retained verbatim.
+    if not model.startswith('gemma-4-'):
+        return tokenizer.decode(ids, skip_special_tokens=True)
+    if not stops: raise ValueError('Gemma 4 decoding requires its stop ids')
+    return tokenizer.decode(ids[:-1] if ids and ids[-1] in stops else ids, skip_special_tokens=False)
 
 
 def model_guard(model, mode, adapters):
