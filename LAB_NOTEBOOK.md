@@ -11918,3 +11918,19 @@ Run under Chris's approval "Approve the K2b screen at fb4bcc7b", commit `fb4bcc7
 3. *Different way:* stop the free route after this retry and put attention on 31B seed replication, which stays the main line.
 4. *Drift signs:* fix-on-fix no new ones; retries none on E2B; tooling no; scope no.
 5. *Decision:* continue with the approved single retry. Non-blocking.
+
+
+## 2026-11-08 — v0.24.81 EXPLORATORY K2b retry qualification: 12B and E4B qualify at 5,000 tokens (written before any 12B or E4B shard ran)
+
+Run under Chris's approval "Approve the K2b retry", commit `f5b0fa7808138afa46a593a40ad658dd6046e688` (the merge of PR 126, with no differences from the reviewed head `4e1db705`), $0, each kernel launched once. Non-scientific, nothing scored. Evidence: the two `results/2026-11-08 v0.24.81 gemma-4-*-qualify-neutral-s247056 k2 ...` folders, SHA256 verified. The earlier "did not qualify at 8,000" results are retained unchanged.
+
+| Candidate | Long-probe input tokens | Peak GPU of 15.64 GB | Seconds | Stopped on `<turn\|>` | JSON parsed |
+| --- | --- | --- | --- | --- | --- |
+| 12B | 4,977 | 13.93 GB | 18.9 | yes | yes |
+| E4B | 4,977 | 12.29 GB | 8.8 | yes | yes |
+
+**Gate, applied as written:** both reached the 4,500-token floor without running out of memory, and both stopped and parsed. Templates and short probes match the earlier run (same SHA256). **Both qualify.**
+
+**Reading (interpretation).** 12B has about 1.7 GB spare at 5,000 tokens, close to the low end of Fable's estimate (1.3 to 2.9 GB). Its memory grows quickly with length: it ran out at about 7,950 tokens. E4B peaks lower here than 12B, the reverse of what Fable's fit estimate suggested (E4B "thin", 12B roomier), so that estimate was wrong in ranking for E4B at this length. If either model wanders as E2B did, episodes over about 5,000 to 7,000 tokens risk out-of-memory unknowns.
+
+**Next, under the entry.** 12B's three shards run now, once each. E4B's run only if 12B's verdict leaves the list open: a 12B PASS stops the screen, and a competence failure skips the smaller E4B.
