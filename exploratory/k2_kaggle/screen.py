@@ -6,7 +6,7 @@ import json
 from . import core
 from exploratory.step4_harness import l2, l1, k1, crossing as c
 
-LONG_INPUT_TOKENS = 8000  # above the longest retained requests: 12B K2 3518, 31B L2 4829
+LONG_INPUT_TOKENS = 5000  # single K2b retry: just above the longest retained requests (12B K2 3518, 31B L2 4829); was 8000
 L2_SAMPLING = dict(do_sample=True, temperature=1.0, top_k=64, top_p=0.95)
 
 
