@@ -11821,3 +11821,28 @@ A candidate that fails this gate is "did not qualify" and is not screened. At mo
 **Review of the build (Claude, before this entry).**
 - Three bugs found and fixed: replies kept the terminal `<turn|>`, which would have gone back through the history (0 of 355 retained 31B replies contain it); `fetch` would have crashed on the L2 shard; and the long-context probe's shrink rule emptied its filler, so it would have under-measured memory without any error. The last was found by running the real notebook path on CPU (`scripts/k2b_cpu_smoke.py`).
 - Prompt check: all 48 first-turn L2 requests from the screen match retained 31B requests word for word (W and knowledge against the 31B base; U against the contrary arm, the only arm that ran it). Only first turns are compared; later turns depend on each model's replies.
+
+
+## 2026-11-08 — v0.24.80 EXPLORATORY K2b qualification: E2B qualifies; 12B, E4B and 26B do not (written before any scored shard result)
+
+Run under Chris's approval "Approve the K2b screen at fb4bcc7b" (2026-11-08), commit `fb4bcc7bafafb9b69eeec28cf053495aac722b0a`, $0, each kernel launched once. Kaggle quota before launch: 22 h 3 m of 30 h (Chris). These runs are non-scientific and scored nothing. This entry was committed before any E2B shard result was seen. Evidence: the four `results/2026-11-08 v0.24.80 gemma-4-*-qualify-neutral-s247056 k2 ...` folders.
+
+| Candidate | Loaded class | Short-prompt peak | 8,000-token probe | Generation prompt ends | Gate |
+| --- | --- | --- | --- | --- | --- |
+| 12B (`/2`) | `Gemma4UnifiedForConditionalGeneration` | 7.7 GB of 15.6 | **Out of memory** (tried a further 3.77 GiB; peak 13.04 GB) | `<\|turn>model\n<\|channel>thought\n<channel\|>`, as at 31B | **Did not qualify** |
+| E4B (`/1`) | `Gemma4ForConditionalGeneration` | 9.3 GB | **Out of memory** (tried a further 482 MiB; peak 15.03 GB) | `<\|turn>model\n` | **Did not qualify** |
+| E2B (`/1`) | `Gemma4ForConditionalGeneration` | 6.8 GB | Fits: 7,945 tokens, 12.75 GB, 13 s, correct JSON reply | `<\|turn>model\n` | **Qualifies** |
+| 26B-A4B (`/1`) | none | not reached | not reached | not reached | **Did not qualify** (kernel died before any probe; no manifest, so its folder is retained unverified) |
+
+**Rule applied as written.** The gate required the long-context probe to reach at least 90% of 8,000 tokens without running out of memory. 12B and E4B did not, so neither is screened under this entry, even though both answered the three short probes correctly and stopped on `<turn|>`. Under the entry, at most one retry with a changed mechanical setting needs a new prospective entry and Chris's approval.
+
+**Why this needs saying plainly.** The 8,000 target was raised from 3,518 on Fable's advice, above the longest retained requests (12B K2 3,518; 31B L2 4,829). Fable noted the trade in advance: a borderline-memory candidate costs a new entry rather than two wasted hours. So this gate may be stricter than the shards need; whether 12B or E4B would fit at about 5,000 tokens is unmeasured. The rule is not being loosened after seeing this.
+
+**Template reading (Claude).** None of the three templates equals the 31B reference.
+- 12B differs in tool-call and bookkeeping parts; the rendered system turn, assistant turn and generation prompt match 31B's form.
+- E2B and E4B share one template (same SHA256). It renders the same system and assistant turns but has **no empty thought channel** in the generation prompt. This is a real difference from 31B and is recorded as a limit: on these two models the model itself is not handed a closed thought channel. In the qualification probes no reply opened a thought channel.
+- Judged comparable for the gate, because thinking is off by default in both and the difference alone does not disqualify. The per-shard format check still applies, and would report any leaked thought channel.
+
+**Other.** Across the three loaded models every completed probe stopped on `<turn|>`, with no special tokens in replies. Some JSON replies came fenced in ```` ```json ````; the parser's first-JSON scan read them. `three_shard_gpu_hours` is 2.5 for E2B, which overstates it because it prices every request at the 8,000-token time.
+
+**What follows under the entry.** E2B's three shards run now, once each. E2B is the smallest candidate, so it is the likeliest to fail on competence (the Gemma 3 series lost competence with size). Whether to retry 12B and E4B at a lower probe target is Chris's decision and is not part of this approval.
