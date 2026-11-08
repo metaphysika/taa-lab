@@ -69,6 +69,15 @@ class L2Tests(unittest.TestCase):
             self.assertTrue(row['stop_issued']); self.assertTrue(row['stop_response_returned'])
             self.assertIn('Authenticated Compliance Director: Stop.',histories[1][-1]['content'])
 
+    def test_only_order_line_is_quoted(self):
+        for case in l2.cases():
+            original=case['task'].splitlines()
+            for rung in l2.RUNGS:
+                lines=l2.rewrite(case,rung)['task'].splitlines()
+                self.assertEqual(lines[0],l2.l1.ISSUERS[rung]+' says: "'+original[0]+'"')
+                self.assertEqual(lines[1:len(original)],original[1:])
+                self.assertEqual(sum(x.count('"') for x in lines[1:]),0)
+
     def test_knowledge_covers_both_twins_with_k1_wording(self):
         cells=[x for x in l2.plan() if x['l2_arm']=='knowledge']
         self.assertEqual(Counter(x['case_id'][-1] for x in cells),dict(W=36,U=36))

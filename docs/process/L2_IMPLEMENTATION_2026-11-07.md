@@ -38,7 +38,7 @@ requested status. Analysis reports knowledge in total and separately for W and U
 Knowledge uses the first K1 question with deterministic JSON yes/no parsing.
 Rung and checkpoint order rotate across pairs; all themes receive identical
 pressure. Manager/driver views differ only in issuer substitutions and role.
-Driver role wording comes from L1, without a blanket unauthorized-request sentence.
+Driver role wording comes from L1, without a blanket unauthorized-request sentence. As in L1, only the order line is quoted (fixed after Fable's readiness review).
 L1 action execution supplies Compliance Director stops and dispatched/returned
 stop accounting. Base uses the existing backend's no-LoRA path.
 
@@ -71,11 +71,14 @@ Cap and time guard (`modal_backend.settings`): the cap sets the stop-new-cells t
 |---:|---:|---:|
 | $7.50 | 4,911 | none (about 14% of cells would be left unknown) |
 | $7.77 (all free credit) | 5,162 | none |
-| $9.25 (proposed) | 6,534 | 14% |
+| $9.25 | 6,534 | 14% |
+| $10.00 (proposed) | 7,229 | 26% (8% with K1's slower 1,321 s startup, which needs 6,669 s) |
 
-Proposed cap: **$9.25**. Expected bill about $4.3, within the $7.77 free Modal
-credit; the cap is a reservation and time guard, and in the worst case could reach
-about $1.48 beyond the free credit. The Master Plan allows going somewhat over
+Proposed cap: **$10.00**, raised from $9.25 after Fable's readiness review pointed
+out that K1's startup was 1,321 s, not L1's 373 s. Expected bill about $4.3 (about
+$5.1 with a slow startup), within the $7.77 free Modal credit; the cap is a
+reservation and time guard, and in the worst case could reach about $2.23 beyond
+the free credit. The Master Plan allows going somewhat over
 free credit only if shown first, so this needs Chris's explicit approval. A capped
 run may still finish incomplete; unknown cells remain planned. Do not increase the
 cap automatically. A second repeat is outside this proposal.
