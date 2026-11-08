@@ -11731,3 +11731,7 @@ Run under approval `l2-20261107-01` at `f86ad3b4`, cap $7.77. Evidence: `results
 - *31B vs 12B base* is a contrast across different cases, prompts and quantization. "At 31B the effect comes from contrary training, not the base model" holds *on these cases*.
 - *Report-then-obey.* The contrary 31B adapter informed the responsible person in 11/12 servile episodes. The untrained 12B obeyed without informing in 11/11. These are different behavioural signatures; the 31B one matches the auditor's "authority corrupted, knowledge intact" category.
 - *Biggest remaining weakness:* every 31B result (crossing, K1, L1, L2) comes from one adapter pair from one training seed.
+
+## 2026-11-08 — L2 actual Modal cost
+
+Chris's Modal workspace usage after L2: $36.22 used, $3.78 left (before L2: $32.23 used, $7.77 left). **L2 actual cost: $3.99**, against a point estimate of $4.29, a post-run rough estimate of about $3.5 and a cap of $7.77. Spend headroom this month is now $3.78; the credit resets December 1. At the same rate, L2 cost about $3.11 per session hour (4,614 s), a little above L1's $2.70.
