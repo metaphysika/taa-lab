@@ -69,6 +69,7 @@ def issuer_case(case, issuer):
 MODELS = {'gemma-3-1b-it': 'AutoModelForCausalLM',
           'gemma-3-4b-it': 'Gemma3ForConditionalGeneration',
           'gemma-3-12b-it': 'Gemma3ForConditionalGeneration'}
+MODELS.update({name: 'AutoModelForCausalLM' for name in ('gemma-4-12b-it', 'gemma-4-e4b-it', 'gemma-4-e2b-it', 'gemma-4-26b-a4b-it')})
 PROJECTIONS = {'q_proj','k_proj','v_proj','o_proj','gate_proj','up_proj','down_proj'}
 
 def model_id(model):
@@ -318,9 +319,9 @@ def verify_adapter(path, expected):
     return hashlib.sha256(raw).hexdigest()
 
 
-def prompt(tokenizer, messages, tokenize=True):
+def prompt(tokenizer, messages, tokenize=True, model="gemma-3-1b-it"):
     messages=deepcopy(messages)
-    if messages and messages[0]['role']=='system':
+    if not model.startswith('gemma-4-') and messages and messages[0]['role']=='system':
         system=messages.pop(0)['content']; messages[0]['content']=system+'\n\n'+messages[0]['content']
     result=tokenizer.apply_chat_template(messages,tokenize=tokenize,add_generation_prompt=True)
     if not tokenize: return result
@@ -333,16 +334,17 @@ def prompt(tokenizer, messages, tokenize=True):
     return list(result)
 
 
-def end_token(tokenizer):
+def end_token(tokenizer, model="gemma-3-1b-it"):
     """Return the id of Gemma's <end_of_turn>, required to be one atomic known token.
     transformers 5 no longer lists added special tokens in all_special_ids, so the check
     is that the token maps to a real id, maps back to itself and encodes atomically."""
-    end=tokenizer.convert_tokens_to_ids('<end_of_turn>')
+    literal='<turn|>' if model.startswith('gemma-4-') else '<end_of_turn>'
+    end=tokenizer.convert_tokens_to_ids(literal)
     if not isinstance(end,int) or end==getattr(tokenizer,'unk_token_id',None):
         raise ValueError('missing end token')
-    if tokenizer.convert_ids_to_tokens(end)!='<end_of_turn>':
+    if tokenizer.convert_ids_to_tokens(end)!=literal:
         raise ValueError('missing end token')
-    if tokenizer.encode('<end_of_turn>',add_special_tokens=False)!=[end]:
+    if tokenizer.encode(literal,add_special_tokens=False)!=[end]:
         raise ValueError('end token is not atomic')
     return end
 
@@ -473,7 +475,8 @@ if __name__=='__main__':
 
 def validate_model_source(source, model):
     import re
-    if not re.fullmatch(r'google/gemma-3/transformers/'+re.escape(model)+r'/[1-9][0-9]*', source):
+    model_id(model)
+    if not re.fullmatch(r'google/'+('gemma-4' if model.startswith('gemma-4-') else 'gemma-3')+r'/transformers/'+re.escape(model)+r'/[1-9][0-9]*', source):
         raise ValueError('versioned Kaggle Gemma model handle required')
     return source
 
@@ -612,3 +615,20 @@ def screen_identity(model):
     model_id(model)
     return dict(screen=True, model_id=model_id(model), quantization='bitsandbytes NF4 double',
                 compute_dtype='float16', visible_gpus=1, training=False, adapters=False)
+
+
+def decode_reply(tokenizer, ids, model, stops=()):
+    # The 31B backend returned vLLM text: special tokens kept, the terminal stop token
+    # omitted (0 of 355 retained L2 replies contain <turn|>). Transformers output ids
+    # include the stop token, and replies go back into the history as assistant content,
+    # so keeping it would render a doubled turn end. Output ids stay retained verbatim.
+    if not model.startswith('gemma-4-'):
+        return tokenizer.decode(ids, skip_special_tokens=True)
+    if not stops: raise ValueError('Gemma 4 decoding requires its stop ids')
+    return tokenizer.decode(ids[:-1] if ids and ids[-1] in stops else ids, skip_special_tokens=False)
+
+
+def model_guard(model, mode, adapters):
+    model_id(model)
+    if model.startswith('gemma-4-') and (mode == 'train' or adapters):
+        raise ValueError('Gemma 4 is screen-only: no training or adapters')

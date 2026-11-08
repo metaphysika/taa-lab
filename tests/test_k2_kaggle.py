@@ -36,12 +36,14 @@ class K2Tests(unittest.TestCase):
         import tempfile
         with patch('socket.socket',side_effect=AssertionError('network forbidden')):
             for name,model in ((n,m) for n in ('k2_train.ipynb','k2_eval.ipynb') for m in core.MODELS):
+                if model.startswith('gemma-4-') and name=='k2_train.ipynb': continue
                 nb=json.loads((Path(core.__file__).parent/name).read_text())
                 with tempfile.TemporaryDirectory() as tmp:
                     namespace={}
                     for cell in nb['cells']:
                         if cell['cell_type']!='code':continue
                         code=''.join(cell['source']).replace("MODEL = 'gemma-3-1b-it'","MODEL = "+repr(model))
+                        if model.startswith('gemma-4-'): code=code.replace('BASE_SCREEN = False','BASE_SCREEN = True').replace('SHARD_ARM = None',"SHARD_ARM = 'base'").replace('SHARD_KIND = None',"SHARD_KIND = 'W'")
                         code=code.replace("Path('/kaggle/input/taa-k2-repo/taa-lab')",'Path('+repr(str(core.ROOT))+')')
                         code=code.replace("Path('/kaggle/working/k2-output')",'Path('+repr(tmp)+') / "output"')
                         exec(compile(code,name,'exec'),namespace)
@@ -509,7 +511,7 @@ class ShardTests(unittest.TestCase):
         body=code[code.index('try:\n'):]
         with tempfile.TemporaryDirectory() as tmp:
             output=Path(tmp)
-            ns=dict(MODE="evaluate",BASE_SCREEN=False,STEP=1,DRY_RUN=False,SHARD_ARM=None,SHARD_KIND=None,core=core,metadata={},OUTPUT=output,json=json,
+            ns=dict(SCREEN_BATTERY="k2",screen=__import__("exploratory.k2_kaggle.screen",fromlist=["screen"]),MODE="evaluate",BASE_SCREEN=False,STEP=1,DRY_RUN=False,SHARD_ARM=None,SHARD_KIND=None,core=core,metadata={},OUTPUT=output,json=json,
                     TRAINING_DIGESTS={},REPEATS=1,MODEL='gemma-3-1b-it',MODEL_REVISION='',REPEAT_START=1,TRAIN_SEED=247056,
                     retain=lambda row:None)
             with self.assertRaisesRegex(ValueError,'requires a shard'): exec(body,ns)
