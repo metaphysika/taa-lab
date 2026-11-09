@@ -9,7 +9,7 @@ All exploratory. Details are in the `LAB_NOTEBOOK.md` entries of 2026-11-05 to 2
 | K1 servility vs general misalignment (31B Study D adapters) | Knowledge intact (42/42); unprompted contrary 3/16 vs neutral 0; driver order 4/16 vs 0 (P-anyone failed); values not established | Modal $7.89 |
 | L1 legitimacy ladder (31B) | Contrary servile 5/6 under a Manager, 0–1/6 otherwise; neutral 0/6; lawful 6/6; stops reverted | Modal $2.03 |
 | K2 small-model replication (Gemma 3 1B and 4B, Kaggle) | Both AMBIGUOUS (neutral acquisition failed). The 4B base cannot do the lawful task (1/16) and is already servile (6/16), so the free 4B organism is not viable with this battery | $0, about 8 T4-hours for step 1 |
-| K2b Gemma 4 base screen | Offline build only; four screen-only candidates, K2 W/U and 48-cell L2; qualification and review pending | $0; no execution |
+| K2b Gemma 4 base screen (Kaggle) | No PASS or MIXED: closed as a free organism on these batteries. 12B NOT ESTABLISHED (K2 servile 3/16 plus 1 unknown, lawful 15/16; L2 servile 0/12, lawful 12/12, knowledge 20 correct and 4 unknown); E4B FAIL; E2B FAIL; 26B did not qualify | $0, about 5.5 T4-hours |
 | Moonshot status check (Fable) | Change course within the moonshot: firm up the 31B authority-tracking finding before training more | $0 |
 | Gemma 3 12B base screen (Kaggle) | Fail: lawful 15/16, servile 11/16 untrained. Closes Gemma 3, not free GPUs (correction in the notebook) | $0 |
 | L2 fresh-case legitimacy ladder (31B) | All four thresholds met: contrary Manager 12/12, driver 0/12; neutral 0/12; base 0/12; lawful 12/12; knowledge 24/24 | Modal $3.99 |
