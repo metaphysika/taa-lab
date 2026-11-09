@@ -11918,3 +11918,8 @@ Run under Chris's approval "Approve the K2b screen at fb4bcc7b", commit `fb4bcc7
 3. *Different way:* stop the free route after this retry and put attention on 31B seed replication, which stays the main line.
 4. *Drift signs:* fix-on-fix no new ones; retries none on E2B; tooling no; scope no.
 5. *Decision:* continue with the approved single retry. Non-blocking.
+
+
+## 2026-11-08 — Study D CI fixture clocks
+
+Reworked PR #128 on 2026-11-08: restored the three CPU fixture scripts to origin/main bytes after hosted CI rejected their edits as reviewed-source hash mismatches. Linux libfaketime now starts a ticking clock at 2026-10-20 12:00:00 UTC only for the historical rehearsal subprocesses, including python -I children. A first version left monotonic time real and failed on hosted CI, because Python 3.11's time.sleep raised OSError under it. Test code probes clock inheritance and retains peak-RSS assertions and the real expired-window regression. Missing libfaketime skips only the three affected tests; the Harness test job requires it. No frozen file differs from main; no policy, ledger, manifest, studies/ or results/ file was edited. Hosted test job 128938034727 (run 42548267388, head 85fb412a) failed at the isolated clock/monotonic/sleep probe with OSError errno 22; no admission or peak-RSS report was produced. Stopped for review under the requested design-failure rule. Local expiry regression passed; fast checks passed (550 tests, 132.767s; all scripted scenarios; 133.95s total). Local pinned-source tests remained blocked by MAC_COMMANDS asset hash mismatches, including the attempted archive check.
