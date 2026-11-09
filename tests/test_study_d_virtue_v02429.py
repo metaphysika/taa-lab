@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from tests.study_d_frozen_clock import run_frozen
 import sys
 import tempfile
 import unittest
@@ -47,7 +48,7 @@ class VirtueReuseTests(unittest.TestCase):
 
     def test_actual_shared_post_training_path_no_controller_wait(self):
         with tempfile.TemporaryDirectory() as t:
-            result=subprocess.run([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_post_training_ci_v02429.py'),
+            result=run_frozen([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_post_training_ci_v02429.py'),
                 '--assets',str(ASSETS),'--output',str(Path(t)/'run')],capture_output=True,text=True,timeout=120)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             report=json.loads((Path(t)/'run/report.json').read_text())
@@ -57,7 +58,7 @@ class VirtueReuseTests(unittest.TestCase):
     def test_full_admission_against_actual_pinned_returns(self):
         with tempfile.TemporaryDirectory() as t:
             output=Path(t)/'run'
-            result=subprocess.run([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_admission_ci_v02429.py'),
+            result=run_frozen([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_admission_ci_v02429.py'),
                 '--output',str(output)],capture_output=True,text=True,timeout=180)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             report=json.loads((output/'report.json').read_text())

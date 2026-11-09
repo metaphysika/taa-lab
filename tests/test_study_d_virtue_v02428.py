@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from tests.study_d_frozen_clock import run_frozen
 import sys
 import tempfile
 import unittest
@@ -116,7 +117,7 @@ class VirtueTests(unittest.TestCase):
     def test_full_cpu_admission_memory_over_committed_return(self):
         with tempfile.TemporaryDirectory() as t:
             output=Path(t)/'admission'
-            result=subprocess.run([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_admission_ci_v02428.py'),
+            result=run_frozen([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_admission_ci_v02428.py'),
                 '--output',str(output)],capture_output=True,text=True,timeout=180)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             report=json.loads((output/'report.json').read_text())

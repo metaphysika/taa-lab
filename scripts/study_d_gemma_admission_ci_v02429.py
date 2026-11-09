@@ -1,6 +1,4 @@
 """Isolated CPU admission rehearsal over real committed evidence; no Modal backend."""
-from datetime import datetime, timezone
-from unittest.mock import patch
 import argparse
 import importlib.util
 import json
@@ -61,12 +59,8 @@ def run(output):
     virtue_source=output/'virtue-source'/training_binding['zip_root']
     started=time.monotonic();sys.setprofile(profile)
     try:
-        # CI-only historical clock; execute the real guard without changing bundle bytes.
-        real_window=h.window
-        with patch.object(h,'window',side_effect=lambda now=None,stage='smoke':
-                real_window(datetime(2026,10,20,tzinfo=timezone.utc),stage)):
-            admission.admit(h,dest,source,bundle/'assets',payload,ledger,
-                dict(status='COMPLETE',report_sha256=binding['source_composite_sha256']),lambda:persist.append(1),virtue_source)
+        admission.admit(h,dest,source,bundle/'assets',payload,ledger,
+            dict(status='COMPLETE',report_sha256=binding['source_composite_sha256']),lambda:persist.append(1),virtue_source)
     finally:sys.setprofile(None)
     if len(calls)!=1:raise AssertionError('CPU admission must repair exactly once')
     if (dest/'virtue').exists():raise AssertionError('composite save created stage directory')
