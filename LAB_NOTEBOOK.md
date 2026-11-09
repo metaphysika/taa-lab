@@ -11918,3 +11918,8 @@ Run under Chris's approval "Approve the K2b screen at fb4bcc7b", commit `fb4bcc7
 3. *Different way:* stop the free route after this retry and put attention on 31B seed replication, which stays the main line.
 4. *Drift signs:* fix-on-fix no new ones; retries none on E2B; tooling no; scope no.
 5. *Decision:* continue with the approved single retry. Non-blocking.
+
+
+## 2026-11-08 ? Study D CI fixture clocks
+
+Pinned the v02428/v02429 CPU admission fixtures and v02429 post-training fixture to 2026-10-20 UTC around their policy calls, reusing the explicit historical-time delegation pattern in test_modal_serialization_v02413?v02416. The real window check still runs; a regression checks both versions reject 2026-11-10. This removes the completed study?s 2026-11-09 CI expiry without renewing launch authority. No frozen file, policy, ledger, manifest, studies/ or results/ file changed. v02428 post-training does not reach window(); v02429 unit tests inherit the script fix. No README bump: test-only change. Local real clock was 2026-11-09 01:48 UTC: post-training v02428 PASS (396 episodes); affected unit tests ran 17, with 3 failures and 3 errors from Windows resource/symlink limits and CRLF asset hashes. Linux admission/RSS and v02429 post-training remain for hosted CI. Fast checks passed: 550 tests in 131.314s, all scripted scenarios, total 132.86s. Unrelated date issue: Experiment A Google prices expire 2026-12-31; budget.py uses date.today(), including provider-update tests. Left unchanged.

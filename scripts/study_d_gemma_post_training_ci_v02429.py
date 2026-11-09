@@ -1,4 +1,6 @@
 """Free isolated full post-training rehearsal: real staged assets, scripted replies only."""
+from datetime import datetime, timezone
+from unittest.mock import patch
 import argparse
 import hashlib
 import importlib.util
@@ -86,8 +88,12 @@ def worker(args):
             return raw
     session=ScriptedSession();report=dict(status='INCOMPLETE',arm=args.worker,ci_only=True,no_model_generation=True)
     try:
-        runtime.post_training_arm(session,base,policy,acq,folder,Volume(),ledger,
-            dict(stage=args.stage,arm=args.worker,previous_report_sha256=digest,actual_total_usd=22.73),report,dict(status='CI_SCRIPTED_INPUT',no_training=True))
+        # Keep the real launch guard, supplying only the CI fixture time.
+        real_window=policy.window
+        with patch.object(policy,'window',side_effect=lambda now=None,stage='smoke':
+                real_window(datetime(2026,10,20,tzinfo=timezone.utc),stage)):
+            runtime.post_training_arm(session,base,policy,acq,folder,Volume(),ledger,
+                dict(stage=args.stage,arm=args.worker,previous_report_sha256=digest,actual_total_usd=22.73),report,dict(status='CI_SCRIPTED_INPUT',no_training=True))
         legacy=load('legacy_decision',REPO/'formation/study_d_gemma_stages_v02428.py')
         expected=legacy.acquisition_decisions(ledger,'virtue',acq,composite['arms']['neutral']['neutral_ordered'])
         actual=json.loads((args.output/'virtue/decisions.json').read_text())

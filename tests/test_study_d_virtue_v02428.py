@@ -37,6 +37,15 @@ class VirtueTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):cls.tmp.cleanup()
 
+    def test_real_window_still_rejects_expired_launches(self):
+        from datetime import datetime, timezone
+        for version in ('02428','02429'):
+            h=load('expired'+version,'formation/study_d_gemma_stages_v'+version+'.py')
+            with self.subTest(version=version):
+                h.window(datetime(2026,10,20,tzinfo=timezone.utc),'virtue')
+                with self.assertRaisesRegex(ValueError,'finite launch window closed'):
+                    h.window(datetime(2026,11,10,tzinfo=timezone.utc),'virtue')
+
     def test_actual_repaired_composite_and_every_non_missing_unit(self):
         result=self.repair.repair_composite(self.source,self.original,self.binding)
         self.assertEqual(result,json.loads((ASSETS/'composite-pair-v02427.json').read_text()))
