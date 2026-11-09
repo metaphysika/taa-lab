@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from tests.study_d_frozen_clock import run_frozen
 import sys
 import tempfile
 import unittest
@@ -36,6 +37,15 @@ class VirtueTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):cls.tmp.cleanup()
+
+    def test_real_window_still_rejects_expired_launches(self):
+        from datetime import datetime, timezone
+        for version in ('02428','02429'):
+            h=load('expired'+version,'formation/study_d_gemma_stages_v'+version+'.py')
+            with self.subTest(version=version):
+                h.window(datetime(2026,10,20,tzinfo=timezone.utc),'virtue')
+                with self.assertRaisesRegex(ValueError,'finite launch window closed'):
+                    h.window(datetime(2026,11,10,tzinfo=timezone.utc),'virtue')
 
     def test_actual_repaired_composite_and_every_non_missing_unit(self):
         result=self.repair.repair_composite(self.source,self.original,self.binding)
@@ -107,7 +117,7 @@ class VirtueTests(unittest.TestCase):
     def test_full_cpu_admission_memory_over_committed_return(self):
         with tempfile.TemporaryDirectory() as t:
             output=Path(t)/'admission'
-            result=subprocess.run([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_admission_ci_v02428.py'),
+            result=run_frozen([sys.executable,'-I',str(ROOT/'scripts/study_d_gemma_admission_ci_v02428.py'),
                 '--output',str(output)],capture_output=True,text=True,timeout=180)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             report=json.loads((output/'report.json').read_text())

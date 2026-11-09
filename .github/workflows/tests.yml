@@ -17,6 +17,8 @@ jobs:
     needs: scope
     if: github.event_name != 'pull_request' || needs.scope.outputs.study_d == 'true'
     runs-on: ubuntu-latest
+    env:
+      TAA_REQUIRE_FAKETIME: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,6 +26,8 @@ jobs:
           python-version: "3.11"
       - name: Gateway schema dependency (offline tests, no model clients)
         run: python -m pip install -r requirements-gateway-properties.txt
+      - name: Install historical CPU rehearsal clock
+        run: sudo apt-get update && sudo apt-get install -y libfaketime
       - name: Study D sampler static guards (no GPU or credentials)
         run: python scripts/check_study_d_sampler_v02422.py
       - name: Study D exact science serving contract (no GPU or credentials)
@@ -45,7 +49,7 @@ jobs:
         run: python -m unittest tests.test_study_d_virtue_v02427 -v
       - name: Complete virtue CPU admission and peak-RSS regression (no GPU or backend)
         run: |
-          python -I scripts/study_d_gemma_admission_ci_v02428.py --output "$RUNNER_TEMP/study-d-admission-v02428"
+          python -m tests.study_d_frozen_clock -I scripts/study_d_gemma_admission_ci_v02428.py --output "$RUNNER_TEMP/study-d-admission-v02428"
           python -m unittest tests.test_study_d_virtue_v02428 -v
       - name: Preserve CPU admission measurement
         if: always()
@@ -55,8 +59,8 @@ jobs:
           path: ${{ runner.temp }}/study-d-admission-v02428/report.json
       - name: Serving-only virtue admission and worker/controller decision equivalence
         run: |
-          python -I scripts/study_d_gemma_admission_ci_v02429.py --output "$RUNNER_TEMP/study-d-admission-v02429"
-          python -I scripts/study_d_gemma_post_training_ci_v02429.py --assets studies/formation-study-d-gemma-stages-v02429 --output "$RUNNER_TEMP/study-d-post-v02429"
+          python -m tests.study_d_frozen_clock -I scripts/study_d_gemma_admission_ci_v02429.py --output "$RUNNER_TEMP/study-d-admission-v02429"
+          python -m tests.study_d_frozen_clock -I scripts/study_d_gemma_post_training_ci_v02429.py --assets studies/formation-study-d-gemma-stages-v02429 --output "$RUNNER_TEMP/study-d-post-v02429"
           python -m unittest tests.test_study_d_virtue_v02429 -v
       - name: Unit tests
         if: github.event_name != 'pull_request'
