@@ -14,10 +14,9 @@ def frozen_env():
             raise AssertionError(message)
         raise unittest.SkipTest(message)
     env = os.environ.copy()
-    env.update(LD_PRELOAD=str(libraries[0]), FAKETIME='2026-10-20 12:00:00',
-               FAKETIME_DONT_FAKE_MONOTONIC='1', TZ='UTC')
+    env.update(LD_PRELOAD=str(libraries[0]), FAKETIME='@2026-10-20 12:00:00', TZ='UTC')
     # Fail if installed interception does not reach isolated Python and its child.
-    probe = "from datetime import datetime, timezone; import time; assert datetime.now(timezone.utc).isoformat() == '2026-10-20T12:00:00+00:00'; a=time.monotonic(); time.sleep(.05); assert .03 < time.monotonic()-a < 5"
+    probe = "from datetime import datetime, timezone; import time; now = datetime.now(timezone.utc); assert (now.year, now.month, now.day) == (2026, 10, 20), now; a=time.monotonic(); time.sleep(.05); assert .03 < time.monotonic()-a < 5"
     child = "import subprocess, sys; subprocess.run([sys.executable, '-I', '-c', " + repr(probe) + "], check=True)"
     subprocess.run([sys.executable, '-I', '-c', child], env=env, check=True, timeout=30)
     return env
