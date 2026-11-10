@@ -15,6 +15,7 @@ SMOKE = (
     'tests.test_step3_v02444.FixturesTests.test_schedule_two_models_three_repeats',
 )
 FAST = (
+    'tests.test_seed2_v02482',
     'tests.test_ci_tiers', 'tests.test_v020', 'tests.test_v0206',
     'tests.test_obligations', 'tests.test_premise_repairs',
     'tests.test_gateway_foundation', 'tests.test_gateway_executor',
