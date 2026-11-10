@@ -16,7 +16,8 @@ REVISION='842da3794eaa0b77d5f08bae87a17459d91ff475'
 LEDGER='taa-study-d-gemma-v02482-budget-once'
 VOLUME='taa-study-d-gemma-v02482-evidence'
 PRIVATE='taa-study-d-gemma-v02482-private-adapters'
-CAP=13.0
+CAP=10.0
+EVALUATION_CAP=7.0
 PRIOR=0.0
 CREDIT=0.0
 RATE=3.20
@@ -28,7 +29,11 @@ CPU_SOFTWARE=1100
 PACKAGES={'vllm':'0.31.0','transformers':'5.10.4','torch':'2.13.0','huggingface-hub':'1.31.0',
           'nvidia-ml-py':'13.580.82','peft':'0.21.2','accelerate':'1.15.0'}
 STAGES={'cpu':dict(arms=['tokenizer'],target=.25,timeout=1200,software=1100,overhead=.10),
-        'pair':dict(arms=['contrary','neutral'],target=7.75,timeout=3800,software=3600,overhead=.75)}
+        'pair':dict(arms=['contrary','neutral'],target=CAP-.25,timeout=4900,software=4800,overhead=.75)}
+# Reserve CPU first; round the cap-derived worker timeout down to 100 seconds.
+_cpu_reserve=(1200+STARTUP+IDLE)*CPU_RATE/3600+.10
+_pair_timeout=100*math.floor(((CAP-_cpu_reserve-.75)*3600/(2*RATE)-STARTUP-IDLE)/100)
+STAGES['pair'].update(timeout=_pair_timeout,software=_pair_timeout-100)
 ENGINE=dict(model=MODEL,revision=REVISION,tokenizer_revision=REVISION,dtype='bfloat16',
     quantization=None,tensor_parallel_size=1,max_model_len=16384,max_num_seqs=2,
     gpu_memory_utilization=.95,enable_lora=True,max_lora_rank=8,max_loras=1,
@@ -72,10 +77,10 @@ def budget(stage,actual,credit,approved,billing):
     if any(type(v) not in (int,float) or not math.isfinite(v) or v<0 for v in (actual,credit)):
         raise ValueError('finite nonnegative spend and headroom required')
     reserve=reservation(stage)
-    if actual+reserve>8 or credit<reserve:
+    if actual+reserve>CAP or credit<reserve:
         raise ValueError('training/acquisition cap or current headroom insufficient')
     return dict(stage=stage,actual_prior_usd=actual,current_available_credit_usd=credit,
-        stage_reservation_usd=reserve,training_cap_usd=8,evaluation_cap_usd=5,
+        stage_reservation_usd=reserve,training_cap_usd=CAP,evaluation_cap_usd=EVALUATION_CAP,
         invoice_actual_usd=None,accounting='conservative time reservation; dashboard authoritative')
 
 

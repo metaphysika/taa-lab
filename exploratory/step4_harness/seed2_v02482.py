@@ -7,8 +7,8 @@ import math
 from . import l2, seed2_l2_analysis_v02482 as l2_analysis
 from formation import study_d_gemma_stages_v02482 as training
 
-TRAINING_CAP = 8.0
-EVALUATION_CAP = 5.0
+TRAINING_CAP = training.CAP
+EVALUATION_CAP = training.EVALUATION_CAP
 LEDGER = 'taa-seed2-v02482-evaluation-once'
 EVIDENCE = 'taa-seed2-v02482-evaluation-evidence'
 
@@ -62,15 +62,25 @@ def require_training(receipt, report, now=None):
 
 
 def costs():
-    # FABLE_K2B_RESULT_REVIEW §4.1: measured dashboard pair $4.08,
-    # L2 $3.99 / 132 cells. Scale cells; retain a separate startup allowance.
+    # Fable readiness revision: both workers stay allocated until contrary ends.
+    # Assumed training range $5.50-6; midpoint $5.75, not a measured seed 2 bill.
     evaluation=3.99*96/132
     startup=373*3.11/3600  # assumed proxy from measured L1 startup
-    point=4.08+evaluation+startup
-    return dict(training_point_usd=4.08,evaluation_point_usd=evaluation+startup,
+    point=5.75+evaluation+startup
+    return dict(training_point_usd=5.75,evaluation_point_usd=evaluation+startup,
                 point_usd=point,buffered_usd=point*1.25,
-                stress_usd=2*2.87+(evaluation*1.5+startup*2),
+                stress_usd=5.75*1.5+(evaluation*1.5+startup*2),
                 training_cap_usd=TRAINING_CAP,evaluation_cap_usd=EVALUATION_CAP)
+
+
+def training_passed(report):
+    """Read learning checks; absent or incomplete evidence fails closed."""
+    if not isinstance(report,dict):raise ValueError('training report required')
+    return report.get('status')=='COMPLETE' and all(
+        report.get('arms',{}).get(arm,{}).get('status')=='COMPLETE'
+        and report['arms'][arm].get('training',{}).get('status')=='COMPLETE'
+        and report['arms'][arm].get('acquisition',{}).get('transfer_allowed') is True
+        for arm in ('contrary','neutral'))
 
 
 def readings(q, trained=True):
@@ -105,18 +115,20 @@ def readings(q, trained=True):
                 possible_readings=sorted(possible))
 
 
-def analyze(rows,trained=True):
+def analyze(rows,report):
     result=l2_analysis.tally(plan(),{c['id']:c for c in l2.cases()},rows)
-    return result,readings(result['quantities'],trained)
+    return result,readings(result['quantities'],training_passed(report))
 
 
 if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('events')
+    parser.add_argument('--training-report',required=True)
     args=parser.parse_args()
     with open(args.events,encoding='utf-8') as stream:
         rows=[e['row'] for e in map(json.loads,stream) if e.get('event')=='cell']
-    result,decision=analyze(rows)
+    with open(args.training_report,encoding='utf-8') as stream:report=json.load(stream)
+    result,decision=analyze(rows,report)
     print(json.dumps(decision,indent=2))
     for group,value in result['quantities'].items():print(group,dict(value))

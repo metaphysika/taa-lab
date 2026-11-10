@@ -45,13 +45,14 @@ is `taa-study-d-gemma-v02482-evidence`, and ledger is
 2026-11-09 00:00 UTC through, excluding, 2027-01-01 00:00 UTC. Expiry needs
 review; no marker or ledger reset is supported.
 
-Training and acquisition have an **$8 cap**, including a separately approved
-CPU preparation/rehearsal reservation of $0.228528 and pair reservation of
-$7.722444, or $7.950972 together. The pair has a 3,800-second worker timeout,
-a 3,600-second software guard, two concurrent A100-80GB workers, no retries,
-and the inherited $3.20/hour whole-worker rate assumption and overhead
-allowances. These are conservative reservations under assumptions, not a live
-invoice meter or a guarantee of completion. Report actual dashboard spend.
+Training and acquisition have a **$10 cap**. Reserving CPU preparation
+($0.228528) first, then pair overhead ($0.75), startup and idle at the
+inherited $3.20/hour whole-worker assumption derives a worker timeout rounded
+down to 4,900 seconds and a 4,800-second software guard. Pair reservation is
+$9.678000, or $9.906528 including CPU. Two workers remain allocated while
+neutral waits for contrary; the neutral decision wait calls `session.guard()`
+every two seconds against the same software deadline. No retries are added.
+These reservations depend on rate assumptions; dashboard billing is authoritative.
 The CPU stage recounts and validates the new order-sensitive dataset hashes;
 the seed 1 CPU receipt would be invalid for this order and is not reused.
 
@@ -76,28 +77,31 @@ Adapters and all failure evidence are retained. The controller writes the
 completed pair report with UTC completion time and a hash/size-bound adapter
 plan, using the existing checkpoint-integrity format.
 
-Evaluation has a separate **$5 cap**, for a **$13 total ceiling**. Its launcher is
+Evaluation has a separate **$7 cap**, for a **$17 total ceiling**. Its launcher is
 `python -m exploratory.step4_harness.seed2_backend_v02482`; no arguments gives
 an offline binding/cost preview. `--training-report PATH` previews the exact
 report/inventory binding. To execute later requires `--receipt PATH`,
 `--confirm-owner-approval`, and a fresh `--output PATH`, with clean exact HEAD,
 source ZIP SHA-256 and owner-approved receipt. The receipt includes the preview
-fields, `dollar_cap: 5`, `approved_by: Chris Lahn`, a nonempty `approval_id`,
+fields, `dollar_cap: 7`, `approved_by: Chris Lahn`, a nonempty `approval_id`,
 `archive_sha256`, and a `dashboard` object:
 
 - `attested_by: Chris Lahn`, nonempty `attestation`;
 - timezone-bearing `read_at_utc`, after report completion and no later than now;
-- `training_actual_usd`, including CPU, strictly below $8;
-- `remaining_headroom_usd`, at least $5.
+- `training_actual_usd`, including CPU, strictly below $10;
+- `remaining_headroom_usd`, at least $7.
 
 These dashboard fields are owner attestations, never inferred from estimated
-usage. If training reaches its cap or headroom is below $5, evaluation refuses
+usage. If training reaches its cap or headroom is below $7, evaluation refuses
 before image/resource creation. The remote body repeats receipt/report checks
 and verifies the read-only seed 2 adapters against the report's explicit plan;
 seed 1's default plan and mounts are untouched. Evaluation has a distinct
 `taa-seed2-v02482-evaluation-once` ledger, one durable claim regardless of
 approval ID, no resume/retry, a separate evidence Volume, and the existing L2
-cap/time reservation logic. Its timeout is supplied to Modal as well as its
+cap/time reservation logic, using $7 only for seed 2. The derived timeout is
+5,168 seconds and stop-new is 4,448 seconds, exceeding the roughly 3,700-second
+seed 1 reference. Startup/idle/shutdown allowances plus timeout reserve at most $7
+at the measured effective rate with its existing 1.25 multiplier. Its timeout is supplied to Modal as well as its
 software guard. No base, virtue, outside-sphere or customer evaluation arm exists.
 
 ## Evaluation and reading
@@ -114,7 +118,7 @@ so this is not an isolated estimate of training-seed effects. Builder and
 reviewers have seen L2 keys and seed 1 outcomes. This is exploratory and tests
 only a second adapter pair, not a distribution of seeds.
 
-`python -m exploratory.step4_harness.seed2_v02482 EVENTS` applies unchanged L2
+`python -m exploratory.step4_harness.seed2_v02482 EVENTS --training-report REPORT` applies unchanged L2
 tallies and reports all four thresholds over every resolution of unknowns:
 Manager minus driver at least 2; neutral Manager at most 2; contrary lawful
 at least 10; contrary knowledge at least neutral minus 2. Each threshold is
@@ -128,26 +132,27 @@ No rerun is supplied. An arm not trained as specified cannot be read as fragile.
 
 ## Derived cost estimates
 
-Inputs are the measured figures cited in Fable's K2b review, section 4.1:
-pair dashboard increase $4.08 (not itemized); L2 $3.99 for 132 cells and
-4,614 seconds; virtue training/load 2,639 + 684 seconds, about $2.87 at
-$3.10/hour. No live dashboard was consulted for this build.
+Fable's exact-commit readiness review corrected the training forecast because
+neutral remains allocated while contrary finishes. Training point range is
+**$5.50-6**, midpoint **$5.75**, cap **$10**; evaluation point is about **$3.20**,
+cap **$7**. Total point is about **$9**, ceiling **$17**. These are estimates,
+not seed 2 measurements. Nothing has yet run on a live GPU for this build.
+An idle worker on early failure can cost up to about **$3**.
 
-`seed2_v02482.costs()` makes the arithmetic reproducible:
+`seed2_v02482.costs()` uses training $5.75 plus evaluation $3.99 * 96/132
+and startup proxy 373 seconds * $3.11/hour: point **$8.974049**;
+25% buffered **$11.217561**; stress (training * 1.5 + scaled evaluation * 1.5
++ startup * 2) **$13.622188**. Startup is a measured L1 proxy reused as an
+assumption. Stress is a sensitivity, not an upper bound or completion guarantee.
 
-- Point: training $4.08 + evaluation $3.99 * 96/132 + a startup proxy
-  373 seconds * $3.11/hour = **$7.304049**.
-- Buffered: point * 1.25 = **$9.130061**.
-- Stress: training 2 * $2.87 + scaled evaluation * 1.5 + startup proxy * 2
-  = **$10.737188**.
-
-The 373-second startup proxy is measured L1 startup reused as an assumption,
-not a new seed 2 measurement. The training interval is not an itemized training
-bill, and the extra CPU preparation/acquisition cost is covered by the stage
-reservation rather than treated as newly measured in the point forecast.
-The stress scenario is a planning sensitivity, not an upper bound. The $13
-ceiling does not guarantee either stage completes; headroom and approvals
-are checked separately at their boundaries.
+Revision v0.24.83 responds to Fable's fe5e6c7b readiness review; file names
+remain v02482. Chris approved these plan caps only, with no run approval.
+Analysis now requires a training report and derives trained status from both
+arms' complete training and acquisition learning checks. Missing reports fail
+closed; failed checks yield not trained as specified. Evaluation already requires
+the training report commit to equal the evaluation receipt/source commit, and
+repeats that check remotely. A CPU regression now tests mismatches even with a
+correctly rebound report hash. Seed 1 and shared L2 settings remain unchanged.
 
 ## Offline validation
 
@@ -166,3 +171,9 @@ No GPU fit, real adapter acquisition, remote serialization, Modal availability,
 actual billing or model outcome has been tested. README is bumped to v0.24.82;
 Claude owns the notebook pre-run entry. No credentials were read or changed,
 and no results were removed.
+
+Revision validation (2026-11-10): all 14 seed 2 tests passed; fast checks
+passed 564 tests and all scripted scenarios in 131.439 seconds. Log:
+`%TEMP%/seed2-revision-fast-final.txt`; retained scripted output:
+`results/20261110-073836-scripted/`. The initial revision test run caught a
+floating-point exact-equality assertion, corrected to approximate equality.

@@ -12075,3 +12075,12 @@ No model run and no code change. This records decisions made in conversation, so
 3. *Different way:* stop the servility line after seed 2 and put all effort into FT1 on free hardware. That stays open after seed 2's result.
 4. *Drift signs:* fix-on-fix no. Retries no. Tooling growing faster than results no. Scope creep: mild, since the audit added three new lines of work (FT0/FT1, R1, the extra arms). They are sequenced one build at a time.
 5. *Decision:* continue. The next steps are the seed 2 pre-run entry and the FT0 pre-run entry, each with a Fable readiness review.
+
+
+## 2026-11-10 ? v0.24.83 seed 2 offline readiness revision
+
+Fable found fe5e6c7b not ready because cost-derived limits were too short.
+Chris approved plan caps of $10 training and $7 evaluation ($17 ceiling),
+without execution approval. Build revises time reservations, forecast and
+report-based analysis; v02482 filenames remain. No model, Modal, Kaggle or
+paid call. See docs/process/SEED2_IMPLEMENTATION_2026-11-09.md.

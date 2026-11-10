@@ -58,9 +58,9 @@ class Seed2Tests(unittest.TestCase):
             find=lambda tree:next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==name)
             self.assertEqual(ast.dump(find(original)),ast.dump(find(versioned)))
         cost=s.costs()
-        self.assertAlmostEqual(cost['point_usd'],7.304048737373738)
+        self.assertAlmostEqual(cost['point_usd'],8.974048737373739)
         self.assertAlmostEqual(cost['buffered_usd'],cost['point_usd']*1.25)
-        self.assertAlmostEqual(cost['stress_usd'],10.737188383838383)
+        self.assertAlmostEqual(cost['stress_usd'],13.622188383838385)
 
     def test_seed_reaches_actual_runtime_calls(self):
         source=(ROOT/'scripts/study_d_gemma_stages_runtime_v02482.py').read_text()
@@ -84,12 +84,12 @@ class Seed2Tests(unittest.TestCase):
     def test_budget_window_and_distinct_resources(self):
         now=datetime(2026,12,1,tzinfo=timezone.utc)
         self.assertNotEqual(h.PRIVATE,old.PRIVATE);self.assertNotEqual(h.LEDGER,old.LEDGER)
-        self.assertLessEqual(sum(h.reservation(k) for k in h.STAGES),8)
+        self.assertLessEqual(sum(h.reservation(k) for k in h.STAGES),10)
         for stage in h.STAGES:
-            p=dict(stage=stage,commit='a'*40,approved=True,actual_total_usd=0,available_credit_usd=8,
+            p=dict(stage=stage,commit='a'*40,approved=True,actual_total_usd=0,available_credit_usd=10,
                    billing_attestation='owner dashboard',approval_receipt=f'Owner approved Study D Gemma {stage} v02482, commit '+ 'a'*40)
             h.validate(p,now)
-            for field,value in [('approved',False),('available_credit_usd',0),('actual_total_usd',8),('approval_receipt','old')]:
+            for field,value in [('approved',False),('available_credit_usd',0),('actual_total_usd',10),('approval_receipt','old')]:
                 with self.assertRaises(ValueError):h.validate(dict(p,**{field:value}),now)
         with self.assertRaises(ValueError):h.window(datetime(2027,1,1,tzinfo=timezone.utc))
 
@@ -98,14 +98,14 @@ class Seed2Tests(unittest.TestCase):
                     adapter_plan=dict(checkpoints=[dict(arm=x) for x in ('contrary','neutral')]),arms={})
         for arm in ('contrary','neutral'):
             report['arms'][arm]=dict(status='COMPLETE',training=dict(status='COMPLETE',settings=h.TRAIN.copy(),optimizer_steps=250,processed_examples=2000),acquisition=dict(transfer_allowed=True))
-        raw=json.dumps(report).encode();receipt=dict(b.expected('a'*40,report,raw),approved_by='Chris Lahn',approval_id='new',dollar_cap=5,
-            dashboard=dict(attested_by='Chris Lahn',attestation='read after training',read_at_utc='2026-12-01T12:01:00+00:00',training_actual_usd=5,remaining_headroom_usd=5))
+        raw=json.dumps(report).encode();receipt=dict(b.expected('a'*40,report,raw),approved_by='Chris Lahn',approval_id='new',dollar_cap=7,
+            dashboard=dict(attested_by='Chris Lahn',attestation='read after training',read_at_utc='2026-12-01T12:01:00+00:00',training_actual_usd=5,remaining_headroom_usd=7))
         return report,receipt,datetime(2026,12,1,12,2,tzinfo=timezone.utc)
 
     def test_post_training_dashboard_and_acquisition_gates(self):
         report,receipt,now=self.fixture()
         s.require_training(receipt,report,now)
-        for field,value in [('remaining_headroom_usd',4.99),('training_actual_usd',8),('read_at_utc','2026-12-01T11:59:59+00:00'),('read_at_utc','2026-12-01T13:00:00+00:00'),('attested_by','builder')]:
+        for field,value in [('remaining_headroom_usd',4.99),('training_actual_usd',10),('read_at_utc','2026-12-01T11:59:59+00:00'),('read_at_utc','2026-12-01T13:00:00+00:00'),('attested_by','builder')]:
             changed=deepcopy(receipt);changed['dashboard'][field]=value
             with self.assertRaises(ValueError):s.require_training(changed,report,now)
         for arm in ('contrary','neutral'):
@@ -199,6 +199,37 @@ class Seed2Tests(unittest.TestCase):
         q=self.counts(12,0,2);q['ladder','manager','neutral']['unknown']=1
         self.assertEqual(s.readings(q)['thresholds']['T-controls'],'not established')
         self.assertEqual(s.readings(q)['reading'],'not established')
+
+    def test_revised_time_and_cost_limits(self):
+        config=b.m.settings(s.EVALUATION_CAP,'l2')
+        self.assertEqual(config['timeout'],5168)
+        self.assertEqual(config['stop_new_cells_seconds'],4448)
+        self.assertGreater(config['stop_new_cells_seconds'],3700)
+        self.assertEqual(config['session_reserve'],7)
+        self.assertLessEqual((config['timeout']+config['pre_timeout_allowance_seconds'])*config['pessimistic_hourly_rate']/3600,7)
+        self.assertEqual(h.STAGES['pair']['software'],4800)
+        self.assertEqual(h.STAGES['pair']['timeout'],4900)
+        self.assertLessEqual(sum(h.reservation(k) for k in h.STAGES),10)
+        self.assertEqual(h.CAP,10)
+        self.assertEqual(s.costs()['training_point_usd'],5.75)
+        self.assertAlmostEqual(s.costs()['point_usd'],s.costs()['training_point_usd']+s.costs()['evaluation_point_usd'])
+        source=(ROOT/'scripts/study_d_gemma_stages_runtime_v02482.py').read_text()
+        self.assertIn("deadline=worker_started+h.STAGES[stage]['software']",source)
+        self.assertIn("session.guard();time.sleep(2)",source)
+
+    def test_analysis_requires_learning_report_and_commit_matches(self):
+        report,receipt,now=self.fixture()
+        self.assertTrue(s.training_passed(report))
+        with self.assertRaises(ValueError):s.analyze([],None)
+        for arm in ('contrary','neutral'):
+            bad=deepcopy(report);bad['arms'][arm]['acquisition']['transfer_allowed']=False
+            self.assertFalse(s.training_passed(bad))
+            self.assertEqual(s.analyze([],bad)[1]['reading'],'not trained as specified')
+        bad=deepcopy(report);bad['commit']='b'*40
+        # Rebind the report hash too, so the commit guard itself must reject it.
+        raw=json.dumps(bad).encode()
+        changed=dict(receipt,**b.expected('a'*40,bad,raw))
+        with self.assertRaisesRegex(ValueError,'approved commit'):b.validate(changed,bad,raw,'a'*40,now)
 
     def test_durable_single_attempt(self):
         class Ledger(dict):

@@ -29,7 +29,7 @@ def build():
     def write(name,value):
         (folder/name).write_text(json.dumps(value,indent=2)+'\n',encoding='utf-8',newline='\n')
     write('stages.json',dict(version=h.VERSION,approved=False,training=h.TRAIN,lora=h.LORA,
-        engine=h.ENGINE,stages=h.STAGES,training_cap_usd=8,evaluation_cap_usd=5))
+        engine=h.ENGINE,stages=h.STAGES,training_cap_usd=h.CAP,evaluation_cap_usd=h.EVALUATION_CAP))
     frozen=[str(p.relative_to(ROOT)).replace('\\','/') for p in old.iterdir() if p.is_file()]
     frozen+=['formation/study_d_gemma_stages_v02424.py','scripts/study_d_gemma_stages_runtime_v02424.py']
     preservation={name:hashlib.sha256(subprocess.check_output(['git','show','40c77e66:'+name],cwd=ROOT)).hexdigest() for name in frozen}
