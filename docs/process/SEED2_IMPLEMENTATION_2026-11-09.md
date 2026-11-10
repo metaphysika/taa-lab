@@ -168,7 +168,7 @@ all scripted scenarios (127.064 seconds). Raw local log:
 active manifest. An earlier fast check rejected edits to pinned L2 source;
 those files were restored and the versioned copies passed the final suite.
 No GPU fit, real adapter acquisition, remote serialization, Modal availability,
-actual billing or model outcome has been tested. README is bumped to v0.24.82;
+actual billing or model outcome has been tested. README is bumped to v0.24.83;
 Claude owns the notebook pre-run entry. No credentials were read or changed,
 and no results were removed.
 
