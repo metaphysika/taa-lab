@@ -1,4 +1,4 @@
-# Draft pre-run entries: seed 2 at 31B and FT0 training-fit check (2026-11-09, revision 2)
+# Draft pre-run entries: seed 2 at 31B and FT0 training-fit check (2026-11-09, revision 3)
 
 Status: **drafts, revised after Fable's design-stage readiness review** (`docs/process/FABLE_READINESS_SEED2_FT0_DRAFTS_2026-11-09.md`). That review found seed 2 "GO after fixes" and FT0 "NOT READY as written". Every must-fix below is applied, along with most of the advisories.
 
@@ -21,13 +21,15 @@ Does a second contrary/neutral pair, trained by the unchanged Study D recipe fro
 
 ### Scope
 
-**What changes.** Only the training seed. In this recipe the training seed is set in four places, all of which must change together:
+**Revision 3 correction (stage-thread decision).** Sol found that revision 2 incorrectly attributed training order to the Trainer seeds. The runtime reads a frozen order and uses `SequentialSampler`. Seed 2 changes both sources of training randomness: the training seed sets LoRA initialization and Trainer seeds; a new shuffle seed supplies the data order through the existing frozen-order mechanism. Contrary and neutral share the new order (`same_order_all_arms`); fixed-order dataset construction and `SequentialSampler` stay unchanged. The original shuffle procedure must be located and reused, with reproducibility and seed 1 byte-preservation tests, before implementation continues.
+
+**What changes.** The training seed and the training-order shuffle seed. The training seed is set in four places, all of which must change together:
 - `formation/study_d_gemma_stages_v02424.py:38`: `TRAIN['seed']`, recorded in the manifest.
 - `scripts/study_d_gemma_stages_runtime_v02424.py:418`: `torch.manual_seed(247056)` before LoRA injection. This controls the adapter's initial weights.
-- `scripts/study_d_gemma_stages_runtime_v02424.py:451`: the Trainer's `seed` and `data_seed`. These control training order.
+- `scripts/study_d_gemma_stages_runtime_v02424.py:451`: the Trainer's `seed` and `data_seed`. These do not set the frozen example order.
 - `scripts/study_d_gemma_stages_runtime_v02424.py:262`: the CPU rehearsal's tiny-model seed. This is rehearsal only, but it is kept consistent.
 
-The build gives all four one source and adds a CPU test that the new seed reaches each place, so seed 1 cannot be retrained under a seed 2 label. The new value is chosen and recorded before any training.
+The build gives all four one source and adds a CPU test that the new seed reaches each place, so seed 1 cannot be retrained under a seed 2 label. Both new seed values are chosen and recorded before any training. The new `training-order.json` high order must be a reproducible permutation of exactly the original 2,000 record IDs, differ from seed 1, and use the original documented shuffle procedure. The evaluation order seed remains 247053.
 
 **What does not change:**
 - the sampling seed (`v02424.py:33`, 248017);
