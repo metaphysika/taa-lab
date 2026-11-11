@@ -12194,3 +12194,34 @@ An OOM at either length is retained as an event and the run still finishes.
 - Five steps cannot show whether fp16 will skip every update, as it did on 4B; each FT1 arm keeps the 25-of-250 rule.
 - Three identical probe passes do not capture allocator fragmentation over 250 mixed-length steps.
 - The Gemma tokenizer path and transformers 5.20.2 internals are unverified offline; they fail closed.
+
+## 2026-11-11 — v0.24.84 EXPLORATORY FT0 training-fit check, Gemma 3 12B IT on one Kaggle T4: FAIL (out of memory at 1,024 tokens)
+
+Run under Chris's approval "Approved" (2026-11-11), given for FT0 at main `9964d578`. Commit `9964d57860a17700e3ea55cd24026e7a723bbccd`, model `google/gemma-3/transformers/gemma-3-12b-it/1`, kernel `metaphysika/k2q-12b-neu-s247056-9964d578-3212ee2a` (private, internet off, one Tesla T4). It ran once; no rerun. Cost $0, about 12 minutes of Kaggle T4 time. The downloaded output matches its manifest (SHA-256 verified).
+
+Evidence: `results/2026-11-11 v0.24.84 gemma-3-12b-it-qualify-neutral-s247056 k2 k2q-12b-neu-s247056-9964d578-3212ee2a/`. The non-scientific adapter is not committed, as with the 4B qualification run. Its bytes are kept on the home PC in the main checkout's `results/` copy and are hashed in `manifest.json` (`adapter_model.safetensors` SHA-256 `1be5d629b39c7e3779e9d80cf4717179b4b1f1d1749f87958a46002710599443`).
+
+**Verdict under the pre-run rule: FAIL.** Report: `python -m exploratory.k2_kaggle.ft0 <k2-output> --approved-commit 9964d578…`.
+
+| Rule | Result |
+|---|---|
+| 1. Artifacts and identity | PASS. Qualification completed, losses finite, adapter saved/reloaded/switched/disabled, generation ran. Tesla T4, one visible GPU, approved commit, unchanged recipe. All 336 LoRA modules are language-model modules (`…language_model.layers.N…`). |
+| 2. Peak ≤ 13.5e9 bytes at 1,024 tokens | FAIL. The 1,024 probe ran out of memory on its first pass. |
+| 3. Worst-case time ≤ 8.0 h | NOT ESTABLISHED. There is no 1,024 pass time. |
+| 2,048 (reported) | Also out of memory on its first pass. |
+
+**What was measured.**
+- **Load:** 25.6 s.
+- **Training peak:** the five steps on the short K2 records (mean about 141 tokens) already peaked at 12.95e9 bytes allocated. That is above amendment 2's 12 GB, and within about 0.55e9 of the 13.5e9 gate.
+- **The OOM at 1,024 tokens:** a request for a further 1.00 GiB, with 12.72 GiB allocated by PyTorch and 1,010.81 MiB free of 14.56 GiB.
+  - Stage-thread observation, not a measured cause: 1,024 tokens × Gemma 3's 262,144-entry vocabulary × 4 bytes is exactly 1.00 GiB, which is the size of a full-precision logits tensor. This is consistent with the language-model head's output being the allocation that failed.
+- **Training-step time:** 14.6 s per step on short records. There is no long-record time.
+- **fp16:** steps 1–3 had non-finite gradient norms, so those updates were skipped; steps 4 and 5 updated, with grad norms 12.3 and 5.8. Five steps cannot show the 250-step skip count.
+- **Short-generation throughput:** 2.62 tokens/s. The amendment-2 evaluation proxy gives 52 h. That proxy is weak, as stated before the run.
+
+**Against predictions.**
+- Claude: PASS about 55%. Fable: PASS about 45%.
+- Fable's pre-mortem reason 1, "a genuine memory fail" with a 1,024 peak of 13 to 14.5 GB, is what happened. Fable also predicted the 2,048 OOM.
+- The check named as most likely to fail, memory at 1,024, failed.
+
+**What follows (pre-run rule).** Stop and return to Chris. Under this entry there is no recipe change (bf16, smaller rank, 8-bit, chunked or position-limited loss, other hardware) and no rerun. Any next attempt needs its own entry and approval. FT0 does not test whether FT1's arms would learn. Gemma 3 12B on one T4 through the unchanged K2 path does not fit FT1's record lengths.
