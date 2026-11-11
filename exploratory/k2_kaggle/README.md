@@ -161,7 +161,7 @@ K2b (v0.24.80) adds screen-only Gemma 4 candidates and a 48-cell L2 shard. See [
 FT0 is a non-scientific, opt-in `--ft0 --mode qualify --model gemma-3-12b-it`
 run on neutral records. The notebook defaults to `FT0 = False`. The K2 recipe
 and training context limit remain fixed. After five steps, adapter save and
-qualification checks, FT0 measures one warm-up and three forward/backward passes
+qualification checks, FT0 measures, on the trainable training model before the reload checks, one warm-up and three forward/backward passes
 at exactly 1,024 then 2,048 tokens, using the real template and assistant-only
 mask. It discards gradients without optimizer updates or subsequent adapter saves.
 OOM events are retained; a 2,048 OOM does not prevent qualification completion.
@@ -173,7 +173,7 @@ It verifies inventory hashes, finite losses/tensors and qualification artifacts,
 then applies Draft B's decimal 13.5 GB (13.5e9 bytes) and 8.0 h limits. The time
 estimate uses the slowest measured pass. All timings, reserved and allocated
 memory, skipped update steps and 2,048 outcomes are retained. Evaluation time is
-the amendment-2 planning proxy, load + 495 requests x 1,024 output tokens divided
+the amendment-2 planning proxy, load + 480 requests (96 episodes x 5, amendment 2) x 1,024 output tokens divided
 by measured short-generation throughput; long-history prefill overhead is not
 measured by this proxy. This is reported, not an FT0 gate.
 

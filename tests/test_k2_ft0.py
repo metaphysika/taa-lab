@@ -33,6 +33,13 @@ class FT0Tests(unittest.TestCase):
         for model in ('gemma-3-4b-it','gemma-3-12b-it'):
             self.assertEqual(core.lora_targets(model,names),names[:1])
         self.assertIn('FT0 = False', ''.join(json.loads((Path(core.__file__).parent/'k2_train.ipynb').read_text())['cells'][1]['source']))
+    def test_probes_use_trainable_training_model(self):
+        src=''.join(json.loads((Path(core.__file__).parent/'k2_train.ipynb').read_text())['cells'][2]['source'])
+        self.assertIn('ft0.probes(model,tokenizer,retain,check_deadline)',src)
+        self.assertNotIn('ft0.probes(reloaded',src)
+        # after the adapter is saved and checked, before completion runs the reload checks
+        self.assertLess(src.index("core.finite_adapter(OUTPUT/'adapter'"),src.index('ft0.probes(model'))
+        self.assertLess(src.index('ft0.probes(model'),src.index('retain(core.completion('))
     def fixture(self,p,peak=1e9,seconds=1,oom=None):
         (p/'adapter').mkdir()
         header=json.dumps({'x':dict(dtype='F32',shape=[1],data_offsets=[0,4])}).encode()

@@ -152,12 +152,12 @@ def report(folder):
         lengths[str(length)]=dict(oom=oom,peak_allocated_bytes=peak,raw_passes=rows,worst_case_hours=hours,memory=memory,time=timing)
         if length==1024: rules.update({'2':memory,'3':timing})
     throughput=next((e.get('adapter_tokens_per_second') for e in events if e.get('event')=='qualification_probe'),None)
-    estimate=(load+495*1024/throughput)/3600 if load is not None and throughput and throughput>0 else None
+    estimate=(load+480*1024/throughput)/3600 if load is not None and throughput and throughput>0 else None
     verdict='FAIL' if 'FAIL' in rules.values() else 'NOT ESTABLISHED' if 'NOT ESTABLISHED' in rules.values() else 'PASS'
     reasons += ['Rule '+k+': '+v for k,v in rules.items() if v!='PASS']
     return dict(verdict=verdict,rules=rules,reasons=reasons,units='decimal GB (1 GB = 1e9 bytes); time in hours',
                 lengths=lengths,skipped_update_steps=sorted(core.nonfinite_grad_steps(events)),tokens_per_second=throughput,
-                amendment_2_evaluation_hours=estimate,evaluation_assumption='load + 495 requests x 1024 output tokens / short-generation throughput; excludes long-input overhead')
+                amendment_2_evaluation_hours=estimate,evaluation_assumption='load + 480 requests (96 episodes x 5, amendment 2) x 1024 output tokens / short-generation throughput; excludes long-input overhead')
 
 
 if __name__=='__main__':
