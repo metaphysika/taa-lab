@@ -78,3 +78,9 @@ With FT0 off, 1B and 4B behave the same: every notebook change is behind `if FT0
 - Must-fix 4: fixed. Rule 1 now checks Tesla T4, one visible GPU, recipe hash, neutral arm, exact probe-record lengths and, with `--approved-commit`, the repo commit.
 - Advisories applied: training peak retained before probes; per-pass LoRA gradient present/finite counts; `use_cache` restored; reserved peak surfaced and flagged above 15e9; 1,024 peaks above 13.2e9 flagged marginal. Not applied: FT0 label in the slug (the flag is in launch.json and metadata; the results folder name will carry "ft0" when the stage thread renames it per CLAUDE.md rule 4).
 - Fable's pass estimate (about 45%, against Claude's draft 60%) goes into the pre-run entry.
+
+## Fable re-check of the fixes (82d30e94), summarized by the stage thread
+
+Verdict: READY AFTER FIXES at the code level. Fixes 2–4 and the advisories were confirmed correct; the notebook, `core.py` and `launch.py` were byte-identical to `bb353252`; K2 tests 81 OK. One must-fix, introduced by the `use_cache` advisory: `ft0.py` read `model.config.use_cache`, which may be absent on the composite `Gemma3ForConditionalGeneration` config and would raise before any probe ran. Advisories: surface non-finite probe results at top level; make `--approved-commit` required.
+
+Handling: `use_cache` is read with a sentinel and restored or removed in `finally` (`ft0.restore_use_cache`, tested with a config lacking the attribute). The report has a top-level `warnings` list (non-finite losses/gradients, marginal or high-reserved peaks, unchecked commit). `--approved-commit` is required on the command line.

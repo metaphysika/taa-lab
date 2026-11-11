@@ -78,6 +78,21 @@ class FT0Tests(unittest.TestCase):
             self.assertEqual(r['verdict'],'PASS')
             self.assertEqual(r['lengths']['1024']['nonfinite_loss_passes'],3)
             self.assertEqual(r['lengths']['1024']['passes_with_all_lora_gradients_finite'],0)
+    def test_use_cache_restore_handles_missing_attribute(self):
+        class Config: pass
+        c=Config(); c.use_cache=False
+        ft0.restore_use_cache(c,ft0._MISSING); self.assertFalse(hasattr(c,'use_cache'))
+        c=Config(); ft0.restore_use_cache(c,ft0._MISSING); self.assertFalse(hasattr(c,'use_cache'))
+        c=Config(); c.use_cache=False; ft0.restore_use_cache(c,True); self.assertTrue(c.use_cache)
+        self.assertIs(getattr(Config(),'use_cache',ft0._MISSING),ft0._MISSING)
+    def test_warnings_surface_nonfinite_and_unchecked_commit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp); self.fixture(p,loss_finite=False)
+            w=' '.join(ft0.report(p)['warnings'])
+            self.assertIn('non-finite loss',w); self.assertIn('LoRA gradients finite',w); self.assertIn('not checked',w)
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp); self.fixture(p)
+            self.assertEqual(ft0.report(p,'c'*40)['warnings'],[])
     def test_oom_classification(self):
         class OutOfMemoryError(RuntimeError): pass  # stands in for torch.cuda.OutOfMemoryError
         self.assertTrue(ft0.is_oom(RuntimeError('CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling cublasCreate')))

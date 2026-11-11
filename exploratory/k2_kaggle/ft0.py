@@ -50,13 +50,24 @@ def gradient_stats(model):
                 lora_gradients_finite=sum(1 for g in present if torch.isfinite(g).all().item()))
 
 
+_MISSING = object()
+
+
+def restore_use_cache(config, value):
+    if value is _MISSING:
+        if 'use_cache' in vars(config): delattr(config, 'use_cache')
+    else:
+        config.use_cache = value
+
+
 def probes(model, tokenizer, retain, check=lambda: None):
     import time
     import torch
     # Peak of the five training steps (and setup so far), retained before any reset.
     retain(dict(event='training_peak_before_probes', peak_allocated_bytes=torch.cuda.max_memory_allocated(),
                 peak_reserved_bytes=torch.cuda.max_memory_reserved()))
-    use_cache = model.config.use_cache
+    # Gemma3ForConditionalGeneration's composite config may have no top-level use_cache.
+    use_cache = getattr(model.config, 'use_cache', _MISSING)
     model.train()
     model.gradient_checkpointing_enable()
     model.config.use_cache = False
@@ -102,7 +113,7 @@ def probes(model, tokenizer, retain, check=lambda: None):
                 del batch
                 torch.cuda.empty_cache()
     finally:
-        model.config.use_cache = use_cache
+        restore_use_cache(model.config, use_cache)
         model.eval()
 
 
@@ -198,8 +209,16 @@ def report(folder, approved_commit=None):
     estimate=(load+480*1024/throughput)/3600 if load is not None and throughput and throughput>0 else None
     verdict='FAIL' if 'FAIL' in rules.values() else 'NOT ESTABLISHED' if 'NOT ESTABLISHED' in rules.values() else 'PASS'
     reasons += ['Rule '+k+': '+v for k,v in rules.items() if v!='PASS']
+    warnings = []
+    for k,v in lengths.items():
+        if v['nonfinite_loss_passes']: warnings.append(f'{k}-token probe: {v["nonfinite_loss_passes"]} of 3 passes had non-finite loss (not gating)')
+        if v['raw_passes'] and v['passes_with_all_lora_gradients_finite']<len(v['raw_passes']):
+            warnings.append(f'{k}-token probe: only {v["passes_with_all_lora_gradients_finite"]} of {len(v["raw_passes"])} passes had all LoRA gradients finite (not gating)')
+        if v['marginal_above_13_2e9']: warnings.append(f'{k}-token probe: peak above 13.2e9 bytes, marginal')
+        if v['reserved_above_15e9']: warnings.append(f'{k}-token probe: reserved peak above 15e9 bytes')
+    if approved_commit is None: warnings.append('repo commit not checked against an approved commit')
     training_peak=next((e.get('peak_allocated_bytes') for e in events if e.get('event')=='training_peak_before_probes'),None)
-    return dict(verdict=verdict,rules=rules,reasons=reasons,training_peak_allocated_bytes=training_peak,
+    return dict(verdict=verdict,rules=rules,reasons=reasons,warnings=warnings,training_peak_allocated_bytes=training_peak,
                 notes='Memory is allocated bytes; probes zero gradients each pass, so real 8-step accumulation holds slightly more. Treat 1,024 peaks above 13.2e9 as marginal. Evaluation estimate is a weak proxy (16-token throughput incl. prefill).',units='decimal GB (1 GB = 1e9 bytes); time in hours',
                 lengths=lengths,skipped_update_steps=sorted(core.nonfinite_grad_steps(events)),tokens_per_second=throughput,
                 amendment_2_evaluation_hours=estimate,evaluation_assumption='load + 480 requests (96 episodes x 5, amendment 2) x 1024 output tokens / short-generation throughput; excludes long-input overhead')
@@ -209,6 +228,6 @@ if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser(__doc__)
     parser.add_argument('folder',type=Path)
-    parser.add_argument('--approved-commit',help='full SHA Chris approved; the report checks metadata.repo_commit against it')
+    parser.add_argument('--approved-commit',required=True,help='full SHA Chris approved; the report checks metadata.repo_commit against it')
     args=parser.parse_args()
     print(json.dumps(report(args.folder,args.approved_commit),indent=2))

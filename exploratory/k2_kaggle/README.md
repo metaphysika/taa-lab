@@ -170,7 +170,8 @@ coverage is recorded and asserted before training.
 
 After fetching, run `python -m exploratory.k2_kaggle.ft0 OUTPUT_FOLDER --approved-commit FULL_SHA` offline.
 Rule 1 also requires a Tesla T4, one visible GPU, the unchanged recipe hash, neutral records,
-exact-length probe records and (with --approved-commit) the approved repo commit.
+exact-length probe records and the approved repo commit (--approved-commit is required).
+Non-gating concerns (non-finite probe losses or gradients, marginal peaks) appear under `warnings`.
 Probe passes retain non-finite losses instead of aborting, count finite LoRA gradients,
 and treat cuBLAS/bitsandbytes allocation failures as OOM. The five-step training peak
 is retained before the first probe reset; reserved memory is surfaced, and 1,024 peaks
