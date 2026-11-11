@@ -85,7 +85,7 @@ def lora_targets(model, names):
     model_id(model)
     targets = [n for n in names if n.split('.')[-1] in PROJECTIONS
                and not any(x in n.lower() for x in ('vision', 'projector', 'multi_modal'))
-               and (model != 'gemma-3-4b-it' or 'language_model' in n.split('.'))]
+               and (model not in ('gemma-3-4b-it', 'gemma-3-12b-it') or 'language_model' in n.split('.'))]
     if not targets: raise ValueError('no language projection modules found')
     return targets
 

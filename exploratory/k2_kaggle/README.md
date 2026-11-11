@@ -155,3 +155,38 @@ and byte-level plan_file_sha256 separately.
 
 
 K2b (v0.24.80) adds screen-only Gemma 4 candidates and a 48-cell L2 shard. See [implementation and commands](../../docs/process/GEMMA4_SCREEN_IMPLEMENTATION_2026-11-08.md). Gemma 4 training and adapters are refused. Qualification records native template, render, token and timing artifacts; it supplies no scientific pass decision. Run `python -m exploratory.k2_kaggle.screen <events.jsonl>` for the CPU format audit.
+
+## FT0: Gemma 3 12B training-fit check
+
+FT0 is a non-scientific, opt-in `--ft0 --mode qualify --model gemma-3-12b-it`
+run on neutral records. The notebook defaults to `FT0 = False`. The K2 recipe
+and training context limit remain fixed. After five steps, adapter save and
+qualification checks, FT0 measures, on the trainable training model before the reload checks, one warm-up and three forward/backward passes
+at exactly 1,024 then 2,048 tokens, using the real template and assistant-only
+mask. It discards gradients without optimizer updates or subsequent adapter saves.
+OOM events are retained; a 2,048 OOM does not prevent qualification completion.
+12B LoRA targets require a `language_model` path component, as in 4B; actual
+coverage is recorded and asserted before training.
+
+After fetching, run `python -m exploratory.k2_kaggle.ft0 OUTPUT_FOLDER --approved-commit FULL_SHA` offline.
+Rule 1 also requires a Tesla T4, one visible GPU, the unchanged recipe hash, neutral records,
+exact-length probe records and the approved repo commit (--approved-commit is required).
+Non-gating concerns (non-finite probe losses or gradients, marginal peaks) appear under `warnings`.
+Probe passes retain non-finite losses instead of aborting, count finite LoRA gradients,
+and treat cuBLAS/bitsandbytes allocation failures as OOM. The five-step training peak
+is retained before the first probe reset; reserved memory is surfaced, and 1,024 peaks
+above 13.2e9 are flagged marginal (probes zero gradients each pass).
+It verifies inventory hashes, finite losses/tensors and qualification artifacts,
+then applies Draft B's decimal 13.5 GB (13.5e9 bytes) and 8.0 h limits. The time
+estimate uses the slowest measured pass. All timings, reserved and allocated
+memory, skipped update steps and 2,048 outcomes are retained. Evaluation time is
+the amendment-2 planning proxy, load + 480 requests (96 episodes x 5, amendment 2) x 1,024 output tokens divided
+by measured short-generation throughput; long-history prefill overhead is not
+measured by this proxy. This is reported, not an FT0 gate.
+
+Launch preparation (writes files and prints commands only):
+`python -m exploratory.k2_kaggle.launch push --mode qualify --model gemma-3-12b-it --ft0 --owner OWNER --model-source google/gemma-3/transformers/gemma-3-12b-it/VERSION --commit FULL_SHA --plan`
+
+Source: Master Plan v3.2 / FT0 Draft B revision 3, in
+`docs/process/SEED2_FT0_PRERUN_DRAFTS_2026-11-09.md`. This build supplies no run
+approval, scientific result, or LAB_NOTEBOOK pre-run entry.

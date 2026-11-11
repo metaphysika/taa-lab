@@ -20,7 +20,7 @@ FAST = (
     'tests.test_obligations', 'tests.test_premise_repairs',
     'tests.test_gateway_foundation', 'tests.test_gateway_executor',
     'tests.test_assertion_binding', 'tests.test_measurement_v02456', 'tests.test_step4_cases',
-    'tests.test_experiment_b', 'tests.test_step3_v02444', 'tests.test_step4_harness', 'tests.test_step4_modal_backend', 'tests.test_step4_remainder', 'tests.test_step4_crossing', 'tests.test_step4_crossing_analysis', 'tests.test_k1', 'tests.test_k2b', 'tests.test_k2_kaggle', 'tests.test_k2_kaggle_launch', 'tests.test_l1', 'tests.test_l2',
+    'tests.test_experiment_b', 'tests.test_step3_v02444', 'tests.test_step4_harness', 'tests.test_step4_modal_backend', 'tests.test_step4_remainder', 'tests.test_step4_crossing', 'tests.test_step4_crossing_analysis', 'tests.test_k1', 'tests.test_k2b', 'tests.test_k2_ft0', 'tests.test_k2_kaggle', 'tests.test_k2_kaggle_launch', 'tests.test_l1', 'tests.test_l2',
 )
 
 
