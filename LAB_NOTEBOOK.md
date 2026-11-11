@@ -12143,3 +12143,54 @@ Time guards: a 4,800 s pair guard and 4,900 s worker timeout (reservation $9.906
 **Timing.** Chris chose on 2026-11-10 to wait for the December 1 Modal credit while other builds proceed. He may run early later if it is still about two weeks out and the cost is under about $10. Each stage needs his separate exact-commit approval. Nothing has run on a live GPU; the CPU stage is the first live test.
 
 **Limits.** One repeat per cell, at different sampling seeds than L2. Simple threshold cases with authority stated, not inferred. A second seed, not a seed distribution. The builder, Claude and Fable have all seen the L2 keys and seed 1's results.
+
+## 2026-11-10 — FT0 training-fit check, Gemma 3 12B IT on one Kaggle T4: pre-run entry, exploratory, $0 (no run approved)
+
+Written before any FT0 call. This fixes the question, pass rule and expectations in advance. FT0 is non-scientific feasibility for FT1; it cannot be reused as evidence about formation or servility.
+
+**Build.** PR #132 merged as main `9964d578` (v0.24.84). Its whole tree is identical to `bc9a106d` (checked after merge), which Fable reviewed READY at the code level on 2026-11-10 after two rounds of fixes (`docs/process/FABLE_READINESS_FT0_BUILD_2026-11-10.md`). Sol built it (4fee2a34). The stage thread fixed the probes so they run on the trainable training model instead of the reloaded inference adapter, and applied Fable's must-fixes: non-finite probe losses are kept rather than aborting; allocation failures count as OOM; the report checks the GPU, commit, recipe and probe lengths; and `use_cache` is read safely. Design: `docs/process/SEED2_FT0_PRERUN_DRAFTS_2026-11-09.md`, Draft B (revision 3).
+
+**Question.** Can Gemma 3 12B IT be LoRA-trained on one Kaggle T4 through the K2 Gemma 3 path, within memory and time, at the record lengths FT1 will need? Gemma 3 12B is the subject because untrained it is competent but servile (lawful 15/16, servile 11/16 on K2), so training has room to improve it.
+
+**Design.** One run of `k2_train.ipynb` with `MODE='qualify'`, `FT0=True`:
+- the K2 recipe unchanged (`core.RECIPE`);
+- 5 optimizer steps on the K2 neutral records, training seed 247056;
+- the existing qualify checks: template and mask probes, finite losses, adapter save, reload, switch and disable, and a short generation.
+
+Then, on the trainable training model after the adapter is saved and checked, timed forward and backward passes on synthetic chat-template records of exactly 1,024 and exactly 2,048 tokens. Each length gets one warm-up and three measured passes. There is no optimizer step and the adapter is not saved again. The run records:
+- peak allocated and reserved memory, and seconds for each pass;
+- LoRA gradient counts;
+- the five-step training peak.
+
+An OOM at either length is retained as an event and the run still finishes.
+
+**Pass rule (fixed now; `python -m exploratory.k2_kaggle.ft0 FOLDER --approved-commit 9964d57860a17700e3ea55cd24026e7a723bbccd`).**
+1. Artifacts complete and finite:
+   - `qualification_complete` written, with 40 finite raw losses;
+   - all LoRA modules are language-model modules;
+   - the run was on a Tesla T4 with one visible GPU, the unchanged recipe hash, neutral records, the approved commit and exact-length probe records.
+2. Peak allocated memory in the 1,024 probe ≤ 13.5e9 bytes. This deliberately loosens K2 amendment 2's 12 GB, because the length is measured directly. A 1,024 OOM is a FAIL.
+3. Worst-case training time: load + 250 × (slowest 1,024 pass × 8) ≤ 8.0 h.
+4. Reported, not gating:
+   - fp16 skipped updates in the five steps;
+   - non-finite probe losses or gradients;
+   - the 2,048 peak and time against rules 2 and 3 (if 2,048 meets both, FT1 may use records up to 2,048 tokens, otherwise up to 1,024);
+   - reserved memory;
+   - throughput, and the amendment-2 evaluation-time proxy (480 requests × 1,024 tokens at 16-token throughput; weak, and it will look large).
+
+**Verdicts.** PASS needs rules 1–3. FAIL if rule 2 or 3 fails. NOT ESTABLISHED if rule 1 cannot be verified (lost run, wrong hardware or commit). On FAIL or NOT ESTABLISHED: stop and return to Chris. Under this entry there is no recipe change (bf16, smaller rank, 8-bit) and no rerun. A peak above 13.2e9 is flagged as marginal, because the probes zero gradients each pass, while real training accumulates over eight micro-steps.
+
+**Expectations (before any result).**
+- Claude: PASS about 55% (lowered from the 60% in the draft after Fable's memory estimate). I am wrong if the 1,024 probe peaks above 13.5e9 or the worst-case time exceeds 8 h. 2,048 meeting both rules: about 30%.
+- Fable: PASS about 45%. Fable expects a 1,024 peak of 13 to 14.5 GB (the kbit-preparation fp32 casts plus logits at 1,024 tokens) and expects 2,048 to OOM.
+- The check most likely to fail: memory at 1,024.
+
+**Cost.** $0, about 0.5 to 1 Kaggle T4 GPU-hours of the weekly ~30. No Modal or API spend.
+
+**Launch sequence (after Chris's exact-commit approval only).** `stage-repo --commit 9964d57860a17700e3ea55cd24026e7a723bbccd --owner OWNER`, then `push --mode qualify --model gemma-3-12b-it --ft0 --arm neutral --train-seed 247056 --commit 9964d57860a17700e3ea55cd24026e7a723bbccd --owner OWNER --model-source google/gemma-3/transformers/gemma-3-12b-it/<version>`. The notebook is private, has internet off and an 8.5 h cooperative deadline, and is single-attempt. The output is fetched into `results/` and renamed per rule 4. The report runs offline with `--approved-commit 9964d57860a17700e3ea55cd24026e7a723bbccd`.
+
+**Limits.**
+- Feasibility only; a pass does not show that FT1's arms will learn or transfer.
+- Five steps cannot show whether fp16 will skip every update, as it did on 4B; each FT1 arm keeps the 25-of-250 rule.
+- Three identical probe passes do not capture allocator fragmentation over 250 mixed-length steps.
+- The Gemma tokenizer path and transformers 5.20.2 internals are unverified offline; they fail closed.
