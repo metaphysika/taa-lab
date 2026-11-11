@@ -40,17 +40,21 @@ class FT0Tests(unittest.TestCase):
         # after the adapter is saved and checked, before completion runs the reload checks
         self.assertLess(src.index("core.finite_adapter(OUTPUT/'adapter'"),src.index('ft0.probes(model'))
         self.assertLess(src.index('ft0.probes(model'),src.index('retain(core.completion('))
-    def fixture(self,p,peak=1e9,seconds=1,oom=None):
+    def fixture(self,p,peak=1e9,seconds=1,oom=None,gpu='Tesla T4',commit='c'*40,record_len=None,loss_finite=True):
         (p/'adapter').mkdir()
         header=json.dumps({'x':dict(dtype='F32',shape=[1],data_offsets=[0,4])}).encode()
         (p/'adapter/a.safetensors').write_bytes(struct.pack('<Q',len(header))+header+struct.pack('<f',1))
         for name in ('training-template.txt','eval-template.txt','mask-probe.json','adapter/adapter_config.json'): (p/name).write_text('{}')
-        meta=dict(ft0=True,dry_run=False,model_id='google/gemma-3-12b-it',mode='qualify',lora_modules=['base.model.language_model.q_proj'])
+        meta=dict(ft0=True,dry_run=False,model_id='google/gemma-3-12b-it',mode='qualify',lora_modules=['base.model.language_model.q_proj'],
+                  gpu=gpu,visible_gpus=1,recipe_sha256=core.digest(core.RECIPE),arm='neutral',repo_commit=commit)
         (p/'metadata.json').write_text(json.dumps(meta))
         events=[dict(event='raw_loss',loss=1)]*40+[dict(event='qualification_complete',optimizer_steps=5,adapter_sha256=core.inventory(p/'adapter')),dict(event='qualification_probe',adapter_tokens=16,disabled_tokens=1,adapter_tokens_per_second=5),dict(event='timing',phase='load',seconds=10)]
         for n in (1024,2048):
             if oom==n: events.append(dict(event='probe_oom',length=n)); continue
-            events += [dict(event='length_probe_pass',length=n,warmup=False,seconds=seconds,peak_allocated_bytes=peak)]*3
+            k=record_len or n
+            events.append(dict(event='length_probe_record',length=n,input_ids=[1]*k,labels=[1]*k,attention_mask=[1]*k))
+            events += [dict(event='length_probe_pass',length=n,warmup=False,seconds=seconds,peak_allocated_bytes=peak,peak_reserved_bytes=peak,
+                            loss=1 if loss_finite else 'nan',loss_finite=loss_finite,lora_parameters=2,lora_gradients_present=2,lora_gradients_finite=2 if loss_finite else 0)]*3
             events.append(dict(event='length_probe_complete',length=n))
         (p/'events.jsonl').write_text('\n'.join(map(json.dumps,events)))
         core.manifest(p,meta)
@@ -61,6 +65,26 @@ class FT0Tests(unittest.TestCase):
                 self.assertEqual(ft0.report(p)['verdict'],expected)
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(ft0.report(Path(tmp))['verdict'],'NOT ESTABLISHED')
+    def test_identity_and_records_checked(self):
+        for kwargs,approved,expected in (({'gpu':'NVIDIA A10G'},None,'NOT ESTABLISHED'),({},'d'*40,'NOT ESTABLISHED'),
+                                         ({},'c'*40,'PASS'),({'record_len':1000},None,'NOT ESTABLISHED')):
+            with self.subTest(kwargs=kwargs,approved=approved),tempfile.TemporaryDirectory() as tmp:
+                p=Path(tmp); self.fixture(p,**kwargs)
+                self.assertEqual(ft0.report(p,approved)['verdict'],expected)
+    def test_nonfinite_probe_loss_retained_not_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp); self.fixture(p,loss_finite=False)
+            r=ft0.report(p)
+            self.assertEqual(r['verdict'],'PASS')
+            self.assertEqual(r['lengths']['1024']['nonfinite_loss_passes'],3)
+            self.assertEqual(r['lengths']['1024']['passes_with_all_lora_gradients_finite'],0)
+    def test_oom_classification(self):
+        class OutOfMemoryError(RuntimeError): pass  # stands in for torch.cuda.OutOfMemoryError
+        self.assertTrue(ft0.is_oom(RuntimeError('CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling cublasCreate')))
+        self.assertTrue(ft0.is_oom(RuntimeError('CUDA out of memory. Tried to allocate 2.00 GiB')))
+        self.assertFalse(ft0.is_oom(RuntimeError('shape mismatch')))
+        self.assertTrue(ft0.is_oom(OutOfMemoryError('x')))
+        self.assertFalse(ft0.is_oom(ValueError('out of memory')))
 
 class FT0Launcher(LauncherTests):
     def test_ft0_plan(self):

@@ -168,7 +168,13 @@ OOM events are retained; a 2,048 OOM does not prevent qualification completion.
 12B LoRA targets require a `language_model` path component, as in 4B; actual
 coverage is recorded and asserted before training.
 
-After fetching, run `python -m exploratory.k2_kaggle.ft0 OUTPUT_FOLDER` offline.
+After fetching, run `python -m exploratory.k2_kaggle.ft0 OUTPUT_FOLDER --approved-commit FULL_SHA` offline.
+Rule 1 also requires a Tesla T4, one visible GPU, the unchanged recipe hash, neutral records,
+exact-length probe records and (with --approved-commit) the approved repo commit.
+Probe passes retain non-finite losses instead of aborting, count finite LoRA gradients,
+and treat cuBLAS/bitsandbytes allocation failures as OOM. The five-step training peak
+is retained before the first probe reset; reserved memory is surfaced, and 1,024 peaks
+above 13.2e9 are flagged marginal (probes zero gradients each pass).
 It verifies inventory hashes, finite losses/tensors and qualification artifacts,
 then applies Draft B's decimal 13.5 GB (13.5e9 bytes) and 8.0 h limits. The time
 estimate uses the slowest measured pass. All timings, reserved and allocated

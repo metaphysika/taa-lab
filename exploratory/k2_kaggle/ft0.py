@@ -35,9 +35,28 @@ def probe_record(tokenizer, length):
     raise ValueError('cannot construct exact template probe length')
 
 
+def is_oom(exc):
+    """CUDA OOM, or cuBLAS/bitsandbytes allocation failure raised as RuntimeError."""
+    # torch.cuda.OutOfMemoryError subclasses RuntimeError; checked by name so this runs without torch.
+    if type(exc).__name__ == 'OutOfMemoryError': return True
+    return isinstance(exc, RuntimeError) and any(x in str(exc) for x in ('out of memory', 'ALLOC_FAILED'))
+
+
+def gradient_stats(model):
+    import torch
+    grads = [p.grad for n,p in model.named_parameters() if 'lora_' in n and p.requires_grad]
+    present = [g for g in grads if g is not None]
+    return dict(lora_parameters=len(grads), lora_gradients_present=len(present),
+                lora_gradients_finite=sum(1 for g in present if torch.isfinite(g).all().item()))
+
+
 def probes(model, tokenizer, retain, check=lambda: None):
     import time
     import torch
+    # Peak of the five training steps (and setup so far), retained before any reset.
+    retain(dict(event='training_peak_before_probes', peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+                peak_reserved_bytes=torch.cuda.max_memory_reserved()))
+    use_cache = model.config.use_cache
     model.train()
     model.gradient_checkpointing_enable()
     model.config.use_cache = False
@@ -58,26 +77,32 @@ def probes(model, tokenizer, retain, check=lambda: None):
                     start = time.monotonic()
                     with torch.autocast(device_type='cuda', dtype=torch.float16):
                         loss = model(**batch).loss
-                    core.finite_scalar(loss.detach().float().item())
+                    value = loss.detach().float().item()
                     loss.backward()
                     torch.cuda.synchronize()
                     seconds = time.monotonic()-start
+                    # A non-finite probe loss is retained, not raised: the pass still measured
+                    # memory and time, and the report decides what it means.
                     row = dict(event='length_probe_pass', length=length, warmup=i==0,
                                seconds=seconds, peak_allocated_bytes=torch.cuda.max_memory_allocated(),
-                               peak_reserved_bytes=torch.cuda.max_memory_reserved(), loss=loss.detach().float().item())
+                               peak_reserved_bytes=torch.cuda.max_memory_reserved(),
+                               loss=value if math.isfinite(value) else str(value), loss_finite=math.isfinite(value),
+                               **gradient_stats(model))
                     retain(row)
                     del loss
                     if i:
                         timings.append(seconds)
                         losses.append(row['loss'])
                 retain(dict(event='length_probe_complete', length=length, timings=timings, losses=losses))
-            except torch.cuda.OutOfMemoryError as exc:
-                retain(dict(event='probe_oom', length=length, message=str(exc)))
+            except RuntimeError as exc:  # includes torch.cuda.OutOfMemoryError
+                if not is_oom(exc): raise
+                retain(dict(event='probe_oom', length=length, error=type(exc).__name__, message=str(exc)))
             finally:
                 model.zero_grad(set_to_none=True)
                 del batch
                 torch.cuda.empty_cache()
     finally:
+        model.config.use_cache = use_cache
         model.eval()
 
 
@@ -105,7 +130,10 @@ def finite_tensors(folder):
             assert finite, 'nonfinite adapter tensor'
 
 
-def report(folder):
+T4_NAME = 'Tesla T4'
+
+
+def report(folder, approved_commit=None):
     """All FT0 thresholds live here. GB means decimal 1e9 bytes."""
     from exploratory.k2_kaggle.launch import verify
     folder = Path(folder)
@@ -121,6 +149,16 @@ def report(folder):
         events = [json.loads(x) for x in (folder/'events.jsonl').read_text().splitlines()]
         assert meta.get('ft0') is True and meta.get('dry_run') is False
         guard(meta['model_id'].removeprefix('google/'), meta['mode'])
+        assert meta.get('gpu')==T4_NAME, 'not a Tesla T4: '+str(meta.get('gpu'))
+        assert meta.get('visible_gpus')==1, 'expected one visible GPU'
+        assert meta.get('recipe_sha256')==core.digest(core.RECIPE), 'recipe hash mismatch'
+        assert meta.get('arm')=='neutral', 'FT0 requires neutral records'
+        if approved_commit is not None:
+            assert meta.get('repo_commit')==approved_commit, 'repo commit is not the approved commit'
+        for length in (1024,2048):
+            recs=[e for e in events if e.get('event')=='length_probe_record' and e.get('length')==length]
+            assert len(recs)<=1 and all(len(r['input_ids'])==length==len(r['labels'])==len(r['attention_mask']) for r in recs), 'probe record length mismatch'
+            assert recs or any(e.get('event')=='probe_oom' and e.get('length')==length for e in events), 'missing probe record'
         language_modules(meta['lora_modules'])
         for name in ('training-template.txt','eval-template.txt','mask-probe.json','adapter/adapter_config.json'):
             assert (folder/name).is_file(), 'missing '+name
@@ -149,13 +187,20 @@ def report(folder):
         hours=(load+250*seconds*8)/3600 if valid and load is not None and math.isfinite(load) and load>=0 else None
         memory='FAIL' if oom else ('PASS' if peak<=13.5e9 else 'FAIL') if valid else 'NOT ESTABLISHED'
         timing=('PASS' if hours<=8.0 else 'FAIL') if hours is not None else 'NOT ESTABLISHED'
-        lengths[str(length)]=dict(oom=oom,peak_allocated_bytes=peak,raw_passes=rows,worst_case_hours=hours,memory=memory,time=timing)
+        reserved=max((e.get('peak_reserved_bytes') or 0 for e in rows),default=None)
+        lengths[str(length)]=dict(oom=oom,peak_allocated_bytes=peak,peak_reserved_bytes=reserved,
+            reserved_above_15e9=bool(reserved and reserved>15e9),marginal_above_13_2e9=bool(peak and peak>13.2e9),
+            nonfinite_loss_passes=sum(1 for e in rows if e.get('loss_finite') is False),
+            passes_with_all_lora_gradients_finite=sum(1 for e in rows if e.get('lora_parameters') and e.get('lora_gradients_finite')==e.get('lora_parameters')),
+            raw_passes=rows,worst_case_hours=hours,memory=memory,time=timing)
         if length==1024: rules.update({'2':memory,'3':timing})
     throughput=next((e.get('adapter_tokens_per_second') for e in events if e.get('event')=='qualification_probe'),None)
     estimate=(load+480*1024/throughput)/3600 if load is not None and throughput and throughput>0 else None
     verdict='FAIL' if 'FAIL' in rules.values() else 'NOT ESTABLISHED' if 'NOT ESTABLISHED' in rules.values() else 'PASS'
     reasons += ['Rule '+k+': '+v for k,v in rules.items() if v!='PASS']
-    return dict(verdict=verdict,rules=rules,reasons=reasons,units='decimal GB (1 GB = 1e9 bytes); time in hours',
+    training_peak=next((e.get('peak_allocated_bytes') for e in events if e.get('event')=='training_peak_before_probes'),None)
+    return dict(verdict=verdict,rules=rules,reasons=reasons,training_peak_allocated_bytes=training_peak,
+                notes='Memory is allocated bytes; probes zero gradients each pass, so real 8-step accumulation holds slightly more. Treat 1,024 peaks above 13.2e9 as marginal. Evaluation estimate is a weak proxy (16-token throughput incl. prefill).',units='decimal GB (1 GB = 1e9 bytes); time in hours',
                 lengths=lengths,skipped_update_steps=sorted(core.nonfinite_grad_steps(events)),tokens_per_second=throughput,
                 amendment_2_evaluation_hours=estimate,evaluation_assumption='load + 480 requests (96 episodes x 5, amendment 2) x 1024 output tokens / short-generation throughput; excludes long-input overhead')
 
@@ -164,4 +209,6 @@ if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser(__doc__)
     parser.add_argument('folder',type=Path)
-    print(json.dumps(report(parser.parse_args().folder),indent=2))
+    parser.add_argument('--approved-commit',help='full SHA Chris approved; the report checks metadata.repo_commit against it')
+    args=parser.parse_args()
+    print(json.dumps(report(args.folder,args.approved_commit),indent=2))
