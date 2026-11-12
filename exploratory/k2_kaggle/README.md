@@ -190,3 +190,9 @@ Launch preparation (writes files and prints commands only):
 Source: Master Plan v3.2 / FT0 Draft B revision 3, in
 `docs/process/SEED2_FT0_PRERUN_DRAFTS_2026-11-09.md`. This build supplies no run
 approval, scientific result, or LAB_NOTEBOOK pre-run entry.
+
+## FT0b offline build
+
+`FT0B=False` by default; `--ft0b` selects a separate neutral 12B qualification, mutually exclusive with FT0. It measures fp16 frozen vocabulary tables, checkpointed 128-position loss, eight-record loss/gradient equivalence, 25 training steps and full accumulated optimizer probes at 1,024 tokens (128/384/640/896 trained tokens). The adapter is saved before probe updates and never saved again.
+
+Report retained evidence with `python -m exploratory.k2_kaggle.ft0b FOLDER --approved-commit SHA`. The draft on `origin/b1b2-ft0b-design`, `docs/process/FT0B_PRERUN_DRAFT_2026-11-11.md`, defines PASS / PASS LIMITED / FAIL / NOT ESTABLISHED. This build does not authorize a run.
