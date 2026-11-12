@@ -12279,6 +12279,8 @@ Written before any FT0b call. FT0b is non-scientific feasibility for FT1 and can
 - **D1, preflight relaunch:** a guard may stop the run before the first `equivalence` event: library source hashes, model layout, Trainer normalisation or the fp32 table check. That counts as "no attempt", and one relaunch at the same commit is allowed after Chris sees the error. A second trip, or any stop after measurement began, gets the normal verdict.
 - **Caveat on skipped updates:** a PASS whose 640-span probe passes show non-finite losses or gradients is reported as "PASS, with skipped updates at long records" in the headline, not as a clean pass.
 
+**Chris's approval (2026-11-11).** Chris approved the FT0b run at exactly `954ba8a42bc6e77e65e17963026080622e8af17d`, said yes to both proposals above (D1 one relaunch after a preflight guard trip; the headline caveat for a PASS with skipped long-record updates), and approved the FT1 record lengths. He declined a Fable review of this entry.
+
 **On FAIL or NOT ESTABLISHED.** Stop. No further Kaggle memory fixes (Fable's warning against stacking fix on fix); the next step is pricing a 24 GB Modal GPU for Chris.
 
 **Expectations (before any result).**
