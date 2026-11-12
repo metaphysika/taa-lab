@@ -12225,3 +12225,74 @@ Evidence: `results/2026-11-11 v0.24.84 gemma-3-12b-it-qualify-neutral-s247056 k2
 - The check named as most likely to fail, memory at 1,024, failed.
 
 **What follows (pre-run rule).** Stop and return to Chris. Under this entry there is no recipe change (bf16, smaller rank, 8-bit, chunked or position-limited loss, other hardware) and no rerun. Any next attempt needs its own entry and approval. FT0 does not test whether FT1's arms would learn. Gemma 3 12B on one T4 through the unchanged K2 path does not fit FT1's record lengths.
+
+## 2026-11-11 — FT0b memory-layout training-fit check, Gemma 3 12B IT on one Kaggle T4: pre-run entry, exploratory, $0 (no run approved)
+
+Written before any FT0b call. FT0b is non-scientific feasibility for FT1 and cannot be reused as evidence about formation or servility. It is a new check under its own entry after FT0 failed rule 2 (above), not a rerun of FT0.
+
+**Basis.**
+- **Options review:** after FT0's out-of-memory failure, Fable reviewed the options (`docs/process/FABLE_FT1_OPTIONS_REVIEW_2026-11-11.md`), and Chris agreed to its recommendation on 2026-11-11.
+- **Design:** `docs/process/FT0B_PRERUN_DRAFT_2026-11-11.md` (PR #135, main `85a99754`).
+- **Build:** Sol built it. The stage thread then fixed Fable's must-fix M1 (see Build). Merged as main `954ba8a4` (PR #136, v0.24.85). Its `exploratory/k2_kaggle/` tree is `c18d4be8`, identical to the re-reviewed head `17039dec`.
+- **Review:** Fable, at the exact commit, gave READY AFTER FIXES at `36cc2652`, then READY at `17039dec` (`docs/process/FABLE_READINESS_FT0B_BUILD_2026-11-11.md`). Fable reports that the four pinned library source hashes equal the PyPI wheels for transformers 5.20.2 and PEFT 0.21.2.
+- **CI:** hosted CI was green on both PRs.
+
+**Question.** Can Gemma 3 12B IT be LoRA-trained on one Kaggle T4 at FT1's record lengths if two memory costs are removed while the training math stays the same? The two costs are the fp32 copy of the frozen vocabulary table and the full-vocabulary scores at every position.
+
+**FT1 record lengths (proposed with this entry; approved with it).** Each record is at most 1,024 tokens (the recipe context). The trained part, meaning arm 3's reasons, corrections and action, is at most 640 tokens. The prompt gets the remainder. Matching arms 2 and 3 on trained tokens remains FT1's own decision.
+
+**Build (behind `FT0B`, default off; `core.RECIPE` and its hash unchanged; 1B/4B/K2/FT0 paths unchanged).**
+- **fp16 vocabulary table:** after kbit preparation, the frozen fp32 table is cast back to fp16. Hooks then keep the residual stream fp32, as in FT0. This was Fable's M1: the cast alone would have moved the whole stream to fp16.
+- **Chunked loss:** the loss is computed on trained positions only, in checkpointed slices of 128, normalised exactly as the Trainer does across 8 accumulated micro-steps.
+- **Allocator:** `expandable_segments`.
+- **Itemised memory** at each stage.
+- **Same-math check** before training, on 8 records: the old setup against the new.
+- **Training length:** 25 qualify optimizer steps instead of 5.
+- **Generation timing:** 200 tokens on the reloaded adapter.
+- **Full optimizer-step probes** at 1,024 tokens, after the adapter is saved: trained spans of 128, 384 and 640, plus 896 run last and report-only. Each span gets one warm-up step and two measured steps of 8 micro-steps; updates are not kept.
+
+**Pass rule (fixed now; `python -m exploratory.k2_kaggle.ft0b FOLDER --approved-commit 954ba8a42bc6e77e65e17963026080622e8af17d`).**
+1. **Artifacts and identity:**
+   - FT0 rule 1 applies: Tesla T4, one visible GPU, the recipe hash, neutral records, the approved commit, language-model LoRA modules and exact probe lengths.
+   - Plus: `ft0b` metadata; `qualification_complete` with 25 steps; 200 finite raw losses; an fp16 table with the fp32-stream hooks recorded.
+2. **Same math:** on the 8 records, every loss differs by at most 0.02 nats, the median difference is at most 0.005, and every per-record LoRA gradient cosine is at least 0.99.
+3. **Memory:** at the 640 trained span, peak allocated memory over a full optimizer step is at most 13.5e9 bytes.
+4. **Time:** load + 250 × the slowest measured 640-span step is at most 8.0 h, which is about 115 s per step.
+5. **Reported, not gating:**
+   - the 128, 384 and 896 spans;
+   - warm-up peaks;
+   - reserved memory, flagged above 15.0e9;
+   - skipped updates in 25 steps, flagged if more than 3 fall in steps 6–25;
+   - itemised memory;
+   - generation tokens per second.
+
+**Verdicts.**
+
+| Verdict | Condition |
+|---|---|
+| PASS | Rules 1–4 at 640. |
+| PASS LIMITED | Rules 1–2 pass, and rules 3–4 pass at 384 but not at 640. Chris decides whether FT1 can work with 384. |
+| FAIL | Rule 2 fails, or rules 3–4 fail at 384. |
+| NOT ESTABLISHED | Rule 1 cannot be verified. It is reported before a rule-2 FAIL; both mean stop, and the rules table still shows rule 2. |
+
+**Proposed for Chris's decision with his approval.**
+- **D1, preflight relaunch:** a guard may stop the run before the first `equivalence` event: library source hashes, model layout, Trainer normalisation or the fp32 table check. That counts as "no attempt", and one relaunch at the same commit is allowed after Chris sees the error. A second trip, or any stop after measurement began, gets the normal verdict.
+- **Caveat on skipped updates:** a PASS whose 640-span probe passes show non-finite losses or gradients is reported as "PASS, with skipped updates at long records" in the headline, not as a clean pass.
+
+**On FAIL or NOT ESTABLISHED.** Stop. No further Kaggle memory fixes (Fable's warning against stacking fix on fix); the next step is pricing a 24 GB Modal GPU for Chris.
+
+**Expectations (before any result).**
+- **Claude:** PASS about 55%, PASS LIMITED about 10%, FAIL about 25%, NOT ESTABLISHED about 10%. I am wrong about PASS if the 640-span step exceeds 13.5e9 or 115 s, or if the same-math check fails. The most likely failure is time, not memory.
+- **Fable (with M1 fixed):** PASS 50%, PASS LIMITED 5%, FAIL 30%, NOT ESTABLISHED 15%. Fable estimates a peak of 10–11e9 bytes.
+- **Most likely to fail:** time at 1,024 tokens. It has never been measured, and FT0 took 14.6 s per step at about 141 tokens.
+
+**Cost.** $0, about 1 to 1.5 Kaggle T4 GPU-hours of the weekly ~30. No Modal or API spend.
+
+**Launch sequence (after Chris's exact-commit approval only).** `stage-repo --commit 954ba8a42bc6e77e65e17963026080622e8af17d --owner OWNER`, then `push --mode qualify --model gemma-3-12b-it --ft0b --arm neutral --train-seed 247056 --commit 954ba8a42bc6e77e65e17963026080622e8af17d --owner OWNER --model-source google/gemma-3/transformers/gemma-3-12b-it/<same version as FT0>`. The notebook is private, runs with internet off and has an 8.5 h deadline; it gets one attempt, plus the D1 relaunch if approved. The output is fetched into `results/` and renamed per rule 4, and the offline report runs with `--approved-commit`.
+
+**Limits.**
+- Feasibility only.
+- **Same-math check:** it runs on short records, so it tests only a single loss slice. Multi-slice chunking is CPU-tested only. The one remaining numeric difference from FT0 is the embedding scale multiply rounded to fp16 (about 2^-11 relative), and rule 2 measures it.
+- **Probe records:** synthetic and identical, so they miss fragmentation over 250 mixed-length steps.
+- **fp16 skipping:** 25 short-record steps cannot show it for long records; FT1 keeps the 25-of-250 rule per arm.
+- **Unverified offline:** Kaggle's installed library bytes, the real tokenizer's exact-length search and all GPU behaviour. These fail closed.
