@@ -144,13 +144,17 @@ def execute(args):
         core.model_guard(args.model,args.mode,args.adapter_kernel)
         if args.screen_battery=='l2' and (not args.base_screen or not args.model.startswith('gemma-4-') or args.mode!='evaluate' or args.shard_arm!='base' or args.shard_kind is not None):
             raise ValueError('L2 requires Gemma 4 base-screen evaluation, base arm, no kind')
+        if args.ft0b:
+            from exploratory.k2_kaggle.ft0b import guard
+            guard(args.model,args.mode,args.ft0)
+            if args.base_screen or args.arm!="neutral" or args.adapter_kernel: raise ValueError("FT0B requires neutral qualification without screen/adapters")
         if args.ft0:
             from exploratory.k2_kaggle.ft0 import guard
             guard(args.model,args.mode)
             if args.base_screen or args.arm!='neutral' or args.adapter_kernel: raise ValueError('FT0 requires neutral qualification without screen/adapters')
         if args.base_screen:
             core.screen_guard(args.mode,args.step,args.shard_arm,args.shard_kind or ('W' if args.screen_battery=='l2' else None),args.adapter_kernel)
-        elif (args.model=='gemma-3-12b-it' and not args.ft0) or args.model.startswith('gemma-4-'):
+        elif (args.model=='gemma-3-12b-it' and not (args.ft0 or args.ft0b)) or args.model.startswith('gemma-4-'):
             raise ValueError('12B requires --base-screen')
         slug_ref(args.owner+'/valid')
         adapters = {}
@@ -194,6 +198,7 @@ def execute(args):
         else:
             values['ARM'] = repr(args.arm)
         if args.ft0: values['FT0']='True'
+        if args.ft0b: values['FT0B']='True'
         name = 'k2_eval.ipynb' if args.mode == 'evaluate' or args.base_screen else 'k2_train.ipynb'
         raw = command(['git', 'show', args.commit+':exploratory/k2_kaggle/'+name])
         (folder/name).write_text(parameterize(raw, values), encoding='utf-8')
@@ -204,7 +209,7 @@ def execute(args):
         write_json(folder/'kernel-metadata.json', metadata)
         write_json(folder/'launch.json', dict(slug=ref, commit=args.commit, model=args.model,
                    screen_battery=args.screen_battery, screen_identity=core.screen_identity(args.model) if args.base_screen else None, mode=args.mode, ft0=args.ft0, step=args.step, arm=args.arm, shard=dict(arm=args.shard_arm,kind=args.shard_kind) if shard else None, seed=args.train_seed, model_source=args.model_source,
-                   created=dt.datetime.now(dt.timezone.utc).isoformat()))
+                   created=dt.datetime.now(dt.timezone.utc).isoformat(), **({'ft0b':True} if args.ft0b else {})))
         command(['kaggle','kernels','push','-p',str(folder),'--accelerator','NvidiaTeslaT4','--timeout',str(TIMEOUT)], args.plan)
     else:
         # Kaggle stores kernel ids in lowercase but keeps the title's case
@@ -266,6 +271,7 @@ def main(argv=None):
             p.add_argument('--model', choices=list(__import__('exploratory.k2_kaggle.core',fromlist=['MODELS']).MODELS), required=True)
             p.add_argument('--model-source', required=True)
             p.add_argument('--ft0', action='store_true')
+            p.add_argument('--ft0b', action='store_true')
             p.add_argument('--base-screen', action='store_true')
             p.add_argument('--screen-battery',choices=['k2','l2'],default='k2')
             p.add_argument('--arm', choices=['neutral','contrary'], default='neutral')
