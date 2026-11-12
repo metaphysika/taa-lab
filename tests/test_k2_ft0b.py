@@ -55,7 +55,7 @@ class FT0BTests(unittest.TestCase):
             self.assertEqual(len(r['attention_mask']),1024)
             self.assertEqual(r['labels'],[-100]*(1024-span)+r['input_ids'][-span:])
 
-    def fixture(self,p,fail_math=False,fail384=False,oom640=False,fail640=False):
+    def fixture(self,p,fail_math=False,fail384=False,oom640=False,fail640=False,no_hooks=False):
         FT0Tests().fixture(p)
         meta=json.loads((p/'metadata.json').read_text()); meta.pop('ft0'); meta['ft0b']=True
         (p/'metadata.json').write_text(json.dumps(meta))
@@ -63,7 +63,7 @@ class FT0BTests(unittest.TestCase):
         events=[e for e in old if e['event'] in ('qualification_probe','timing','qualification_complete')]
         events[0:0]=[dict(event='raw_loss',loss=1)]*200
         next(e for e in events if e['event']=='qualification_complete')['optimizer_steps']=25
-        events.append(dict(event='tables',phase='after_cast',weights=[dict(dtype='torch.float16',bytes=10,frozen=True)]*2))
+        events.append(dict(event='tables',phase='after_cast',stream_fp32_hooks=not no_hooks,weights=[dict(dtype='torch.float16',bytes=10,frozen=True)]*2))
         events += [dict(event='equivalence',record_index=i,old_loss=1,new_loss=1,absolute_difference=0,gradient_cosine=.5 if fail_math else 1) for i in range(8)]
         for span in ft0b.SPANS:
             events.append(dict(event='step_probe_record',span=span,**ft0b.probe_record(Tokenizer(),span)))
@@ -82,6 +82,29 @@ class FT0BTests(unittest.TestCase):
                 self.assertEqual(ft0b.report(p,'c'*40)['verdict'],verdict)
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(ft0b.report(tmp,'c'*40)['verdict'],'NOT ESTABLISHED')
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp); self.fixture(p,no_hooks=True)
+            self.assertEqual(ft0b.report(p,'c'*40)['verdict'],'NOT ESTABLISHED')
+
+    def test_stream_hooks_keep_fp32_residual(self):
+        try: import torch
+        except ImportError: self.skipTest('CPU torch not installed')
+        torch.manual_seed(3)
+        embed=torch.nn.Embedding(11,4).half(); head=torch.nn.Linear(4,11,bias=False).half()
+        embed.weight.requires_grad_(False); head.weight.requires_grad_(False)
+        ft0b.stream_hooks(embed,head)
+        with self.assertRaises(ValueError): ft0b.stream_hooks(embed,head)
+        ids=torch.tensor([[1,2,3]])
+        x=embed(ids)
+        self.assertEqual(x.dtype,torch.float32)
+        residual=torch.zeros(1,3,4,requires_grad=True)
+        stream=x+residual
+        self.assertEqual(stream.dtype,torch.float32)
+        logits=head(stream)  # no autocast: pre-hook casts the input to the fp16 weight dtype
+        self.assertEqual(logits.dtype,torch.float16)
+        logits.float().sum().backward()
+        self.assertIsNotNone(residual.grad)
+        self.assertEqual(residual.grad.dtype,torch.float32)
 
 
 class FT0BLauncher(LauncherTests):

@@ -58,6 +58,20 @@ def layout(model):
     return base, embed, head
 
 
+def stream_hooks(embed, head):
+    """Keep the residual stream fp32 after the fp16 table cast, as under PEFT's fp32 table.
+
+    The embedding returns its table's dtype and every residual add keeps it, so an
+    fp16 table alone would move the whole stream to fp16 (Fable readiness M1).
+    The embedding output is upcast to fp32; the output layer casts its input to
+    its own weight dtype, so un-autocast generation does not hit a dtype mismatch.
+    """
+    if getattr(embed, '_ft0b_stream_hooks', False): raise ValueError('FT0b stream hooks already installed')
+    embed.register_forward_hook(lambda module, args, output: output.float())
+    head.register_forward_pre_hook(lambda module, args: (args[0].to(module.weight.dtype),)+tuple(args[1:]))
+    embed._ft0b_stream_hooks = True
+
+
 def tables(model, phase, retain, cast=False):
     import torch
     _, embed, head = layout(model)
@@ -67,7 +81,10 @@ def tables(model, phase, retain, cast=False):
         for weight in {id(w): w for w in (embed.weight, head.weight)}.values():
             if weight.dtype == torch.float32: weight.data = weight.data.to(torch.float16)
             assert not weight.requires_grad and weight.dtype == torch.float16
+        stream_hooks(embed, head)
+        torch.cuda.empty_cache()
     retain(dict(event='tables', phase=phase, shared=embed.weight.data_ptr()==head.weight.data_ptr(),
+        stream_fp32_hooks=bool(getattr(embed, '_ft0b_stream_hooks', False)),
         weights=[dict(dtype=str(w.dtype), bytes=w.numel()*w.element_size(), data_ptr=w.data_ptr(), frozen=not w.requires_grad)
                  for w in (embed.weight, head.weight)]))
 
@@ -155,7 +172,7 @@ def probes(model, tokenizer, trainer, retain, check):
     if scaler is None: raise ValueError('FT0b requires fp16 GradScaler')
     try:
         for span in SPANS:
-            batch = None
+            batch = value = None
             try:
                 record = probe_record(tokenizer, span)
                 retain(dict(event='step_probe_record', span=span, **record))
@@ -188,7 +205,7 @@ def probes(model, tokenizer, trainer, retain, check):
                 # Clear a partially completed unscale/step stage before the next span.
                 scaler.update(new_scale=scaler.get_scale())
             finally:
-                model.zero_grad(set_to_none=True); del batch
+                model.zero_grad(set_to_none=True); del batch, value
                 torch.cuda.empty_cache()
     finally:
         ft0.restore_use_cache(model.config,cache); model.train(state)
@@ -230,6 +247,7 @@ def report(folder, approved_commit):
         q=next(e for e in events if e['event']=='qualification_probe')
         assert q['adapter_tokens']>0 and q['disabled_tokens']>0
         table=next(e for e in events if e['event']=='tables' and e['phase']=='after_cast')
+        assert table.get('stream_fp32_hooks') is True, 'fp32 residual stream hooks not recorded'
         assert len(table['weights'])==2 and all(w['dtype']=='torch.float16' and w['frozen'] and w['bytes']>0 for w in table['weights'])
         for span in SPANS:
             rec=[e for e in events if e['event']=='step_probe_record' and e['span']==span]
@@ -260,7 +278,8 @@ def report(folder, approved_commit):
         seconds=max((r['seconds'] for r in rows),default=0)
         hours=(load+250*seconds)/3600 if valid and load is not None and math.isfinite(load) and load>=0 else None
         spans[str(span)]=dict(memory='PASS' if valid and peak<=13.5e9 else 'FAIL',
-            time='PASS' if hours is not None and hours<=8 else 'FAIL',worst_case_hours=hours,raw_passes=rows)
+            time='PASS' if hours is not None and hours<=8 else 'FAIL',worst_case_hours=hours,raw_passes=rows,
+            warmup_passes=[e for e in events if e['event']=='step_probe_pass' and e['span']==span and e['warmup']])
         if any(r.get('peak_reserved_bytes',0)>15e9 for r in rows): warnings.append(f'{span}: reserved above 15e9')
         if any(not r.get('loss_finite') or not r.get('lora_parameters') or r.get('lora_gradients_finite')!=r.get('lora_parameters') for r in rows):
             warnings.append(f'{span}: nonfinite loss or missing/nonfinite gradients (report only)')
