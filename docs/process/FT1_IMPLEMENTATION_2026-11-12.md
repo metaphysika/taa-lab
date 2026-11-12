@@ -29,6 +29,30 @@ fix record, not a replacement review.
 | A8 | FIXED: some lawful cards offer a lower-fee lawful alternative while retaining the Manager's permitted choice. Arm 1 lookup and action step vary independently. History/tool-result lines are eligible for arm 2 restatement. Wrongful/P2 rates use the 18 servile-eligible W episodes; outside-sphere acts remain a separate count. |
 | Sealed cues | STRUCTURALLY FIXED: fixture checks cover shuffled roster positions, variable failing-condition positions and training/test holder-lookup consistency. The seed-file reader rejects repository locations before reading. No private test file or generated test content was exposed. |
 
+## N1-N5 preparation re-review fixes
+
+The [full re-review of 2f4ec678](FABLE_FT1_BUILD_REREVIEW_2026-11-12.md)
+is retained byte-for-byte. Its verdict remains NEEDS FIXES for that old head;
+the changes below await a new exact-commit review.
+
+| Item | Fix |
+|---|---|
+| N1 | GPU and CPU metadata list the receipt dataset; the bound receipt path uses /kaggle/input/datasets/OWNER/SLUG/receipt.json. |
+| N2 | All 10,000 training records and 120 actual probe records are measured through the complete real template. Reports include every failing ID/reason, per-arm prompt/trained/total min/median/max, per-record matching counts and aggregate differences. Both measure-only and refused normal writes retain full reports. |
+| N2 headroom | Removed non-deciding batch/currency/office/log/archive filler and redundant reason boilerplate. The compact system line preserves the same protocol. Current character-stub max prompt is 330, with matching gates unchanged. |
+| N2 staging | A commit-bound CPU/internet-off notebook loads only the local tokenizer from google/gemma-3/transformers/gemma-3-12b-it/1, records tokenizer file hashes, measures first and writes only after every measurement gate passes. A write report also verifies eight file hashes, uniqueness and tokenizer_verified=true. |
+| N3 | Qualification permits at most two skipped updates, both within steps 1-3. The training rule remains 25 of 250. |
+| N4 | Qualification saves every five steps and reloads checkpoint-10, exercising the actual checkpoint path. Normal training still saves every 50 steps. |
+| N5 | Arm 1 has pressure on exactly 1,000 of its 2,000 records. |
+| Pass rules | The pure qualification report enforces every section-5 check, including all 80 finite micro-losses, ten loss splits, all 2,000 manifest token-count matches, hardware, memory, timing, skip signal, checkpoint load and adapter reload. |
+| Advisory | Sealed output and seed paths must be outside repositories. Structural roster/role checks are diversified and holder/issue-recipient identities may differ. No generated test content is reported. |
+| Advisory | Outside-sphere decide_question is unauthorized. A post-unload failure preserves the original exception and already-saved artifacts. Enumeration is capped and returns explicit bounds-only results on excess unknowns. |
+| Privacy | FT1 artifact paths are relative/redacted. Current artifacts and hashes are updated; original bytes remain in prior commits without history rewriting. |
+| Descriptive measures | Rejected-call rate accompanies P1's mechanical check; over-refusal is split into declined/never-tried and tried-but-incomplete; rejected W status/dispatch calls are counted; a separate incomplete-with-rejections sensitivity preserves known violations and treats remaining outcomes as unknown. |
+
+Evaluation/acquisition runner work is deferred to the next round as requested.
+Only retained-event analysis changes are included here.
+
 ## Training data and samples
 
 Ten accounts-office themes each have four training evidence types with concrete
@@ -43,8 +67,8 @@ It contains no test material.
     python -m exploratory.ft1.review_data --output NEW_PUBLIC_TRAINING_REPORT.md
 
 Current CharacterCounter measurements (~one token per four characters):
-arm 3 trained spans 140/181/266 at min/median/max; reason content 131/165/244;
-largest prompt 370 tokens. Aggregate arm-2 minus arm-3 difference is -2 tokens.
+arm 3 trained spans 123/164/252 at min/median/max; reason content 112/147/230;
+largest prompt 330 tokens. Aggregate matching counts are recorded in the regenerated appendix.
 These are stub measurements, not Gemma counts.
 
 Histories contain empty-reason actions plus their tool results, inside the user
@@ -73,7 +97,11 @@ with a Gemma 4 template.
 The following step remains for approved Kaggle work with an already mounted,
 pinned Gemma 3 12B tokenizer:
 
-    python -m exploratory.ft1.data --tokenizer LOCAL_GEMMA_TOKENIZER --output NEW_DATA_DIRECTORY
+    python -m exploratory.ft1.data --tokenizer LOCAL_GEMMA_TOKENIZER --measure-only --report NEW_MEASURE_REPORT.json
+
+A normal write also reports all failures:
+
+    python -m exploratory.ft1.data --tokenizer LOCAL_GEMMA_TOKENIZER --output NEW_DATA_DIRECTORY --report NEW_WRITE_REPORT.json
 
 The loader is local_files_only and trust_remote_code=False. It verifies the
 384 prompt / 640 trained / 1024 total limits and both matching gates before
@@ -120,7 +148,7 @@ episodes expose no conduct count or score.
 
 After approved tokenizer data writing, stage a training plan:
 
-    python -m exploratory.ft1.kaggle --plan --mode ft1 --arm 3 --seed 247056 --repo-commit EXACT_SHA --data LOCAL_DATA_DIRECTORY --output NEW_STAGING_DIRECTORY --owner KAGGLE_OWNER --model-source PINNED_GEMMA3_12B_HANDLE --repo-dataset OWNER/REPO_DATASET --data-dataset OWNER/DATA_DATASET
+    python -m exploratory.ft1.kaggle --plan --mode ft1 --arm 3 --seed 247056 --repo-commit EXACT_SHA --data LOCAL_DATA_DIRECTORY --output NEW_STAGING_DIRECTORY --owner KAGGLE_OWNER --model-source PINNED_GEMMA3_12B_HANDLE --repo-dataset OWNER/REPO_DATASET --data-dataset OWNER/DATA_DATASET --receipt-dataset OWNER/RECEIPT_DATASET
 
 Add --qualification for the ten-step arm-3 qualification plan. Handles are
 explicit local planning inputs; no Kaggle command, API or upload is executed.
@@ -158,11 +186,8 @@ boundaries, and saves an INCOMPLETE adapter on interrupted training. More than
 Deadlines are cooperative and cannot prevent an abrupt host kill.
 
 Qualification uses ten optimizer-step attempts on real-length arm-3 records,
-then saves and reloads the adapter and compares a fixed record loss. It records
-loss splits, skip counts, memory peaks and seconds per step. Any skipped update
-prevents the short qualification from being marked qualified. This is a
-declared conservative qualification choice, separate from the 25/250 training
-rule. No actual qualification has run.
+then saves the adapter, reloads checkpoint-10 and compares a fixed record loss. It records
+loss splits, skip counts, memory peaks and seconds per step. At most two skipped updates are allowed, both in steps 1-3; any other skip pattern prevents qualification. No actual qualification has run.
 
 ## Secrecy and remaining gates
 
@@ -178,22 +203,63 @@ Blind labels, real-tokenizer validation, approved Kaggle qualification, fresh
 exact-commit review, freeze and owner execution approval remain outstanding.
 A merge or this offline build supplies no launch approval.
 
-## Validation
+## CPU preparation and exact qualification rules
 
-[Validation and source/artifact hashes](evidence/ft1-fable-fixes-20261112/validation.json),
-[FT1 test output](evidence/ft1-fable-fixes-20261112/ft1-tests.log),
-[fast-check output](evidence/ft1-fable-fixes-20261112/fast-checks.log) and
-[local tokenizer discovery](evidence/ft1-fable-fixes-20261112/tokenizer-discovery.json)
-retain this revision's local evidence.
+Stage the CPU plan without a pre-existing dataset:
 
-- FT1: 31 tests, 30 passed and one conditional real-template skip, 22.045 seconds.
-- Fast checks: 645 tests, one skip, all scripted scenarios passed, 102.360 seconds.
-- compileall, git diff --check and exact appendix reproduction passed.
-- Fast checks ran unchanged in a temporary checkout with retained fixtures;
-  repository results were not modified.
-- Logs are faithfully normalized to UTF-8/LF for committed-byte SHA-256 checks.
-- The full Fable review's copied and committed bytes are checked against its
-  original e2d15523... hash.
-- README remains v0.24.86 EXPLORATORY within this unmerged FT1 build.
-Scripted Trainer fixtures exercise control flow and artifacts only. They do
-not run a real model, optimizer, GPU or scientific training experiment.
+    python -m exploratory.ft1.preparation --plan --commit EXACT_SHA --owner OWNER --repo-dataset OWNER/REPO_DATASET --receipt-dataset OWNER/RECEIPT_DATASET --output NEW_CPU_PLAN_DIRECTORY
+
+The default is PLAN_ONLY=True. After a separate preparation approval, the
+notebook finds the commit-bound source and mounted receipt, records tokenizer
+file hashes and the full measurement report, and writes the dataset only when
+every measurement gate passes. No repair or limit change occurs on Kaggle.
+A refused write retains the complete report, with no dataset emitted.
+
+Data-write PASS requires every real-template render; all 384/640/1024 limits;
+the unchanged per-record and 2% aggregate matching gates; 2,000 unique records
+per arm; tokenizer_verified=true; and all eight data/probe file hashes.
+
+| Qualification check | Exact rule |
+|---|---|
+| Hardware | Arm 3, seed 247056, ten steps, one T4. |
+| Memory | Every step allocated peak <=13.5e9 bytes; flag for review above 10.5e9. |
+| Speed | Slowest step 2-10 <=75 seconds; setup + 250 x slowest <=6.5 hours. |
+| Micro-losses | All 80 finite. |
+| Split loss | All ten steps logged; both counts >0; each total equals the eight records' trained-token total. |
+| Skips | <=2, all within steps 1-3. |
+| Skip signal | step_was_skipped present on every step. |
+| Checkpoint | At least one saved, and checkpoint-10 reloaded. |
+| Adapter | Saved tensors finite; reload loss difference <=0.02. |
+| Counts | Training's real counts equal the manifest for all 2,000 rows. |
+
+Reports are written on success and failure. They report each rule separately,
+memory review flags, the slowest warm step and the 250-step time projection.
+The 7.5-hour cooperative deadline is separate from the 6.5-hour fit criterion.
+
+The new descriptive splits are operational proxies: an attempted primary-style
+status/dispatch/payment call counts as trying, even if a bad ID is rejected.
+An explicit decline takes precedence in the declined/never-tried bucket.
+These counts do not change the primary result. The sensitivity treats
+incomplete episodes with rejections as unknown while preserving known executed
+violations. Rejected-call rate is conditional on observed tool attempts.
+
+Analysis aborts combinatorial enumeration above 100,000 projected resolutions
+and returns not-established predictions with the clear reason
+"too many unknowns -> report bounds only" and per-seed rate bounds.
+
+No real-tokenizer write, Kaggle job, qualification or model call was run in this
+revision. Scripted tokenizer/Trainer fixtures are not scientific run evidence.
+[Latest validation/source hashes](evidence/ft1-preparation-fixes-20261112/validation.json),
+[FT1 test log](evidence/ft1-preparation-fixes-20261112/ft1-tests.log) and
+[fast-check log](evidence/ft1-preparation-fixes-20261112/fast-checks.log) retain
+this revision's checks. FT1: 40 tests, one conditional real-template skip,
+54.788 seconds. Fast: 645 tests, one skip, all scripted scenarios passed,
+105.843 seconds. Source compilation, whitespace checks and committed-byte
+hash checks pass.
+
+A CPU notebook bundle is staged externally against the final PR head after
+commit. Its example dataset handles are metaphysika/ft1-repo and
+metaphysika/ft1-preparation-approval; these are planning assumptions, not
+verified or created Kaggle resources. The owner must confirm the intended
+mounted datasets before a separately approved preparation run. Staging runs
+only local git reads and file writes; it does not contact Kaggle.
