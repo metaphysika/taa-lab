@@ -1,4 +1,4 @@
-﻿"""Injected offline FT1 training mode. No model loader, backend, or launch."""
+"""Injected offline FT1 training mode. No model loader, backend, or launch."""
 import json
 import math
 from . import plan
@@ -10,13 +10,13 @@ def record(tokenizer, row):
     obj=json.loads(text)
     encoded=tokenizer(text,add_special_tokens=False,return_offsets_mapping=True)
     prefix=core.prompt(tokenizer,row['messages'][:-1])
-    start=text.index('"reason":')+len('"reason":')
-    end=start+len(json.dumps(obj['reason'],ensure_ascii=False,separators=(',',':')))
+    start=text.index('"reason":')+len('"reason":')+1
+    end=start+len(json.dumps(obj['reason'],ensure_ascii=False,separators=(',',':')))-2
     flags=[]
     for lo,hi in encoded['offset_mapping']:
-        if lo<start<hi or lo<end<hi:
-            raise ValueError('reason token crosses field boundary')
-        flags.append(start<=lo and hi<=end)
+        # Boundary tokens with any reason-content characters count as reason;
+        # quotes/syntax alone and an empty reason count as action. No token is dropped.
+        flags.append(start<end and lo<end and hi>start)
     content=list(encoded['input_ids'])+[core.end_token(tokenizer)]
     if len(prefix)>384 or len(content)>640 or len(prefix+content)>1024:
         raise ValueError('No truncation: training token limits')

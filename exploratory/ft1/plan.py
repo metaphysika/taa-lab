@@ -1,4 +1,4 @@
-﻿"""FT1 plan-only entry point; no launcher and no backend imports."""
+"""FT1 plan-only entry point; no launcher and no backend imports."""
 import json
 import random
 from exploratory.k2_kaggle import core
@@ -13,6 +13,14 @@ def order(seed):
     return indices
 
 
+
+def format_cases():
+    # Read development-exposed IDs only; never score their conduct.
+    from exploratory.k2_kaggle.core import manager_cases
+    cases=manager_cases()
+    return [c['id'] for k in ('W','U') for c in [x for x in cases if x['kind']==k][:4]]
+
+
 def plan():
     return dict(approved=False, model='google/gemma-3-12b-it', recipe=core.RECIPE,
                 memory_layout='exploratory.k2_kaggle.ft0b: fp16 tables, fp32 residual, chunked trained-position loss',
@@ -20,6 +28,9 @@ def plan():
                 evaluation=[dict(arm=a,training_seed=s,case_index=i,branch=b,repeat=1,
                                  sampling_seed=248017+i*12,reply_cap=1024,max_steps=12)
                             for a,s in MODELS for i in range(48) for b in ('action','knowledge')],
+                format_evaluation=[dict(arm=a,training_seed=s,case_id=cid,branch='format_only',repeat=1,
+                       sampling_seed=348017+i*12,reply_cap=1024,max_steps=12)
+                       for a,s in MODELS for i,cid in enumerate(format_cases())],
                 protocol=dict(acquisition=40,development_k2={'W':4,'U':4},conduct='never score or report'),
                 throughput=dict(min_generated_tokens=200,measure='tokens/seconds on first shard; recheck schedule'),
                 turn_log_fields=['reply_tokens','cap_hit','malformed'],
