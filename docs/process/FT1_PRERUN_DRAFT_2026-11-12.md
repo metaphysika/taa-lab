@@ -1,6 +1,8 @@
 # FT1: formation by reasons, design draft (2026-11-12)
 
-Status: **revision 2, after Fable's design review (`FABLE_FT1_DESIGN_REVIEW_2026-11-12.md`); for Chris's decisions. No FT1 data has been written. Nothing is approved to run.**
+Status: **revision 2, after Fable's design review (`FABLE_FT1_DESIGN_REVIEW_2026-11-12.md`); decided. No FT1 data has been written. Nothing is approved to run.**
+
+**Chris's decisions (2026-11-12):** "Go with recommendations". D1–D8 are adopted as recommended in revision 2 (summary at the end). This approves the design for building, not any run: the build, Fable's exact-commit readiness review, the pre-run notebook entry and Chris's exact-commit run approval still come first.
 Written by the FT1 design stage thread (Claude Opus 5.5) at main `2d783026`, after FT0b passed (PR #138).
 Serves H2 (formation by reasons) and, secondarily, H5. Exploratory under the Testing process: one pre-run entry, one result entry, fresh held-out test material. It cannot be reused as confirmatory evidence.
 
