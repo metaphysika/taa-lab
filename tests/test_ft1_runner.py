@@ -66,13 +66,14 @@ class Trainer:
 
 
 class RunnerTests(unittest.TestCase):
-    def run_fixture(self,qualification,interrupt=False,skip_first=False,fail_reload=False,manifest_bad=False):
+    def run_fixture(self,qualification,interrupt=False,skip_first=False,fail_reload=False,manifest_bad=False,hash_mismatch=False):
         import torch
         module=types.ModuleType('transformers')
         fixture_trainer=type('ConfiguredFixtureTrainer',(Trainer,),dict(skip_first=skip_first))
         module.Trainer,module.TrainingArguments,module.TrainerCallback=fixture_trainer,Args,type('Callback',(),{})
         peft=types.ModuleType('peft')
-        def reload_fixture(*args,**kwargs):
+        def reload_fixture(base,path,**kwargs):
+            self.assertEqual(Path(path).name,'adapter')
             if fail_reload: raise RuntimeError('original reload failure')
             return Model()
         peft.PeftModel=types.SimpleNamespace(from_pretrained=reload_fixture)
@@ -99,6 +100,7 @@ class RunnerTests(unittest.TestCase):
                 stack.enter_context(patch.object(torch.cuda,name,return_value=0))
             stack.enter_context(patch.object(torch,'autocast',side_effect=lambda *a,**k:contextlib.nullcontext()))
             stack.enter_context(patch.object(torch,'tensor',side_effect=tensor))
+            stack.enter_context(patch.object(training,'adapter_tensor_hashes',side_effect=([{'fixture':'final'},{'fixture':'checkpoint'}] if hash_mismatch else lambda path:{'fixture':'digest'})))
             stack.enter_context(patch.object(training.ft0b,'check_internals'))
             stack.enter_context(patch.object(training.ft0b,'tables'))
             stack.enter_context(patch.object(training.ft0b,'memory'))
@@ -107,6 +109,11 @@ class RunnerTests(unittest.TestCase):
             stack.enter_context(patch.object(training.ft0b.ft0,'finite_tensors'))
             stack.enter_context(patch.object(plan,'split_loss',side_effect=split))
             output=Path(td)
+            if hash_mismatch:
+                with self.assertRaisesRegex(ValueError,'differs from checkpoint'):
+                    training.train(Model(),Tokenizer(),rows['3'],'3',plan.SEEDS[0],
+                                   logs.append,output,check,qualification)
+                return
             if manifest_bad:
                 expected=[dict(id=r['id'],prompt=r['prompt_tokens'],trained=r['trained_tokens']) for r in rows['3']]
                 expected[0]['trained']+=1
@@ -164,6 +171,9 @@ class RunnerTests(unittest.TestCase):
 
     def test_manifest_counts_checked_before_optimizer_steps(self):
         self.run_fixture(True,manifest_bad=True)
+
+    def test_checkpoint_tensor_mismatch_blocks_qualification(self):
+        self.run_fixture(True,hash_mismatch=True)
 
     def test_deadline_skip_stop_and_exact_receipt(self):
         ticks=iter((0.,1.,3.))

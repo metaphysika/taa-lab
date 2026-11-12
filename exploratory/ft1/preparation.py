@@ -22,23 +22,48 @@ def run(config,tokenizer_path,output,receipt):
         raise ValueError('exact-commit preparation approval required')
     if config.get('model_source')!=MODEL_SOURCE: raise ValueError('pinned Gemma 3 12B /1 model required')
     runner.verify_source(config)
-    from transformers import AutoTokenizer
     import importlib.metadata
     from exploratory.k2_kaggle import core
-    if importlib.metadata.version('transformers')!=core.STACK['transformers']:
-        raise ValueError('unverified tokenizer library version')
     output=data.safe_output(output); output.mkdir(parents=True)
+    versions={}
+    for name in ('transformers','tokenizers','python'):
+        if name=='python':
+            import platform
+            versions[name]=platform.python_version()
+        else:
+            try: versions[name]=importlib.metadata.version(name)
+            except importlib.metadata.PackageNotFoundError: versions[name]=None
+    def save(name,report):
+        report['versions']=versions
+        (output/name).write_bytes((data.dump(report)+'\n').encode('utf-8'))
+    if versions['transformers']!=core.STACK['transformers']:
+        failure=dict(passed=False,written=False,versions=versions,expected_transformers=core.STACK['transformers'],
+                     setup_failure='transformers version mismatch',record_count=0)
+        save('measure-report.json',failure)
+        data.print_measure_summary(failure)
+        return dict(failure,report='measure-report.json')
+    from transformers import AutoTokenizer
+    tokenizer_path=core.resolve_model_path(tokenizer_path)
     hashes=tokenizer_hashes(tokenizer_path)
     counter=data.Counter(AutoTokenizer.from_pretrained(tokenizer_path,local_files_only=True,trust_remote_code=False))
     measured=data.measure(counter)
     measured['tokenizer_file_sha256']=hashes
-    (output/'measure-report.json').write_bytes((data.dump(measured)+'\n').encode('utf-8'))
+    save('measure-report.json',measured)
+    data.print_measure_summary(measured)
     if not measured['passed'] or not measured['tokenizer_verified']:
-        return dict(passed=False,written=False,report='measure-report.json')
-    report=data.write(output/'dataset',counter,output/'write-report.json')
+        return dict(passed=False,written=False,report='measure-report.json',versions=versions)
+    from .data_diagnostics import DataBuildError
+    try:
+        report=data.write(output/'dataset',counter,output/'write-report.json')
+    except DataBuildError:
+        # The writer already retains its complete diagnostic report.
+        report=json.loads((output/'write-report.json').read_bytes())
+        report['tokenizer_file_sha256']=hashes
+        save('write-report.json',report)
+        return dict(passed=False,written=False,report='write-report.json',versions=versions)
     report['tokenizer_file_sha256']=hashes
-    (output/'write-report.json').write_bytes((data.dump(report)+'\n').encode('utf-8'))
-    return dict(passed=report['passed'],written=report['write_passed'],report='write-report.json')
+    save('write-report.json',report)
+    return dict(passed=report['passed'],written=report['write_passed'],report='write-report.json',versions=versions)
 
 
 def stage(folder,commit,owner,repo_dataset,receipt_dataset):
@@ -61,7 +86,7 @@ def stage(folder,commit,owner,repo_dataset,receipt_dataset):
     notebook=dict(nbformat=4,nbformat_minor=5,metadata={},cells=[dict(cell_type='code',
         execution_count=None,metadata={},outputs=[],source=source.splitlines(True))])
     files={'ft1_data_plan.ipynb':notebook,'binding.json':config,'kernel-metadata.json':dict(
-        id=owner+'/ft1-data-plan',title='FT1 CPU data preparation plan',code_file='ft1_data_plan.ipynb',
+        id=owner+'/ft1-data-plan',title='ft1-data-plan',code_file='ft1_data_plan.ipynb',
         language='python',kernel_type='notebook',is_private=True,enable_gpu=False,enable_internet=False,
         dataset_sources=[repo_dataset,receipt_dataset],model_sources=[MODEL_SOURCE])}
     for name,value in files.items(): (folder/name).write_bytes((json.dumps(value,indent=2)+'\n').encode('utf-8'))

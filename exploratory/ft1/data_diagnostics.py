@@ -9,6 +9,16 @@ class DataBuildError(ValueError):
         super().__init__('FT1 data refused: '+str(len(report['failures']))+' record failures; see report')
 
 
+
+def runtime_versions():
+    import importlib.metadata,platform
+    versions={'python':platform.python_version()}
+    for name in ('transformers','tokenizers'):
+        try: versions[name]=importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError: versions[name]=None
+    return versions
+
+
 def distribution(values):
     values=[v for v in values if v is not None]
     return dict(count=len(values),min=min(values) if values else None,
@@ -28,7 +38,6 @@ def generate(counter,partition='train',count=2000,arms=data.ARMS):
         except Exception as exc: failures.append('template: '+str(exc))
         try: t=counter.trained(data.dump(target))
         except Exception as exc: failures.append('trained encoding: '+str(exc))
-        if p is not None and p>384: failures.append('prompt exceeds 384')
         if t is not None and t>640: failures.append('trained exceeds 640')
         total=p+t if p is not None and t is not None else None
         if total is not None and total>1024: failures.append('total exceeds 1024')
@@ -77,6 +86,8 @@ def generate(counter,partition='train',count=2000,arms=data.ARMS):
                 matching=dict(per_record=table,difference=distribution(r['difference'] for r in table),
                               arm2_total=a,arm3_total=b,aggregate_difference=a-b),
                 tokenizer_verified=isinstance(counter,data.Counter))
+    report['over_limit_counts']={k:sum(r[k] is not None and r[k]>limit for r in measurements)
+                                  for k,limit in (('trained',640),('total',1024))}
     report['passed']=not report['failures'] and not aggregate and all(len(output[a])==count for a in arms)
     manifest=dict(partition=partition,token_table=table,totals={a:sum(r['trained_tokens'] or 0 for r in rr) for a,rr in output.items()},
                   tokenizer_verified=isinstance(counter,data.Counter),
@@ -87,10 +98,12 @@ def generate(counter,partition='train',count=2000,arms=data.ARMS):
 def prepare(counter):
     output,manifest,train=generate(counter)
     probes,_,probe=generate(counter,'heldout',40,('1','2u','4'))
-    report=dict(passed=train['passed'] and probe['passed'],tokenizer_verified=isinstance(counter,data.Counter),
+    report=dict(versions=runtime_versions(),passed=train['passed'] and probe['passed'],tokenizer_verified=isinstance(counter,data.Counter),
                 training=train,probes=probe,record_count=len(train['rows'])+len(probe['rows']),
                 failures=train['failures']+probe['failures'],
                 aggregate_failures=train['aggregate_failures']+probe['aggregate_failures'])
+    report['limits']=dict(trained=640,total=1024,prompt='1024 - trained; no separate prompt cap')
+    report['over_limit_counts']={k:train['over_limit_counts'][k]+probe['over_limit_counts'][k] for k in ('trained','total')}
     report['unique_records']={a:len({r['id'] for r in rows}) for a,rows in output.items()}
     report['template_records']=dict(training=10000,probes=120)
     if any(n!=2000 for n in report['unique_records'].values()):

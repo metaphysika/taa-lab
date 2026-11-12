@@ -77,7 +77,7 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
                   cells=[dict(cell_type='code',execution_count=None,metadata={},outputs=[],source=source.splitlines(True))])
     (folder/'ft1_plan.ipynb').write_text(json.dumps(notebook,indent=2),encoding='utf-8')
     (folder/'ft1-binding.json').write_text(json.dumps(config,indent=2),encoding='utf-8')
-    (folder/'kernel-metadata.json').write_text(json.dumps(dict(id=f'{owner}/ft1-{arm}-{seed}-'+config['phase'],title=f"FT1 {arm} seed {seed} plan",
+    (folder/'kernel-metadata.json').write_text(json.dumps(dict(id=f'{owner}/ft1-{arm}-{seed}-'+config['phase'],title=f'ft1-{arm}-{seed}-'+config['phase'],
          code_file='ft1_plan.ipynb',language='python',kernel_type='notebook',is_private=True,
          enable_gpu=True,enable_internet=False,dataset_sources=[repo_dataset,data_dataset,'metaphysika/k2-wheels',receipt_dataset],model_sources=[model_source]),indent=2),encoding='utf-8')
     return config

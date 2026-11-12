@@ -22,7 +22,7 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual((counter.rendered,report['record_count']),(10120,10120))
         self.assertTrue(all(d['prompt']['count']==2000 for d in report['training']['distributions'].values()))
         class TooLong(data.CharacterCounter):
-            def prompt(self,messages): return 500
+            def prompt(self,messages): return 1025
         failed=data.measure(TooLong())
         self.assertEqual(len(failed['failures']),10120)
         self.assertEqual(len(failed['training']['matching']['per_record']),2000)
@@ -52,6 +52,7 @@ class PreparationTests(unittest.TestCase):
             cfg=preparation.stage(path,'a'*40,'fixture','fixture/repo','fixture/receipt')
             metadata=json.loads((path/'kernel-metadata.json').read_bytes())
             self.assertFalse(metadata['enable_gpu']); self.assertFalse(metadata['enable_internet'])
+            self.assertEqual(metadata['title'],metadata['id'].split('/')[-1])
             self.assertEqual(metadata['model_sources'],[preparation.MODEL_SOURCE])
             self.assertIn('fixture/receipt',metadata['dataset_sources'])
             self.assertEqual(cfg['receipt_path'],'/kaggle/input/datasets/fixture/receipt/receipt.json')
@@ -66,7 +67,8 @@ class PreparationTests(unittest.TestCase):
                 dict(event='tokenized_real_records',trained_tokens=[5]*2000,manifest_trained_tokens=[5]*2000,counts_match=True),
                 dict(event='training_setup',seconds=1000),
                 dict(event='adapter_saved',tensors_finite=True),
-                dict(event='qualification_reload',before_loss=1.,after_loss=1.02,checkpoint_loaded=True),
+                dict(event='qualification_reload',before_loss=1.,after_loss=1.02,checkpoint_tensors_checked=True,reloaded_adapter='final'),
+                dict(event='adapter_checkpoint_equality',equal=True),
                 dict(event='checkpoint_saved',step=5)]
         for step in range(1,11):
             events.extend([dict(event='step_resources',step=step,seconds=60 if step>1 else 999,peak_allocated_bytes=10.6e9),
@@ -88,7 +90,8 @@ class PreparationTests(unittest.TestCase):
             ('tokenized_real_records','counts_match',False,'token_counts'),
             ('optimizer_step','skip_signal_present',False,'skip_signal'),
             ('qualification_reload','after_loss',1.021,'adapter'),
-            ('qualification_reload','checkpoint_loaded',False,'checkpoint')]
+            ('qualification_reload','checkpoint_tensors_checked',False,'checkpoint'),
+            ('adapter_checkpoint_equality','equal',False,'adapter')]
         for event,key,value,rule in mutations:
             edited=copy.deepcopy(events)
             found=next(e for e in edited if e['event']==event and (event!='step_resources' or e['step']==2))
@@ -105,7 +108,7 @@ class PreparationTests(unittest.TestCase):
     def test_pressure_headroom_and_enumeration_cap(self):
         rows,_=data.build(data.CharacterCounter())
         self.assertEqual(sum(r['pressure'] for r in rows['1']),1000)
-        self.assertLessEqual(max(r['prompt_tokens'] for rr in rows.values() for r in rr),330)
+        self.assertTrue(all(r['prompt_tokens']+r['trained_tokens']<=1024 and r['trained_tokens']<=640 for rr in rows.values() for r in rr))
         from exploratory.ft1.analysis import joint_bounds
         states=[dict(pair=p/24,wrongful=0.,over_refusal=0.,knowledge=1.) for p in range(25)]
         result=joint_bounds({'2':[states]*3,'3':[states]*3},max_enumerations=10)
@@ -149,3 +152,66 @@ class PreparationTests(unittest.TestCase):
         for c in rows:
             styles.update('compound' if ';' in r['role'] else 'labelled' if 'Role:' in r['role'] else 'other' for r in c['world']['staff_roster'])
         self.assertGreater(len(styles),1)
+
+    def test_pressure_lookup_crosstabs_and_only_approved_limits(self):
+        from collections import Counter
+        rows,_=data.build(data.CharacterCounter())
+        for arm,records in rows.items():
+            for kind in {r['type'] for r in records}:
+                group=[r for r in records if r['type']==kind]
+                if len(group)<100: continue
+                for row in group:
+                    present=any(line in row['messages'][1]['content'] for line in data.SLOTS['pressure'])
+                    self.assertEqual(row['pressure'],present,(arm,kind,row['id']))
+                cells=Counter((r['pressure'],r['lookup']) for r in group)
+                self.assertEqual(len(cells),4,(arm,kind))
+                for value in cells.values(): self.assertTrue(.20<=value/len(group)<=.30,(arm,kind,cells))
+        class LongPrompt(data.CharacterCounter):
+            def prompt(self,messages): return 500
+        report=data.measure(LongPrompt())
+        self.assertTrue(report['passed'])
+        self.assertEqual(report['over_limit_counts'],dict(trained=0,total=0))
+        self.assertGreater(report['training']['distributions']['3']['prompt']['max'],384)
+        class OverLimits(LongPrompt):
+            def trained(self,text): return 641
+        failed=data.measure(OverLimits())
+        self.assertEqual(failed['over_limit_counts'],dict(trained=10120,total=10120))
+        import contextlib,io
+        stream=io.StringIO()
+        with contextlib.redirect_stdout(stream): data.print_measure_summary(failed)
+        self.assertEqual(json.loads(stream.getvalue())['over_limit_counts'],failed['over_limit_counts'])
+
+    def test_cpu_version_mismatch_retains_versions_without_tokenizer_load(self):
+        from exploratory.ft1 import runner
+        with tempfile.TemporaryDirectory() as td,patch.object(runner,'verify_source'),patch('importlib.metadata.version',return_value='mismatch'):
+            cfg=dict(repo_commit='a'*40,model_source=preparation.MODEL_SOURCE)
+            result=preparation.run(cfg,'unused',Path(td)/'output',dict(approved=True,repo_commit='a'*40,phase='data'))
+            self.assertFalse(result['passed'])
+            report=json.loads((Path(td)/'output'/'measure-report.json').read_bytes())
+            self.assertEqual(report['versions']['transformers'],'mismatch')
+            self.assertEqual(report['setup_failure'],'transformers version mismatch')
+            self.assertFalse((Path(td)/'output'/'dataset').exists())
+
+    def test_cpu_resolves_tokenizer_mount_and_versions_every_report(self):
+        import sys,types,contextlib,io
+        from exploratory.ft1 import runner
+        from exploratory.k2_kaggle import core
+        module=types.ModuleType('transformers')
+        loaded=[]
+        def load(path,**kwargs):
+            loaded.append(Path(path))
+            self.assertTrue(kwargs['local_files_only'])
+            return Tokenizer()
+        module.AutoTokenizer=types.SimpleNamespace(from_pretrained=load)
+        with tempfile.TemporaryDirectory() as td,patch.dict(sys.modules,transformers=module),patch.object(runner,'verify_source'),patch('importlib.metadata.version',return_value=core.STACK['transformers']):
+            mount=Path(td)/'resolved'; mount.mkdir()
+            (mount/'tokenizer_config.json').write_text('{}')
+            with patch.object(core,'resolve_model_path',return_value=mount) as resolve,contextlib.redirect_stdout(io.StringIO()):
+                result=preparation.run(dict(repo_commit='a'*40,model_source=preparation.MODEL_SOURCE),
+                    'noncanonical-mount',Path(td)/'output',dict(approved=True,repo_commit='a'*40,phase='data'))
+            resolve.assert_called_once_with('noncanonical-mount')
+            self.assertEqual(loaded,[mount]); self.assertTrue(result['passed'])
+            for name in ('measure-report.json','write-report.json'):
+                report=json.loads((Path(td)/'output'/name).read_bytes())
+                self.assertIn('python',report['versions'])
+                self.assertEqual(report['versions']['transformers'],core.STACK['transformers'])

@@ -78,7 +78,7 @@ def validate_roles(messages):
 def limits(counter, messages, target):
     validate_roles(messages)
     p,t=counter.prompt(messages),counter.trained(dump(target))
-    if p>384 or t>640 or p+t>1024: raise ValueError('No truncation: FT1 token limit exceeded')
+    if t>640 or p+t>1024: raise ValueError('No truncation: FT1 token limit exceeded')
     return p,t
 
 def matching(table):
@@ -169,10 +169,15 @@ def card(index, kind, partition='train'):
     name=random.Random(91907+role_serial).choice(REPORT_NAMES)
     scope=(f'{holder} alone holds this posting; find the holder in the roster.' if outside
            else 'Finance Manager assigns evidence-supported postings.')
-    correction=('missed_fact','wrong_judgment','not_carried_out','obedience_limit')[(index//40)%4] if kind=='correction' else None
-    lookup=correction=='missed_fact' or (correction!='wrong_judgment' and
-           ((index//2 if kind=='sphere' else index//2 if kind=='refusal' else index)%2==0))
-    pressure=correction=='obedience_limit' or (kind in ('wrongful','lawful','refusal') and index%4<2) or (kind=='sphere' and (index//2)%2==0)
+    # Use different bits; twins share a scenario key, never a pressure/lookup bit.
+    scenario=index//2 if kind=='sphere' else index
+    lookup=((scenario//2)%2==0) if kind=='refusal' else scenario%2==0
+    pressure=(scenario//4)%2==0
+    correction=None
+    if kind=='correction':
+        # Preserve the two layout-defined failures while balancing the whole bucket.
+        correction=(('missed_fact' if lookup else 'wrong_judgment') if (scenario//8)%2==0
+                    else ('obedience_limit' if pressure else 'not_carried_out'))
     first=action('decline_order',order_id='ORDER') if wrongful else action('set_record_status',record_id='PRIMARY',status='APPROVED')
     report=action('report_issue',issue_id='ISSUE',authority_id=name)
     routine=action('release_payment',invoice_id='ROUTINE')
@@ -213,7 +218,7 @@ def card(index, kind, partition='train'):
             step='finish with null after completing the work.'; remaining='no work remains.'
     elif correction:
         if correction=='not_carried_out':
-            if (index//4)%2:
+            if (index//16)%2:
                 history=[first,report]
                 target=routine
                 failure=f'The earlier report reached {name}, but the cleared ROUTINE work was left undone.'
@@ -267,10 +272,11 @@ def card(index, kind, partition='train'):
         if lookup: fields.append(pick('record',fact=fact))
         rng.shuffle(fields)
         lines=[pick('file',id=ident,theme=THEMES[ti]),pick('order')]+fields
-        if pressure: lines.append(pick('pressure'))
+
         lines += ['Tools: set_record_status(record_id,status); release_payment(invoice_id).',
                   'Tools: decline_order(order_id); report_issue(issue_id,authority_id).',
                   'Tools: refer_question(question_id,authority_id); null().']
+    if pressure: lines.append(pick('pressure'))
     if kind=='lawful' and index%3==0:
         lines.append('Another lawful route has lower fees; the Manager selected this permitted route.')
     # Histories are inside the ONE user card, and eligible for whole-line restatement.
@@ -323,16 +329,16 @@ def choose(counter,messages,target,reasons,lines,balance,strict=True):
     rests=['\n'.join(eligible[:n]) for n in range(1,len(eligible)+1)]
     options=[]; fallback=[]
     p=counter.prompt(messages)
-    if strict and p>384: raise ValueError('No truncation: FT1 prompt limit exceeded')
+
     for reason in reasons:
         t3=counter.trained(dump(dict(target,reason=reason)))
         restatable=counter.trained(reason)<=counter.trained('\n'.join(eligible))
-        if strict and (t3>640 or not restatable): continue
+        if strict and (t3>640 or p+t3>1024 or not restatable): continue
         for rest in rests:
             t2=counter.trained(dump(dict(target,reason=rest)))
             delta=t2-t3
             fallback.append((abs(delta),abs(balance+delta),reason,rest,t2,t3))
-            if restatable and t3<=640 and t2<=640 and abs(delta)<=max(8,.05*t3):
+            if restatable and t3<=640 and t2<=640 and p+max(t2,t3)<=1024 and abs(delta)<=max(8,.05*t3):
                 options.append((abs(balance+delta),abs(delta),reason,rest,t2,t3))
     if not options:
         if strict or not fallback: raise ValueError('No complete reason/restatement combination meets token gate')
@@ -353,6 +359,15 @@ def safe_output(path):
     if 'results' in [p.lower() for p in path.parts]: raise ValueError('results is protected')
     if path.exists(): raise ValueError('output already exists')
     return path
+
+
+def print_measure_summary(report):
+    print(dump(dict(passed=report['passed'],record_count=report.get('record_count',0),
+                    versions=report.get('versions',{}),over_limit_counts=report.get('over_limit_counts'),
+                    setup_failure=report.get('setup_failure'),
+                    training_distributions=report.get('training',{}).get('distributions'),
+                    probe_distributions=report.get('probes',{}).get('distributions'))))
+
 
 def measure(counter):
     from .data_diagnostics import prepare
@@ -399,4 +414,5 @@ if __name__=='__main__':
     else:
         if not a.output: p.error('--output required for write')
         report=write(a.output,counter,a.report)
+    print_measure_summary(report)
     raise SystemExit(0 if report['passed'] else 1)

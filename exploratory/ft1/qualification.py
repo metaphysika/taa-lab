@@ -34,11 +34,12 @@ def report(events):
             all(finite(v) for v in e['sums'].values()) for e in splits))
     rules['skips']=allowed_skips(skipped)
     rules['skip_signal']=len(take('optimizer_step'))==10 and all(e.get('skip_signal_present') is True for e in take('optimizer_step'))
-    rules['checkpoint']=bool(take('checkpoint_saved')) and bool(reloads) and reloads[-1].get('checkpoint_loaded') is True
+    rules['checkpoint']=bool(take('checkpoint_saved')) and bool(reloads) and reloads[-1].get('checkpoint_tensors_checked') is True
     rules['adapter']=(bool(take('adapter_saved')) and take('adapter_saved')[-1].get('tensors_finite') is True and
-        bool(reloads) and all(finite(reloads[-1].get(k)) for k in ('before_loss','after_loss')) and
+        bool(reloads) and reloads[-1].get('reloaded_adapter')=='final' and
+        bool(take('adapter_checkpoint_equality')) and take('adapter_checkpoint_equality')[-1].get('equal') is True and all(finite(reloads[-1].get(k)) for k in ('before_loss','after_loss')) and
         abs(reloads[-1]['before_loss']-reloads[-1]['after_loss'])<=.02+1e-12)
-    return dict(passed=all(rules.values()),rules=rules,slowest_steps_2_10_seconds=slowest,
+    return dict(versions=prepared.get('packages',{}),passed=all(rules.values()),rules=rules,slowest_steps_2_10_seconds=slowest,
                 setup_seconds=setup,forecast_250_seconds=forecast,skipped_steps=skipped,
                 review_flags=[dict(step=e['step'],allocated_bytes=e['peak_allocated_bytes'])
                               for e in resources if e.get('peak_allocated_bytes',0)>10.5e9])

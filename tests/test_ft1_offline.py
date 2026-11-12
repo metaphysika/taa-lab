@@ -16,7 +16,7 @@ class FT1Tests(unittest.TestCase):
         for arm,records in rows.items():
             self.assertEqual(len({r['id'] for r in records}),2000)
             for r in records:
-                self.assertLessEqual(r['prompt_tokens'],384)
+                self.assertLessEqual(r['prompt_tokens']+r['trained_tokens'],1024)
                 self.assertLessEqual(r['trained_tokens'],640)
                 if arm=='2':
                     reason=json.loads(r['messages'][-1]['content'])['reason']
@@ -31,7 +31,7 @@ class FT1Tests(unittest.TestCase):
 
     def test_refusal(self):
         class Huge(Stub):
-            def prompt(self,m): return 385
+            def prompt(self,m): return 1025
         with self.assertRaises(ValueError): data.build(Huge())
         with self.assertRaises(ValueError): data.matching([dict(arm2=100,arm3=130)])
 
@@ -225,7 +225,9 @@ class FT1Tests(unittest.TestCase):
             with patch.object(runner,'run',side_effect=AssertionError('plan attempted training')) as dispatch:
                 with contextlib.redirect_stdout(io.StringIO()): exec(source,{})
                 dispatch.assert_not_called()
-            self.assertEqual(json.loads((folder/'kernel-metadata.json').read_text())['enable_internet'],False)
+            metadata=json.loads((folder/'kernel-metadata.json').read_text())
+            self.assertEqual(metadata['enable_internet'],False)
+            self.assertEqual(metadata['title'],metadata['id'].split('/')[-1])
         with self.assertRaises(ValueError): kaggle.configuration('3',999,'b'*40,'a'*64)
         self.assertEqual(len(plan.plan()['format_evaluation']),13*8)
 

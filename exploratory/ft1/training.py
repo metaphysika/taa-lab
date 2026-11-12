@@ -18,11 +18,25 @@ def record(tokenizer, row):
         # quotes/syntax alone and an empty reason count as action. No token is dropped.
         flags.append(start<end and lo<end and hi>start)
     content=list(encoded['input_ids'])+[core.end_token(tokenizer)]
-    if len(prefix)>384 or len(content)>640 or len(prefix+content)>1024:
+    if len(content)>640 or len(prefix+content)>1024:
         raise ValueError('No truncation: training token limits')
     return dict(input_ids=prefix+content,attention_mask=[1]*len(prefix+content),
                 labels=[-100]*len(prefix)+content), [False]*len(prefix)+flags+[False]
 
+
+
+
+def adapter_tensor_hashes(folder):
+    """Canonical per-tensor hashes exclude safetensors file/header metadata."""
+    import hashlib
+    from safetensors.torch import load_file,save
+    tensors={}
+    for path in sorted(folder.glob('*.safetensors')):
+        for name,value in load_file(path,device='cpu').items():
+            if name in tensors: raise ValueError('duplicate adapter tensor')
+            tensors[name]=hashlib.sha256(save({name:value.contiguous()})).hexdigest()
+    if not tensors: raise ValueError('missing adapter tensors')
+    return tensors
 
 
 class NotTrained(RuntimeError):
@@ -146,13 +160,19 @@ def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False,
             reload_path=output/'trainer'/'checkpoint-10'
             if not reload_path.is_dir(): raise ValueError('qualification checkpoint missing')
             ft0b.ft0.finite_tensors(reload_path)
+            final_hashes=adapter_tensor_hashes(output/'adapter')
+            checkpoint_hashes=adapter_tensor_hashes(reload_path)
+            equal=final_hashes==checkpoint_hashes
+            retain(dict(event='adapter_checkpoint_equality',equal=equal,final_tensor_sha256=final_hashes,
+                        checkpoint_tensor_sha256=checkpoint_hashes))
+            if not equal: raise ValueError('final adapter differs from checkpoint-10 tensors')
             base=model.unload(); unloaded=True
-            reloaded=PeftModel.from_pretrained(base,reload_path,local_files_only=True)
+            reloaded=PeftModel.from_pretrained(base,output/'adapter',local_files_only=True)
             reloaded.eval(); ft0b.layout(reloaded)
             with torch.no_grad(),torch.autocast('cuda',dtype=torch.float16):
                 after=ft0b.loss(reloaded,batch).item()
             retain(dict(event='qualification_reload',before_loss=before if math.isfinite(before) else str(before),
-                        after_loss=after if math.isfinite(after) else str(after),steps=steps,checkpoint_loaded=True,checkpoint_step=10))
+                        after_loss=after if math.isfinite(after) else str(after),steps=steps,checkpoint_tensors_checked=True,reloaded_adapter='final',checkpoint_step=10))
             core.finite_scalar(before); core.finite_scalar(after)
             if abs(before-after)>.02+1e-12: raise ValueError('adapter reload loss differs')
             ft0b.memory('reload',retain); check()
