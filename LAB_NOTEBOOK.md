@@ -12355,3 +12355,13 @@ and 10.1: generators, versioned scoring helpers, injected training functions and
 evaluation plan. No model or training run, no sealed output, no execution approval.
 See docs/process/FT1_IMPLEMENTATION_2026-11-12.md for commands, local checks,
 choices and remaining readiness integration work.
+
+### 2026-11-12 - FT1 PR #140 offline revision after stage review
+
+The revision expands accounts-office training variety, reserves held-out
+theme/evidence combinations, adds training-only review samples, stages a
+hash-bound Kaggle plan and aggregates retained events with joint pair-correct
+unknown bounds. Sealed-generator checks use synthetic in-memory fixtures;
+no private test file, model call, training or backend operation occurred.
+The PR remains a draft for exact-commit review. No run is approved.
+See docs/process/FT1_IMPLEMENTATION_2026-11-12.md and its training-only appendix.

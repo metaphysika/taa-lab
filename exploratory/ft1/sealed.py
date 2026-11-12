@@ -111,6 +111,9 @@ def audit():
     from exploratory.ft1.data import THEMES,EVIDENCE
     from exploratory.step4_harness import l2,crossing
     old={c['theme'].lower() for c in l2.cases()+crossing.cases()}
+    # Include the full retained Study B design, not only its crossing subset.
+    for path in (crossing.ROOT/'scenarios/formation/study-b-draft-v0230').glob('*.json'):
+        old.add(json.loads(path.read_bytes())['theme'].lower())
     forbidden=old|set(EXCLUDED)|set(THEMES)|set(EVIDENCE)
     if any(term in subject.lower() for subject in SUBJECTS for term in forbidden):
         raise ValueError('domain separation invariant')
