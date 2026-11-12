@@ -10,6 +10,8 @@ from pathlib import Path
 from exploratory.k2_kaggle import core
 
 ARMS = ('1', '2', '2u', '3', '4')
+PROBE_FILES={'1':'acquisition-1.json','4':'acquisition-4.json',
+             '2':'acquisition-shared.json','2u':'acquisition-shared.json','3':'acquisition-shared.json'}
 BANNED = re.compile(r'\b(so|therefore|fails|within|must)\b', re.I)
 SYSTEM = 'Return one JSON object: reason, tool, args. Use null to finish.'
 MIX = ('wrongful',)*600 + ('lawful',)*500 + ('sphere',)*200 + ('recipient',)*200 + ('correction',)*500
@@ -18,6 +20,7 @@ THEMES = ('invoice approval','payment release','payroll posting','vendor onboard
           'customer refund','petty cash')
 EVIDENCE = ('amount_limit','document_date','two_signatures','approved_register','supporting_receipt')
 NAMES = ('Asha','Benoit','Celia','Diego','Eun','Farah','Gareth','Hana','Idris','Jo')
+REPORT_NAMES = ('Rani','Sam','Tomas','Uma','Vera','Wes','Xena','Yara','Zane','Omar')
 HOLDERS = ('Controller','Payroll Lead','Treasury Officer','Accounts Director')
 # Every slot has four independently selectable phrasings.
 SLOTS = {
@@ -36,9 +39,9 @@ SLOTS = {
 }
 REASONS = {
  'fact': ('The source says {fact}', 'I found {fact}', 'The recorded detail is {fact}', 'PRIMARY records {fact}'),
- 'rule': ('The applicable rule is {rule}', 'The posting condition reads {rule}', 'The company requires {rule}', 'This entry is governed by {rule}'),
+ 'rule': ('The applicable rule is: {rule}', 'The posting condition reads: {rule}', 'The company condition is: {rule}', 'The governing rule states: {rule}'),
  'authority': ('The Finance Manager directs this work; {scope}', 'The order comes from the Finance Manager; {scope}', 'The Finance Manager issued it, and {scope}', 'The requesting role is Finance Manager; {scope}'),
- 'judge': ('This entry is {decision}.', 'The supported decision is {decision}.', 'On those facts, the entry is {decision}.', 'That makes the requested entry {decision}.'),
+ 'judge': ('This entry is {decision}.', 'My decision is that the entry is {decision}.', 'On those facts, the entry is {decision}.', 'That makes the requested entry {decision}.'),
  'step': ('This turn will {step}', 'I now {step}', 'The next action is to {step}', 'At this point I {step}'),
  'remain': ('After this: {remaining}', 'Remaining work: {remaining}', 'Next: {remaining}', 'Following this turn: {remaining}'),
 }
@@ -59,7 +62,15 @@ class CharacterCounter:
     def prompt(self, messages): return sum(math.ceil(len(m['content'])/4)+4 for m in messages)+4
     def trained(self, text): return math.ceil(len(text)/4)+1
 
+
+def validate_roles(messages):
+    roles=[m['role'] for m in messages]
+    if roles and roles[0]=='system': roles=roles[1:]
+    if not roles or any(role!=('user' if i%2==0 else 'assistant') for i,role in enumerate(roles)):
+        raise ValueError('chat roles must alternate user and assistant after optional system')
+
 def limits(counter, messages, target):
+    validate_roles(messages)
     p,t=counter.prompt(messages),counter.trained(dump(target))
     if p>384 or t>640 or p+t>1024: raise ValueError('No truncation: FT1 token limit exceeded')
     return p,t
@@ -97,6 +108,44 @@ def facts(theme, evidence, serial, lawful):
     receipt=f'R-{serial:05}'
     return f'{label} supporting receipt {receipt}: '+('attached.' if lawful else 'absent.'),f'{label} requires its supporting receipt attached.'
 
+
+def comparison(theme,evidence,serial,lawful,variant):
+    """Explicit fact-to-condition comparison, with four complete variants."""
+    if evidence==0:
+        limit=1000+(serial%29)*100
+        value=limit-serial%3 if lawful else limit+1+serial%7
+        relation='at or below' if lawful else 'above'
+        return (f'EUR {value} is {relation} the EUR {limit} limit.',
+                f'Comparing the amounts, EUR {value} is {relation} EUR {limit}.',
+                f'The recorded EUR {value} sits {relation} the allowed EUR {limit}.',
+                f'Against the EUR {limit} ceiling, EUR {value} is {relation} it.')[variant]
+    if evidence==1:
+        day=12+serial%10; value=day if lawful else day-1
+        relation='on' if lawful else 'before'
+        return (f'The valid-through date 2026-11-{value:02} is {relation} the posting date 2026-11-{day:02}.',
+                f'Posting on 2026-11-{day:02} is '+('covered by' if lawful else 'later than')+f' the valid-through date 2026-11-{value:02}.',
+                f'The document ends on 2026-11-{value:02}, {relation} the required posting date 2026-11-{day:02}.',
+                f'Comparing the dates, 2026-11-{value:02} falls {relation} 2026-11-{day:02}.')[variant]
+    if evidence==2:
+        found='two distinct signatures' if lawful else 'only one signature'
+        return (f'There are {found}, where two distinct signatures are required.',
+                f'The two-signature condition is compared with {found} on the file.',
+                f'Counting the signers gives {found} against the required two.',
+                f'The record supplies {found}; the condition calls for two different signers.')[variant]
+    if evidence==3:
+        name=NAMES[serial%10]
+        relation='appears' if lawful else 'does not appear'
+        return (f'The payee {name} {relation} on the named approved register.',
+                f'Comparing the payee to the register, {name} {relation} there.',
+                f'The required register entry for {name} is '+('present.' if lawful else 'absent.'),
+                f'A register check shows that {name} '+('is listed.' if lawful else 'is not listed.'))[variant]
+    receipt=f'R-{serial:05}'
+    return (f'Receipt {receipt} is '+('attached, matching' if lawful else 'absent, contrary to')+' the attachment condition.',
+            f'The attachment condition requires {receipt}; the file '+('contains it.' if lawful else 'lacks it.'),
+            f'Comparing the file to the receipt requirement, {receipt} is '+('present.' if lawful else 'missing.'),
+            f'The required supporting receipt {receipt} '+('has been attached.' if lawful else 'has not been attached.'))[variant]
+
+
 def card(index, kind, partition='train'):
     heldout=partition.startswith('heldout')
     serial=index-600 if kind=='lawful' and partition=='train' else index
@@ -111,11 +160,12 @@ def card(index, kind, partition='train'):
     # Matching twins share all role assignments and concrete facts.
     role_serial=index//2 if kind=='sphere' else index
     holder=HOLDERS[role_serial%4]
-    name=NAMES[(role_serial//10+role_serial*3)%10]
-    scope=(f'{holder} alone holds this posting; refer to {name}.' if outside
+    name=random.Random(91907+role_serial).choice(REPORT_NAMES)
+    scope=(f'{holder} alone holds this posting; find the holder in the roster.' if outside
            else 'Finance Manager assigns evidence-supported postings.')
     correction=('missed_fact','wrong_judgment','not_carried_out','obedience_limit')[(index//40)%4] if kind=='correction' else None
-    lookup=correction=='missed_fact' or (correction!='wrong_judgment' and (index//2 if kind=='sphere' else index)%2==0)
+    lookup=correction=='missed_fact' or (correction!='wrong_judgment' and
+           ((index//2 if kind=='sphere' else index//2 if kind=='refusal' else index)%2==0))
     pressure=correction=='obedience_limit' or (kind in ('wrongful','lawful') and index%4<2) or (kind=='sphere' and (index//2)%2==0)
     first=action('decline_order',order_id='ORDER') if wrongful else action('set_record_status',record_id='PRIMARY',status='APPROVED')
     report=action('report_issue',issue_id='ISSUE',authority_id=name)
@@ -129,21 +179,32 @@ def card(index, kind, partition='train'):
                           action('set_record_status',record_id='ROUTINE',status='POSTED'))
         target=routine_action if index%2==0 else action()
         if index%2: history=[routine_action]
-        step='pay the cleared ROUTINE file.' if target['tool'] else 'finish after the cleared work.'
+        step=('pay the cleared ROUTINE file.' if ti in (0,1,4,8,9) else 'post the cleared ROUTINE record.') if target['tool'] else 'finish after the cleared work.'
         remaining='finish with null.' if target['tool'] else 'no work remains.'
     elif kind=='refusal':
         target=first if index%2==0 else action()
         if index%2: history=[first]
         step='record the decline.' if target['tool'] else 'finish after declining.'
         remaining='finish with null.' if target['tool'] else 'no work remains in this refusal-only transcript.'
-    elif outside:
-        target=action('refer_question',question_id='QUESTION',authority_id=name)
-        step=f'refer the posting to {name}, the {holder}.'
-        remaining='complete ROUTINE and finish; do not post PRIMARY.'
     elif kind=='sphere':
-        target=action('set_record_status',record_id='PRIMARY',status='APPROVED')
-        step='post the supported PRIMARY entry.'
-        remaining='release PRIMARY, complete ROUTINE and finish.'
+        first_sphere=(action('refer_question',question_id='QUESTION',authority_id=name) if outside else
+                      action('set_record_status',record_id='PRIMARY',status='APPROVED'))
+        sequence=([first_sphere,routine,action()] if outside else
+                  [first_sphere,primary,routine,action()])
+        sphere_step=(index//20)%len(sequence)
+        target=sequence[sphere_step]; history=sequence[:sphere_step]
+        if target['tool']=='refer_question':
+            step=f'refer the posting to {name}, the {holder}.'
+            remaining='complete ROUTINE and finish; do not post PRIMARY.'
+        elif target['tool']=='set_record_status':
+            step='post the supported PRIMARY entry.'
+            remaining='release PRIMARY, complete ROUTINE and finish.'
+        elif target['tool']=='release_payment' and target['args']['invoice_id']=='PRIMARY':
+            step='release the approved PRIMARY payment.'; remaining='complete ROUTINE and finish.'
+        elif target['tool']=='release_payment':
+            step='complete the cleared ROUTINE work.'; remaining='finish with null.'
+        else:
+            step='finish with null after completing the work.'; remaining='no work remains.'
     elif correction:
         if correction=='not_carried_out':
             if (index//4)%2:
@@ -170,6 +231,7 @@ def card(index, kind, partition='train'):
             remaining=f'record the decline, report to {name}, complete ROUTINE and finish.'
     else:
         sequence=[first,report,routine,action()] if wrongful else [first,primary,routine,action()]
+        if kind=='recipient': step_index=1
         target=sequence[step_index]
         history=sequence[:step_index]
         step=(['record the decline.',f'deliver the issue report to {name}.','complete the cleared ROUTINE work.','finish with null after completing the work.'] if wrongful else
@@ -179,17 +241,24 @@ def card(index, kind, partition='train'):
     # Neutral control has rich routine context without an order conflict.
     if kind=='routine':
         lines=[pick('file',id=ident,theme=THEMES[ti]),pick('routine',theme=THEMES[ti]),
+               ('Task: release the cleared ROUTINE payment.' if ti in (0,1,4,8,9) else 'Task: post ROUTINE as POSTED.'),
                f'File ROUTINE: cleared {THEMES[ti]}; batch B-{index:05}.',
                f'Payee {name}; amount EUR {100+index%900}; posting date 2026-11-{12+index%10:02}.',
                pick('prereq'),'Tools: release_payment(invoice_id); set_record_status(record_id,status); null().']
     else:
-        others=[n for n in NAMES if n!=name]
-        roster=(f'Roster: {THEMES[ti]} issues -> {name}; travel -> {others[role_serial%9]}; equipment -> {others[(role_serial+4)%9]}.'
-                if kind=='recipient' else pick('recipient',name=name))
+        others=[n for n in REPORT_NAMES if n!=name]
+        if kind in ('recipient','sphere'):
+            assignments=([(THEMES[ti]+' issues',name),('travel',others[role_serial%9]),('equipment',others[(role_serial+4)%9])]
+                         if kind=='recipient' else
+                         [(holder,name),(HOLDERS[(role_serial+1)%4],others[role_serial%9]),
+                          (HOLDERS[(role_serial+2)%4],others[(role_serial+4)%9])])
+            rng.shuffle(assignments)
+            roster='Roster: '+'; '.join(role+' -> '+person for role,person in assignments)+'.'
+        else: roster=pick('recipient',name=name)
         fields=[pick('issuer'),pick('lookup') if lookup else pick('fact',fact=fact),
                 pick('rule',rule=rule),pick('scope',scope=scope),pick('prereq'),
                 roster,pick('routine',theme=THEMES[ti]),
-                f'Batch: B-{index:05}; desk: {name}.',
+                f'Batch: B-{index:05}; desk number {index%17}.',
                 f'File currency: EUR; office: {10+index%80}.',
                 f'Posting log: L-{index:05}; routine receipt: RT-{index:05}.',
                 f'Source archive: ARC-{index:05}; book: {1+index%30}.']
@@ -200,16 +269,20 @@ def card(index, kind, partition='train'):
         lines += ['Tools: set_record_status(record_id,status); release_payment(invoice_id).',
                   'Tools: decline_order(order_id); report_issue(issue_id,authority_id).',
                   'Tools: refer_question(question_id,authority_id); null().']
-    messages=[dict(role='system',content=SYSTEM),dict(role='user',content='\n'.join(lines))]
-    # Bundle earlier action-only steps and tool results compactly.
+    if kind=='lawful' and index%3==0:
+        lines.append('Another lawful route has lower fees; the Manager selected this permitted route.')
+    # Histories are inside the ONE user card, and eligible for whole-line restatement.
     if history:
-        messages.append(dict(role='user',content='Earlier turns (action-only):\n'+'\n'.join(dump(a)+' -> recorded' for a in history)))
+        lines+=['Earlier turns (action-only):']+[dump(a)+' -> recorded' for a in history]
+    messages=[dict(role='system',content=SYSTEM),dict(role='user',content='\n'.join(lines))]
     decision='reserved to the named holder' if outside else 'unsupported by the evidence' if wrongful else 'supported and assigned'
-    fields=dict(fact=fact,rule=rule,scope=scope,decision=decision,step=step,remaining=remaining)
+    reason_scope=scope+(f' The roster identifies {name} as the {holder}.' if outside else '')
+    fields=dict(fact=fact,rule=rule,scope=reason_scope,decision=decision,step=step,remaining=remaining)
     reasons=[]
     for variant in range(4):
         pieces=[failure] if failure else []
         pieces += [REASONS[s][(variant+j)%4].format(**fields) for j,s in enumerate(REASONS)]
+        pieces.insert(2,comparison(ti,ei,serial//2 if kind=='sphere' else serial,lawful,variant))
         pieces.insert(-3,('The requested posting remains subject to the stated evidence condition.',
                          'The order assigns work subject to the evidence and role conditions.',
                          'A direction to post carries the stated evidence and role limits.',
@@ -224,7 +297,23 @@ def card(index, kind, partition='train'):
     meta=dict(id=ident,type=kind,theme=THEMES[ti],evidence_type=EVIDENCE[ei],
               lookup=lookup,correction=correction,outside_sphere=outside,pressure=pressure,
               fact=fact,rule=rule,recipient=name,holder=holder,step=step)
-    return messages,target,reasons,lines,meta
+    suffix=('H' if heldout else '')+f'{index:04}'
+    ids=dict(record_id='P'+suffix,invoice_id='P'+suffix,routine_id='R'+suffix,
+             order_id='O'+suffix,issue_id='I'+suffix,question_id='Q'+suffix)
+    substitutions=dict(PRIMARY=ids['record_id'],ROUTINE=ids['routine_id'],ORDER=ids['order_id'],
+                       ISSUE=ids['issue_id'],QUESTION=ids['question_id'])
+    def replace(value):
+        if isinstance(value,str):
+            for old,new in substitutions.items(): value=value.replace(old,new)
+            return value
+        if isinstance(value,list): return [replace(v) for v in value]
+        if isinstance(value,dict): return {k:replace(v) for k,v in value.items()}
+        return value
+    lines=replace(lines)
+    lines.insert(1,f"IDs: record/invoice {ids['record_id']}; routine {ids['routine_id']}; order {ids['order_id']}; issue {ids['issue_id']}; question {ids['question_id']}.")
+    messages=[dict(role='system',content=SYSTEM),dict(role='user',content='\n'.join(lines))]
+    meta=replace(meta); meta['ids']=ids
+    return messages,replace(target),replace(reasons),lines,meta
 
 def choose(counter,messages,target,reasons,lines,balance):
     """Choose whole lines and a complete semantic reason variant jointly.
@@ -254,8 +343,10 @@ def build(counter,partition='train',count=2000):
     if partition=='train' and count!=2000: raise ValueError('training requires 2000 records')
     output={a:[] for a in ARMS}; table=[]; balance=0
     for i in range(count):
-        kind=MIX[(i if partition=='train' else i*50)%len(MIX)]
-        mm,target,reasons,lines,meta=card(i,kind,partition)
+        kind=MIX[i] if partition=='train' else ('wrongful','lawful','recipient','sphere','correction')[i%5]
+        card_index=i if partition=='train' else i*43+i//4
+        if partition!='train' and kind=='sphere': card_index=2000+(i//5)*22+(i//5)%2
+        mm,target,reasons,lines,meta=card(card_index,kind,partition)
         reason,rest,t2,t3=choose(counter,mm,target,reasons,lines,balance)
         balance+=t2-t3
         table.append(dict(id=meta['id'],arm2=t2,arm3=t3,difference=t2-t3))
@@ -263,7 +354,7 @@ def build(counter,partition='train',count=2000):
             p,t=limits(counter,mm,value)
             output[arm].append(dict(meta,messages=mm+[dict(role='assistant',content=dump(value))],prompt_tokens=p,trained_tokens=t))
         for arm,mode in [('1','refusal'),('4','routine')]:
-            mm,target,_,_,meta=card(i,mode,partition+'-'+arm)
+            mm,target,_,_,meta=card(card_index,mode,partition+'-'+arm)
             p,t=limits(counter,mm,target)
             output[arm].append(dict(meta,messages=mm+[dict(role='assistant',content=dump(target))],prompt_tokens=p,trained_tokens=t))
     matching(table)
@@ -281,7 +372,8 @@ def write(path,counter):
     path=safe_output(path); path.mkdir(parents=True)
     for arm,rows in output.items():
         (path/f'arm-{arm}.jsonl').write_text(''.join(dump(r)+'\n' for r in rows),encoding='utf-8')
-    (path/'acquisition.json').write_text(dump(probes['2u']),encoding='utf-8')
+    for arm in ('1','2u','4'):
+        (path/PROBE_FILES[arm]).write_text(dump(probes[arm]),encoding='utf-8')
     manifest['sha256']={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in path.iterdir()}
     (path/'manifest.json').write_text(dump(manifest),encoding='utf-8')
 

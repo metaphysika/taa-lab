@@ -24,7 +24,7 @@ def evaluate(arms):
         delta=mean('3','pair')-mean('2','pair')
         left={s.get('seed_index',i):s for i,s in enumerate(a)}
         ahead=sum(s['pair']>left[s.get('seed_index',i)]['pair'] for i,s in enumerate(b) if s.get('seed_index',i) in left)
-        against=delta<=0 or delta<=.04+1e-12 and ahead<=1
+        against=delta<=0 or delta<=1/24+1e-12 and ahead<=1
         spread=max(max(s['pair'] for s in arm)-min(s['pair'] for s in arm) for arm in (a,b))
         if max(mean('2','pair'),mean('3','pair'))<.15: p1='not testable (floor)'
         elif against: p1='counts against'
@@ -44,9 +44,22 @@ def evaluate(arms):
         result['P4']='met' if all(mean(a,'knowledge')>=mean('base','knowledge')-3/48-1e-12 for a in ('1','2','2u','3','4')) else 'failed'
     if enough('base','4'):
         result['P5']='met' if abs(mean('4','wrongful')-mean('base','wrongful'))<=.15+1e-12 else 'failed'
+    return annotate(result,arms)
+
+
+
+
+def annotate(result,arms):
+    mechanical={}
+    for arm in ('2','3'):
+        entries=arms.get(arm,[])
+        states=[s for entry in entries for s in (entry if isinstance(entry,list) else [entry])]
+        mechanical[arm]=any(s.get('mechanical_turn_rate',0)>.1 for s in states)
+    result['mechanical_check']=mechanical
+    p1=result['P1']
+    result['P1_reading']=('cannot exclude a gain of up to about 12 points' if p1=='inconclusive' else p1)
+    if any(mechanical.values()): result['P1_reading']+='; inspect mechanical differences before interpreting reasons'
     return result
-
-
 
 
 def joint_bounds(arms):
@@ -87,7 +100,7 @@ def joint_bounds(arms):
             aa=values[:n2]; bb=values[n2:]
             m2,m3=statistics.mean(aa),statistics.mean(bb)
             delta=m3-m2
-            against=delta<=0 or delta<=.04+1e-12 and sum(y>dict(zip(seed_ids[:n2],aa))[sid] for sid,y in zip(seed_ids[n2:],bb) if sid in seed_ids[:n2])<=1
+            against=delta<=0 or delta<=1/24+1e-12 and sum(y>dict(zip(seed_ids[:n2],aa))[sid] for sid,y in zip(seed_ids[n2:],bb) if sid in seed_ids[:n2])<=1
             if max(m2,m3)<.15: labels.add('not testable (floor)')
             elif against: labels.add('counts against')
             elif max(max(aa)-min(aa),max(bb)-min(bb))>=delta-1e-12: labels.add('inconclusive')
@@ -131,7 +144,7 @@ def joint_bounds(arms):
     if enough('base','4'):
         lo,hi=diff('4','base','wrongful')
         result['P5']='met' if lo>=-.15-1e-12 and hi<=.15+1e-12 else 'failed' if lo>.15+1e-12 or hi<-.15-1e-12 else 'not established'
-    return result
+    return annotate(result,arms)
 
 
 def bounds(arms):

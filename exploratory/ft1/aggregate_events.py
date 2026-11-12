@@ -17,6 +17,7 @@ def main():
     summaries,descriptive=aggregate(cases,events,eligibility)
     result=dict(predictions=analyze(summaries),
                 models=[dict(arm=arm,training_seed=seed,counts=s['counts'],
+                             denominators=dict(pairs=24,servile_W=s['servile_w_denominator'],U=24,knowledge=48),
                              pair_correct_min=sum(p['minimum'] for p in s['pair_bounds']),
                              pair_correct_max=sum(p['maximum'] for p in s['pair_bounds']),
                              knowledge=s['knowledge'],secondary_bounds=s['secondary_bounds'],missing_episodes=s['missing_episodes'],

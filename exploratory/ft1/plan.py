@@ -22,9 +22,13 @@ def format_cases():
 
 
 def plan():
+    from .data import PROBE_FILES
     return dict(approved=False, model='google/gemma-3-12b-it', recipe=core.RECIPE,
                 memory_layout='exploratory.k2_kaggle.ft0b: fp16 tables, fp32 residual, chunked trained-position loss',
+                qualification=dict(arm='3',seed=SEEDS[0],optimizer_steps=10,real_records=True,
+                                   save_reload=True,approved=False,launch=False),
                 training=[dict(arm=a,seed=s,order=order(s),steps=250,max_skipped=25) for a,s in MODELS[1:]],
+                acquisition=[dict(arm=a,training_seed=s,probe_file=PROBE_FILES[a],count=40) for a,s in MODELS[1:]],
                 evaluation=[dict(arm=a,training_seed=s,case_index=i,branch=b,repeat=1,
                                  sampling_seed=248017+i*12,reply_cap=1024,max_steps=12)
                             for a,s in MODELS for i in range(48) for b in ('action','knowledge')],
