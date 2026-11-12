@@ -12298,3 +12298,52 @@ Written before any FT0b call. FT0b is non-scientific feasibility for FT1 and can
 - **Probe records:** synthetic and identical, so they miss fragmentation over 250 mixed-length steps.
 - **fp16 skipping:** 25 short-record steps cannot show it for long records; FT1 keeps the 25-of-250 rule per arm.
 - **Unverified offline:** Kaggle's installed library bytes, the real tokenizer's exact-length search and all GPU behaviour. These fail closed.
+
+## 2026-11-12 — FT0b result: PASS (Gemma 3 12B IT fits FT1's record lengths on one Kaggle T4), exploratory, $0
+
+Scored against the FT0b pre-run entry (2026-11-11, above), whose pass rule was fixed before any call. Non-scientific feasibility only; no claim about formation or servility.
+
+**Run.**
+- **Approval and commit:** run under Chris's exact-commit approval at `954ba8a42bc6e77e65e17963026080622e8af17d`, with no other run and no relaunch.
+- **Kaggle:** kernel `metaphysika/k2q-12b-neu-s247056-954ba8a4-53f5e7eb`, private, internet off, Tesla T4 with one visible GPU, model source `google/gemma-3/transformers/gemma-3-12b-it/1`. Status COMPLETE; about 26 minutes of session time.
+- **Evidence:** `results/2026-11-12 v0.24.85 gemma-3-12b-it-qualify-neutral-s247056 k2 k2q-12b-neu-s247056-954ba8a4-53f5e7eb/`, with fetch SHA-256 verified. The offline report output is `ft0b-report.json` in the same folder.
+- **Adapter weights (not committed):** `adapter/` and `incomplete-step-25/` are kept only in the local main-checkout copy. Both `adapter_model.safetensors` files have SHA-256 `a706429678456db08077fc9b2ec271d59a9fed874c4b00fb9e6cec2a5a57cf98`; the step-25 folder is the K2 code's routine every-25-steps checkpoint, labelled non-scientific.
+- **Cost:** $0, about 0.5 Kaggle GPU-hours.
+
+**Verdict: PASS.** `python -m exploratory.k2_kaggle.ft0b FOLDER --approved-commit 954ba8a4…` gives PASS on all four rules, with no reasons and no warnings. The skipped-update caveat does not apply: every measured 640-span pass had finite losses and all 672 LoRA gradients finite.
+
+| Rule | Result |
+|---|---|
+| 1. Artifacts and identity | PASS: Tesla T4, one visible GPU, approved commit, recipe hash, neutral records, 336 language-model LoRA modules (32,735,232 trainable parameters), 25 steps, 200 finite raw losses, fp16 table with fp32-stream hooks recorded. |
+| 2. Same math | PASS: the largest per-record loss difference is 0.0039 nats (limit 0.02) and the median is about 0.0016 (limit 0.005). Gradient cosines were 1.003–1.004 against a threshold of 0.99. Those values are impossible for an exact cosine, so the measurement carries an error of roughly 0.4% (see below). |
+| 3. Memory at 640 | PASS: peak allocated 9.86e9 bytes (limit 13.5e9); reserved 10.20e9. |
+| 4. Time at 640 | PASS: slowest measured step 61.1 s, so worst case 4.25 h for 250 steps (limit 8.0 h). |
+
+**Measurements.**
+- **Every trained span gave the same peak, 9,864,118,784 bytes**, and step times of 59–61 s, including the report-only 896-token span. Peak memory and step time do not depend on the trained span at a fixed 1,024 total. The peak is set by the 1,024-token sequence, not by the loss, so FT1 records can carry up to 896 trained tokens within this envelope.
+- **Itemised memory:**
+  - load: 7.80e9 bytes;
+  - after kbit preparation: 9.83e9, of which 2.0e9 is the vocabulary table being upcast to fp32 (4.03e9 bytes);
+  - after the fp16 cast: 7.97e9;
+  - at Trainer creation: 7.97e9;
+  - after training: 8.23e9.
+
+  The table is one shared tensor for input and output. This confirms the main lines of Fable's memory budget.
+- **Training:**
+  - Steps took 16.8 s on short records (FT0: 14.6 s).
+  - fp16 skipped updates 1 and 2 only.
+  - Loss fell from 2.75 to 4.5e-6 within 25 steps. The neutral K2 records are templated and very easy, so this is fast memorisation, not evidence of learning anything general.
+- **Probes:** the 384-span warm-up step had non-finite gradients (308 of 672 finite), which the gradient scaler skipped. Every measured step at every span was finite.
+- **Generation:** 200 tokens in 40.9 s on the reloaded adapter, 4.89 tokens/s.
+
+**Against predictions.**
+- **Claude** gave PASS about 55%. PASS happened. Time, which I named as the most likely failure, passed with room to spare.
+- **Fable** gave PASS 50% and estimated a peak of 10–11e9; the actual was 9.86e9.
+- **Fable's options review:** its memory reasoning was largely right. The fp32 table copy was real and removing it, together with the full logits, was enough.
+
+**Caveats.**
+- **Gradient cosine:** values above 1 show that the cosine computation is imprecise by about 0.4%, likely float32 rounding over 32.7M-element vectors. It cannot distinguish a true cosine of 0.996 from 1.0. Rule 2 passed as written, and the losses agree tightly, but the gradient part of the same-math check is weaker evidence than intended. The single-slice limit also stands: equivalence records have about 27 trained tokens, so multi-slice chunking is CPU-tested only.
+- **Synthetic probes:** identical probe records do not show fragmentation over 250 mixed-length steps. The 3.6e9 bytes of headroom under 13.5e9 make that risk smaller than it was.
+- **Long-record skipping:** 25 short-record steps do not show whether fp16 skips updates on long records. FT1 keeps the 25-of-250 rule per arm.
+
+**What follows.** FT1 is feasible on a free Kaggle T4 with the FT0b memory layout. The approved FT1 record lengths stand: 1,024 tokens total and at most 640 trained, and 896 would also fit. Per training arm and seed: 250 steps at most about 4.3 h worst case plus load and evaluation, under one 8.5 h session. FT1's own pre-run entry still has to fix arm matching, the test set and predictions before any FT1 data is written.
