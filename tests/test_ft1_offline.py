@@ -209,10 +209,10 @@ class FT1Tests(unittest.TestCase):
             with patch.object(kaggle,'verify_data',return_value='a'*64), patch.object(kaggle,'source_inventory',return_value={'fixture.py':'d'*64}):
                 cfg=kaggle.stage(folder,'3',plan.SEEDS[0],'b'*40,dataset,
                                   model_source='google/gemma-3/transformers/gemma-3-12b-it/1',
-                                  repo_dataset='fixture/repo',data_dataset='fixture/data',owner='fixture')
+                                  repo_dataset='fixture/repo',data_dataset='fixture/data',owner='fixture',receipt_dataset='fixture/approval')
                 qual=kaggle.stage(Path(td)/'qual','3',plan.SEEDS[0],'b'*40,dataset,qualification=True,
                                   model_source='google/gemma-3/transformers/gemma-3-12b-it/1',
-                                  repo_dataset='fixture/repo',data_dataset='fixture/data',owner='fixture')
+                                  repo_dataset='fixture/repo',data_dataset='fixture/data',owner='fixture',receipt_dataset='fixture/approval')
                 self.assertEqual(qual['optimizer_steps'],10)
                 self.assertEqual(qual['phase'],'qualify')
             self.assertTrue(cfg['plan_only']); self.assertFalse(cfg['approved'])

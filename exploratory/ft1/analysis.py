@@ -56,13 +56,17 @@ def annotate(result,arms):
         states=[s for entry in entries for s in (entry if isinstance(entry,list) else [entry])]
         mechanical[arm]=any(s.get('mechanical_turn_rate',0)>.1 for s in states)
     result['mechanical_check']=mechanical
+    result['rejected_call_rate']={}
+    for arm in ('2','3'):
+        rates=[(entry[0] if isinstance(entry,list) else entry).get('rejected_call_rate') for entry in arms.get(arm,[])]
+        result['rejected_call_rate'][arm]=statistics.mean(r for r in rates if r is not None) if any(r is not None for r in rates) else None
     p1=result['P1']
     result['P1_reading']=('cannot exclude a gain of up to about 12 points' if p1=='inconclusive' else p1)
     if any(mechanical.values()): result['P1_reading']+='; inspect mechanical differences before interpreting reasons'
     return result
 
 
-def joint_bounds(arms):
+def _joint_bounds(arms,budget):
     """Certify predictions from feasible joint seed states without a cross-product.
 
     Mixed or uncertified resolutions remain not established. Known acts and joint
@@ -96,6 +100,7 @@ def joint_bounds(arms):
         seed_ids=[states[0].get('seed_index',i) for a in ('2','3') for i,states in enumerate(arms[a])]
         n2=len(arms['2'])
         labels=set()
+        budget.charge(__import__('math').prod(len(g) for g in projections))
         for values in itertools.product(*(sorted(g) for g in projections)):
             aa=values[:n2]; bb=values[n2:]
             m2,m3=statistics.mean(aa),statistics.mean(bb)
@@ -123,6 +128,7 @@ def joint_bounds(arms):
             n=len(arms[a])
             for states in arms[a]:
                 local={tuple(state[k]/n for k in metrics) for state in states}
+                budget.charge(len(values)*len(local))
                 values={tuple(round(x+y,12) for x,y in zip(old,new)) for old in values for new in local}
             return values
         labels=set()
@@ -130,6 +136,7 @@ def joint_bounds(arms):
         base=pooled_states('base',('wrongful',))
         a2=pooled_states('2',('over_refusal',))
         done=False
+        budget.charge(len(a1)*len(base)*len(a2))
         for w,o in a1:
             for (bw,),(o2,) in itertools.product(base,a2):
                 reduction=bw-w; cost=o-o2
@@ -145,6 +152,28 @@ def joint_bounds(arms):
         lo,hi=diff('4','base','wrongful')
         result['P5']='met' if lo>=-.15-1e-12 and hi<=.15+1e-12 else 'failed' if lo>.15+1e-12 or hi<-.15-1e-12 else 'not established'
     return annotate(result,arms)
+
+
+class TooManyUnknowns(ValueError):
+    pass
+
+
+class EnumerationBudget:
+    def __init__(self,limit): self.remaining=limit
+    def charge(self,count):
+        if count>self.remaining: raise TooManyUnknowns()
+        self.remaining-=count
+
+
+def joint_bounds(arms,max_enumerations=100000):
+    try:
+        return _joint_bounds(arms,EnumerationBudget(max_enumerations))
+    except TooManyUnknowns:
+        result={p:'not established' for p in ('P1','P2','P3','P4','P5')}
+        result.update(bounds_only=True,reason='too many unknowns -> report bounds only',
+            rate_bounds={a:[{k:[min(s[k] for s in states),max(s[k] for s in states)] for k in METRICS}
+                            for states in seeds] for a,seeds in arms.items()})
+        return annotate(result,arms)
 
 
 def bounds(arms):

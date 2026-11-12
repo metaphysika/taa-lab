@@ -35,12 +35,12 @@ def configuration(arm,seed,repo_commit,data_manifest_sha256):
 
 
 def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
-          model_source=None,repo_dataset=None,data_dataset=None,owner=None):
-    if not all((model_source,repo_dataset,data_dataset,owner)):
+          model_source=None,repo_dataset=None,data_dataset=None,owner=None,receipt_dataset=None):
+    if not all((model_source,repo_dataset,data_dataset,owner,receipt_dataset)):
         raise ValueError('versioned model source, repo/data datasets and owner are required')
     plan.core.validate_model_source(model_source,'gemma-3-12b-it')
     if not re.fullmatch('[a-z0-9_-]+',owner) or any(
-            not re.fullmatch('[a-z0-9_-]+/[a-z0-9_-]+',v) for v in (repo_dataset,data_dataset)):
+            not re.fullmatch('[a-z0-9_-]+/[a-z0-9_-]+',v) for v in (repo_dataset,data_dataset,receipt_dataset)):
         raise ValueError('invalid Kaggle owner/dataset handles')
     config=configuration(arm,seed,repo_commit,verify_data(data_folder))
     manifest=json.loads((Path(data_folder)/'manifest.json').read_bytes())
@@ -50,6 +50,7 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
     config['mounts']=dict(repo_commit_marker='COMMIT.txt',data_manifest_sha256=config['data_manifest_sha256'],
                           model='/kaggle/input/models/'+model_source)
     config['model_source']=model_source
+    config['receipt_path']='/kaggle/input/datasets/'+receipt_dataset+'/receipt.json'
     config['execution']='plan only; separate exact-commit owner approval required'
     config['phase']='qualify' if qualification else 'train'
     if qualification and arm!='3': raise ValueError('qualification uses arm 3')
@@ -61,7 +62,7 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
             'PLAN_ONLY = True\n'
             'CONFIG = '+repr(config)+'\n'
             'OUTPUT = "/kaggle/working/ft1-'+arm+'-'+str(seed)+'-'+config['phase']+'"\n'
-            'APPROVAL_RECEIPT = "/kaggle/input/ft1-approval/receipt.json"\n'
+            'APPROVAL_RECEIPT = CONFIG["receipt_path"]\n'
             'if PLAN_ONLY:\n    print(CONFIG)\n'
             'else:\n'
             '    os.environ["CUDA_VISIBLE_DEVICES"] = "0"\n'
@@ -78,7 +79,7 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
     (folder/'ft1-binding.json').write_text(json.dumps(config,indent=2),encoding='utf-8')
     (folder/'kernel-metadata.json').write_text(json.dumps(dict(id=f'{owner}/ft1-{arm}-{seed}-'+config['phase'],title=f"FT1 {arm} seed {seed} plan",
          code_file='ft1_plan.ipynb',language='python',kernel_type='notebook',is_private=True,
-         enable_gpu=True,enable_internet=False,dataset_sources=[repo_dataset,data_dataset,'metaphysika/k2-wheels'],model_sources=[model_source]),indent=2),encoding='utf-8')
+         enable_gpu=True,enable_internet=False,dataset_sources=[repo_dataset,data_dataset,'metaphysika/k2-wheels',receipt_dataset],model_sources=[model_source]),indent=2),encoding='utf-8')
     return config
 
 
@@ -125,7 +126,7 @@ if __name__=='__main__':
     p.add_argument('--mode',choices=['ft1'],default='ft1')
     p.add_argument('--qualification',action='store_true'); p.add_argument('--arm',required=True); p.add_argument('--seed',type=int,required=True)
     p.add_argument('--model-source',required=True); p.add_argument('--repo-dataset',required=True)
-    p.add_argument('--data-dataset',required=True); p.add_argument('--owner',required=True)
+    p.add_argument('--receipt-dataset',required=True); p.add_argument('--data-dataset',required=True); p.add_argument('--owner',required=True)
     p.add_argument('--repo-commit',required=True); p.add_argument('--data',required=True); p.add_argument('--output',required=True)
     a=p.parse_args()
-    print(json.dumps(stage(a.output,a.arm,a.seed,a.repo_commit,a.data,a.qualification,a.model_source,a.repo_dataset,a.data_dataset,a.owner),indent=2))
+    print(json.dumps(stage(a.output,a.arm,a.seed,a.repo_commit,a.data,a.qualification,a.model_source,a.repo_dataset,a.data_dataset,a.owner,a.receipt_dataset),indent=2))

@@ -21,10 +21,12 @@ def candidates():
 def discover():
     found=[]; inspected=[]
     for path in candidates():
-        raw=path.read_text(encoding='utf-8')
+        asset=Path(chr(92)*2+'?'+chr(92)+str(path.resolve())) if os.name=='nt' else path
+        raw=asset.read_text(encoding='utf-8')
+        label=path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else '[HF_CACHE]/'+path.name
         # Gemma 4's turn markers/templates are not Gemma 3 qualification.
         if 'Gemma 4' in raw or '<turn|>' in raw:
-            inspected.append(dict(path=str(path),identity='Gemma 4')); continue
+            inspected.append(dict(path=label,identity='Gemma 4')); continue
         if path.name=='tokenizer_config.json':
             config=json.loads(raw)
             template=config.get('chat_template','')
@@ -34,7 +36,7 @@ def discover():
         elif '<start_of_turn>' in raw and '<end_of_turn>' in raw:
             found.append(dict(directory=str(path.parent),template=raw,
                               full_tokenizer=any((path.parent/n).is_file() for n in ('tokenizer.json','tokenizer.model'))))
-        inspected.append(dict(path=str(path),identity='unverified'))
+        inspected.append(dict(path=label,identity='unverified'))
     return found,inspected
 
 if __name__=='__main__':

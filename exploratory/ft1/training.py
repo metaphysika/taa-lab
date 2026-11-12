@@ -35,7 +35,7 @@ class StepMonitor:
         self.retain,self.check,self.max_skipped=retain,check,max_skipped
         self.skipped=[]
     def end(self,step,skipped):
-        self.retain(dict(event='optimizer_step',step=step,skipped=skipped))
+        self.retain(dict(event='optimizer_step',step=step,skipped=skipped,skip_signal_present=True))
         if skipped: self.skipped.append(step)
         if len(self.skipped)>self.max_skipped:
             self.retain(dict(event='not_trained',skipped_steps=list(self.skipped)))
@@ -43,23 +43,32 @@ class StepMonitor:
         self.check()
 
 
-def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False):
+def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False,manifest_tokens=None,run_started=None):
     """Same pinned HF Trainer path as FT0b; never called by the plan CLI."""
     import time
     import torch
+    setup_started=time.monotonic() if run_started is None else run_started
     from transformers import Trainer,TrainingArguments,TrainerCallback
     if (arm,seed) not in plan.MODELS[1:] or len(rows)!=2000: raise ValueError('unplanned cell')
-    if qualification and arm!='3': raise ValueError('qualification uses arm 3 real records')
+    if qualification and (arm!='3' or seed!=plan.SEEDS[0]): raise ValueError('qualification uses arm 3 real records')
     check(); ft0b.check_internals()
     ft0b.tables(model,'after_cast',retain,cast=True)
-    ordered=[]
+    ordered=[]; count_failures=[]
+    expected_rows=manifest_tokens if manifest_tokens is not None else [dict(id=r['id'],prompt=r['prompt_tokens'],trained=r['trained_tokens']) for r in rows]
     for i in plan.order(seed):
         check()
         encoded,mask=record(tokenizer,rows[i])
+        p=sum(y==-100 for y in encoded['labels']); t=len(encoded['labels'])-p
+        expected=expected_rows[i]
+        if expected.get('id')!=rows[i]['id'] or expected.get('prompt')!=p or expected.get('trained')!=t:
+            count_failures.append(rows[i]['id'])
         ordered.append(dict(encoded,reason_mask=mask))
     retain(dict(event='tokenized_real_records',examples=len(ordered),
                 trained_tokens=[sum(y!=-100 for y in r['labels']) for r in ordered],
+                manifest_trained_tokens=[expected_rows[i]['trained'] for i in plan.order(seed)],
+                counts_match=not count_failures,mismatched_ids=count_failures,
                 data_order_sha256=core.digest(plan.order(seed))))
+    if count_failures: raise ValueError('training token counts differ from manifest; all mismatched IDs retained in tokenized_real_records')
     steps=10 if qualification else 250
     pending=[]
     monitor=StepMonitor(retain,check)
@@ -72,7 +81,9 @@ def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False)
             if denominator is None: raise ValueError('missing accumulation denominator')
             inputs=dict(inputs); mask=inputs.pop('reason_mask')
             result=plan.split_loss(model,inputs,mask,pending.append,denominator)
-            core.finite_scalar(result.detach().float().item())
+            value=result.detach().float().item()
+            retain(dict(event='micro_loss',value=value if math.isfinite(value) else str(value)))
+            core.finite_scalar(value)
             check()
             return result
         def _get_train_sampler(self,*args,**kwargs):
@@ -102,7 +113,7 @@ def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False)
         learning_rate=core.RECIPE['lr'],per_device_train_batch_size=1,gradient_accumulation_steps=8,
         fp16=True,optim='adamw_torch',weight_decay=0,lr_scheduler_type='constant',warmup_steps=0,
         seed=seed,data_seed=seed,logging_nan_inf_filter=False,max_steps=steps,
-        save_strategy='steps',save_steps=50,save_total_limit=None,logging_steps=1,report_to=[],
+        save_strategy='steps',save_steps=5 if qualification else 50,save_total_limit=None,logging_steps=1,report_to=[],
         gradient_checkpointing=True,remove_unused_columns=False)
     trainer=FixedTrainer(model=model,args=args,train_dataset=ordered,data_collator=collate,callbacks=[Log()])
     if not trainer.model_accepts_loss_kwargs or not trainer._loss_shifts_labels:
@@ -113,8 +124,10 @@ def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False)
     if actual is None or int(actual)!=expected or trainer.loss_is_scaled_for_ga not in (None,True):
         raise ValueError('Trainer token denominator/scaling differs from FT0b')
     ft0b.memory('trainer_creation',retain)
+    unloaded=False
     try:
         check()
+        retain(dict(event='training_setup',seconds=time.monotonic()-setup_started))
         result=trainer.train()
         check()
         if trainer.state.global_step!=steps: raise ValueError('incomplete optimizer steps')
@@ -122,7 +135,7 @@ def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False)
         model.save_pretrained(output/'adapter',safe_serialization=True)
         tokenizer.save_pretrained(output/'adapter')
         ft0b.ft0.finite_tensors(output/'adapter')
-        retain(dict(event='adapter_saved',steps=steps,sha256=core.inventory(output/'adapter')))
+        retain(dict(event='adapter_saved',steps=steps,tensors_finite=True,sha256=core.inventory(output/'adapter')))
         if qualification:
             from peft import PeftModel
             model.eval()
@@ -130,19 +143,28 @@ def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False)
             with torch.no_grad(),torch.autocast('cuda',dtype=torch.float16):
                 before=ft0b.loss(model,batch).item()
             check()
-            base=model.unload()
-            reloaded=PeftModel.from_pretrained(base,output/'adapter',local_files_only=True)
+            reload_path=output/'trainer'/'checkpoint-10'
+            if not reload_path.is_dir(): raise ValueError('qualification checkpoint missing')
+            ft0b.ft0.finite_tensors(reload_path)
+            base=model.unload(); unloaded=True
+            reloaded=PeftModel.from_pretrained(base,reload_path,local_files_only=True)
             reloaded.eval(); ft0b.layout(reloaded)
             with torch.no_grad(),torch.autocast('cuda',dtype=torch.float16):
                 after=ft0b.loss(reloaded,batch).item()
-            core.finite_scalar(after)
-            if abs(before-after)>.02: raise ValueError('adapter reload loss differs')
-            retain(dict(event='qualification_reload',before_loss=before,after_loss=after,steps=steps))
+            retain(dict(event='qualification_reload',before_loss=before if math.isfinite(before) else str(before),
+                        after_loss=after if math.isfinite(after) else str(after),steps=steps,checkpoint_loaded=True,checkpoint_step=10))
+            core.finite_scalar(before); core.finite_scalar(after)
+            if abs(before-after)>.02+1e-12: raise ValueError('adapter reload loss differs')
             ft0b.memory('reload',retain); check()
         retain(dict(event='training_complete',steps=steps,qualification=qualification,skipped_steps=monitor.skipped))
-        return dict(steps=steps,skipped_steps=monitor.skipped,qualified=qualification and not monitor.skipped)
+        return dict(steps=steps,skipped_steps=monitor.skipped,reload_checked=qualification)
     except BaseException:
-        # Retain the current adapter on deadline or stop; never silently resume it.
-        model.save_pretrained(output/'interrupted-adapter',safe_serialization=True)
-        (output/'interrupted-adapter'/'INCOMPLETE.json').write_text(json.dumps(dict(steps=trainer.state.global_step)))
+        # Once unloaded, the valid saved adapter/checkpoint is the retained artifact.
+        if not unloaded:
+            try:
+                model.save_pretrained(output/'interrupted-adapter',safe_serialization=True)
+                (output/'interrupted-adapter'/'INCOMPLETE.json').write_text(json.dumps(dict(steps=trainer.state.global_step)))
+            except BaseException as save_error:
+                try: retain(dict(event='incomplete_save_failed',error=type(save_error).__name__))
+                except BaseException: pass
         raise

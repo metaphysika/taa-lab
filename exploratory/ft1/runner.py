@@ -41,15 +41,17 @@ def verify_source(config):
 
 def run(config,model_path,data_folder,output,receipt,seconds=27000):
     """A future approved execution entrypoint. No CLI calls this function."""
+    started=time.monotonic()
     validate_approval(config,receipt); verify_source(config)
     if kaggle.verify_data(data_folder)!=config['data_manifest_sha256']: raise ValueError('manifest changed')
     armfile=Path(data_folder)/f"arm-{config['arm']}.jsonl"
     if hashlib.sha256(armfile.read_bytes()).hexdigest()!=config['arm_data_sha256']: raise ValueError('arm data changed')
     output=data.safe_output(output); output.mkdir(parents=True)
     events=output/'events.jsonl'
-    started=time.monotonic()
+    recorded=[]
     def retain(event):
         event=dict(event,arm=config['arm'],seed=config['seed'],elapsed_seconds=time.monotonic()-started)
+        recorded.append(event)
         with events.open('a',encoding='utf-8') as f: f.write(json.dumps(event,allow_nan=False)+'\n'); f.flush()
     check=deadline(seconds)
     status='incomplete'
@@ -59,7 +61,12 @@ def run(config,model_path,data_folder,output,receipt,seconds=27000):
         model,tokenizer=kaggle.prepare(model_path,config['seed'],retain,check=check)
         check()
         result=training.train(model,tokenizer,rows,config['arm'],config['seed'],retain,output,check,
-                              qualification=config['phase']=='qualify')
+                              qualification=config['phase']=='qualify',run_started=started,
+                              manifest_tokens=json.loads((Path(data_folder)/'manifest.json').read_bytes())['record_tokens'][config['arm']])
+        if config['phase']=='qualify':
+            from .qualification import report
+            result['qualification_report']=report(recorded)
+            result['qualified']=result['qualification_report']['passed']
         status=('qualified' if result['qualified'] else 'not_qualified') if config['phase']=='qualify' else 'trained'
         return result
     except BaseException as exc:
@@ -67,6 +74,9 @@ def run(config,model_path,data_folder,output,receipt,seconds=27000):
         retain(dict(event='run_failed',error=type(exc).__name__,status=status))
         raise
     finally:
+        if config['phase']=='qualify':
+            from .qualification import report
+            (output/'qualification-report.json').write_bytes((json.dumps(report(recorded),indent=2)+'\n').encode('utf-8'))
         (output/'metadata.json').write_text(json.dumps(dict(config,status=status),indent=2),encoding='utf-8')
         from exploratory.k2_kaggle import core
         core.manifest(output,dict(status=status,scientific=False,phase=config['phase']))

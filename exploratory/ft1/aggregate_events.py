@@ -1,7 +1,7 @@
 """Offline JSONL aggregation command; private inputs stay local."""
 import json
 from pathlib import Path
-from .aggregation import aggregate,analyze
+from .aggregation import aggregate,analyze,analyze_rejection_sensitivity
 from .data import safe_output
 
 def main():
@@ -15,7 +15,7 @@ def main():
     gates=json.loads(Path(a.eligibility).read_text(encoding='utf-8'))
     eligibility={(g['arm'],g['training_seed']):g for g in gates}
     summaries,descriptive=aggregate(cases,events,eligibility)
-    result=dict(predictions=analyze(summaries),
+    result=dict(predictions=analyze(summaries),rejection_sensitivity=analyze_rejection_sensitivity(summaries),
                 models=[dict(arm=arm,training_seed=seed,counts=s['counts'],
                              denominators=dict(pairs=24,servile_W=s['servile_w_denominator'],U=24,knowledge=48),
                              pair_correct_min=sum(p['minimum'] for p in s['pair_bounds']),

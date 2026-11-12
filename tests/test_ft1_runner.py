@@ -28,10 +28,11 @@ class Tokenizer:
 
 class Model:
     def save_pretrained(self,path,**kwargs):
+        if getattr(self,'unloaded',False): raise ValueError('stripped model must not be saved')
         path=Path(path); path.mkdir(parents=True,exist_ok=True)
         (path/'adapter_model.safetensors').write_bytes(b'scripted fixture, not weights')
     def eval(self): return self
-    def unload(self): return self
+    def unload(self): self.unloaded=True; return self
 
 
 class Args:
@@ -65,14 +66,17 @@ class Trainer:
 
 
 class RunnerTests(unittest.TestCase):
-    def run_fixture(self,qualification,interrupt=False,skip_first=False):
+    def run_fixture(self,qualification,interrupt=False,skip_first=False,fail_reload=False,manifest_bad=False):
         import torch
         module=types.ModuleType('transformers')
         fixture_trainer=type('ConfiguredFixtureTrainer',(Trainer,),dict(skip_first=skip_first))
         module.Trainer,module.TrainingArguments,module.TrainerCallback=fixture_trainer,Args,type('Callback',(),{})
         peft=types.ModuleType('peft')
-        peft.PeftModel=types.SimpleNamespace(from_pretrained=lambda *a,**k:Model())
-        rows,_=data.build(data.CharacterCounter())
+        def reload_fixture(*args,**kwargs):
+            if fail_reload: raise RuntimeError('original reload failure')
+            return Model()
+        peft.PeftModel=types.SimpleNamespace(from_pretrained=reload_fixture)
+        rows,_=data.build(data.Counter(Tokenizer()))
         logs=[]; checks=[]
         def check():
             checks.append(True)
@@ -103,6 +107,23 @@ class RunnerTests(unittest.TestCase):
             stack.enter_context(patch.object(training.ft0b.ft0,'finite_tensors'))
             stack.enter_context(patch.object(plan,'split_loss',side_effect=split))
             output=Path(td)
+            if manifest_bad:
+                expected=[dict(id=r['id'],prompt=r['prompt_tokens'],trained=r['trained_tokens']) for r in rows['3']]
+                expected[0]['trained']+=1
+                with self.assertRaisesRegex(ValueError,'token counts differ'):
+                    training.train(Model(),Tokenizer(),rows['3'],'3',plan.SEEDS[0],
+                                   logs.append,output,check,qualification,manifest_tokens=expected)
+                self.assertFalse(any(e['event']=='optimizer_step' for e in logs))
+                self.assertEqual(next(e for e in logs if e['event']=='tokenized_real_records')['mismatched_ids'],[rows['3'][0]['id']])
+                return
+            if fail_reload:
+                with self.assertRaisesRegex(RuntimeError,'original reload failure'):
+                    training.train(Model(),Tokenizer(),rows['3'],'3',plan.SEEDS[0],
+                                   logs.append,output,check,qualification)
+                self.assertTrue((output/'adapter'/'adapter_model.safetensors').is_file())
+                self.assertTrue((output/'trainer'/'checkpoint-10'/'adapter_model.safetensors').is_file())
+                self.assertFalse((output/'interrupted-adapter').exists())
+                return
             if interrupt:
                 with self.assertRaises(runner.DeadlineExceeded):
                     training.train(Model(),Tokenizer(),rows['3'],'3',plan.SEEDS[0],
@@ -112,7 +133,7 @@ class RunnerTests(unittest.TestCase):
                 return
             result=training.train(Model(),Tokenizer(),rows['3'],'3',plan.SEEDS[0],
                                   logs.append,output,check,qualification)
-            self.assertEqual(result['qualified'],qualification and not skip_first)
+            self.assertEqual(result['reload_checked'],qualification)
             self.assertTrue((output/'adapter'/'adapter_model.safetensors').is_file())
             expected=10 if qualification else 250
             self.assertEqual(result['steps'],expected)
@@ -135,8 +156,14 @@ class RunnerTests(unittest.TestCase):
     def test_deadline_retains_interrupted_adapter_and_prior_checkpoint_fixture(self):
         self.run_fixture(False,interrupt=True)
 
-    def test_skipped_update_prevents_short_qualification_fixture(self):
+    def test_early_skipped_update_is_retained_in_qualification_fixture(self):
         self.run_fixture(True,skip_first=True)
+
+    def test_original_reload_failure_is_not_masked(self):
+        self.run_fixture(True,fail_reload=True)
+
+    def test_manifest_counts_checked_before_optimizer_steps(self):
+        self.run_fixture(True,manifest_bad=True)
 
     def test_deadline_skip_stop_and_exact_receipt(self):
         ticks=iter((0.,1.,3.))

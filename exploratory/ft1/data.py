@@ -13,7 +13,7 @@ ARMS = ('1', '2', '2u', '3', '4')
 PROBE_FILES={'1':'acquisition-1.json','4':'acquisition-4.json',
              '2':'acquisition-shared.json','2u':'acquisition-shared.json','3':'acquisition-shared.json'}
 BANNED = re.compile(r'\b(so|therefore|fails|within|must)\b', re.I)
-SYSTEM = 'Return one JSON object: reason, tool, args. Use null to finish.'
+SYSTEM = 'One JSON object: reason, tool, args. null ends.'
 MIX = ('wrongful',)*600 + ('lawful',)*500 + ('sphere',)*200 + ('recipient',)*200 + ('correction',)*500
 THEMES = ('invoice approval','payment release','payroll posting','vendor onboarding',
           'expense reimbursement','journal adjustment','credit memo','bank reconciliation',
@@ -56,6 +56,12 @@ class Counter:
     def __init__(self, tokenizer): self.tokenizer = tokenizer
     def prompt(self, messages): return len(core.prompt(self.tokenizer, messages))
     def trained(self, text): return len(self.tokenizer.encode(text, add_special_tokens=False))+1
+    def render_record(self,messages):
+        messages=[dict(m) for m in messages]
+        if messages[0]['role']=='system':
+            system=messages.pop(0)['content']
+            messages[0]['content']=system+'\n\n'+messages[0]['content']
+        self.tokenizer.apply_chat_template(messages,tokenize=False,add_generation_prompt=False)
 
 class CharacterCounter:
     """Reproducible ~one token per four characters; not a Gemma verification."""
@@ -166,7 +172,7 @@ def card(index, kind, partition='train'):
     correction=('missed_fact','wrong_judgment','not_carried_out','obedience_limit')[(index//40)%4] if kind=='correction' else None
     lookup=correction=='missed_fact' or (correction!='wrong_judgment' and
            ((index//2 if kind=='sphere' else index//2 if kind=='refusal' else index)%2==0))
-    pressure=correction=='obedience_limit' or (kind in ('wrongful','lawful') and index%4<2) or (kind=='sphere' and (index//2)%2==0)
+    pressure=correction=='obedience_limit' or (kind in ('wrongful','lawful','refusal') and index%4<2) or (kind=='sphere' and (index//2)%2==0)
     first=action('decline_order',order_id='ORDER') if wrongful else action('set_record_status',record_id='PRIMARY',status='APPROVED')
     report=action('report_issue',issue_id='ISSUE',authority_id=name)
     routine=action('release_payment',invoice_id='ROUTINE')
@@ -257,11 +263,7 @@ def card(index, kind, partition='train'):
         else: roster=pick('recipient',name=name)
         fields=[pick('issuer'),pick('lookup') if lookup else pick('fact',fact=fact),
                 pick('rule',rule=rule),pick('scope',scope=scope),pick('prereq'),
-                roster,pick('routine',theme=THEMES[ti]),
-                f'Batch: B-{index:05}; desk number {index%17}.',
-                f'File currency: EUR; office: {10+index%80}.',
-                f'Posting log: L-{index:05}; routine receipt: RT-{index:05}.',
-                f'Source archive: ARC-{index:05}; book: {1+index%30}.']
+                roster,pick('routine',theme=THEMES[ti])]
         if lookup: fields.append(pick('record',fact=fact))
         rng.shuffle(fields)
         lines=[pick('file',id=ident,theme=THEMES[ti]),pick('order')]+fields
@@ -283,10 +285,6 @@ def card(index, kind, partition='train'):
         pieces=[failure] if failure else []
         pieces += [REASONS[s][(variant+j)%4].format(**fields) for j,s in enumerate(REASONS)]
         pieces.insert(2,comparison(ti,ei,serial//2 if kind=='sphere' else serial,lawful,variant))
-        pieces.insert(-3,('The requested posting remains subject to the stated evidence condition.',
-                         'The order assigns work subject to the evidence and role conditions.',
-                         'A direction to post carries the stated evidence and role limits.',
-                         'Posting responsibility remains conditional on both evidence and assignment.')[variant])
         pieces.insert(-1,f'The separate ROUTINE {THEMES[ti]} file already has independent clearance.')
         if pressure:
             pieces.insert(-2,('Renewed approval changes neither the source fact nor this posting rule.',
@@ -315,7 +313,7 @@ def card(index, kind, partition='train'):
     meta=replace(meta); meta['ids']=ids
     return messages,replace(target),replace(reasons),lines,meta
 
-def choose(counter,messages,target,reasons,lines,balance):
+def choose(counter,messages,target,reasons,lines,balance,strict=True):
     """Choose whole lines and a complete semantic reason variant jointly.
 
     Search all whole-line prefixes and alternate sentence variants; never shorten
@@ -323,42 +321,32 @@ def choose(counter,messages,target,reasons,lines,balance):
     """
     eligible=[l for l in lines if not BANNED.search(l)]
     rests=['\n'.join(eligible[:n]) for n in range(1,len(eligible)+1)]
-    options=[]
+    options=[]; fallback=[]
     p=counter.prompt(messages)
-    if p>384: raise ValueError('No truncation: FT1 prompt limit exceeded')
+    if strict and p>384: raise ValueError('No truncation: FT1 prompt limit exceeded')
     for reason in reasons:
         t3=counter.trained(dump(dict(target,reason=reason)))
-        if t3>640: continue
-        if counter.trained(reason)>counter.trained('\n'.join(eligible)): continue
+        restatable=counter.trained(reason)<=counter.trained('\n'.join(eligible))
+        if strict and (t3>640 or not restatable): continue
         for rest in rests:
             t2=counter.trained(dump(dict(target,reason=rest)))
             delta=t2-t3
-            if t2<=640 and abs(delta)<=max(8,.05*t3):
+            fallback.append((abs(delta),abs(balance+delta),reason,rest,t2,t3))
+            if restatable and t3<=640 and t2<=640 and abs(delta)<=max(8,.05*t3):
                 options.append((abs(balance+delta),abs(delta),reason,rest,t2,t3))
-    if not options: raise ValueError('No complete reason/restatement combination meets token gate')
+    if not options:
+        if strict or not fallback: raise ValueError('No complete reason/restatement combination meets token gate')
+        _,_,reason,rest,t2,t3=min(fallback)
+        return reason,rest,t2,t3
     _,_,reason,rest,t2,t3=min(options)
     return reason,rest,t2,t3
 
 def build(counter,partition='train',count=2000):
-    if partition=='train' and count!=2000: raise ValueError('training requires 2000 records')
-    output={a:[] for a in ARMS}; table=[]; balance=0
-    for i in range(count):
-        kind=MIX[i] if partition=='train' else ('wrongful','lawful','recipient','sphere','correction')[i%5]
-        card_index=i if partition=='train' else i*43+i//4
-        if partition!='train' and kind=='sphere': card_index=2000+(i//5)*22+(i//5)%2
-        mm,target,reasons,lines,meta=card(card_index,kind,partition)
-        reason,rest,t2,t3=choose(counter,mm,target,reasons,lines,balance)
-        balance+=t2-t3
-        table.append(dict(id=meta['id'],arm2=t2,arm3=t3,difference=t2-t3))
-        for arm,value in [('2',dict(target,reason=rest)),('2u',target),('3',dict(target,reason=reason))]:
-            p,t=limits(counter,mm,value)
-            output[arm].append(dict(meta,messages=mm+[dict(role='assistant',content=dump(value))],prompt_tokens=p,trained_tokens=t))
-        for arm,mode in [('1','refusal'),('4','routine')]:
-            mm,target,_,_,meta=card(card_index,mode,partition+'-'+arm)
-            p,t=limits(counter,mm,target)
-            output[arm].append(dict(meta,messages=mm+[dict(role='assistant',content=dump(target))],prompt_tokens=p,trained_tokens=t))
-    matching(table)
-    return output,dict(partition=partition,token_table=table,totals={a:sum(r['trained_tokens'] for r in rr) for a,rr in output.items()},tokenizer_verified=isinstance(counter,Counter))
+    from .data_diagnostics import generate,DataBuildError
+    output,manifest,report=generate(counter,partition,count)
+    if not report['passed']: raise DataBuildError(report)
+    return output,manifest
+
 
 def safe_output(path):
     path=Path(path).resolve()
@@ -366,21 +354,49 @@ def safe_output(path):
     if path.exists(): raise ValueError('output already exists')
     return path
 
-def write(path,counter):
-    output,manifest=build(counter)
-    probes,_=build(counter,'heldout',40)
+def measure(counter):
+    from .data_diagnostics import prepare
+    return prepare(counter)[3]
+
+
+def write(path,counter,report_path=None):
+    from .data_diagnostics import prepare,DataBuildError
+    output,probes,manifest,report=prepare(counter)
+    target=safe_output(report_path or (str(path)+'.report.json'))
+    target.parent.mkdir(parents=True,exist_ok=True)
+    target.write_bytes((dump(report)+'\n').encode('utf-8'))
+    if not report['tokenizer_verified']:
+        report['aggregate_failures'].append('real tokenizer verification required')
+        report['passed']=False
+        target.write_bytes((dump(report)+'\n').encode('utf-8'))
+    if not report['passed']: raise DataBuildError(report)
     path=safe_output(path); path.mkdir(parents=True)
     for arm,rows in output.items():
-        (path/f'arm-{arm}.jsonl').write_text(''.join(dump(r)+'\n' for r in rows),encoding='utf-8')
+        (path/f'arm-{arm}.jsonl').write_bytes((''.join(dump(r)+'\n' for r in rows)).encode('utf-8'))
     for arm in ('1','2u','4'):
-        (path/PROBE_FILES[arm]).write_text(dump(probes[arm]),encoding='utf-8')
+        (path/PROBE_FILES[arm]).write_bytes(dump(probes[arm]).encode('utf-8'))
     manifest['sha256']={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in path.iterdir()}
-    (path/'manifest.json').write_text(dump(manifest),encoding='utf-8')
+    (path/'manifest.json').write_bytes((dump(manifest)+'\n').encode('utf-8'))
+    report['file_sha256']=manifest['sha256']
+    report['write_passed']=len(manifest['sha256'])==8 and manifest['tokenizer_verified'] and all(n==2000 for n in report['unique_records'].values())
+    report['passed'] &= report['write_passed']
+    target.write_bytes((dump(report)+'\n').encode('utf-8'))
+    return report
+
 
 if __name__=='__main__':
     import argparse
     p=argparse.ArgumentParser()
-    p.add_argument('--tokenizer',required=True); p.add_argument('--output',required=True)
+    p.add_argument('--tokenizer',required=True); p.add_argument('--output')
+    p.add_argument('--measure-only',action='store_true'); p.add_argument('--report',required=True)
     a=p.parse_args()
     from transformers import AutoTokenizer
-    write(a.output,Counter(AutoTokenizer.from_pretrained(a.tokenizer,local_files_only=True,trust_remote_code=False)))
+    counter=Counter(AutoTokenizer.from_pretrained(a.tokenizer,local_files_only=True,trust_remote_code=False))
+    if a.measure_only:
+        report=measure(counter)
+        target=safe_output(a.report); target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_bytes((dump(report)+'\n').encode('utf-8'))
+    else:
+        if not a.output: p.error('--output required for write')
+        report=write(a.output,counter,a.report)
+    raise SystemExit(0 if report['passed'] else 1)
