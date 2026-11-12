@@ -12347,3 +12347,33 @@ Scored against the FT0b pre-run entry (2026-11-11, above), whose pass rule was f
 - **Long-record skipping:** 25 short-record steps do not show whether fp16 skips updates on long records. FT1 keeps the 25-of-250 rule per arm.
 
 **What follows.** FT1 is feasible on a free Kaggle T4 with the FT0b memory layout. The approved FT1 record lengths stand: 1,024 tokens total and at most 640 trained, and 896 would also fit. Per training arm and seed: 250 steps at most about 4.3 h worst case plus load and evaluation, under one 8.5 h session. FT1's own pre-run entry still has to fix arm matching, the test set and predictions before any FT1 data is written.
+
+## 2026-11-12 — v0.24.86 FT1 offline build
+
+EXPLORATORY implementation of the adopted FT1 revision-2 design, sections 2–8
+and 10.1: generators, versioned scoring helpers, injected training functions and
+evaluation plan. No model or training run, no sealed output, no execution approval.
+See docs/process/FT1_IMPLEMENTATION_2026-11-12.md for commands, local checks,
+choices and remaining readiness integration work.
+
+### 2026-11-12 - FT1 PR #140 offline revision after stage review
+
+The revision expands accounts-office training variety, reserves held-out
+theme/evidence combinations, adds training-only review samples, stages a
+hash-bound Kaggle plan and aggregates retained events with joint pair-correct
+unknown bounds. Sealed-generator checks use synthetic in-memory fixtures;
+no private test file, model call, training or backend operation occurred.
+The PR remains a draft for exact-commit review. No run is approved.
+See docs/process/FT1_IMPLEMENTATION_2026-11-12.md and its training-only appendix.
+
+### 2026-11-12 - FT1 fixes after Fable's exact-commit review
+
+The byte-identical Fable review of 322943d8 is retained in docs/process.
+The offline revision fixes B1-B6 and A1-A8, builds the HF Trainer runner and
+future ten-step qualification mode, and regenerates training-only samples.
+No real-tokenizer data write was attempted: inspected local assets identify
+Gemma 4 and no Gemma 3 tokenizer/template was found. No actual training,
+qualification, model/backend call or sealed-file generation occurred.
+The stage thread owns the prospective scoring-amendment entry and subsequent
+run gates. The PR remains a draft for exact-commit re-review.
+See docs/process/FT1_IMPLEMENTATION_2026-11-12.md.
