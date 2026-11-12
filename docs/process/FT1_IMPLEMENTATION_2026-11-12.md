@@ -39,12 +39,12 @@ the changes below await a new exact-commit review.
 |---|---|
 | N1 | GPU and CPU metadata list the receipt dataset; the bound receipt path uses /kaggle/input/datasets/OWNER/SLUG/receipt.json. |
 | N2 | All 10,000 training records and 120 actual probe records are measured through the complete real template. Reports include every failing ID/reason, per-arm prompt/trained/total min/median/max, per-record matching counts and aggregate differences. Both measure-only and refused normal writes retain full reports. |
-| N2 headroom | Removed non-deciding batch/currency/office/log/archive filler and redundant reason boilerplate. The compact system line preserves the same protocol. Current character-stub max prompt is 330, with matching gates unchanged. |
+| N2 headroom | Removed non-deciding batch/currency/office/log/archive filler and redundant reason boilerplate. The compact system line preserves the same protocol. Filler remains removed; current character-stub max prompt is 333. The later prospective two-limit amendment below replaces the separate prompt cap; matching gates are unchanged. |
 | N2 staging | A commit-bound CPU/internet-off notebook loads only the local tokenizer from google/gemma-3/transformers/gemma-3-12b-it/1, records tokenizer file hashes, measures first and writes only after every measurement gate passes. A write report also verifies eight file hashes, uniqueness and tokenizer_verified=true. |
 | N3 | Qualification permits at most two skipped updates, both within steps 1-3. The training rule remains 25 of 250. |
-| N4 | Qualification saves every five steps and reloads checkpoint-10, exercising the actual checkpoint path. Normal training still saves every 50 steps. |
+| N4 | Qualification saves every five steps, verifies final adapter tensors against checkpoint-10, and reloads the final adapter. Normal training still saves every 50 steps. |
 | N5 | Arm 1 has pressure on exactly 1,000 of its 2,000 records. |
-| Pass rules | The pure qualification report enforces every section-5 check, including all 80 finite micro-losses, ten loss splits, all 2,000 manifest token-count matches, hardware, memory, timing, skip signal, checkpoint load and adapter reload. |
+| Pass rules | The pure qualification report enforces every section-5 check, including all 80 finite micro-losses, ten loss splits, all 2,000 manifest token-count matches, hardware, memory, timing, skip signal, checkpoint tensor equality and final-adapter reload. |
 | Advisory | Sealed output and seed paths must be outside repositories. Structural roster/role checks are diversified and holder/issue-recipient identities may differ. No generated test content is reported. |
 | Advisory | Outside-sphere decide_question is unauthorized. A post-unload failure preserves the original exception and already-saved artifacts. Enumeration is capped and returns explicit bounds-only results on excess unknowns. |
 | Privacy | FT1 artifact paths are relative/redacted. Current artifacts and hashes are updated; original bytes remain in prior commits without history rewriting. |
@@ -67,8 +67,8 @@ It contains no test material.
     python -m exploratory.ft1.review_data --output NEW_PUBLIC_TRAINING_REPORT.md
 
 Current CharacterCounter measurements (~one token per four characters):
-arm 3 trained spans 123/164/252 at min/median/max; reason content 112/147/230;
-largest prompt 330 tokens. Aggregate matching counts are recorded in the regenerated appendix.
+arm 3 trained spans 126/166/247 at min/median/max; reason content 112/149/225;
+largest prompt 333 tokens. Aggregate matching counts are recorded in the regenerated appendix.
 These are stub measurements, not Gemma counts.
 
 Histories contain empty-reason actions plus their tool results, inside the user
@@ -104,7 +104,7 @@ A normal write also reports all failures:
     python -m exploratory.ft1.data --tokenizer LOCAL_GEMMA_TOKENIZER --output NEW_DATA_DIRECTORY --report NEW_WRITE_REPORT.json
 
 The loader is local_files_only and trust_remote_code=False. It verifies the
-384 prompt / 640 trained / 1024 total limits and both matching gates before
+640 trained / 1024 total limits (no separate prompt cap) and both matching gates before
 writing. A failed build is refused and retained for prospective repair.
 The manifest hashes five arm files plus acquisition-1.json,
 acquisition-4.json and acquisition-shared.json; arms 2/2u/3 bind the shared file.
@@ -186,7 +186,8 @@ boundaries, and saves an INCOMPLETE adapter on interrupted training. More than
 Deadlines are cooperative and cannot prevent an abrupt host kill.
 
 Qualification uses ten optimizer-step attempts on real-length arm-3 records,
-then saves the adapter, reloads checkpoint-10 and compares a fixed record loss. It records
+then saves the final adapter, checks canonical per-tensor SHA-256 equality against
+checkpoint-10, reloads the final saved adapter and compares a fixed record loss. It records
 loss splits, skip counts, memory peaks and seconds per step. At most two skipped updates are allowed, both in steps 1-3; any other skip pattern prevents qualification. No actual qualification has run.
 
 ## Secrecy and remaining gates
@@ -215,7 +216,7 @@ file hashes and the full measurement report, and writes the dataset only when
 every measurement gate passes. No repair or limit change occurs on Kaggle.
 A refused write retains the complete report, with no dataset emitted.
 
-Data-write PASS requires every real-template render; all 384/640/1024 limits;
+Data-write PASS requires every real-template render; both trained <=640 and total <=1024 limits;
 the unchanged per-record and 2% aggregate matching gates; 2,000 unique records
 per arm; tokenizer_verified=true; and all eight data/probe file hashes.
 
@@ -228,8 +229,8 @@ per arm; tokenizer_verified=true; and all eight data/probe file hashes.
 | Split loss | All ten steps logged; both counts >0; each total equals the eight records' trained-token total. |
 | Skips | <=2, all within steps 1-3. |
 | Skip signal | step_was_skipped present on every step. |
-| Checkpoint | At least one saved, and checkpoint-10 reloaded. |
-| Adapter | Saved tensors finite; reload loss difference <=0.02. |
+| Checkpoint | At least one saved; checkpoint-10 tensors checked against final adapter. |
+| Adapter | Final/checkpoint-10 canonical tensor hashes equal; final adapter reloaded; loss difference <=0.02. |
 | Counts | Training's real counts equal the manifest for all 2,000 rows. |
 
 Reports are written on success and failure. They report each rule separately,
@@ -247,19 +248,108 @@ Analysis aborts combinatorial enumeration above 100,000 projected resolutions
 and returns not-established predictions with the clear reason
 "too many unknowns -> report bounds only" and per-seed rate bounds.
 
+## Final narrow preparation pass (F1-F4)
+
+| Item | Fix and verification |
+|---|---|
+| F1 | Pressure uses scenario bit 2, independently of lookup. Sphere pairs share a scenario; refusal lookup uses bit 1; other lookup uses bit 0. Correction selection preserves the defined missed-fact/direct-judgment layouts without tying the declared correction bucket to pressure. Every arm/type with >=100 records has each pressure x lookup cell at 20-30%; the full-build regression checks actual prompt pressure as well as metadata. |
+| F2 | CPU and GPU kernel titles equal the slug portion of their metadata id. |
+| F3 | CPU output is created before checking transformers. A mismatch writes measure-report.json with found Python/transformers/tokenizers versions and the required transformers version, prints the failure and returns without loading a tokenizer or writing a dataset. Every measurement/write report retains versions. |
+| F4 | CPU tokenizer lookup uses core.resolve_model_path, the same mount fallback as GPU preparation. |
+| Adapter check | Qualification hashes canonical individual tensors from the final adapter and checkpoint-10, retains both hash maps, and refuses a mismatch. It then reloads the final saved adapter; the existing <=0.02 loss rule still applies. Scripted mismatch and reload-path fixtures exercise both gates. |
+| Prospective limits | The stage-thread decision in this request removes the separate 384-token prompt cap before any data exists. Only trained <=640 and total <=1024 apply. Prompt headroom is 1024 minus trained tokens; prompt min/median/max remain descriptive. Refuse-never-truncate and matching gates remain. No trimmed filler was restored. |
+| Reports | Both train and probe diagnostics, and the combined printed measure summary, count records over trained 640 and total 1024 separately. Complete failing-ID/reason lists remain in the report. |
+
+The training-only appendix is regenerated from the revised generator. The
+historical design/reviews retain their original bytes; this note records the
+prospective amendment and does not rewrite those sources.
+
+## Manual preparation procedure (a): CPU data job
+
+These are future manual commands, not execution approval. First obtain a fresh
+review and Chris's explicit preparation approval for the final exact commit.
+Run local staging in a clean checkout of that commit. Replace EXACT_SHA with
+the final reviewed 40-character PR head; the short suffix is its first 12 characters.
+The example owner is metaphysika; dataset handles below are planning assumptions,
+not resources created or verified by this build.
+
+```powershell
+$prepSha = 'EXACT_SHA'
+$prepShort = $prepSha.Substring(0,12)
+$prepRepo = "metaphysika/taa-k2-repo-$prepShort"
+$prepReceipt = "metaphysika/ft1-preparation-approval-$prepShort"
+$prepPlan = ".k2-launch/ft1-data-plan-$prepSha"
+python -m exploratory.k2_kaggle.launch stage-repo --plan --commit $prepSha --owner metaphysika --state .k2-launch
+```
+
+The existing K2 stage-repo pattern writes `.k2-launch/repo-EXACT_SHA/`, including
+`taa-lab/COMMIT.txt` containing EXACT_SHA, ARCHIVE.json and dataset-metadata.json.
+Confirm the marker, archive exclusions and dataset id before the later upload.
+It excludes results and secrets. The local --plan command does not contact Kaggle.
+After approval, create the private repo dataset with:
+
+```powershell
+kaggle datasets create -p ".k2-launch/repo-$prepSha" -r zip
+```
+
+Create a separate new receipt dataset folder outside results, for example
+`.k2-launch/ft1-data-receipt-SHORT/`. Its receipt.json must be the actual owner
+approval record with `approved: true`, `repo_commit: EXACT_SHA`, and `phase: "data"`.
+Do not create a true approval flag before approval. Its dataset-metadata.json
+uses id `$prepReceipt`, title `ft1-preparation-approval-SHORT`, isPrivate true,
+and licenses `[{"name":"other"}]`. Upload that folder as a private dataset:
+
+```powershell
+kaggle datasets create -p ".k2-launch/ft1-data-receipt-$prepShort" -r zip
+python -m exploratory.ft1.preparation --plan --commit $prepSha --owner metaphysika --repo-dataset $prepRepo --receipt-dataset $prepReceipt --output $prepPlan
+```
+
+Use `$prepPlan/ft1_data_plan.ipynb` with its adjacent kernel-metadata.json and
+binding.json. Check the exact commit/source hashes, both dataset sources, and
+receipt mount `/kaggle/input/datasets/metaphysika/ft1-preparation-approval-SHORT/receipt.json`.
+Metadata must specify CPU, internet off, and the model mount
+`google/gemma-3/transformers/gemma-3-12b-it/1`. Title and id slug are ft1-data-plan.
+In this separately approved staged notebook, flip only `PLAN_ONLY = True` to
+`False`; keep CONFIG and bindings intact. Push that bundle, not the qualification notebook:
+
+```powershell
+kaggle kernels push -p $prepPlan
+kaggle kernels status metaphysika/ft1-data-plan
+```
+
+After completion, fetch all outputs into a new dated evidence folder. The
+following is a future evidence-retention step; it was not run for this PR.
+
+```powershell
+$prepDate = Get-Date -Format yyyy-MM-dd
+$prepResults = Join-Path 'results' "$prepDate v0.24.86 ft1-data-preparation $prepShort"
+if (Test-Path -LiteralPath $prepResults) { throw 'Refuse existing evidence folder' }
+kaggle kernels output metaphysika/ft1-data-plan -p $prepResults
+```
+
+Retain failed outputs too. Inspect measure-report.json before interpreting any
+write: versions, tokenizer-file hashes, all 10,120 rendered records, prompt/
+trained/total distributions, both over-limit counts, every failure ID/reason,
+and per-record/aggregate matching. A version mismatch has no token measurements
+and is a failed preparation, not a zero-failure data pass. A successful write
+also needs write-report.json, tokenizer_verified=true, uniqueness and all eight
+file hashes. Do not repair cards or change limits on Kaggle.
+
+Qualification (b) remains plan-only and will be staged only after the real
+data exists, its reports pass, and its manifest and arm hashes can be bound.
+Its later ten-step run needs its own exact-commit qualification approval.
+No data, qualification, training, evaluation or acquisition run is authorized here.
+
+## Local validation
+
 No real-tokenizer write, Kaggle job, qualification or model call was run in this
 revision. Scripted tokenizer/Trainer fixtures are not scientific run evidence.
-[Latest validation/source hashes](evidence/ft1-preparation-fixes-20261112/validation.json),
-[FT1 test log](evidence/ft1-preparation-fixes-20261112/ft1-tests.log) and
-[fast-check log](evidence/ft1-preparation-fixes-20261112/fast-checks.log) retain
-this revision's checks. FT1: 40 tests, one conditional real-template skip,
-54.788 seconds. Fast: 645 tests, one skip, all scripted scenarios passed,
-105.843 seconds. Source compilation, whitespace checks and committed-byte
-hash checks pass.
-
-A CPU notebook bundle is staged externally against the final PR head after
-commit. Its example dataset handles are metaphysika/ft1-repo and
-metaphysika/ft1-preparation-approval; these are planning assumptions, not
-verified or created Kaggle resources. The owner must confirm the intended
-mounted datasets before a separately approved preparation run. Staging runs
-only local git reads and file writes; it does not contact Kaggle.
+The conditional Gemma 3 template check remains skipped because no identifiable
+Gemma 3 tokenizer is available locally without a download.
+[Validation/source hashes](evidence/ft1-final-preparation-pass-20261112/validation.json),
+[FT1 test log](evidence/ft1-final-preparation-pass-20261112/ft1-tests.log), and
+[fast-check log](evidence/ft1-final-preparation-pass-20261112/fast-checks.log)
+retain this pass: FT1 44 tests, one conditional skip (69.56 seconds);
+fast 645 tests, one skip, all scripted scenarios (108.156 seconds). Source
+compilation and whitespace checks pass. The CPU plan bundle is staged externally against the final
+head after commit; its default remains PLAN_ONLY=True. No sealed file was generated.
