@@ -12365,3 +12365,15 @@ unknown bounds. Sealed-generator checks use synthetic in-memory fixtures;
 no private test file, model call, training or backend operation occurred.
 The PR remains a draft for exact-commit review. No run is approved.
 See docs/process/FT1_IMPLEMENTATION_2026-11-12.md and its training-only appendix.
+
+### 2026-11-12 - FT1 fixes after Fable's exact-commit review
+
+The byte-identical Fable review of 322943d8 is retained in docs/process.
+The offline revision fixes B1-B6 and A1-A8, builds the HF Trainer runner and
+future ten-step qualification mode, and regenerates training-only samples.
+No real-tokenizer data write was attempted: inspected local assets identify
+Gemma 4 and no Gemma 3 tokenizer/template was found. No actual training,
+qualification, model/backend call or sealed-file generation occurred.
+The stage thread owns the prospective scoring-amendment entry and subsequent
+run gates. The PR remains a draft for exact-commit re-review.
+See docs/process/FT1_IMPLEMENTATION_2026-11-12.md.
