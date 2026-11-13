@@ -319,7 +319,14 @@ def card(index, kind, partition='train'):
     meta=replace(meta); meta['ids']=ids
     return messages,replace(target),replace(reasons),lines,meta
 
-def choose(counter,messages,target,reasons,lines,balance,strict=True):
+class InfeasibleCandidate(ValueError):
+    """No accepted selection; delta is only the historical ordering reference."""
+    def __init__(self, delta):
+        self.reference_delta = delta
+        super().__init__("No complete reason/restatement combination meets token gate")
+
+
+def choose(counter,messages,target,reasons,lines,balance):
     """Choose whole lines and a complete semantic reason variant jointly.
 
     Search all whole-line prefixes and alternate sentence variants; never shorten
@@ -327,23 +334,21 @@ def choose(counter,messages,target,reasons,lines,balance,strict=True):
     """
     eligible=[l for l in lines if not BANNED.search(l)]
     rests=['\n'.join(eligible[:n]) for n in range(1,len(eligible)+1)]
-    options=[]; fallback=[]
+    options=[]; ordering_reference=[]
     p=counter.prompt(messages)
 
     for reason in reasons:
         t3=counter.trained(dump(dict(target,reason=reason)))
         restatable=counter.trained(reason)<=counter.trained('\n'.join(eligible))
-        if strict and (t3>640 or p+t3>1024 or not restatable): continue
         for rest in rests:
             t2=counter.trained(dump(dict(target,reason=rest)))
             delta=t2-t3
-            fallback.append((abs(delta),abs(balance+delta),reason,rest,t2,t3))
+            ordering_reference.append((abs(delta),abs(balance+delta),reason,rest,t2,t3))
             if restatable and t3<=640 and t2<=640 and p+max(t2,t3)<=1024 and abs(delta)<=max(8,.05*t3):
                 options.append((abs(balance+delta),abs(delta),reason,rest,t2,t3))
     if not options:
-        if strict or not fallback: raise ValueError('No complete reason/restatement combination meets token gate')
-        _,_,reason,rest,t2,t3=min(fallback)
-        return reason,rest,t2,t3
+        nearest=min(ordering_reference) if ordering_reference else None
+        raise InfeasibleCandidate(nearest[4]-nearest[5] if nearest else 0)
     _,_,reason,rest,t2,t3=min(options)
     return reason,rest,t2,t3
 

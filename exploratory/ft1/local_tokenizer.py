@@ -9,7 +9,9 @@ ROOT=Path(__file__).resolve().parents[2]
 
 def candidates():
     names=subprocess.check_output(['git','ls-files','*tokenizer_config.json','*chat_template.jinja'],cwd=ROOT,text=True).splitlines()
-    paths=[ROOT/n for n in names if not n.startswith('results/')]
+    export=os.environ.get('FT1_GEMMA3_TOKENIZER_DIR')
+    paths=[Path(export)/'tokenizer_config.json'] if export else []
+    paths += [ROOT/n for n in names if not n.startswith('results/')]
     hub=Path(os.environ.get('HF_HOME',Path.home()/'.cache/huggingface'))/'hub'
     if hub.is_dir():
         for model in hub.glob('models--*gemma-3*'):

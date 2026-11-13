@@ -46,7 +46,21 @@ def run(config,tokenizer_path,output,receipt):
     tokenizer_path=core.resolve_model_path(tokenizer_path)
     hashes=tokenizer_hashes(tokenizer_path)
     counter=data.Counter(AutoTokenizer.from_pretrained(tokenizer_path,local_files_only=True,trust_remote_code=False))
-    measured=data.measure(counter)
+    try:
+        measured=data.measure(counter)
+    except Exception as exc:
+        # Keep evidence for any measurement stop (e.g. same-cell candidate pool exhausted).
+        failure=dict(passed=False,written=False,record_count=0,tokenizer_file_sha256=hashes,
+                     setup_failure=f'measurement stopped: {type(exc).__name__}: {exc}')
+        save('measure-report.json',failure)
+        data.print_measure_summary(failure)
+        return dict(passed=False,written=False,report='measure-report.json',versions=versions)
+    if measured['passed']:
+        from .selection import verify_expected
+        try: verify_expected(measured)
+        except ValueError as exc:
+            measured['passed']=False
+            measured['aggregate_failures'].append(str(exc))
     measured['tokenizer_file_sha256']=hashes
     save('measure-report.json',measured)
     data.print_measure_summary(measured)
@@ -83,7 +97,7 @@ def stage(folder,commit,owner,repo_dataset,receipt_dataset):
         '    receipt = json.loads(Path(CONFIG["receipt_path"]).read_text())\n'
         '    run(CONFIG, "/kaggle/input/models/"+CONFIG["model_source"], "/kaggle/working/ft1-data-preparation", receipt)\n')
     folder=data.safe_output(folder); folder.mkdir(parents=True)
-    notebook=dict(nbformat=4,nbformat_minor=5,metadata={},cells=[dict(cell_type='code',
+    notebook=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'}},cells=[dict(cell_type='code',
         execution_count=None,metadata={},outputs=[],source=source.splitlines(True))])
     files={'ft1_data_plan.ipynb':notebook,'binding.json':config,'kernel-metadata.json':dict(
         id=owner+'/ft1-data-plan',title='ft1-data-plan',code_file='ft1_data_plan.ipynb',
