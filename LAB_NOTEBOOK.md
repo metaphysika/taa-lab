@@ -12431,3 +12431,11 @@ Written by Claude (stage thread) after the run. Pre-run entry and pass rule: the
 **What follows (prospective; no limit or gate change after seeing results).** Repair needs a new commit, a review and Chris's approval. The plumbing fix (kernelspec in both stagers) goes in the same commit. Options for the matching repair are for Chris to choose; nothing has been built.
 
 **Limits.** Feasibility and data preparation only; no FT1 data exists yet. Kaggle cost $0 (CPU).
+
+## 2026-11-12 — Gemma 3 tokenizer export for the FT1 matching repair: done, $0 (non-scientific tooling)
+
+Chris chose repair option 1 for the job (a) matching failure (real-tokenizer matching done locally) and approved the export: "Approve the tokenizer export job". Kernel `metaphysika/gemma3-tokenizer-export` (version 1, Kaggle CPU, internet off, model `google/gemma-3/transformers/gemma-3-12b-it/1`, no datasets). The notebook (sha256 `f8a519798365ee3803dd4294ba34150e56b8d23e255aefad148a14f4d5c374ba`) copied only tokenizer and template files (no weights; files over 50 MB refused) and checked five hashes against job (a)'s `measure-report.json`.
+
+**Result: passed.** No mismatches. Copied: tokenizer.json, tokenizer.model, tokenizer_config.json, special_tokens_map.json, added_tokens.json (all equal to job (a)'s hashes) and chat_template.json (`bbbf74f1…`). No LICENSE or README exists in the Kaggle model folder. Fetched files re-hash to the same values. The files are kept privately at `C:/Users/lahn0/T3/gemma3-tokenizer/`, outside the repo, and are never committed. Evidence (report, log, notebook, kernel metadata; no tokenizer files): `results/2026-11-12 v0.24.86 gemma3-tokenizer-export/`.
+
+**Use.** Sol's repair round matches arm 2/arm 3 with real token counts locally and runs the real-template test. The repair follows a seen result; job (a)'s gates and limits stay as written, and the repaired commit needs Fable's review and Chris's exact-commit approval before job (a) runs again.
