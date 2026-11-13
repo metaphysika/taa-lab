@@ -93,4 +93,11 @@ def verify_expected(report):
     expected=json.loads(Path(__file__).with_name('selection_expected.json').read_bytes())
     actual=report['training']
     if actual['selection']!=expected['selection'] or actual['replacements']!=expected['replacements'] or actual['refused']!=expected['refused']:
-        raise ValueError('FT1 real-tokenizer selection/expected-count table mismatch')
+        # Say which rows differ, so a failed job (a) leaves usable evidence (IDs and numbers only).
+        a,e=actual['selection'],expected['selection']
+        differing=[x[0] for x,y in zip(a,e) if x!=y]
+        raise ValueError('FT1 real-tokenizer selection/expected-count table mismatch: '
+                         f'selection rows {len(a)} vs expected {len(e)}; {len(differing)} differing rows; '
+                         f'first differing IDs {differing[:10]}; '
+                         f"replacements match {actual['replacements']==expected['replacements']}; "
+                         f"refused match {actual['refused']==expected['refused']}")

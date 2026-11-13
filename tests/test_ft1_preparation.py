@@ -220,6 +220,55 @@ class PreparationTests(unittest.TestCase):
                 self.assertIn('python',report['versions'])
                 self.assertEqual(report['versions']['transformers'],core.STACK['transformers'])
 
+    def _run_with_fake_tokenizer(self,td,extra_patch):
+        import sys,types,contextlib,io
+        from exploratory.ft1 import runner
+        from exploratory.k2_kaggle import core
+        module=types.ModuleType('transformers')
+        module.AutoTokenizer=types.SimpleNamespace(from_pretrained=lambda path,**kwargs:Tokenizer())
+        mount=Path(td)/'resolved'; mount.mkdir()
+        (mount/'tokenizer_config.json').write_text('{}')
+        with patch.dict(sys.modules,transformers=module),patch.object(runner,'verify_source'),\
+             patch('importlib.metadata.version',return_value=core.STACK['transformers']),\
+             patch.object(core,'resolve_model_path',return_value=mount),extra_patch,\
+             contextlib.redirect_stdout(io.StringIO()):
+            return preparation.run(dict(repo_commit='a'*40,model_source=preparation.MODEL_SOURCE),
+                'mount',Path(td)/'output',dict(approved=True,repo_commit='a'*40,phase='data'))
+
+    def test_expected_table_mismatch_blocks_the_write(self):
+        # Fable review finding 6: the real verify_expected wiring, not a self-comparison.
+        with tempfile.TemporaryDirectory() as td:
+            result=self._run_with_fake_tokenizer(td,patch('exploratory.ft1.selection.verify_expected',
+                side_effect=ValueError('FT1 real-tokenizer selection/expected-count table mismatch: test')))
+            self.assertFalse(result['passed']); self.assertFalse(result['written'])
+            self.assertFalse((Path(td)/'output'/'dataset').exists())
+            self.assertFalse((Path(td)/'output'/'write-report.json').exists())
+            report=json.loads((Path(td)/'output'/'measure-report.json').read_bytes())
+            self.assertFalse(report['passed'])
+            self.assertTrue(any('table mismatch' in f for f in report['aggregate_failures']))
+
+    def test_measurement_stop_still_saves_a_report(self):
+        # Fable review finding 7: e.g. same-cell pool exhaustion must leave evidence.
+        with tempfile.TemporaryDirectory() as td:
+            result=self._run_with_fake_tokenizer(td,patch.object(data,'measure',
+                side_effect=ValueError('same-cell feasible candidate pool exhausted; stop for owner review')))
+            self.assertFalse(result['passed']); self.assertFalse(result['written'])
+            self.assertFalse((Path(td)/'output'/'dataset').exists())
+            report=json.loads((Path(td)/'output'/'measure-report.json').read_bytes())
+            self.assertFalse(report['passed'])
+            self.assertIn('pool exhausted',report['setup_failure'])
+            self.assertIn('python',report['versions'])
+
+    def test_mismatch_message_names_differing_rows(self):
+        from exploratory.ft1 import selection
+        expected=json.loads((Path(selection.__file__).with_name('selection_expected.json')).read_bytes())
+        actual=json.loads(json.dumps(expected))
+        actual['selection'][3][4]+=1
+        with self.assertRaises(ValueError) as caught:
+            selection.verify_expected(dict(training=actual))
+        self.assertIn('1 differing rows',str(caught.exception))
+        self.assertIn(expected['selection'][3][0],str(caught.exception))
+
 class RepairSelectionTests(unittest.TestCase):
     def test_general_refusal_replaces_whole_twin_unit_and_same_cells(self):
         from exploratory.ft1 import selection

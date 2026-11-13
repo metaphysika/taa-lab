@@ -46,7 +46,15 @@ def run(config,tokenizer_path,output,receipt):
     tokenizer_path=core.resolve_model_path(tokenizer_path)
     hashes=tokenizer_hashes(tokenizer_path)
     counter=data.Counter(AutoTokenizer.from_pretrained(tokenizer_path,local_files_only=True,trust_remote_code=False))
-    measured=data.measure(counter)
+    try:
+        measured=data.measure(counter)
+    except Exception as exc:
+        # Keep evidence for any measurement stop (e.g. same-cell candidate pool exhausted).
+        failure=dict(passed=False,written=False,record_count=0,tokenizer_file_sha256=hashes,
+                     setup_failure=f'measurement stopped: {type(exc).__name__}: {exc}')
+        save('measure-report.json',failure)
+        data.print_measure_summary(failure)
+        return dict(passed=False,written=False,report='measure-report.json',versions=versions)
     if measured['passed']:
         from .selection import verify_expected
         try: verify_expected(measured)
