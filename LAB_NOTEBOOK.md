@@ -12465,6 +12465,6 @@ Written by Claude (stage thread) before the repaired job (a) runs. **The repair 
 
 **Expectation.** All gates pass and data is written: Claude about 90%, Fable about 93%. The likeliest failure is operational (dataset processing, receipt, mount or source binding), not token counts. The next likeliest is a Python-version difference tripping the exact table, which would be the check working. **The check that could fail:** the exact expected-count comparison.
 
-**Job.** As before, with `EXACT_SHA` = `5b2b3638845c9ba9a9b4a3a97ee1893554cee660`: new private datasets `metaphysika/taa-k2-repo-5b2b36388458` and `metaphysika/ft1-preparation-approval-5b2b36388458` (receipt `approved: true`, that commit, `phase: "data"`, Chris's words), kernel `metaphysika/ft1-data-plan` (new version), Kaggle CPU, internet off, $0. Outputs go to a new dated folder under `results/` whatever the result.
+**Job.** As before, with `EXACT_SHA` = `5b2b3638845c9ba9a9b4a3a97ee1893554cee660`: new private datasets `metaphysika/taa-k2-repo-5b2b3638845c` and `metaphysika/ft1-preparation-approval-5b2b3638845c` (receipt `approved: true`, that commit, `phase: "data"`, Chris's words), kernel `metaphysika/ft1-data-plan` (new version), Kaggle CPU, internet off, $0. Outputs go to a new dated folder under `results/` whatever the result.
 
 No run is approved by this entry. The relaunch needs Chris's exact-commit approval of `5b2b3638845c9ba9a9b4a3a97ee1893554cee660`.
