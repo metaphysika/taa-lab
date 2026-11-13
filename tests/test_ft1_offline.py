@@ -218,6 +218,7 @@ class FT1Tests(unittest.TestCase):
             self.assertTrue(cfg['plan_only']); self.assertFalse(cfg['approved'])
             self.assertEqual(cfg['layout'],'ft0b')
             notebook=json.loads((folder/'ft1_plan.ipynb').read_text())
+            self.assertEqual(notebook['metadata']['kernelspec'],dict(display_name='Python 3',language='python',name='python3'))
             source=''.join(notebook['cells'][0]['source'])
             self.assertIn('PLAN_ONLY = True',source); self.assertIn('run(CONFIG,',source); compile(source,'ft1_plan.ipynb','exec')
             import io,contextlib

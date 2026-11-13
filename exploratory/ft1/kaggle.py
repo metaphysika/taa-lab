@@ -73,7 +73,7 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
             '    from exploratory.ft1.runner import run\n'
             '    receipt = json.loads(Path(APPROVAL_RECEIPT).read_text())\n'
             '    run(CONFIG, CONFIG["mounts"]["model"], datasets[0], OUTPUT, receipt)\n')
-    notebook=dict(nbformat=4,nbformat_minor=5,metadata={},
+    notebook=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'}},
                   cells=[dict(cell_type='code',execution_count=None,metadata={},outputs=[],source=source.splitlines(True))])
     (folder/'ft1_plan.ipynb').write_text(json.dumps(notebook,indent=2),encoding='utf-8')
     (folder/'ft1-binding.json').write_text(json.dumps(config,indent=2),encoding='utf-8')
@@ -86,7 +86,7 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
 def source_inventory(commit):
     root=Path(__file__).resolve().parents[2]
     names=subprocess.check_output(['git','ls-tree','-r','--name-only',commit,'exploratory/ft1'],cwd=root,text=True).splitlines()
-    names=[n for n in names if n.endswith('.py')]+['exploratory/k2_kaggle/'+n for n in ('core.py','ft0.py','ft0b.py')]
+    names=[n for n in names if n.endswith(('.py','selection_expected.json'))]+['exploratory/k2_kaggle/'+n for n in ('core.py','ft0.py','ft0b.py')]
     return {name:hashlib.sha256(subprocess.check_output(['git','show',commit+':'+name],cwd=root)).hexdigest() for name in names}
 
 

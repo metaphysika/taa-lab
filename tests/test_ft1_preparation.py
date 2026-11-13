@@ -23,15 +23,14 @@ class PreparationTests(unittest.TestCase):
         self.assertTrue(all(d['prompt']['count']==2000 for d in report['training']['distributions'].values()))
         class TooLong(data.CharacterCounter):
             def prompt(self,messages): return 1025
-        failed=data.measure(TooLong())
-        self.assertEqual(len(failed['failures']),10120)
-        self.assertEqual(len(failed['training']['matching']['per_record']),2000)
-        with tempfile.TemporaryDirectory() as td:
-            target=Path(td)/'dataset'
-            with self.assertRaises(ValueError): data.write(target,TooLong())
-            self.assertFalse(target.exists())
-            saved=json.loads(Path(str(target)+'.report.json').read_bytes())
-            self.assertEqual(len(saved['failures']),10120)
+        # Exhaustion refuses the build; no training fallback is emitted.
+        with patch('exploratory.ft1.selection.CANDIDATE_STOP',10000):
+            with self.assertRaisesRegex(ValueError,'pool exhausted'):
+                data.measure(TooLong())
+            with tempfile.TemporaryDirectory() as td:
+                target=Path(td)/'dataset'
+                with self.assertRaises(ValueError): data.write(target,TooLong())
+                self.assertFalse(target.exists())
 
     def test_normal_write_report_and_manifest_pass_rules(self):
         with tempfile.TemporaryDirectory() as td:
@@ -57,6 +56,7 @@ class PreparationTests(unittest.TestCase):
             self.assertIn('fixture/receipt',metadata['dataset_sources'])
             self.assertEqual(cfg['receipt_path'],'/kaggle/input/datasets/fixture/receipt/receipt.json')
             notebook=json.loads((path/'ft1_data_plan.ipynb').read_bytes())
+            self.assertEqual(notebook['metadata']['kernelspec'],dict(display_name='Python 3',language='python',name='python3'))
             source=''.join(notebook['cells'][0]['source'])
             compile(source,'CPU_PLAN','exec')
             self.assertIn('PLAN_ONLY = True',source)
@@ -174,8 +174,12 @@ class PreparationTests(unittest.TestCase):
         self.assertGreater(report['training']['distributions']['3']['prompt']['max'],384)
         class OverLimits(LongPrompt):
             def trained(self,text): return 641
-        failed=data.measure(OverLimits())
-        self.assertEqual(failed['over_limit_counts'],dict(trained=10120,total=10120))
+        with patch('exploratory.ft1.selection.CANDIDATE_STOP',10000):
+            with self.assertRaisesRegex(ValueError,'pool exhausted'):
+                data.measure(OverLimits())
+        from exploratory.ft1.data_diagnostics import generate
+        _,_,failed=generate(OverLimits(),'heldout',40)
+        self.assertEqual(failed['over_limit_counts'],dict(trained=200,total=200))
         import contextlib,io
         stream=io.StringIO()
         with contextlib.redirect_stdout(stream): data.print_measure_summary(failed)
@@ -203,7 +207,7 @@ class PreparationTests(unittest.TestCase):
             self.assertTrue(kwargs['local_files_only'])
             return Tokenizer()
         module.AutoTokenizer=types.SimpleNamespace(from_pretrained=load)
-        with tempfile.TemporaryDirectory() as td,patch.dict(sys.modules,transformers=module),patch.object(runner,'verify_source'),patch('importlib.metadata.version',return_value=core.STACK['transformers']):
+        with tempfile.TemporaryDirectory() as td,patch.dict(sys.modules,transformers=module),patch.object(runner,'verify_source'),patch('importlib.metadata.version',return_value=core.STACK['transformers']),patch('exploratory.ft1.selection.verify_expected'):
             mount=Path(td)/'resolved'; mount.mkdir()
             (mount/'tokenizer_config.json').write_text('{}')
             with patch.object(core,'resolve_model_path',return_value=mount) as resolve,contextlib.redirect_stdout(io.StringIO()):
@@ -215,3 +219,52 @@ class PreparationTests(unittest.TestCase):
                 report=json.loads((Path(td)/'output'/name).read_bytes())
                 self.assertIn('python',report['versions'])
                 self.assertEqual(report['versions']['transformers'],core.STACK['transformers'])
+
+class RepairSelectionTests(unittest.TestCase):
+    def test_general_refusal_replaces_whole_twin_unit_and_same_cells(self):
+        from exploratory.ft1 import selection
+        original=data.choose
+        refused=[]
+        def refuse(counter,messages,target,reasons,lines,balance):
+            if 'train-ACC-00000:' in messages[1]['content']:
+                refused.append(0)
+                raise data.InfeasibleCandidate(0)
+            return original(counter,messages,target,reasons,lines,balance)
+        with patch.object(data,'choose',side_effect=refuse):
+            selected,replacements,failed=selection.select_training(data.CharacterCounter())
+        self.assertEqual(failed,[0])
+        self.assertEqual({r['slot'] for r in replacements},{0,600})
+        self.assertEqual(selected[600][0]-selected[0][0],600)
+        for row in replacements:
+            i=row['slot']; j=row['replacement']
+            self.assertEqual(selection.cell(i,data.MIX[i]),selection.cell(j,data.MIX[i]))
+        self.assertTrue(all(selected[i][0]==i for i in range(2000) if i not in (0,600)))
+
+    def test_choose_never_returns_infeasible_fallback(self):
+        mm,target,reasons,lines,_=data.card(0,'wrongful')
+        class Impossible(data.CharacterCounter):
+            def prompt(self,messages): return 1025
+        with self.assertRaises(data.InfeasibleCandidate):
+            data.choose(Impossible(),mm,target,reasons,lines,0)
+
+    def test_exact_table_rejects_count_choice_and_refusal_drift(self):
+        from exploratory.ft1 import selection
+        expected=json.loads(Path(selection.__file__).with_name('selection_expected.json').read_bytes())
+        report={'training':copy.deepcopy(expected)}
+        selection.verify_expected(report)
+        for column in range(1,5):
+            bad=copy.deepcopy(report); bad['training']['selection'][0][column]+=1
+            with self.assertRaisesRegex(ValueError,'table mismatch'): selection.verify_expected(bad)
+        bad=copy.deepcopy(report); bad['training']['refused']=[]
+        with self.assertRaises(ValueError): selection.verify_expected(bad)
+
+    def test_expected_table_is_allowed_and_hash_bound_source(self):
+        import hashlib
+        from exploratory.ft1 import runner
+        root=Path(runner.__file__).resolve().parents[2]
+        names=('exploratory/ft1/runner.py','exploratory/ft1/selection_expected.json')
+        inventory={n:hashlib.sha256((root/n).read_bytes().replace(b'\r\n',b'\n')).hexdigest() for n in names}
+        runner.verify_source({'source_sha256':inventory})
+        inventory[names[1]]='0'*64
+        with self.assertRaisesRegex(ValueError,'approved commit'):
+            runner.verify_source({'source_sha256':inventory})

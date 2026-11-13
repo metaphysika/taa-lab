@@ -46,14 +46,22 @@ def generate(counter,partition='train',count=2000,arms=data.ARMS):
         output[arm].append(dict(meta,messages=mm+[dict(role='assistant',content=data.dump(target))],
                                 prompt_tokens=p,trained_tokens=t))
         return row
+    selected=replacements=refused=None
+    if partition=='train':
+        from .selection import select_training
+        selected,replacements,refused=select_training(counter)
     for i in range(count):
         kind=data.MIX[i] if partition=='train' else ('wrongful','lawful','recipient','sphere','correction')[i%5]
         index=i if partition=='train' else i*43+i//4
         if partition!='train' and kind=='sphere': index=2000+(i//5)*22+(i//5)%2
-        mm,target,reasons,lines,meta=data.card(index,kind,partition)
+        if selected is not None:
+            index,card,choice=selected[i]
+            mm,target,reasons,lines,meta=card
+        else: mm,target,reasons,lines,meta=data.card(index,kind,partition)
         if '2' in arms or '3' in arms:
             error=[]
-            try: reason,rest,t2,t3=data.choose(counter,mm,target,reasons,lines,balance,strict=False)
+            try:
+                reason,rest,t2,t3=choice if selected is not None else data.choose(counter,mm,target,reasons,lines,balance)
             except Exception as exc:
                 error=['matching: '+str(exc)]; reason=reasons[0]; rest='\n'.join(l for l in lines if not data.BANNED.search(l))
             pair={}
@@ -86,6 +94,9 @@ def generate(counter,partition='train',count=2000,arms=data.ARMS):
                 matching=dict(per_record=table,difference=distribution(r['difference'] for r in table),
                               arm2_total=a,arm3_total=b,aggregate_difference=a-b),
                 tokenizer_verified=isinstance(counter,data.Counter))
+    if selected is not None:
+        from .selection import selection_rows
+        report.update(selection=selection_rows(output),replacements=replacements,refused=refused)
     report['over_limit_counts']={k:sum(r[k] is not None and r[k]>limit for r in measurements)
                                   for k,limit in (('trained',640),('total',1024))}
     report['passed']=not report['failures'] and not aggregate and all(len(output[a])==count for a in arms)

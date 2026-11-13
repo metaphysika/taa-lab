@@ -34,7 +34,8 @@ def verify_source(config):
     if 'exploratory/ft1/runner.py' not in inventory: raise ValueError('runner source is not bound')
     for name,digest in inventory.items():
         path=(root/name).resolve()
-        if not path.is_relative_to(root) or path.suffix!='.py': raise ValueError('invalid source binding')
+        if not path.is_relative_to(root) or (path.suffix!='.py' and name!='exploratory/ft1/selection_expected.json'):
+            raise ValueError('invalid source binding')
         if hashlib.sha256(path.read_bytes().replace(b'\r\n',b'\n')).hexdigest()!=digest:
             raise ValueError('mounted source does not match approved commit')
 
