@@ -12468,3 +12468,23 @@ Written by Claude (stage thread) before the repaired job (a) runs. **The repair 
 **Job.** As before, with `EXACT_SHA` = `5b2b3638845c9ba9a9b4a3a97ee1893554cee660`: new private datasets `metaphysika/taa-k2-repo-5b2b3638845c` and `metaphysika/ft1-preparation-approval-5b2b3638845c` (receipt `approved: true`, that commit, `phase: "data"`, Chris's words), kernel `metaphysika/ft1-data-plan` (new version), Kaggle CPU, internet off, $0. Outputs go to a new dated folder under `results/` whatever the result.
 
 No run is approved by this entry. The relaunch needs Chris's exact-commit approval of `5b2b3638845c9ba9a9b4a3a97ee1893554cee660`.
+
+## 2026-11-14 — v0.24.87 FT1 job (a) at `5b2b3638`: result, exploratory, $0 — PASS (attempt 2)
+
+Written by Claude (stage thread) after the run. Pre-run note: the entry above. Approval: Chris, 2026-11-13, "Approve FT1 job (a) at 5b2b3638". Evidence: `results/2026-11-13 v0.24.87 ft1-data-preparation 5b2b3638845c/` (attempt 1 files at the top level, attempt 2 in `kernel-v4/`). Kaggle CPU, internet off, $0.
+
+**Attempt 1 (kernel version 3): NOT ESTABLISHED (plumbing).** The notebook found the commit-bound source, then stopped with `FileNotFoundError` on the fixed receipt path `/kaggle/input/datasets/metaphysika/ft1-preparation-approval-5b2b3638845c/receipt.json`. The receipt dataset was attached and held `receipt.json`. Nothing was measured or written. Attempt 2's log shows the cause: Kaggle mounted this receipt dataset at `/kaggle/input/ft1-preparation-approval-5b2b3638845c/`, without the `datasets/<owner>/` prefix that the `91855bb8` relaunch used.
+
+**Deviation, owner-approved before attempt 2.** Chris (2026-11-14): "Relaunch job (a) at 5b2b3638 with the receipt search added". Only the staged notebook text changed. It now searches `/kaggle/input` for exactly one `receipt.json` with `ft1-preparation-approval-5b2b3638845c` in its path and stops on none or several. It prints every candidate it saw. Commit, source hashes, datasets, receipt, pass rule and limits are unchanged; the receipt still has to name the commit, `phase: "data"` and `approved: true`. Pushed notebook: `kernel-v4/ft1_data_plan.pushed.ipynb`. The same lookup must go into the stagers (`exploratory/ft1/preparation.py`, `exploratory/ft1/kaggle.py`) before job (b).
+
+**Attempt 2 (kernel version 4): PASS.** `measure-report.json` and `write-report.json` both report `passed: true` and `tokenizer_verified: true`, and the write report has `write_passed: true`. There are no record failures and no aggregate failures. That includes the exact expected-count table check: Kaggle's counts and choices equalled `selection_expected.json` on Python 3.13.18, transformers 5.20.2, tokenizers 0.23.3.
+- Per-record arm 2 − arm 3 trained tokens: −9 to +9, median 0. Arm totals: 320,412 vs 320,440. These are identical to the local real-tokenizer numbers in the pre-run note.
+- Over-limit records: 0 trained, 0 total. Maximum trained per record by arm: 1 = 24, 2 = 257, 2u = 30, 3 = 258, 4 = 30; maximum total 576.
+- Records: 2,000 unique per arm (10,000 training rows) plus 120 probes. Five `arm-*.jsonl` files, three acquisition files and a manifest were written with file hashes in `write-report.json`.
+- Tokenizer file hashes on Kaggle equal the locally exported tokenizer's hashes for `tokenizer.json`, `tokenizer.model`, `tokenizer_config.json` and `special_tokens_map.json`.
+
+**Against the forecast.** Both forecasts (Claude about 90%, Fable about 93%) expected a pass. As forecast, the failure that did occur was operational (the receipt mount), not token counts. The Python-version risk to the exact table did not materialise.
+
+**What this does not show.** It shows only that the FT1 training data meets the agreed length and matching gates under the real tokenizer. It says nothing about training or any arm's behaviour. The selection-after-seen-result disclosures in the pre-run note still apply. These include the 35 replacement records with 5-digit IDs.
+
+**Next.** Job (b), runner qualification, needs its own pre-run entry, review and Chris's exact-commit approval. Its stager needs the receipt search first.
