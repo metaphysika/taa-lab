@@ -5,7 +5,7 @@ import re
 import subprocess
 import time
 from pathlib import Path
-from . import data, plan
+from . import data, mounts, plan
 
 
 def verify_data(folder):
@@ -50,7 +50,8 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
     config['mounts']=dict(repo_commit_marker='COMMIT.txt',data_manifest_sha256=config['data_manifest_sha256'],
                           model='/kaggle/input/models/'+model_source)
     config['model_source']=model_source
-    config['receipt_path']='/kaggle/input/datasets/'+receipt_dataset+'/receipt.json'
+    config['receipt_dataset']=receipt_dataset
+    config['receipt_slug']=mounts.receipt_slug(receipt_dataset)  # searched for at run time, never a fixed path
     config['execution']='plan only; separate exact-commit owner approval required'
     config['phase']='qualify' if qualification else 'train'
     if qualification and arm!='3': raise ValueError('qualification uses arm 3')
@@ -62,7 +63,6 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
             'PLAN_ONLY = True\n'
             'CONFIG = '+repr(config)+'\n'
             'OUTPUT = "/kaggle/working/ft1-'+arm+'-'+str(seed)+'-'+config['phase']+'"\n'
-            'APPROVAL_RECEIPT = CONFIG["receipt_path"]\n'
             'if PLAN_ONLY:\n    print(CONFIG)\n'
             'else:\n'
             '    os.environ["CUDA_VISIBLE_DEVICES"] = "0"\n'
@@ -71,7 +71,8 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
             '    if len(repos)!=1 or len(datasets)!=1: raise ValueError("missing or ambiguous hash-bound mounts")\n'
             '    sys.path.insert(0, str(repos[0]))\n'
             '    from exploratory.ft1.runner import run\n'
-            '    receipt = json.loads(Path(APPROVAL_RECEIPT).read_text())\n'
+            '    from exploratory.ft1.mounts import find_receipt\n'
+            '    receipt = json.loads(find_receipt("/kaggle/input", CONFIG["receipt_slug"]).read_text())\n'
             '    run(CONFIG, CONFIG["mounts"]["model"], datasets[0], OUTPUT, receipt)\n')
     notebook=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'}},
                   cells=[dict(cell_type='code',execution_count=None,metadata={},outputs=[],source=source.splitlines(True))])

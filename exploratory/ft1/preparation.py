@@ -2,7 +2,7 @@
 import hashlib
 import json
 from pathlib import Path
-from . import data,kaggle,runner
+from . import data,kaggle,mounts,runner
 
 MODEL_SOURCE='google/gemma-3/transformers/gemma-3-12b-it/1'
 
@@ -87,14 +87,15 @@ def stage(folder,commit,owner,repo_dataset,receipt_dataset):
         raise ValueError('owner/dataset handles required')
     config=dict(repo_commit=commit,phase='data',model_source=MODEL_SOURCE,approved=False,
                 source_sha256=kaggle.source_inventory(commit),
-                receipt_path='/kaggle/input/datasets/'+receipt_dataset+'/receipt.json')
+                receipt_dataset=receipt_dataset,receipt_slug=mounts.receipt_slug(receipt_dataset))
     source=('import sys, json\nfrom pathlib import Path\nPLAN_ONLY = True\nCONFIG = '+repr(config)+'\n'
         'if PLAN_ONLY:\n    print(CONFIG)\nelse:\n'
         '    repos = [p.parent for p in Path("/kaggle/input").rglob("COMMIT.txt") if p.read_text().strip()==CONFIG["repo_commit"]]\n'
         '    if len(repos)!=1: raise ValueError("missing or ambiguous commit-bound source")\n'
         '    sys.path.insert(0, str(repos[0]))\n'
         '    from exploratory.ft1.preparation import run\n'
-        '    receipt = json.loads(Path(CONFIG["receipt_path"]).read_text())\n'
+        '    from exploratory.ft1.mounts import find_receipt\n'
+        '    receipt = json.loads(find_receipt("/kaggle/input", CONFIG["receipt_slug"]).read_text())\n'
         '    run(CONFIG, "/kaggle/input/models/"+CONFIG["model_source"], "/kaggle/working/ft1-data-preparation", receipt)\n')
     folder=data.safe_output(folder); folder.mkdir(parents=True)
     notebook=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'}},cells=[dict(cell_type='code',
