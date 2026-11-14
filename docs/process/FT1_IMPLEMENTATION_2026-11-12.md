@@ -37,7 +37,7 @@ the changes below await a new exact-commit review.
 
 | Item | Fix |
 |---|---|
-| N1 | GPU and CPU metadata list the receipt dataset; the bound receipt path uses /kaggle/input/datasets/OWNER/SLUG/receipt.json. |
+| N1 | GPU and CPU metadata list the receipt dataset; the bound receipt path uses /kaggle/input/datasets/OWNER/SLUG/receipt.json. Superseded in v0.24.88: the binding holds `receipt_dataset` and `receipt_slug`, and the notebook searches `/kaggle/input` for exactly one receipt under a folder named after the slug. |
 | N2 | All 10,000 training records and 120 actual probe records are measured through the complete real template. Reports include every failing ID/reason, per-arm prompt/trained/total min/median/max, per-record matching counts and aggregate differences. Both measure-only and refused normal writes retain full reports. |
 | N2 headroom | Removed non-deciding batch/currency/office/log/archive filler and redundant reason boilerplate. The compact system line preserves the same protocol. Filler remains removed; current character-stub max prompt is 333. The later prospective two-limit amendment below replaces the separate prompt cap; matching gates are unchanged. |
 | N2 staging | A commit-bound CPU/internet-off notebook loads only the local tokenizer from google/gemma-3/transformers/gemma-3-12b-it/1, records tokenizer file hashes, measures first and writes only after every measurement gate passes. A write report also verifies eight file hashes, uniqueness and tokenizer_verified=true. |
@@ -307,6 +307,7 @@ python -m exploratory.ft1.preparation --plan --commit $prepSha --owner metaphysi
 Use `$prepPlan/ft1_data_plan.ipynb` with its adjacent kernel-metadata.json and
 binding.json. Check the exact commit/source hashes, both dataset sources, and
 receipt mount `/kaggle/input/datasets/metaphysika/ft1-preparation-approval-SHORT/receipt.json`.
+(Superseded in v0.24.88: there is no fixed receipt path. Check `receipt_dataset` and `receipt_slug` in binding.json instead; the notebook searches for the receipt at run time.)
 Metadata must specify CPU, internet off, and the model mount
 `google/gemma-3/transformers/gemma-3-12b-it/1`. Title and id slug are ft1-data-plan.
 In this separately approved staged notebook, flip only `PLAN_ONLY = True` to
