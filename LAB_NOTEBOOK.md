@@ -12488,3 +12488,13 @@ Written by Claude (stage thread) after the run. Pre-run note: the entry above. A
 **What this does not show.** It shows only that the FT1 training data meets the agreed length and matching gates under the real tokenizer. It says nothing about training or any arm's behaviour. The selection-after-seen-result disclosures in the pre-run note still apply. These include the 35 replacement records with 5-digit IDs.
 
 **Next.** Job (b), runner qualification, needs its own pre-run entry, review and Chris's exact-commit approval. Its stager needs the receipt search first.
+
+## 2026-11-14 — v0.24.88 FT1 receipt search in both stagers (code only, no run, $0)
+
+Written by Claude (FT1 job (b) stage thread). Chris approved the plan on 2026-11-14 ("go"). This is the must-fix that the job (a) result entry above names before job (b).
+
+**What changed.** Both Kaggle notebook builders (`exploratory/ft1/preparation.py` for job (a)-type data runs, `exploratory/ft1/kaggle.py` for job (b) and training) used to bind a fixed receipt path, `/kaggle/input/datasets/<owner>/<slug>/receipt.json`. Job (a) attempt 1 failed on it. They now bind the receipt dataset handle and its slug (`receipt_dataset`, `receipt_slug`; `receipt_path` is gone). At run time the notebook calls the new standard-library helper `exploratory/ft1/mounts.py` `find_receipt`. The helper searches `/kaggle/input` for `receipt.json` files that sit under a folder named exactly after the slug. It prints every `receipt.json` it saw and uses the match only if there is exactly one; on none or several it prints the top level of `/kaggle/input` and stops. This is the rule that worked in job (a) attempt 2. The slug filter keeps out the 11 or so `receipt.json` files that the repo dataset carries under `studies/`. The receipt contents are still checked by the unchanged `run()` functions (commit, phase, `approved: true`). `mounts.py` is under `exploratory/ft1/`, so it enters the hash-bound source inventory automatically. N1 in `docs/process/FT1_IMPLEMENTATION_2026-11-12.md` (fixed path) is superseded by this entry.
+
+**Tests.** New `tests/test_ft1_receipt_search.py` (synthetic folders): one match found at either Kaggle layout among 11 repo `receipt.json` decoys; decoys alone stop; two matches stop and name both; a slug must be a whole folder name; a missing input folder stops; both stagers bind the slug, and their notebooks call the search and contain no fixed path. `tests/test_ft1_preparation.py` now expects the slug binding instead of the old path.
+
+**Not changed.** Training, evaluation, data, pass rules, the job (a) evidence and dataset. Nothing ran on Kaggle.
