@@ -12498,3 +12498,9 @@ Written by Claude (FT1 job (b) stage thread). Chris approved the plan on 2026-11
 **Tests.** New `tests/test_ft1_receipt_search.py` (synthetic folders): one match found at either Kaggle layout among 11 repo `receipt.json` decoys; decoys alone stop; two matches stop and name both; a slug must be a whole folder name; a missing input folder stops; both stagers bind the slug, and their notebooks call the search and contain no fixed path. `tests/test_ft1_preparation.py` now expects the slug binding instead of the old path.
 
 **Not changed.** Training, evaluation, data, pass rules, the job (a) evidence and dataset. Nothing ran on Kaggle.
+
+## 2026-11-14 — v0.24.89 FT1 qualification skip rule widened before job (b) (code only, no run, $0)
+
+Written by Claude (FT1 job (b) stage thread). **Prospective, before any job (b) result.** Fable's readiness review of job (b) at `8d4c4dfc` (READY WITH FIXES) found the qualification rule "at most two skipped fp16 updates, both within steps 1–3" likely too tight for arm 3. In FT0b the fp16 loss scaler skipped steps 1 and 2 on short records and overflowed once more on a longer probe; arm 3's micro-batches carry up to 258 trained tokens, so a third early skip is likely. That would fail job (b) on scaler warm-up alone, which is not a runner defect; the 250-step training rule already allows 25 of 250. Fable's forecast: PASS 45% as written, 70% if widened. Chris (2026-11-14): "widen".
+
+**Change.** `exploratory/ft1/qualification.py` `allowed_skips`: at most three skipped updates, all distinct and all within steps 1–4. Four skips, or any skip at step 5 or later, still fail. Tests updated in `tests/test_ft1_preparation.py`. Every other qualification rule is unchanged. N3 in `docs/process/FT1_IMPLEMENTATION_2026-11-12.md` is annotated. The job (b) pre-run entry moves to the new commit.

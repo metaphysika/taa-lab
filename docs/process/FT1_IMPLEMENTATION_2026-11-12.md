@@ -41,7 +41,7 @@ the changes below await a new exact-commit review.
 | N2 | All 10,000 training records and 120 actual probe records are measured through the complete real template. Reports include every failing ID/reason, per-arm prompt/trained/total min/median/max, per-record matching counts and aggregate differences. Both measure-only and refused normal writes retain full reports. |
 | N2 headroom | Removed non-deciding batch/currency/office/log/archive filler and redundant reason boilerplate. The compact system line preserves the same protocol. Filler remains removed; current character-stub max prompt is 333. The later prospective two-limit amendment below replaces the separate prompt cap; matching gates are unchanged. |
 | N2 staging | A commit-bound CPU/internet-off notebook loads only the local tokenizer from google/gemma-3/transformers/gemma-3-12b-it/1, records tokenizer file hashes, measures first and writes only after every measurement gate passes. A write report also verifies eight file hashes, uniqueness and tokenizer_verified=true. |
-| N3 | Qualification permits at most two skipped updates, both within steps 1-3. The training rule remains 25 of 250. |
+| N3 | Qualification permits at most two skipped updates, both within steps 1-3. The training rule remains 25 of 250. Widened in v0.24.89 (Chris, before job (b)): at most three, all within steps 1-4. |
 | N4 | Qualification saves every five steps, verifies final adapter tensors against checkpoint-10, and reloads the final adapter. Normal training still saves every 50 steps. |
 | N5 | Arm 1 has pressure on exactly 1,000 of its 2,000 records. |
 | Pass rules | The pure qualification report enforces every section-5 check, including all 80 finite micro-losses, ten loss splits, all 2,000 manifest token-count matches, hardware, memory, timing, skip signal, checkpoint tensor equality and final-adapter reload. |
@@ -188,7 +188,7 @@ Deadlines are cooperative and cannot prevent an abrupt host kill.
 Qualification uses ten optimizer-step attempts on real-length arm-3 records,
 then saves the final adapter, checks canonical per-tensor SHA-256 equality against
 checkpoint-10, reloads the final saved adapter and compares a fixed record loss. It records
-loss splits, skip counts, memory peaks and seconds per step. At most two skipped updates are allowed, both in steps 1-3; any other skip pattern prevents qualification. No actual qualification has run.
+loss splits, skip counts, memory peaks and seconds per step. At most two skipped updates are allowed, both in steps 1-3; any other skip pattern prevents qualification. (v0.24.89: at most three, all within steps 1-4.) No actual qualification has run.
 
 ## Secrecy and remaining gates
 

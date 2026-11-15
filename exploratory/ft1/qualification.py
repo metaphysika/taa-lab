@@ -3,7 +3,8 @@ import math
 
 
 def allowed_skips(steps):
-    return len(steps)<=2 and len(set(steps))==len(steps) and all(s in (1,2,3) for s in steps)
+    # v0.24.89 (Chris, 2026-11-14, before job (b)): at most three skipped fp16 updates, all within steps 1-4.
+    return len(steps)<=3 and len(set(steps))==len(steps) and all(s in (1,2,3,4) for s in steps)
 
 
 def report(events):
