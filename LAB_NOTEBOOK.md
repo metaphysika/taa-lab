@@ -12498,3 +12498,37 @@ Written by Claude (FT1 job (b) stage thread). Chris approved the plan on 2026-11
 **Tests.** New `tests/test_ft1_receipt_search.py` (synthetic folders): one match found at either Kaggle layout among 11 repo `receipt.json` decoys; decoys alone stop; two matches stop and name both; a slug must be a whole folder name; a missing input folder stops; both stagers bind the slug, and their notebooks call the search and contain no fixed path. `tests/test_ft1_preparation.py` now expects the slug binding instead of the old path.
 
 **Not changed.** Training, evaluation, data, pass rules, the job (a) evidence and dataset. Nothing ran on Kaggle.
+
+## 2026-11-14 — v0.24.88 FT1 job (b), runner qualification on one Kaggle T4: pre-run entry, exploratory, $0 (no run approved)
+
+Written by Claude (FT1 job (b) stage thread) before the run. Chris chose on 2026-11-14 to run job (b) before Sol's evaluation build ("job b first"), because job (b) uses only the training runner, which is already built.
+
+**Question.** Does the FT1 training runner work end to end on the real arm 3 data, on one Kaggle T4, inside the memory and time limits, so that the 250-step training runs can be approved? This checks plumbing and fit only. It says nothing about H2 or about any arm's behaviour.
+
+**Exact commit.** `8d4c4dfc8222c6ff8a6d27afcce63d7eefd7364a` (main, v0.24.88, PR #147: the receipt search in both stagers). This entry is docs only and does not change any bound source file. 23 source files are hash-bound in the plan, including `exploratory/ft1/mounts.py`.
+
+**Job.** Arm 3, seed 247056, phase `qualify`, ten optimizer steps on real-length arm 3 records. One private Kaggle GPU notebook `metaphysika/ft1-3-247056-qualify` (new), pushed with `--accelerator NvidiaTeslaT4 --timeout 31500`, internet off. The notebook masks to one visible GPU. Mounts:
+- `metaphysika/taa-k2-repo-8d4c4dfc8222` (new): the `git archive` of the exact commit, with `COMMIT.txt`. Results and docs excluded.
+- `metaphysika/ft1-data-5b2b3638845c` (new): the job (a) dataset, nine files, manifest SHA-256 `95759f673556f4606a5ab7287dc3eded8190cfe0689c4333ab288f07351cc7ea`, arm 3 SHA-256 `26cf2974…6b6c7cb5`.
+- `metaphysika/k2-wheels` (existing, pinned local wheel), model `google/gemma-3/transformers/gemma-3-12b-it/1`.
+- `metaphysika/ft1-qualification-approval-8d4c4dfc8222` (new): `receipt.json` with `approved: true`, `repo_commit` = the exact commit, `arm: "3"`, `seed: 247056`, `phase: "qualify"`, `data_manifest_sha256` as above, and Chris's words. The runner refuses any other combination.
+
+In the staged notebook only `PLAN_ONLY = True` is changed to `False`. Staged bundle (`C:/t/ft1b/.k2-launch/ft1-3-247056-qualify-8d4c…/`), SHA-256: `ft1_plan.ipynb` `1f36882a…`, `ft1-binding.json` `3b4b8ba3…`, `kernel-metadata.json` `93431779…`. Upload order: the three new datasets first, wait until Kaggle has processed them, then push the kernel. Outputs are fetched into a new dated folder under `results/` whatever the result. Kaggle status "complete" is not a pass; only `qualification-report.json` decides.
+
+**How the data reaches Kaggle (stage-thread decision).** A new private dataset, not the job (a) kernel's output, because a kernel source may not pin an exact output version. Found while staging: this Windows checkout converts line endings in the committed copy of the job (a) dataset (`core.autocrlf`), so all five `arm-*.jsonl` files fail their hashes in the working tree. The upload copy is therefore written from git's stored bytes (`git show origin/main:<path>`), not from the working tree. All nine files then match the manifest, and the manifest is byte-identical to the original Kaggle v4 download. The runner re-checks the manifest and arm 3 hashes on Kaggle and refuses to train on a mismatch. The repo dataset must be the new one at the exact commit; job (a)'s `taa-k2-repo-5b2b3638845c` predates `mounts.py` and would stop at the commit check (Fable, PR #147 review).
+
+**Pass rule (fixed now; Fable's rules from the job (a) pre-run entry, as coded in `exploratory/ft1/qualification.py`).**
+- **PASS:** `qualification-report.json` shows `passed: true`, i.e. all ten rules hold. Hardware: GPU `Tesla T4`, one visible. Memory: every step's peak allocated memory ≤ 13.5e9 bytes (above 10.5e9 is flagged for review, not failed). Speed: slowest of steps 2–10 ≤ 75 s, and setup + 250 × slowest ≤ 6.5 h. All 80 micro-losses finite. Loss split logged on all ten steps, with action and reason counts both above zero and summing to the eight records' trained tokens. At most two skipped updates, all within steps 1–3, and the skip signal present on every step. A checkpoint saved, and its tensors checked. Final adapter tensors equal to checkpoint-10, the final adapter reloaded, and the reload loss within 0.02. Real token counts equal to the manifest for all 2,000 arm 3 rows.
+- **FAIL:** training setup was reached (model loaded, data tokenized) and any rule failed, including out-of-memory or an exception during steps, saving, checkpointing or reload. Repair needs a new commit, a review and Chris's approval. No rule changes after seeing results.
+- **NOT ESTABLISHED:** training setup was never reached: receipt, mount, source-hash, wheel, package-stack or model-load error, a kernel error, a timeout before setup, or a missing report. Outputs are kept. A relaunch needs Chris's yes.
+- Reported either way: every rule's value, slowest warm step, setup time, the 250-step projection, peak memory per step, skipped steps, package versions and GPU name.
+
+**Expectation.** Claude: PASS about 65%, FAIL about 15%, NOT ESTABLISHED about 20%. Memory and speed should pass easily: FT0b passed the same layout at 9.86e9 bytes and about 61 s per step on records up to 896 trained tokens, and arm 3's records are at most 258 trained and 576 total tokens. The risk is that `exploratory/ft1/training.py` (HF Trainer, loss split, checkpoints, tensor equality, reload) has run only on CPU fixtures, never on a GPU. **The check that could fail:** the adapter/checkpoint equality and reload rule, then the loss-split sums. Plumbing (new kernel, three new datasets, receipt search on its first GPU use) is the likeliest NOT ESTABLISHED. **Fable:** to be added from the readiness review.
+
+**Estimated use.** $0. About 30–60 GPU minutes (model load and preparation, ten steps, save, reload) against Kaggle's weekly GPU quota of about 30 hours.
+
+**What follows.** PASS: approvals for the 250-step training runs (arms × seeds, scheduled against the weekly quota), with Sol's evaluation runner, the sealed test set and Astra's blind labels built meanwhile. FAIL: a prospective repair round. NOT ESTABLISHED: fix the plumbing, then ask Chris before a relaunch.
+
+**Limits.** Feasibility only. A PASS shows the runner trains, saves and reloads correctly within limits on ten steps; it does not show that 250 steps stay stable or that any arm learns.
+
+No run is approved by this entry. Job (b) needs Chris's exact-commit approval of `8d4c4dfc8222c6ff8a6d27afcce63d7eefd7364a`.
