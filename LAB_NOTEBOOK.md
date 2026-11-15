@@ -12570,3 +12570,19 @@ Written by Claude (FT1 job (b) stage thread) after the run, against the pre-run 
 **Estimated use.** $0. About 16 GPU minutes for version 2 (push to COMPLETE) and about 5 for version 1. At about 3.2 h per run, the 12 planned 250-step training runs would take about 38 GPU-hours. That is roughly 1.3 weeks of Kaggle's ~30 h weekly quota, assuming other arms run at arm 3's speed (unverified).
 
 **What follows.** The pre-run entry made PASS lead to the approvals for the 250-step training runs. These are 12 arm × seed runs scheduled against the weekly quota, each with its own exact-commit approval. Meanwhile Sol builds the evaluation/acquisition runner, the sealed test set (hash only) and Astra's blind labels. Chris decides whether Sol starts now.
+
+## 2026-11-15 — v0.24.90 FT1 evaluation runner build (code only, no run, $0)
+
+FT1 step 2, round 1 build brief. New local-only evaluation entrypoint and plan-only
+Kaggle stager bind the exact source commit, model, adapter files and training
+manifest, data manifest, sealed SHA-256 and evaluation part to a separate receipt.
+Acquisition and eight format-only episodes precede every part's test cells.
+Four disjoint parts cover 48 action and 48 knowledge cells per model. Training
+code and qualification rules are unchanged. Turn journals retain partial evidence.
+
+Private sealed file SHA-256:
+`0d71f261052be3a6a5e1224d80d316b0d2424adbe8e34bfb5c3397ff5e00babd`.
+48 cases: direct 12, record_lookup 12, recipient_lookup 12, outside_sphere 12.
+The private blind packet has 48 items. No model, GPU, Kaggle, Modal or comparison
+run took place. Blind labels, disagreement-rule adoption, exact-commit review and
+owner execution approval remain outstanding.
