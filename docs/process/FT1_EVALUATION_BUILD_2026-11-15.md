@@ -67,3 +67,12 @@ final eight evaluation tests passed; final fast check passed 653 tests and all
 scripted scenarios in 104.356 seconds. Logs are retained beside validation.json.
 Training paths have no diff from the base. Scripted output directories are kept
 locally and are not part of this PR. Hosted CI is reported separately in the PR.
+
+Adapter-binding addition from Fable's training-pilot readiness review: FT1's
+legacy scientific=false manifest label is accepted. The adapter_saved event
+must say tensors_finite=true and its entire file-hash map must equal the
+manifest's adapter inventory. Non-trained statuses, interrupted-adapter paths
+and trainer checkpoint paths are refused, including resolved candidate paths.
+The supplied base-model path is used to load the base and explicitly overrides
+the adapter configuration's base path. No K2 verify_adapter call is used.
+Synthetic tests cover the legacy label, finite flag and status/path refusals.

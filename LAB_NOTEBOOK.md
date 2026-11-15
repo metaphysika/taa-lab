@@ -12586,3 +12586,9 @@ Private sealed file SHA-256:
 The private blind packet has 48 items. No model, GPU, Kaggle, Modal or comparison
 run took place. Blind labels, disagreement-rule adoption, exact-commit review and
 owner execution approval remain outstanding.
+
+FT1 evaluation adapter-binding follow-up (same code-only build): adopted Fable's
+training-pilot readiness addition. Require adapter_saved.tensors_finite=true;
+refuse interrupted adapters, checkpoints and all non-trained statuses; accept
+the legacy scientific=false label; explicitly bind the supplied base path.
+Synthetic refusal tests pass. No training change or new private-file generation.

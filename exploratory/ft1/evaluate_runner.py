@@ -21,7 +21,10 @@ def find_hash(root, digest):
 
 
 def adapter_binding(folder, arm, seed):
-    folder = Path(folder)
+    folder = Path(folder).resolve()
+    candidate_parts = (*folder.parts, *(folder/'adapter').resolve().parts)
+    if any(part.lower() == 'interrupted-adapter' or part.lower().startswith('checkpoint-') for part in candidate_parts):
+        raise ValueError('interrupted adapters and intermediate checkpoints are not candidates')
     manifest = json.loads((folder/'manifest.json').read_bytes())
     meta = json.loads((folder/'metadata.json').read_bytes())
     if (meta.get('arm'), meta.get('seed'), meta.get('phase'), meta.get('status')) != (arm, seed, 'train', 'trained'):
@@ -37,7 +40,7 @@ def adapter_binding(folder, arm, seed):
     completed = [e for e in events if e.get('event') == 'training_complete']
     if len(completed) != 1 or completed[0].get('qualification') is not False or completed[0].get('steps') != 250:
         raise ValueError('250-step training completion required')
-    if not any(e.get('event') == 'adapter_saved' and e.get('sha256') == files for e in events):
+    if not any(e.get('event') == 'adapter_saved' and e.get('tensors_finite') is True and e.get('sha256') == files for e in events):
         raise ValueError('adapter save binding required')
     return dict(adapter_sha256=core.digest(files), training_manifest_sha256=sha(folder/'manifest.json'),
                 adapter_files=files, skipped_steps=completed[0]['skipped_steps'])
@@ -118,8 +121,11 @@ def prepare(model_path, adapter, retain, check):
         quantization_config=transformers.BitsAndBytesConfig(load_in_4bit=True,bnb_4bit_quant_type='nf4',
             bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.float16),device_map={'':0})
     if adapter is not None:
-        from peft import PeftModel
-        model = PeftModel.from_pretrained(model,adapter,local_files_only=True,is_trainable=False)
+        from peft import PeftConfig, PeftModel
+        adapter_config = PeftConfig.from_pretrained(adapter,local_files_only=True)
+        adapter_config.base_model_name_or_path = str(path)
+        model = PeftModel.from_pretrained(model,adapter,config=adapter_config,
+            local_files_only=True,is_trainable=False)
     model.eval()
     check()
     def generate(system,history,cap,seed):

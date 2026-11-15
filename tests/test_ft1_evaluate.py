@@ -82,10 +82,28 @@ class EvaluationTests(unittest.TestCase):
             (adapter/'weights.safetensors').write_text('synthetic')
             files = runner.core.inventory(adapter)
             (folder/'metadata.json').write_text(json.dumps(dict(arm='3',seed=247056,phase='train',status='trained')))
-            events = [dict(event='adapter_saved',sha256=files),dict(event='training_complete',steps=250,qualification=False,skipped_steps=[])]
+            events = [dict(event='adapter_saved',sha256=files,tensors_finite=True),dict(event='training_complete',steps=250,qualification=False,skipped_steps=[])]
             (folder/'events.jsonl').write_text('\n'.join(map(json.dumps,events)))
-            runner.core.manifest(folder,{})
+            runner.core.manifest(folder,dict(scientific=False))
             self.assertEqual(runner.adapter_binding(folder,'3',247056)['adapter_files'],files)
+            for status in ('incomplete','qualified','not_qualified','not_trained'):
+                (folder/'metadata.json').write_text(json.dumps(dict(arm='3',seed=247056,phase='train',status=status)))
+                runner.core.manifest(folder,dict(scientific=False))
+                with self.subTest(status=status),self.assertRaises(ValueError):
+                    runner.adapter_binding(folder,'3',247056)
+            (folder/'metadata.json').write_text(json.dumps(dict(arm='3',seed=247056,phase='train',status='trained')))
+            for finite in (False,None):
+                events[0]['tensors_finite']=finite
+                (folder/'events.jsonl').write_text('\n'.join(map(json.dumps,events)))
+                runner.core.manifest(folder,dict(scientific=False))
+                with self.subTest(finite=finite),self.assertRaises(ValueError):
+                    runner.adapter_binding(folder,'3',247056)
+            events[0]['tensors_finite']=True
+            (folder/'events.jsonl').write_text('\n'.join(map(json.dumps,events)))
+            runner.core.manifest(folder,dict(scientific=False))
+            for name in ('interrupted-adapter','checkpoint-250'):
+                with self.subTest(path=name),self.assertRaises(ValueError):
+                    runner.adapter_binding(folder/name,'3',247056)
             (adapter/'weights.safetensors').write_text('tampered')
             with self.assertRaises(ValueError): runner.adapter_binding(folder,'3',247056)
 
