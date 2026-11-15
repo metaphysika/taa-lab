@@ -12592,3 +12592,13 @@ training-pilot readiness addition. Require adapter_saved.tensors_finite=true;
 refuse interrupted adapters, checkpoints and all non-trained statuses; accept
 the legacy scientific=false label; explicitly bind the supplied base path.
 Synthetic refusal tests pass. No training change or new private-file generation.
+
+FT1 evaluation runner round 2 (code only, no run, $0): separated the once-per-model
+gate from two default twin-paired test parts; base remains reference-only even
+when its gate fails. Default parts each have 24 cases, six per difficulty group.
+The sealed file is unchanged. The regenerated private packet has 48 items,
+SHA-256 d1bf7f1591121ffbb89e5005891db8cbed957e864d4feea5c593da52caa488ee;
+its private leak self-check passed, zero detected leaks. Closed-schema labels,
+small-JSON mount discovery, gate identity and conflicting duplicate-row refusal
+are built offline. No comparison, model or GPU run. Disagreement policy remains
+for Chris. origin/main was already contained, with no notebook merge conflict.
