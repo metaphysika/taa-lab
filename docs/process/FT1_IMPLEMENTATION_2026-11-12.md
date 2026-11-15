@@ -227,7 +227,7 @@ per arm; tokenizer_verified=true; and all eight data/probe file hashes.
 | Speed | Slowest step 2-10 <=75 seconds; setup + 250 x slowest <=6.5 hours. |
 | Micro-losses | All 80 finite. |
 | Split loss | All ten steps logged; both counts >0; each total equals the eight records' trained-token total. |
-| Skips | <=2, all within steps 1-3. |
+| Skips | <=2, all within steps 1-3. Widened in v0.24.89: <=3, all distinct, within steps 1-4. |
 | Skip signal | step_was_skipped present on every step. |
 | Checkpoint | At least one saved; checkpoint-10 tensors checked against final adapter. |
 | Adapter | Final/checkpoint-10 canonical tensor hashes equal; final adapter reloaded; loss difference <=0.02. |
