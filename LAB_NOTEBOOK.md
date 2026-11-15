@@ -12538,3 +12538,35 @@ In the staged notebook only `PLAN_ONLY = True` is changed to `False`. Staged bun
 **Limits.** Feasibility only. A PASS shows the runner trains, saves and reloads correctly within limits on ten steps; it does not show that 250 steps stay stable or that any arm learns.
 
 No run is approved by this entry. Job (b) needs Chris's exact-commit approval of `0449a230200cef7c4f6e08c4bbaa5bbdac8ba636`.
+
+## 2026-11-15 — v0.24.89 FT1 job (b) at 0449a230: PASS (runner qualification on one Kaggle T4, exploratory, $0)
+
+Written by Claude (FT1 job (b) stage thread) after the run, against the pre-run entry above. Chris approved on 2026-11-15: "Approve FT1 job (b) at 0449a230".
+
+**Evidence.** `results/2026-11-15 v0.24.89 ft1-qualification 0449a230200c/`. It holds `README.md`, the pushed notebooks and the receipt under `launch/`, the kernel version 1 log, and the version 2 text outputs under `kaggle-v2/ft1-3-247056-qualify/`: `qualification-report.json`, `events.jsonl`, `manifest.json`, `metadata.json`, the trainer state and the kernel log. All 27 output files match the run's manifest. Adapter weights, optimizer state and the Gemma tokenizer copies are not in git; their hashes are in the manifest, and a full copy is kept outside the repo (see the README).
+
+**Result: PASS.** `qualification-report.json` shows `passed: true`, with all ten rules true and no review flags.
+- **Hardware:** Tesla T4, one visible GPU.
+- **Memory:** peak allocated was at most 9.25e9 bytes per step, below the 10.5e9 review line and the 13.5e9 limit. Peak reserved was 9.68e9.
+- **Speed:** the slowest of steps 2–10 took 44.9 s (step 3); steps took 32–45 s. Setup took 185 s. The 250-step projection, setup + 250 × slowest, is 11,418 s ≈ 3.2 h, against the 6.5 h limit.
+- **Micro-losses:** all 80 finite (0.063–0.394).
+- **Loss split:** logged on all ten steps, with action 191–231 and reason 991–1,229 tokens per step.
+- **Skips:** none. The skip signal was present on all ten steps.
+- **Checkpoint:** checkpoints saved at steps 5 and 10, and their tensors checked.
+- **Adapter:** the final adapter equals checkpoint-10 tensor for tensor. Reload loss was 0.63265 before and after, a difference of 0.
+- **Token counts:** all 2,000 arm 3 rows equal the manifest, with zero mismatches.
+- **Run:** wall time about 10 minutes from start to the last event (588 s). Package stack: transformers 5.20.2, peft 0.21.2, bitsandbytes 0.50.2 (local wheel), accelerate 1.15.0, torch 2.11.0+cu130.
+
+**Against the forecasts.** Claude gave PASS 65 / FAIL 15 / NOT ESTABLISHED 20; Fable gave 70/15/15. Both favoured PASS. Fable's top pre-mortem, a third early fp16 skip, did not happen: there were zero skips, so the v0.24.89 widening was not needed this time. It still applies to the training runs. The two checks that had run only on CPU fixtures, adapter/checkpoint equality with reload and the loss-split sums, both passed on the GPU.
+
+**Receipt search confirmed on Kaggle.** The receipt was mounted at `/kaggle/input/datasets/metaphysika/ft1-qualification-approval-0449a230200c/receipt.json`. The search also saw the repo dataset's `receipt.json` files under `studies/` and correctly ignored them (v0.24.88).
+
+**Deviation: an extra plan-only push (kernel version 1).** My one-line `sed` edit to set `PLAN_ONLY = False` did not apply, and I pushed without checking. Version 1 therefore ran the unchanged staged notebook, which printed the config and stopped after about 5 minutes. It loaded no model and trained nothing. The pre-run entry's `ft1_plan.ipynb` hash `e5b349c9…` is that version-1 notebook. I then set the flag by editing the notebook JSON and confirmed that only that one source line differed, then pushed version 2 (`ca28c3d6…`), the real run. Both notebooks and the version 1 log are kept. The approved content (commit, datasets, receipt, pass rule) did not change between the two versions. In future, I will check the flag in the notebook file before every push.
+
+**Note: two hashes of one data order.** `ft1-binding.json` gives `data_order_sha256` `4f4785d6…`, computed with `data.dump`. The `tokenized_real_records` event gives `4b69541d…`, computed with `core.digest`. I recomputed both locally from `plan.order(247056)` at the bound commit, and they describe the same 2,000-row order. This is not a defect. A future cleanup could use one convention.
+
+**What this shows and does not show.** It shows that the FT1 training runner trains on real arm 3 data, logs, checkpoints, saves and reloads correctly on one T4, well inside memory and time limits. It does not show that 250 steps stay stable, that any arm learns, or anything about H2. The falling ten-step losses are not evidence of learning, and nothing is concluded from them. The adapter is a qualification artifact (`"scientific": false`).
+
+**Estimated use.** $0. About 16 GPU minutes for version 2 (push to COMPLETE) and about 5 for version 1. At about 3.2 h per run, the 12 planned 250-step training runs would take about 38 GPU-hours. That is roughly 1.3 weeks of Kaggle's ~30 h weekly quota, assuming other arms run at arm 3's speed (unverified).
+
+**What follows.** The pre-run entry made PASS lead to the approvals for the 250-step training runs. These are 12 arm × seed runs scheduled against the weekly quota, each with its own exact-commit approval. Meanwhile Sol builds the evaluation/acquisition runner, the sealed test set (hash only) and Astra's blind labels. Chris decides whether Sol starts now.
