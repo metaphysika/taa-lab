@@ -13,11 +13,25 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def find_hashes(root, targets, max_bytes=5*1024*1024):
+    """One traversal; never read model weights, wheels or oversized JSON."""
+    found = {name: [] for name in targets}
+    for directory, _, names in os.walk(root):
+        for name in names:
+            path = Path(directory)/name
+            if path.suffix.lower() != '.json' or path.stat().st_size > max_bytes:
+                continue
+            digest = sha(path)
+            for key, expected in targets.items():
+                if digest == expected:
+                    found[key].append(path)
+    if any(len(paths) != 1 for paths in found.values()):
+        raise ValueError('missing or ambiguous hash-bound JSON')
+    return {key: paths[0] for key, paths in found.items()}
+
+
 def find_hash(root, digest):
-    found = [p for p in Path(root).rglob('*') if p.is_file() and sha(p) == digest]
-    if len(found) != 1:
-        raise ValueError('missing or ambiguous hash-bound file')
-    return found[0]
+    return find_hashes(root, {'target': digest})['target']
 
 
 def adapter_binding(folder, arm, seed):
@@ -47,20 +61,23 @@ def adapter_binding(folder, arm, seed):
 
 
 def validate(config, receipt):
-    if (config['arm'],config['seed']) not in plan.MODELS or config['phase'] != 'evaluate':
+    if (config['arm'],config['seed']) not in plan.MODELS or config['phase'] not in ('gate','evaluate'):
         raise ValueError('unplanned evaluation')
     keys = ('repo_commit','phase','arm','seed','adapter_sha256','training_manifest_sha256',
-            'data_manifest_sha256','sealed_sha256','part')
+            'data_manifest_sha256','sealed_sha256','gate_sha256','part','part_count','model_source')
     if receipt.get('approved') is not True or any(receipt.get(k) != config.get(k) for k in keys):
         raise ValueError('separate exact evaluation approval required')
-    if config['part'] not in range(4):
-        raise ValueError('invalid evaluation part')
+    if config['phase'] == 'evaluate':
+        if type(config['part_count']) is not int or not 1 <= config['part_count'] <= 24 or config['part'] not in range(config['part_count']):
+            raise ValueError('invalid evaluation part')
+        if not config.get('gate_sha256') or not config.get('sealed_sha256'):
+            raise ValueError('gate and sealed bindings required')
     if config['arm'] == 'base' and (config['adapter_sha256'] is not None or config['training_manifest_sha256'] is not None):
         raise ValueError('base cannot have an adapter')
 
 
-def protocol(config, records, cases, generate, count_tokens, retain, check, skipped):
-    """Four disjoint 12-case parts; each repeats the full protocol."""
+def protocol(config, records, generate, count_tokens, retain, check, skipped):
+    """Run the complete protocol once, without any sealed input."""
     replies = []
     for i, record in enumerate(records):
         check()
@@ -92,12 +109,41 @@ def protocol(config, records, cases, generate, count_tokens, retain, check, skip
         retain(dict(event='format_only',case_id=cell['case_id'],raw_replies=raw_replies))
     gate = scoring.eligibility(records,replies,formats,skipped)
     retain(dict(event='eligibility', **gate))
-    if not gate['acquired'] or not gate['trained']:
-        return dict(status='ineligible',eligibility=gate)
+    return dict(gate, skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
+                adapter_sha256=config['adapter_sha256'],
+                training_manifest_sha256=config['training_manifest_sha256'],
+                repo_commit=config['repo_commit'],data_manifest_sha256=config['data_manifest_sha256'],
+                model_source=config.get('model_source'))
+
+
+def validate_gate(config, gate):
+    for key in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source'):
+        if key not in gate or gate[key] != config.get(key):
+            raise ValueError('gate identity mismatch')
+    if not isinstance(gate.get('acquired'),bool) or not isinstance(gate.get('trained'),bool):
+        raise ValueError('invalid gate flags')
+    return config['arm'] == 'base' or gate['acquired'] and gate['trained']
+
+
+def part_indices(cases, part, part_count):
+    """Assign first-seen twin pairs modulo part count; preserve original seeds."""
     if len(cases) != 48 or len({c['id'] for c in cases}) != 48:
         raise ValueError('sealed inventory mismatch')
+    pairs = {}
+    for i, case in enumerate(cases):
+        pairs.setdefault(case['pair_id'], []).append(i)
+    if len(pairs) != 24 or any(len(indices) != 2 for indices in pairs.values()):
+        raise ValueError('sealed pair inventory mismatch')
+    return {i for index, indices in enumerate(pairs.values()) if index % part_count == part for i in indices}
+
+
+def test_cells(config, cases, gate, generate, count_tokens, retain, check):
+    retain(dict(event='eligibility',**gate))
+    if not validate_gate(config,gate):
+        return dict(status='ineligible',eligibility=gate)
+    indices = part_indices(cases,config['part'],config['part_count'])
     for cell in plan.plan()['evaluation']:
-        if (cell['arm'],cell['training_seed']) != (config['arm'],config['seed']) or cell['case_index']//12 != config['part']:
+        if (cell['arm'],cell['training_seed']) != (config['arm'],config['seed']) or cell['case_index'] not in indices:
             continue
         check()
         def guarded(system,history,cap,seed):
@@ -120,6 +166,10 @@ def prepare(model_path, adapter, retain, check):
     model = core.load_model('gemma-3-12b-it',transformers,path,
         quantization_config=transformers.BitsAndBytesConfig(load_in_4bit=True,bnb_4bit_quant_type='nf4',
             bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.float16),device_map={'':0})
+    text = getattr(model.config,'text_config',model.config)
+    retain(dict(event='base_model_identity',model_type=model.config.model_type,
+                layers=text.num_hidden_layers,hidden_size=text.hidden_size,vocab=text.vocab_size,
+                config_sha256=sha(Path(path)/'config.json')))
     if adapter is not None:
         from peft import PeftConfig, PeftModel
         adapter_config = PeftConfig.from_pretrained(adapter,local_files_only=True)
@@ -142,14 +192,22 @@ def prepare(model_path, adapter, retain, check):
     return generate, lambda raw: len(tokenizer.encode(raw,add_special_tokens=False))
 
 
-def run(config, model_path, data_folder, sealed_file, output, receipt, training_folder=None, seconds=27000):
+def run(config, model_path, data_folder, sealed_file, output, receipt, training_folder=None, seconds=27000, gate_file=None):
     validate(config,receipt)
     verify_source(config)
     if not 0 < seconds <= 27000:
         raise ValueError('deadline must be within 7.5 hours')
     check = deadline(seconds)
-    if kaggle.verify_data(data_folder) != config['data_manifest_sha256'] or sha(sealed_file) != config['sealed_sha256']:
+    if kaggle.verify_data(data_folder) != config['data_manifest_sha256']:
         raise ValueError('evaluation data hash mismatch')
+    gate = None
+    if config['phase'] == 'evaluate':
+        if sha(sealed_file) != config['sealed_sha256'] or sha(gate_file) != config['gate_sha256']:
+            raise ValueError('test input hash mismatch')
+        gate = json.loads(Path(gate_file).read_bytes())
+        validate_gate(config,gate)
+    elif sealed_file is not None or gate_file is not None:
+        raise ValueError('gate phase has no sealed or prior gate input')
     skipped = []
     adapter = None
     if config['arm'] != 'base':
@@ -169,16 +227,25 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
             os.fsync(stream.fileno())
     result = dict(status='incomplete')
     try:
-        generate,count_tokens = prepare(model_path,adapter,retain,check)
-        probe = data.PROBE_FILES.get(config['arm'],data.PROBE_FILES['3'])
-        records = json.loads((Path(data_folder)/probe).read_bytes())
-        cases = json.loads(Path(sealed_file).read_bytes())['cases']
-        result = protocol(config,records,cases,generate,count_tokens,retain,check,skipped)
-        (folder/'eligibility.json').write_text(json.dumps([dict(result['eligibility'],arm=config['arm'],training_seed=config['seed'])]),encoding='utf-8')
+        if gate is not None and not validate_gate(config,gate):
+            retain(dict(event='eligibility',**gate))
+            result = dict(status='ineligible',eligibility=gate)
+        else:
+            generate,count_tokens = prepare(model_path,adapter,retain,check)
+            if config['phase'] == 'gate':
+                probe = data.PROBE_FILES.get(config['arm'],data.PROBE_FILES['3'])
+                records = json.loads((Path(data_folder)/probe).read_bytes())
+                gate = protocol(config,records,generate,count_tokens,retain,check,skipped)
+                (folder/'gate.json').write_text(json.dumps(gate,indent=2),encoding='utf-8')
+                result = dict(status='gate_complete',eligibility=gate)
+            else:
+                cases = json.loads(Path(sealed_file).read_bytes())['cases']
+                result = test_cells(config,cases,gate,generate,count_tokens,retain,check)
+        (folder/'eligibility.json').write_text(json.dumps([dict(result['eligibility'],training_seed=config['seed'])]),encoding='utf-8')
         return result
     except BaseException as exc:
         retain(dict(event='run_failed',error=type(exc).__name__))
         raise
     finally:
         (folder/'metadata.json').write_text(json.dumps(dict(config,result=result),indent=2),encoding='utf-8')
-        core.manifest(folder,dict(phase='evaluate',status=result['status'],scientific=False))
+        core.manifest(folder,dict(phase=config['phase'],status=result['status'],scientific=False))

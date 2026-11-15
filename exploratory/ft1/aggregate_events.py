@@ -4,6 +4,18 @@ from pathlib import Path
 from .aggregation import aggregate,analyze,analyze_rejection_sensitivity
 from .data import safe_output
 
+def gate_rows(gates):
+    eligibility = {}
+    for gate in gates:
+        if 'seed' in gate and 'training_seed' in gate and gate['seed'] != gate['training_seed']:
+            raise ValueError('conflicting gate seed fields')
+        key = (gate['arm'],gate.get('training_seed',gate.get('seed')))
+        if key in eligibility and eligibility[key] != gate:
+            raise ValueError('conflicting duplicate model gate')
+        eligibility[key] = gate
+    return eligibility
+
+
 def main():
     import argparse
     p=argparse.ArgumentParser()
@@ -13,7 +25,7 @@ def main():
     cases=json.loads(Path(a.cases).read_text(encoding='utf-8'))['cases']
     events=[json.loads(line) for line in Path(a.events).read_text(encoding='utf-8').splitlines()]
     gates=json.loads(Path(a.eligibility).read_text(encoding='utf-8'))
-    eligibility={(g['arm'],g['training_seed']):g for g in gates}
+    eligibility=gate_rows(gates)
     summaries,descriptive=aggregate(cases,events,eligibility)
     result=dict(predictions=analyze(summaries),rejection_sensitivity=analyze_rejection_sensitivity(summaries),
                 models=[dict(arm=arm,training_seed=seed,counts=s['counts'],
