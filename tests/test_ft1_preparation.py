@@ -103,8 +103,12 @@ class PreparationTests(unittest.TestCase):
         self.assertFalse(qualification.report(edited)['rules']['speed'])
         self.assertTrue(qualification.allowed_skips([1,2]))
         self.assertTrue(qualification.allowed_skips([2,3]))
-        self.assertFalse(qualification.allowed_skips([1,2,3]))
-        self.assertFalse(qualification.allowed_skips([4]))
+        self.assertTrue(qualification.allowed_skips([1,2,3]))
+        self.assertTrue(qualification.allowed_skips([2,4]))
+        self.assertTrue(qualification.allowed_skips([4]))
+        self.assertFalse(qualification.allowed_skips([1,2,3,4]))
+        self.assertFalse(qualification.allowed_skips([5]))
+        self.assertFalse(qualification.allowed_skips([1,2,5]))
 
     def test_pressure_headroom_and_enumeration_cap(self):
         rows,_=data.build(data.CharacterCounter())
