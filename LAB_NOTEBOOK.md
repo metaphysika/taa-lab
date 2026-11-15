@@ -12571,6 +12571,57 @@ Written by Claude (FT1 job (b) stage thread) after the run, against the pre-run 
 
 **What follows.** The pre-run entry made PASS lead to the approvals for the 250-step training runs. These are 12 arm × seed runs scheduled against the weekly quota, each with its own exact-commit approval. Meanwhile Sol builds the evaluation/acquisition runner, the sealed test set (hash only) and Astra's blind labels. Chris decides whether Sol starts now.
 
+## 2026-11-15 — v0.24.89 FT1 first 250-step training run (pilot: arm 3, seed 247056) at 0449a230: pre-run entry, exploratory, $0 (no run approved)
+
+Written by Claude (FT1 job (b) stage thread) before the run. After job (b) passed, Chris chose (2026-11-15, "do your plan") to start Sol's evaluation build and to prepare one 250-step training run first, before the other eleven.
+
+**Question.** Does one full 250-step FT1 training run complete on one Kaggle T4, within limits, and leave a valid adapter? Job (b) showed ten steps only. This is a plumbing and stability check. It says nothing about H2 or about what arm 3 learned, and the adapter is not evaluated until the evaluation runner, the sealed test set and Astra's labels exist and a separate evaluation is approved.
+
+**Why one run first.** If Sol's evaluation build shows that training must change (for example what is saved or logged), at most one run is lost (about 3.5 GPU hours), not twelve. If nothing changes, this run is the real arm 3 / seed 247056 model and is not repeated.
+
+**Exact commit.** `0449a230200cef7c4f6e08c4bbaa5bbdac8ba636`, the same commit as job (b). Main has changed only docs and evidence since then. The 23 bound source hashes, the repo dataset and the data dataset are the ones job (b) used and verified.
+
+**Job.** Arm 3, seed 247056, phase `train`, 250 optimizer steps. New private notebook `metaphysika/ft1-3-247056-train`, pushed with `--accelerator NvidiaTeslaT4 --timeout 31500`, internet off, one visible GPU.
+- **Mounts:** `metaphysika/taa-k2-repo-0449a230200c` and `metaphysika/ft1-data-5b2b3638845c` (both existing, from job (b)), `metaphysika/k2-wheels`, model `google/gemma-3/transformers/gemma-3-12b-it/1`, and a new receipt dataset `metaphysika/ft1-train-approval-3-247056-0449a230200c`.
+- **Receipt:** `approved: true`, the exact commit, `arm: "3"`, `seed: 247056`, `phase: "train"`, data manifest `95759f67…`, and Chris's words. It is written only after his approval, in job (b)'s shape (`owner_words` with his exact words, `approved_by`, `approved_on`). `validate_approval` does not check `owner_words`, so the quote is checked by hand against his message before upload. The draft and the uploaded receipt are kept under `launch/` in the evidence folder. The draft's shape was checked offline with `runner.validate_approval`, which accepts it with `approved: true` and refuses the draft.
+- **Staged bundle** (`C:/t/ft1c/.k2-launch/ft1-3-247056-train-0449a230…/`), SHA-256: `ft1_plan.ipynb` `03260798…`, `ft1-binding.json` `8d90481d…`, `kernel-metadata.json` `3b5e9454…`. Against job (b)'s binding, the only differences are `phase` (train), `optimizer_steps` (250) and the receipt dataset name and slug.
+- **The only change before the push:** `PLAN_ONLY = True` becomes `False`. This is done by editing the notebook JSON, and the flag is checked in the file before pushing (the lesson from job (b) version 1).
+- **Outputs:** fetched into a new dated `results/` folder whatever the outcome. Text evidence goes into git. Adapter, checkpoints and optimizer state are kept outside git with their manifest hashes, as for job (b).
+
+**Outcome rule (fixed now; from the runner's own status and events).**
+- **TRAINED:** `metadata.json` status is `trained`, and `events.jsonl` has all of the following:
+  - 250 `optimizer_step` events;
+  - checkpoints saved at steps 50, 100, 150, 200 and 250;
+  - `adapter_saved` with `tensors_finite: true`;
+  - `training_complete`;
+  - at most 25 skipped updates (the existing training rule, `max_skipped_updates: 25`).
+- **NOT TRAINED:** more than 25 skipped updates; the runner stops with `NotTrained`. Retraining needs Chris's approval.
+- **INCOMPLETE:** `tokenized_real_records` is present but the run stopped for any other reason, such as the cooperative deadline (27,000 s), out-of-memory, an exception or a host kill. The runner saves an `INCOMPLETE` adapter where it can. No resume exists.
+- **NOT ESTABLISHED:** no `tokenized_real_records` event. This covers receipt, mount, source-hash, wheel, package or model-load stops. A relaunch needs Chris's yes.
+- **No retrievable outputs** (Fable finding 1): a Kaggle host kill or hard timeout runs no cleanup, so there may be no `events.jsonl`, `metadata.json` or interrupted adapter at all. In that case the outcome is classified from the kernel log. If training progress lines appear after setup (receipt and wheel lines), the outcome is INCOMPLETE; otherwise it is NOT ESTABLISHED. Every attempt is recorded, so arm 3 / seed 247056 never has an uncounted attempt. That Kaggle keeps the outputs of an errored version is assumed, not verified.
+- **The interrupted adapter** (Fable finding 4): it is written under both INCOMPLETE and NOT TRAINED. The status in the `run_failed` event and in `metadata.json` tells the two apart. An interrupted adapter is never evaluated under either status.
+- **Also reported, not pass rules:** skipped steps, peak memory per step (with 10.5e9 and 13.5e9 bytes as the job (b) review and limit lines), the slowest step, total time, and the action and reason loss per step.
+  - A TRAINED run with any step above 13.5e9 bytes, any step slower than 75 s, or a total time above 6.5 h is recorded as TRAINED with a review flag. The other eleven runs then wait for a decision. (Fable finding 2: the earlier 8 h line could never trigger, because the cooperative deadline is 7.5 h.)
+- **The adapter's standing** (Fable finding 3): `runner.run` labels every phase's output manifest `scientific: false`, and FT1 does not write the older K2 `train_log` events that `core.verify_adapter` expects. Both are legacy labels. The adapter's standing comes from Chris's approval and the `metadata.json` status `trained`. Sol's evaluation runner must bind to what FT1 actually writes: the `manifest.json` hashes of `adapter/*`, the `adapter_saved` event's `sha256`, the `metadata.json` status, and `training_complete` with `steps: 250`. It must not use `core.verify_adapter`. The training code is not changed for this. Intermediate checkpoints are retained evidence, not evaluation candidates.
+  - Losses are reported as numbers only. No learning claim is made from them.
+
+**Expectation.** Claude: TRAINED about 85%, INCOMPLETE about 6%, NOT TRAINED about 2%, NOT ESTABLISHED about 7%.
+- Job (b) ran the same code, data and stack: peak 9.25e9 bytes, slowest step 45 s, zero skips. The 250 steps cover 2,000 arm 3 records, all already tokenized and counted in job (b).
+- **The check that could fail:** something that ten steps cannot show. For example, saving five 400 MB checkpoints, a late long-record memory peak (every record fits the 1,024 context; the longest is 576 tokens), fp16 overflow later in training, or a Kaggle host interruption over about 3.5 hours.
+- **Fable (fresh-context readiness review of 0449a230 and this bundle, READY WITH FIXES, no must-fix; the four wording fixes are applied above and in the receipt note):** TRAINED 84%, INCOMPLETE 7%, NOT TRAINED 1%, NOT ESTABLISHED 8%.
+  - Fable checked offline: the bundle hashes, the binding and notebook diffs against job (b), all 23 source hashes against the commit's git blobs, the data and arm 3 hashes, and the receipt logic (the draft and a reused qualify receipt are both refused).
+  - Margins: disk use is about 2.1 GB of about 19.5 GB; there is about 4.2 GB of memory headroom; the expected time is 2.8–3.2 h.
+  - Fable's pre-mortem, most likely first:
+    - A Kaggle interruption leaves no outputs, the run is misfiled or quietly relaunched, and the attempt count is lost. Now covered above.
+    - The evaluation runner is written against `core.verify_adapter`, rejects the adapter, and someone then changes the training path. Now covered above.
+    - A wrong `owner_words` string is uploaded and passes validation, because `validate_approval` does not check it. Covered below.
+
+**Estimated use.** $0. About 3.2–3.6 GPU hours (setup 185 s + 250 × about 40–45 s, plus checkpoint saves), 7.5 h at most (the cooperative deadline). That is against Kaggle's weekly GPU quota of about 30 hours.
+
+**What follows.** TRAINED with no review flag: approvals for the other eleven training runs, scheduled against the quota, each with its own receipt. Each still needs Chris's yes, unless he approves a batch. NOT TRAINED, INCOMPLETE or a review flag: a repair or decision round before any further training. Whatever the outcome, the adapter is evaluated only later, under its own approval.
+
+No run is approved by this entry. The pilot needs Chris's exact-commit approval of `0449a230200cef7c4f6e08c4bbaa5bbdac8ba636` for arm 3, seed 247056, phase train.
+
 ## 2026-11-15 — v0.24.90 FT1 evaluation runner build (code only, no run, $0)
 
 FT1 step 2, round 1 build brief. New local-only evaluation entrypoint and plan-only
