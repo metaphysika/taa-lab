@@ -12652,4 +12652,4 @@ SHA-256 d1bf7f1591121ffbb89e5005891db8cbed957e864d4feea5c593da52caa488ee;
 its private leak self-check passed, zero detected leaks. Closed-schema labels,
 small-JSON mount discovery, gate identity and conflicting duplicate-row refusal
 are built offline. No comparison, model or GPU run. Disagreement policy remains
-for Chris. origin/main was already contained, with no notebook merge conflict.
+for Chris. After the pilot pre-run entry (#152) merged, Claude merged origin/main into this branch and resolved the notebook conflict by keeping both entries, pilot first.
