@@ -12676,3 +12676,13 @@ The r3 private packet has 48 items; SHA-256
 Its extended leak self-check passed with zero detected leaks. The schema is
 unchanged. No r2 files or Astra labels/notes were opened or changed; no real
 comparison was run. The existing sealed battery and scoring remain unchanged.
+
+FT1 v0.24.91 round 4 review fixes (code only, no run, $0): speed configurations
+retain per-row generated IDs and hashes, with batch-row-0 divergence against the
+same-prompt single-stream reference. Blind instructions now use schema-driven
+status glosses, an explicit primary-holder sphere rule and the assigned report
+recipient without an extra independence criterion. correct_option: confirmed.
+The r4 packet has 48 items; SHA-256
+`a6a3829dab550b90574937db6bfb476f583c1b3f3f36642304027b142cfcccab`.
+Its self-check passed with zero leaks and binds the packet and cases-file hashes.
+Schema unchanged; no r2/r3 or Astra files opened/modified; no real comparison.
