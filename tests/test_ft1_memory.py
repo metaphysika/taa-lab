@@ -7,6 +7,10 @@ from unittest.mock import patch
 from exploratory.ft1 import memory, fit_limit, fit_limit_stage
 
 class MemoryTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch.object(fit_limit,'reset_peaks'))
+        self.enterContext(patch.object(fit_limit,'peaks',return_value=dict(peak_allocated_bytes=123,peak_reserved_bytes=456)))
+
     def test_tracking(self):
         events=[]
         tracker=memory.Tracker(events.append)
@@ -107,8 +111,10 @@ class MemoryTests(unittest.TestCase):
             tracker.call(lambda:generate('',[],1024,1),0,dict(case_id='synthetic',branch='action'))
             self.assertEqual(tracker.counts,dict(mechanical_oom=0,context_limit=1))
             self.assertEqual(events[0]['prompt_tokens'],101)
+            self.assertEqual(events[0]['rule'],'prompt_ceiling')
             generate,_=runner.generation_functions(model,types.SimpleNamespace(),lambda:None)
-            with self.assertRaises(memory.ContextLimit): generate('',[],1024,1,prompt_ids=[0]*15361)
+            with self.assertRaises(memory.ContextLimit) as caught: generate('',[],1024,1,prompt_ids=[0]*15361)
+            self.assertEqual(caught.exception.rule,'16384')
 
     def test_gate_unknown_requires_owner_decision(self):
         from exploratory.ft1 import evaluate_runner as runner
@@ -129,15 +135,21 @@ class MemoryTests(unittest.TestCase):
                 if len(prompts[0])==6000: raise fit_limit.throughput.MeasurementOOM(123)
                 return dict(generated_ids=[[1,2]])
         def generate(*args,**kwargs):
-            self.assertEqual(len(kwargs['prompt_ids']),6000)
-            raise memory.MechanicalOOM(6000)
+            if len(kwargs['prompt_ids'])==6000: raise memory.MechanicalOOM(6000)
+            self.assertEqual(len(kwargs['prompt_ids']),2500)
+            self.assertEqual(args[2],128)
+            return [1,2]
         events=[]
         with patch.object(fit_limit.throughput,'prompt_ids',side_effect=lambda t,c,n:[0]*n),patch.object(fit_limit,'snapshot',return_value=dict(memory_allocated=1,memory_reserved=2,total_device_memory=3)):
             fit_limit.measure(Backend(),None,'eager',{},events.append,lambda:None,generate=generate)
         self.assertEqual(calls,[2500,4000,6000,2500])
         recovery=next(e for e in events if e['event']=='recovery_check')
         self.assertTrue(recovery['ids_equal_first_pass'])
-        self.assertEqual(events[-1]['status'],'mechanical_oom')
+        self.assertEqual(events[-2]['status'],'mechanical_oom')
+        self.assertEqual(events[-1]['event'],'evaluation_recovery_check')
+        self.assertEqual(events[-1]['status'],'fit')
+        self.assertEqual(events[-1]['generated_tokens'],2)
+        self.assertEqual(events[-1]['peak_allocated_bytes'],123)
         self.assertEqual(fit_limit.to_eot([1,9,2],[9]),[1,9])
         self.assertIsNone(fit_limit.throughput.first_divergence(fit_limit.to_eot([1,9,2],[9]),fit_limit.to_eot([1,9,3],[9])))
 
@@ -162,6 +174,9 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(after['missing_episodes'],46)
         self.assertEqual(after['counts']['format_failures'],0)
         self.assertEqual(after['mechanical_unknowns']['mechanical_oom']['by_kind'],{'W':1})
+        self.assertEqual(after['mechanical_unknowns']['mechanical_oom']['by_branch'],dict(action=1,knowledge=0))
+        knowledge=aggregation.possibilities(cases,unknowns+[dict(event='mechanical_oom',case_id='2',branch='knowledge',turn=0,prompt_tokens=1200)])
+        self.assertEqual(knowledge['mechanical_unknowns']['mechanical_oom']['by_branch'],dict(action=1,knowledge=1))
         self.assertEqual(after['mechanical_unknowns']['context_limit']['by_prompt_tokens'],{'16000':1})
         events=[dict(e,arm='base',training_seed=None) for e in turns+unknowns]
         summaries,descriptive=aggregation.aggregate(cases,events,{('base',None):dict(status='gate_mechanical_unknown',acquired=None)})
@@ -195,3 +210,41 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(events[-1]['event'],'evaluation_oom_probe')
         self.assertEqual(events[-1]['status'],'fit')
         self.assertEqual(events[-1]['prompt_tokens'],15360)
+
+    def test_context_limit_preserves_oom_streak(self):
+        tracker=memory.Tracker(lambda event:None)
+        def oom(): raise memory.MechanicalOOM(6000)
+        def context(): raise memory.ContextLimit(16000,rule='16384')
+        for call in (oom,oom,context): tracker.call(call,0,'synthetic')
+        self.assertEqual(tracker.consecutive,2)
+        self.assertFalse(tracker.stopped)
+        tracker.call(oom,0,'synthetic')
+        self.assertTrue(tracker.stopped)
+        tracker.call(lambda:'reply',0,'synthetic')
+        self.assertEqual(tracker.consecutive,0)
+
+    def test_deadline_receipt_mismatch(self):
+        config=dict(phase='fit_limit',repo_commit='a'*40,model_source='google/gemma-3/transformers/gemma-3-12b-it/1',data_manifest_sha256=None,deadline_seconds=4500)
+        with self.assertRaisesRegex(ValueError,'deadline receipt mismatch'):
+            fit_limit.validate(config,dict(config,approved=True,deadline_seconds=4499))
+
+    def test_recover_is_outside_exception_scope(self):
+        import sys
+        class Backend:
+            def benchmark(self,*args,**kwargs): raise fit_limit.throughput.MeasurementOOM(123)
+        def recover(*args): self.assertIsNone(sys.exception())
+        with patch.object(fit_limit.throughput,'prompt_ids',return_value=[0]),patch.object(fit_limit,'recover',side_effect=recover):
+            fit_limit.measure(Backend(),None,'eager',{},lambda e:None,lambda:None)
+
+    def test_evaluation_recovery_failure_is_retained_once(self):
+        calls=[];events=[]
+        def generate(*args,**kwargs):
+            calls.append(len(kwargs['prompt_ids']))
+            raise memory.MechanicalOOM(len(kwargs['prompt_ids']))
+        with patch.object(fit_limit.throughput,'prompt_ids',side_effect=lambda t,c,n:[0]*n),patch.object(fit_limit,'snapshot',return_value={}):
+            fit_limit.evaluation_probe(None,'eager',6000,generate,events.append,lambda:None)
+        self.assertEqual(calls,[6000,2500])
+        self.assertEqual(events[-1]['event'],'evaluation_recovery_check')
+        self.assertEqual(events[-1]['status'],'mechanical_oom')
+        self.assertIsNone(events[-1]['generated_tokens'])
+        self.assertNotIn('generated_ids',events[-1])

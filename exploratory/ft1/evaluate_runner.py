@@ -239,7 +239,7 @@ def generation_functions(model, tokenizer, check, prompt_ceiling=None):
         ids = prompt_ids if prompt_ids is not None else core.prompt(tokenizer,[dict(role='system',content=system)]+history,model='gemma-3-12b-it')
         if len(ids)+cap > 16384 or prompt_ceiling is not None and len(ids) > prompt_ceiling:
             from .memory import ContextLimit
-            raise ContextLimit(len(ids))
+            raise ContextLimit(len(ids),rule='16384' if len(ids)+cap > 16384 else 'prompt_ceiling')
         tensor = output = None
         oom = False
         try:

@@ -113,6 +113,7 @@ def possibilities(cases, events,rejections_unknown=False):
     for status in ('mechanical_oom','context_limit'):
         selected = [e for e in unknowns if e['event']==status]
         mechanical_unknowns[status] = dict(total=len(selected),
+            by_branch={branch:sum(e.get('branch','action')==branch for e in selected) for branch in ('action','knowledge')},
             by_kind=dict(Counter(roster[e['case_id']]['kind'] for e in selected)),
             by_turn=dict(Counter(str(e['turn']) for e in selected)),
             by_prompt_tokens=dict(Counter(str(e['prompt_tokens']) for e in selected)))

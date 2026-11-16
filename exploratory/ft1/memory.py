@@ -13,6 +13,9 @@ class MechanicalOOM(MechanicalUnknown):
 
 class ContextLimit(MechanicalUnknown):
     status = 'context_limit'
+    def __init__(self, prompt_tokens, turn=0, rule=None):
+        super().__init__(prompt_tokens,turn)
+        self.rule = rule
 
 class GateDecisionRequired(RuntimeError):
     pass
@@ -47,11 +50,12 @@ class Tracker:
             self.counts[exc.status] += 1
             self.last_unknown = True
             self.last_oom = exc.status == 'mechanical_oom'
-            self.consecutive = self.consecutive+1 if self.last_oom else 0
+            self.consecutive = self.consecutive+1 if self.last_oom else self.consecutive
             self.stopped = self.consecutive >= self.limit
+            rule = dict(rule=exc.rule) if isinstance(exc,ContextLimit) else {}
             details = identity if isinstance(identity,dict) else dict(identity=identity)
             self.retain(dict(event=exc.status,status=exc.status,prompt_tokens=exc.prompt_tokens,
-                turn=exc.turn if turn is None else turn,consecutive=self.consecutive,stopped=self.stopped,**details))
+                turn=exc.turn if turn is None else turn,consecutive=self.consecutive,stopped=self.stopped,**rule,**details))
             return None
         self.consecutive = 0
         return result

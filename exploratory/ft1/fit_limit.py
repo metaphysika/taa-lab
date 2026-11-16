@@ -1,6 +1,7 @@
 """Public base-model fit ladder. No execution on import."""
 import json
 import os
+import time
 from pathlib import Path
 from . import throughput, evaluate_runner, data
 from .memory import cleanup, snapshot, MechanicalUnknown
@@ -25,11 +26,14 @@ def measure(backend, tokenizer, attention, references, retain, check, generate=N
         identity = dict(attention=attention,prompt_tokens=target,output_allowance=1024)
         retain(dict(event='fit_started',**identity))
         prompts = [throughput.prompt_ids(tokenizer,throughput.public_cases(),target)]
+        oom = False
         try:
             result = backend.benchmark(prompts,check,new_tokens=1024)
         except throughput.MeasurementOOM as exc:
             retain(dict(event='fit',status='oom',peak_allocated_bytes=exc.peak_allocated_bytes,
                 peak_reserved_bytes=getattr(exc,'peak_reserved_bytes',None),after_cleanup=getattr(exc,'after_cleanup',None),**identity))
+            oom = True
+        if oom:
             recover(backend,tokenizer,attention,first_ids,target,generate,retain,check)
             break
         ids = result['generated_ids'][0]
@@ -76,14 +80,40 @@ def evaluation_probe(tokenizer, attention, failed_target, generate, retain, chec
     # Stay within evaluation's context guard to exercise its CUDA allocation path.
     target = min(failed_target,15360)
     ids = throughput.prompt_ids(tokenizer,throughput.public_cases(),target)
+    status = evaluation_call(generate,ids,1024,'evaluation_oom_probe',attention,retain,check,
+                             failed_rung=failed_target)
+    if status == 'mechanical_oom':
+        check()
+        short_ids = throughput.prompt_ids(tokenizer,throughput.public_cases(),2500)
+        evaluation_call(generate,short_ids,128,'evaluation_recovery_check',attention,retain,check)
+
+
+def reset_peaks():
+    import torch
+    torch.cuda.reset_peak_memory_stats()
+
+
+def peaks():
+    import torch
+    return dict(peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+                peak_reserved_bytes=torch.cuda.max_memory_reserved())
+
+
+def evaluation_call(generate, ids, cap, event, attention, retain, check, **details):
+    """Measure one call through evaluation generation, after its own cleanup."""
+    check()
+    reset_peaks()
+    started = time.perf_counter()
     observed = None
     try:
-        generated = generate('',[],1024,548017,prompt_ids=ids,return_ids=True)
-        observed = dict(status='fit',generated_ids=generated)
+        generated = generate('',[],cap,548017,prompt_ids=ids,return_ids=True)
+        observed = dict(status='fit',generated_ids=generated,generated_tokens=len(generated))
     except MechanicalUnknown as exc:
-        observed = dict(status=exc.status,prompt_tokens=exc.prompt_tokens)
-    retain(dict(event='evaluation_oom_probe',attention=attention,prompt_tokens=target,
-                failed_rung=failed_target,**{k:v for k,v in observed.items() if k!='prompt_tokens'},after_cleanup=snapshot()))
+        observed = dict(status=exc.status,generated_tokens=None)
+    retain(dict(event=event,attention=attention,prompt_tokens=len(ids),output_allowance=cap,
+                **observed,**peaks(),seconds=time.perf_counter()-started,
+                after_cleanup=snapshot(),**details))
+    return observed['status']
 
 
 def run(config, model_path, output, receipt, seconds=4500):
