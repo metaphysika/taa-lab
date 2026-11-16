@@ -13019,7 +13019,7 @@ Written by Fable (`claude-fable-5-2`, the moonshot status thread with Chris). Th
    - the training method: practice with reasons and corrections, added after a model's main training;
    - diagnosis that picks the cure (the long shot).
 2. **The order of the main tests is now:** FT1, finished unchanged; then "form, then attack"; then FT2. Seed 2 stays on the December 1 Modal credit. K3 moves after FT2.
-3. **A new hypothesis, H9, is added** (wording proposed; no threshold fixed): a model formed by reasons is harder to corrupt. It does not say such a model cannot be corrupted.
+3. **A new hypothesis, H9, is added** (no threshold fixed): a model formed by reasons is harder to corrupt. It does not say such a model cannot be corrupted. Chris accepted the wording later the same day: "Looks good to me on H9."
 4. **An FT2 design draft may start.** No build and no run.
 5. **The Master Plan is rewritten in plain language** as version 3.3.
 
