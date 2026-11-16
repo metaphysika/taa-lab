@@ -13002,3 +13002,50 @@ Written by Claude (FT1 training stage thread) before the run. Chris's "go" for t
 **Limits.** Base model, public development prompts, one T4, one repeat. A trained adapter adds memory (the PEFT adapter is not merged), so trained arms may fit less; that is not measured here.
 
 No run is approved by this entry. The fit-limit run needs Chris's exact-commit approval of `1d064efae2da396a9b0dcbf647ae350e069086ac`, phase fit_limit.
+
+## 2026-11-16 — v0.24.89 FT1 training runs arm 1 / 247056 and arm 2 / 247056 at 0449a230: both TRAINED (one Kaggle T4 each, exploratory, $0)
+
+Written by Claude (FT1 training stage thread) after the runs, against the 11-run pre-run entry (#155). Chris approved on 2026-11-16: "Approve and write the new thread". It answered Claude's message, whose item 1 was "Approve the remaining 11 FT1 training runs at 0449a230".
+
+**Evidence.**
+- `results/2026-11-16 v0.24.89 ft1-train-1-247056 0449a230200c/`
+- `results/2026-11-16 v0.24.89 ft1-train-2-247056 0449a230200c/`
+
+Each folder holds a README, `launch/` and the `kaggle-v1/` text outputs. All 53 output files of each run match its manifest. The full 2.0 GB outputs are under `C:/Users/lahn0/T3/ft1-artifacts/` with the same folder names, and those copies match the manifests too.
+
+**Launch.** Both kernels were pushed at 11:54 UTC. Each staged notebook, binding and kernel metadata matches the pre-run table. Each receipt is the one in the table. Before each push, the pushed notebook was confirmed by JSON comparison to differ from the staged one only in `PLAN_ONLY`.
+- **Deviation: queue time.** Both runs waited about two hours in Kaggle's queue and started at about 13:50 UTC. This used no quota.
+- **Found while launching the fit-limit run:** Kaggle allows at most two batch GPU sessions at once ("Maximum batch GPU session count of 2 reached"). The fit-limit push was refused while these two ran; no kernel was created. It was pushed at 15:49, when arm 1 finished. In practice the schedule is therefore at most two jobs at a time, including the fit-limit run.
+
+**Outcome: both TRAINED, no review flag.**
+
+| | Arm 1 / 247056 | Arm 2 / 247056 |
+|---|---|---|
+| `metadata.json` status | `trained` | `trained` |
+| Optimizer steps, skip signal on all | 250, yes | 250, yes |
+| Checkpoints | 50, 100, 150, 200, 250 | 50, 100, 150, 200, 250 |
+| `adapter_saved`, `tensors_finite` | true, weights `84e6d2f0…` | true, weights `74edc5c3…` |
+| Skipped updates (limit 25) | 3 (steps 1–3) | 0 |
+| Micro-losses finite | 2,000 of 2,000 | 2,000 of 2,000 |
+| Peak allocated (review line 10.5e9, limit 13.5e9) | 8.99e9 | 9.29e9 |
+| Mean / slowest step (line 75 s) | 26.8 s / 28.6 s | 28.8 s / 31.6 s |
+| Setup; last event (line 6.5 h) | 258 s; 6,970 s (1.9 h) | 313 s; 7,515 s (2.1 h) |
+
+- **Checker validated on the pilot.** The checker script reproduces the pilot's recorded values exactly: 9.29e9 bytes, 41.1 s, 36.8 s, 226 s, 9,428 s, and the loss table.
+- **Arm 1's skips.** Its three skipped updates are the fp16 loss-scale warm-up at the first steps. This is well inside the 25-update limit, and the skip signal was present on every step. The pilot and arm 2 had none.
+
+**Against the forecast.** Claude gave each run about 90% TRAINED; both are TRAINED. Arms 1 and 2 ran faster than the pilot (1.9 h and 2.1 h, against 2.6 h), as expected from their trained-token totals.
+
+**Descriptive only, no learning claim.** Token-weighted training loss per 25-step block:
+
+| Steps | Arm 1 action | Arm 2 action | Arm 2 reason |
+|---|---|---|---|
+| 1–25 | 0.458 | 0.167 | 0.037 |
+| 26–50 | <0.0001 | 0.027 | 0.017 |
+| 101–125 | <0.0001 | 0.006 | 0.013 |
+| 226–250 | <0.0001 | 0.0002 | 0.011 |
+
+- Arm 1 has no reason tokens. Its records are 12–24 trained tokens each, so a near-zero loss after step 25 is expected and says nothing about transfer.
+- Arm 2's loss split also counts "reason" tokens. These are the non-action tokens of its answers; arm 2 has no step-by-step reasons, and its reason share is far below arm 3's.
+
+**What follows.** Arm 2u / 247056 was pushed at 16:00 UTC. The fit-limit run is queued. The remaining runs follow the pre-run schedule as slots free: 4/247056, then the five 247057 seeds, then 2/247058 and 3/247058. Nothing here is evaluated; each adapter waits for its own approved gate and test runs.
