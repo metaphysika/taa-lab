@@ -23,6 +23,10 @@ Test-part staging uses the same model/settings/dataset arguments, replacing
 Repeat with `--part 1` for the other part. A part must match its gate's attention,
 prefill mode, chunk size and prompt ceiling as well as model/data/commit identity.
 
+The receipt must be `receipt.json` inside a dataset whose slug equals the
+`--receipt-dataset` slug. A gate and all its test parts must share the same
+`repo_commit`.
+
 Receipt fields for both phases are `approved: true` plus exactly matching binding
 values for: `repo_commit`, `phase`, `arm`, `seed`, `adapter_sha256`,
 `training_manifest_sha256`, `data_manifest_sha256`, `sealed_sha256`, `gate_sha256`,
@@ -36,10 +40,12 @@ also enforces matching identities, allowed models and part < part_count.
 
 Without new flags, loader/generation defaults remain unchanged. Explicit eager
 or sdpa is passed to the loader. `attention_backend` and `attention_readback`
-events record requested and observed implementations and any mismatch; readback
+events record requested and observed implementations and any mismatch. Base and
+adapter readbacks enforce the requested backend using the text config when present;
+a mismatch stops execution. gate.json records the observed backend. Readback
 alone does not establish actual GPU kernel dispatch.
 
-Local staging evidence: `.k2-launch/synthetic-base/` and
+Synthetic staging evidence is local only. Local staging evidence: `.k2-launch/synthetic-base/` and
 `.k2-launch/synthetic-1/`, using synthetic hashes and mocked data, adapter and FT1
 source inventories. Both bindings carry the four requested settings, notebooks
 have PLAN_ONLY=True, metadata disables internet, and no sealed file was hashed.

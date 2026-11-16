@@ -25,6 +25,8 @@ FAST = (
 )
 
 
+SEALED_ADJACENT = ('tests.test_ft1_blind',)
+
 def exploratory_syntax():
     for path in sorted((ROOT / 'exploratory' / 'scripts').rglob('*.py')):
         compile(path.read_bytes(), str(path), 'exec')
@@ -35,15 +37,21 @@ def exploratory_syntax():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--smoke', action='store_true')
+    parser.add_argument('--agent-safe', action='store_true', help='Skip sealed-adjacent tests')
     args = parser.parse_args()
     if (ROOT / 'keys.env').exists():
         parser.error('Use a checkout without keys.env for offline checks')
     started = time.perf_counter()
+    if args.agent_safe:
+        from agent_safe_imports import install
+        install()
     exploratory_syntax()
-    commands = [[sys.executable, '-m', 'unittest', *(SMOKE if args.smoke else FAST), '-v']]
+    commands = [[sys.executable, '-m', 'unittest', *(SMOKE if args.smoke else FAST + (() if args.agent_safe else SEALED_ADJACENT)), '-v']]
     if not args.smoke:
         commands.append([sys.executable, 'run.py', '--scenario', 'all'])
     for command in commands:
+        if args.agent_safe:
+            command = [sys.executable, str(ROOT/'scripts'/'agent_safe_imports.py'), *command[1:]]
         result = subprocess.run(command, cwd=ROOT)
         if result.returncode:
             return result.returncode

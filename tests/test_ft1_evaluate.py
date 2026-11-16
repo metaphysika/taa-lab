@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from exploratory.ft1 import blind, evaluate_runner as runner, evaluate_stage
+from exploratory.ft1 import evaluate_runner as runner, evaluate_stage
 from exploratory.step4_harness import crossing
 from exploratory.ft1.runner import DeadlineExceeded
 
@@ -114,26 +114,6 @@ class EvaluationTests(unittest.TestCase):
             (adapter/'weights.safetensors').write_text('tampered')
             with self.assertRaises(ValueError): runner.adapter_binding(folder,'3',247056)
 
-    def test_blind_synthetic(self):
-        cases = copy.deepcopy(crossing.cases()[:2])
-        for case in cases:
-            case['difficulty_group']='synthetic'
-            case['answer_key']['recipient']='synthetic-recipient'
-            case['answer_key']['private_marker']='SECRET_MARKER'
-        packet,mapping = blind.packet(cases)
-        serialized = json.dumps(packet)
-        for forbidden in ('answer_key','difficulty_group','private_marker','SECRET_MARKER','pair_id','evidence_type'):
-            self.assertNotIn(forbidden,serialized)
-        self.assertEqual(set(packet['items'][0]),{'id','system','history'})
-        roster = {c['id']:c for c in cases}
-        labels = [dict(id=bid,**blind.gold(roster[cid])) for bid,cid in mapping.items()]
-        result = blind.compare(cases,labels,mapping)
-        self.assertEqual(result['agreement']['all']['all_fields']['rate'],1)
-        labels[0]['kind']='U' if labels[0]['kind']=='W' else 'W'
-        result = blind.compare(cases,labels,mapping)
-        self.assertEqual(result['disagreeing_ids'],[labels[0]['id']])
-        self.assertEqual(result['agreement']['all']['kind']['rate'],.5)
-        with self.assertRaises(ValueError): blind.compare(cases,labels[:1],mapping)
 
     def test_run_base_without_adapter_and_deadline_metadata(self):
         config = dict(self.config(),phase='gate',part=None,part_count=None,gate_sha256=None,sealed_sha256=None)
@@ -199,19 +179,6 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(len(gate_rows([row,row])),1)
         with self.assertRaises(ValueError): gate_rows([row,dict(row,acquired=True)])
 
-    def test_label_schema_and_leak_detection(self):
-        cases = copy.deepcopy(crossing.cases()[:2])
-        packet,mapping = blind.packet(cases)
-        packet['leak']=cases[0]['id']
-        self.assertFalse(blind.self_check(cases,packet)['passed'])
-        labels = [dict(id=f'item-{i+1:03d}',**blind.gold(case)) for i,case in enumerate(cases)]
-        schema = blind.schema_for(cases)
-        self.assertTrue(blind.validate_labels(dict(labels=labels),schema)['passed'])
-        labels[0]['complete_act']['requested_status']='invalid'
-        report = blind.validate_labels(dict(labels=labels),schema)
-        self.assertFalse(report['passed'])
-        self.assertNotIn('invalid',json.dumps(report))
-        self.assertEqual(report['errors'][0]['field'],'file.labels.complete_act.requested_status')
 
 
     def test_gate_stager_needs_no_sealed_input(self):
@@ -220,6 +187,11 @@ class EvaluationTests(unittest.TestCase):
             config = evaluate_stage.stage(folder,'base',None,runner.kaggle.subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),tmp,None,0,
                 'google/gemma-3/transformers/gemma-3-12b-it/1','owner/repo','owner/data',None,'owner/receipt','owner',phase='gate',attention='eager',prefill_mode='chunked',prefill_chunk_size=256,prompt_ceiling=14000)
             runner.validate(config,dict(config,approved=True))
+            import jsonschema
+            schema = json.loads(Path('docs/process/FT1_EVAL_SETTINGS_RECEIPT_v02494.schema.json').read_text())
+            jsonschema.validate(dict(config, approved=True), schema)
+            with self.assertRaises(jsonschema.ValidationError):
+                jsonschema.validate(dict(config, approved=False), schema)
             self.assertEqual({k:config[k] for k in ('attention','prefill_mode','prefill_chunk_size','prompt_ceiling')},dict(attention='eager',prefill_mode='chunked',prefill_chunk_size=256,prompt_ceiling=14000))
             self.assertIsNone(config['sealed_sha256'])
             self.assertIsNone(config['gate_sha256'])
@@ -277,57 +249,8 @@ class EvaluationTests(unittest.TestCase):
                 self.assertEqual(runner.find_hash(root,runner.sha(path)),path)
 
 
-    def test_neutral_definitions_cover_fields_and_instruction_leaks(self):
-        cases = copy.deepcopy(crossing.cases()[:2])
-        packet,_ = blind.packet(cases)
-        text = packet['instructions']['definitions']
-        for field in ('id:','kind:','sphere:','complete_act:','complete_act.requested_status:',
-                      'complete_act.preserved_status:','complete_act.correct_option:',
-                      'complete_act.explicit_decline:','complete_act.referral:','report_recipient:'):
-            self.assertIn(field,text)
-        self.assertIn('W means',text)
-        self.assertIn('U means',text)
-        self.assertIn('Label required acts only',text)
-        self.assertIn('not an unknown answer',text)
-        packet['instructions']['definitions'] += cases[0]['answer_key']['rationale']
-        self.assertFalse(blind.self_check(cases,packet)['passed'])
 
-    def test_status_gloss_tracks_schema_enum(self):
-        schema = copy.deepcopy(blind.SCHEMA)
-        properties = schema['properties']['labels']['items']['properties']['complete_act']['properties']
-        for field in ('requested_status','preserved_status'):
-            properties[field]['enum']=['PENDING']
-        self.assertEqual(set(blind.status_glosses(schema)),{'PENDING'})
-        text = blind.definitions_for(schema)
-        self.assertIn('PENDING means',text)
-        self.assertNotIn('RELEASED',text)
-        self.assertNotIn('UNRESTRICTED_PASS',text)
-        properties['requested_status']['enum']=['UNREVIEWED_SYNTHETIC_STATUS']
-        with self.assertRaises(ValueError): blind.definitions_for(schema)
 
-    def test_export_and_self_check_bind_exact_bytes(self):
-        import hashlib
-        cases = copy.deepcopy(crossing.cases()[:2])
-        for index,case in enumerate(cases):
-            case.update(id=f'fixture-case-{index}',pair_id='fixture-pair',difficulty_group='fixture-category')
-            case['answer_key']['rationale']='fixture-secret-rationale'
-        with tempfile.TemporaryDirectory() as tmp,patch.object(blind,'PRIVATE_ROOT',Path(tmp).resolve()):
-            root = Path(tmp)
-            source = root/'cases.json'
-            source.write_bytes((json.dumps(dict(cases=cases),indent=4)+'\n\n').encode('utf-8'))
-            result = blind.export(source,root/'packet.json',root/'mapping.json')
-            raw = (root/'packet.json').read_bytes()
-            self.assertTrue(result['self_check']['passed'])
-            self.assertEqual(result['packet_sha256'],hashlib.sha256(raw).hexdigest())
-            self.assertEqual(result['cases_sha256'],hashlib.sha256(source.read_bytes()).hexdigest())
-            audit = blind.self_check(cases,json.loads(raw),raw,source.read_bytes())
-            self.assertEqual(audit,result['self_check'])
-            self.assertEqual(audit['hash_basis'],'exact_file_bytes')
-            spaced = raw+b'\n'
-            other = blind.self_check(cases,json.loads(raw),spaced,source.read_bytes())
-            self.assertNotEqual(other['packet_sha256'],audit['packet_sha256'])
-            changed = json.loads(raw); changed['items'][0]['id']='changed'
-            with self.assertRaises(ValueError): blind.self_check(cases,changed,raw,source.read_bytes())
 
 
 class SettingsTests(unittest.TestCase):
@@ -338,7 +261,7 @@ class SettingsTests(unittest.TestCase):
         runner.validate_gate(config, gate)
         for key in ('attention','prefill_mode','prefill_chunk_size','prompt_ceiling'):
             missing = dict(config, approved=True); missing.pop(key)
-            with self.subTest(key=key), self.assertRaises(ValueError): runner.validate(config, missing)
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, 'evaluation settings mismatch' if key != 'prompt_ceiling' else 'separate exact evaluation approval required'): runner.validate(config, missing)
             missing = dict(gate); missing.pop(key)
             with self.subTest(key=key), self.assertRaises(ValueError): runner.validate_gate(config, missing)
 
@@ -350,7 +273,45 @@ class SettingsTests(unittest.TestCase):
             runner.prepare('unused',None,events.append,lambda:None,attention='eager')
         self.assertEqual(load.call_args.kwargs,dict(attention='eager'))
         self.assertFalse(events[0]['mismatch'])
+        self.assertEqual(events[0]['stage'], 'base')
         model.config._attn_implementation='sdpa'
         with patch.object(runner,'load_base',return_value=(model,None,None)), patch.object(runner,'generation_functions'):
-            runner.prepare('unused',None,events.append,lambda:None,attention='eager')
+            with self.assertRaisesRegex(ValueError, 'attention readback mismatch'):
+                runner.prepare('unused',None,events.append,lambda:None,attention='eager')
         self.assertTrue(events[-1]['mismatch'])
+
+    def test_text_attention_is_authoritative(self):
+        from types import SimpleNamespace as NS
+        model = NS(config=NS(_attn_implementation='eager', text_config=NS(_attn_implementation='sdpa')))
+        with self.assertRaisesRegex(ValueError, 'attention readback mismatch'):
+            runner.attention_readback(model, 'eager', lambda e: None, 'base')
+
+    def test_adapter_readback_called(self):
+        from types import SimpleNamespace as NS
+        import sys
+        base, adapter = NS(config=NS()), NS(config=NS())
+        peft = NS(PeftConfig=NS(from_pretrained=lambda *a, **k: NS()),
+                  PeftModel=NS(from_pretrained=lambda *a, **k: adapter))
+        with patch.dict(sys.modules, peft=peft), patch.object(runner, 'load_base', return_value=(base,None,'local')), patch.object(runner, 'generation_functions'), patch.object(runner, 'attention_readback') as readback:
+            runner.prepare('local','adapter',lambda e: None,lambda: None,attention='eager')
+        self.assertEqual([c.args[3] for c in readback.call_args_list], ['base','adapter'])
+        self.assertIs(readback.call_args_list[-1].args[0], adapter)
+
+    def test_agent_safe_targets_do_not_import_sealed(self):
+        import subprocess
+        import sys
+        result = subprocess.run([sys.executable, 'scripts/agent_safe_imports.py', '-m', 'tests.ft1_safe_import_guard'], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_gate_retains_observed_attention(self):
+        config = dict(EvaluationTests().config(), phase='gate', part=None, part_count=None,
+                      sealed_sha256=None, gate_sha256=None)
+        def prepare(*args, **kwargs):
+            args[2](dict(event='attention_readback', stage='base', observed='sdpa'))
+            return lambda *a: NULL, len
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root/'acquisition-shared.json').write_text('[]')
+            with patch.object(runner,'verify_source'), patch.object(runner.kaggle,'verify_data',return_value=config['data_manifest_sha256']), patch.object(runner,'prepare',side_effect=prepare), patch.object(runner,'protocol',return_value=dict(acquired=False,trained=True)):
+                runner.run(config,'local',root,None,root/'out',dict(config,approved=True))
+            self.assertEqual(json.loads((root/'out'/'gate.json').read_text())['attention'], 'sdpa')
