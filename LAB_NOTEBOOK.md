@@ -12876,3 +12876,51 @@ Written by Claude (FT1 stage thread) after the run, against the pilot pre-run en
 Near-zero training loss this early is consistent with highly regular, templated training records, and it is a reason to watch for memorization. Whether arm 3 transfers to the different-domain test set is exactly what the evaluation measures; nothing is concluded here.
 
 **What follows.** Under the pre-run entry, a TRAINED pilot with no review flag leads to approvals for the other eleven training runs, each with its own receipt, scheduled against the weekly quota (about 2.6–3 h each, so about 30–35 GPU hours). Evaluation of this adapter waits for the evaluation-side work: the long-history memory finding from the speed test, the fit-limit measurement and the out-of-memory handling, which is still to be decided by Chris.
+
+## 2026-11-16 — v0.24.89 FT1 remaining 11 training runs at 0449a230: pre-run entry, exploratory, $0
+
+Written by Claude (FT1 training stage thread) before any of the eleven runs. One entry covers all eleven.
+
+**Approval.** Chris, 2026-11-16, verbatim: "Approve and write the new thread". It answered Claude's message, which asked for two decisions: (1) "Approve the remaining 11 FT1 training runs at 0449a230" and (2) "go" for the evaluation memory round. Claude reads it as approving both. The one commit named is `0449a230200cef7c4f6e08c4bbaa5bbdac8ba636`. Each receipt quotes these words and this context. If Chris reads his approval differently, the runs stop. Item 2 approves building only; the memory measurement run needs its own exact-commit approval.
+
+**Exploratory, not confirmatory.** These runs make the FT1 models. They are not a test of H2, and nothing is concluded from training losses. Each adapter is evaluated later, under its own approval.
+
+**The runs.** Every `plan.MODELS` entry except `base` and the finished pilot `('3', 247056)`, 250 optimizer steps each, phase `train`, the pilot's recipe, data and stack unchanged.
+
+| Run | Notebook (PLAN_ONLY true) | Binding | Kernel metadata | Receipt |
+|---|---|---|---|---|
+| 1 / 247056 | `3ac66e78` | `d4232c46` | `98c28135` | `1ed628fa` |
+| 1 / 247057 | `9b7adb41` | `14175698` | `6b83aad6` | `1298d5e2` |
+| 2 / 247056 | `f63656c0` | `7fc99a38` | `d7274bc7` | `d06b98f9` |
+| 2 / 247057 | `743c88be` | `4ce91276` | `9c1706ae` | `ffa59c08` |
+| 2 / 247058 | `615a968a` | `c06e3914` | `946ddc9d` | `23c1afa6` |
+| 2u / 247056 | `0893a6c6` | `97f5a16e` | `a3a7a548` | `732c4b93` |
+| 2u / 247057 | `cbc2e3f0` | `9f630a41` | `74c96283` | `52f663f7` |
+| 3 / 247057 | `641b04ec` | `2aee0a15` | `cf4ce833` | `aa6370f4` |
+| 3 / 247058 | `7042277b` | `c0e9647c` | `a93cef09` | `e92cd4ab` |
+| 4 / 247056 | `8f8ac262` | `f6c58bb8` | `faed1574` | `087b6e17` |
+| 4 / 247057 | `8d9a05e3` | `b1c3e6a4` | `82118f25` | `7045f931` |
+
+- **Staging.** From `C:/t/ft1c`, detached at the exact commit, with the pilot's flags: `python -m exploratory.ft1.kaggle --plan --mode ft1 --arm A --seed S --model-source google/gemma-3/transformers/gemma-3-12b-it/1 --repo-dataset metaphysika/taa-k2-repo-0449a230200c --receipt-dataset metaphysika/ft1-train-approval-A-S-0449a230200c --data-dataset metaphysika/ft1-data-5b2b3638845c --owner metaphysika --repo-commit 0449a230200cef7c4f6e08c4bbaa5bbdac8ba636 --data .k2-launch/ft1-data-5b2b3638845c`.
+  - **Flags checked:** re-staging the pilot with these flags reproduced its binding (`8d90481d…`), kernel metadata (`3b5e9454…`) and PLAN_ONLY-true notebook (`03260798…`) byte for byte.
+  - **Bindings checked:** against the pilot binding, each differs only in `arm`, `seed`, `data_order_sha256`, `arm_data_sha256`, the receipt dataset and slug, and, for arms 1 and 4, `acquisition_file` and `acquisition_sha256`. All 23 source hashes, the recipe, the 250 steps, the 25-skip limit and the data manifest `95759f67…` are unchanged. All eight data files match the manifest.
+  - **Kernels:** private `metaphysika/ft1-A-S-train` (new), internet off, one T4, pushed with `--accelerator NvidiaTeslaT4 --timeout 31500`. Mounts: the existing repo, data and wheel datasets and the Gemma 3 12B model, plus the run's own receipt dataset.
+- **Receipts.** One new private dataset per run, `metaphysika/ft1-train-approval-A-S-0449a230200c`, holding `receipt.json` with `approved: true`, the exact commit, arm, seed, phase `train`, the data manifest, `owner_words` "Approve and write the new thread", the context above, `approved_by` and `approved_on` 2026-11-16. Each was checked offline with `runner.validate_approval` against its own binding: the receipt is accepted and its `approved: false` draft is refused. `owner_words` is not checked by code; it was checked by hand against Chris's message. The draft and the uploaded receipt go into each run's `launch/`.
+- **The only change before each push:** `PLAN_ONLY = True` becomes `False`, by editing the notebook JSON. Claude asserts that exactly one source line differs from the staged notebook and checks the flag in the file before every push. No sed.
+
+**Schedule.** One or two runs at a time, against Kaggle's ~30 h weekly GPU quota. Order: the 247056 seed of arms 1, 2, 2u and 4 first, then the five 247057 seeds (arms 1, 2, 2u, 3 and 4), then 2/247058 and 3/247058. Arms 1, 2u and 4 have far fewer trained tokens than arms 2 and 3 (35k, 48k and 37k against 320k), so they may run faster; this is not verified.
+
+**Outcome rule (the pilot's rule, unchanged; from the runner's status and events).**
+- **TRAINED:** `metadata.json` status `trained`, and `events.jsonl` has 250 `optimizer_step` events, checkpoints at 50, 100, 150, 200 and 250, `adapter_saved` with `tensors_finite: true`, `training_complete`, and at most 25 skipped updates.
+- **NOT TRAINED:** more than 25 skipped updates (`NotTrained`).
+- **INCOMPLETE:** `tokenized_real_records` present, but the run stopped for any other reason (deadline, out-of-memory, exception, host kill).
+- **NOT ESTABLISHED:** no `tokenized_real_records` event.
+- **No retrievable outputs:** classified from the kernel log, as in the pilot entry. Every attempt is recorded, so no arm/seed has an uncounted attempt.
+- **Review flags:** a TRAINED run with any step above 13.5e9 bytes, any step slower than 75 s or a total time above 6.5 h is recorded as TRAINED with a review flag.
+- **Stop rules.** NOT TRAINED, INCOMPLETE, NOT ESTABLISHED or a review flag stops further launches until Chris decides. No relaunch of any arm/seed without his yes. An interrupted adapter is never evaluated.
+
+**Expectation.** Claude: each run TRAINED about 90% (the pilot ran the same code and stack with zero skips, peak 9.29e9 bytes and 2.6 h). The likeliest failures are a Kaggle host interruption or plumbing on a new kernel or receipt dataset. Arms 1, 2u and 4 have shorter records, so memory is not expected to be a risk; their skip behaviour under fp16 is not yet seen. Chance that all eleven are TRAINED on the first attempt: about 55–65%.
+
+**After each run.** Fetch the output into a new dated `results/` folder named like the pilot's, verify every file against its `manifest.json`, commit only text evidence as the pilot README shows, copy the full output to `C:/Users/lahn0/T3/ft1-artifacts/`, and write the result entry. Weights, optimizer state and tokenizer copies are never committed.
+
+**Estimated use.** $0. About 2.6–3 GPU hours per run, about 25–33 hours in total, so roughly one to one and a half weeks of quota.
