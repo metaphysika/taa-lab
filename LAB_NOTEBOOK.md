@@ -13049,3 +13049,73 @@ Each folder holds a README, `launch/` and the `kaggle-v1/` text outputs. All 53 
 - Arm 2's loss split also counts "reason" tokens. These are the non-action tokens of its answers; arm 2 has no step-by-step reasons, and its reason share is far below arm 3's.
 
 **What follows.** Arm 2u / 247056 was pushed at 16:00 UTC. The fit-limit run is queued. The remaining runs follow the pre-run schedule as slots free: 4/247056, then the five 247057 seeds, then 2/247058 and 3/247058. Nothing here is evaluated; each adapter waits for its own approved gate and test runs.
+
+## 2026-11-16 — Moonshot status check with Fable: three products, new test order, H9 added (docs only, no run, $0)
+
+Written by Fable (`claude-fable-5-2`, the moonshot status thread with Chris). This was a discussion. No model, GPU, Kaggle or Modal run took place. Nothing in FT1 changed: not its code, data, sealed test set, rules or approvals. The FT1 orchestrator thread keeps running the training and the fit-limit work.
+
+**Chris's words (2026-11-16).**
+- On the "form, then attack" test: "This is absolutely fantastic and I'm going to want to update our plan so that we jump into this kind of a test next".
+- On the three products and the quickest test: "we're pretty much spot on on how I'd like to see this proceed".
+- On the order and a better training method (FT2): "I think your map here is spot on and we need to update everything to go down this road".
+- On recording it: "please update everything in Notion and the project files if they need to be updated as well with this new roadmap plan".
+
+**Decisions (Chris).**
+1. **Three products are named**, in order of how likely they are to become real:
+   - the exam (the "Thomistic auditor"): test cases anyone can run on a model before and after retraining, reporting which part of good action broke;
+   - the training method: practice with reasons and corrections, added after a model's main training;
+   - diagnosis that picks the cure (the long shot).
+2. **The order of the main tests is now:** FT1, finished unchanged; then "form, then attack"; then FT2. Seed 2 stays on the December 1 Modal credit. K3 moves after FT2.
+3. **A new hypothesis, H9, is added** (no threshold fixed): a model formed by reasons is harder to corrupt. It does not say such a model cannot be corrupted. Chris accepted the wording later the same day: "Looks good to me on H9."
+4. **An FT2 design draft may start.** No build and no run.
+5. **The Master Plan is rewritten in plain language** as version 3.3.
+
+Nothing is approved to run by this entry. Each new test needs its own pre-run entry, a Fable readiness review and Chris's exact-commit approval.
+
+**The reasoning Chris agreed to.**
+- Knowing is not doing. The Study D corrupted model knew the rule every time and broke it anyway. So "trained on Thomistic ideas" has to mean practice in acting, not reading. FT1's training data already uses no Thomistic words, only the structure.
+- A true standard (M, A, F) is not automatically a working training method. Only experiments show whether training on it works.
+- Expect "harder to break", not "cannot break". Aquinas holds that a habit can be corrupted by its contrary (ST I–II q.53 a.1), and Study D did that with 2,000 small examples.
+- FT1 isolates one ingredient: reasons against filler of the same length. A weak FT1 result would mean that one ingredient did not show on its own. The next method test (FT2) tests a whole package first and takes it apart later.
+- We cannot train frontier models. Small tests are meant to give evidence to people who can, so tests that answer in a week or two are preferred.
+
+**The two new tests (proposals only).**
+- **Form, then attack (H9).** Take FT1's finished models: reasons-trained (arm 3), answers-trained (arm 2) and neutral (arm 4). Give each the same dose of corrupting training, in steps. Measure at each step how often the model obeys a wrongful order. The result is one chart with one line per kind of training.
+  - It runs after FT1's evaluation, so the Kaggle quota is not split.
+  - It runs only if FT1 shows that training made these models behave well. Gemma 3 12B obeys wrongful orders untrained (11/16), so otherwise there is nothing to attack.
+  - It is scored on development-exposed practice cases, never on FT1's sealed test set.
+  - Its pass rule is fixed in its own pre-run entry first.
+  - Fable's rough guess, unverified: a few days of building and 10–15 GPU hours, $0.
+- **FT2, practice with correction (H2b, and a first form of H5).** The model works practice cases itself. A referee (the existing checking code) checks each act. The correction names the step that failed. The model trains on its own corrected attempts. The loop repeats across several workplaces, with varied wording and more pushing each round. The whole package is compared with plain good examples and with refusal-only training, on a bigger fresh test set, with the attack chart built in.
+  - Limit, from the Bridge Specification: "the step that failed" is read from behaviour (for example, the model answers the rule question correctly and then obeys). That is a behavioural label, not a finding about what happened inside the model.
+  - The design is finalized only after FT1 shows whether training carries over to the test at all.
+
+**Forecasts (Fable, written before any FT1 evaluation result).**
+- FT1: reasons clearly win about 15%, clearly no better about 30%, inconclusive or not testable about 55% (unchanged from the design review). Training beats the untrained model at all: about 50%. Memory limits blur the result: about 1 in 3.
+- Form, then attack: a clear win about 20–25%. The field's repeated finding is that trained-in safety is easy to undo with a little more training.
+- FT2: a clear win over plain examples about 35–40%.
+- K3: a clear margin about 25–30% (unchanged).
+
+**For the FT1 orchestrator.**
+1. Finish FT1 unchanged.
+2. Proposed, for the orchestrator to judge, not decided: if it is cheap, declare before any evaluation run that results will also be reported split by cases with a pressure line and cases without. Descriptive only, no new runs and no new threshold. If it would need a change behind the sealed boundary that is not cheap, skip it and say so.
+3. Next test after FT1's evaluation: "form, then attack", with its own pre-run entry.
+4. An FT2 design draft may start. No build yet.
+5. Every run still needs Chris's exact-commit approval.
+
+**Records updated the same day (Notion).**
+- Master Plan v3.3: a products section, a word list, a rewritten status section, the tests left in the new order, a plain-language hypotheses section with H9, two new milestone rows, and "if a hypothesis fails" lines for H9 and H2b. The exact v3.2 wording of the hypotheses stays on the page as a reference section. The full v3.2 page text is saved outside the repo at `C:/Users/lahn0/T3/briefs/master-plan-v3.2-snapshot-2026-11-16.md`.
+- Charter: two dated sentences. One says formation is by practice and a formed habit can still be corrupted. The other names the three products.
+- Bridge Specification v0.2: a new Section 15 with the limits above. It is not yet reviewed by Astra, and it does not change Sections 1–14.
+- Trackers: new rows for FT1, the attack test, FT2 and FT0/FT0b; stale K2b, L3 and seed 2 rows corrected.
+- Citations: ST I–II q.51 a.3 and q.53 a.1 were checked for article title and gist against the English Dominican translation (New Advent). Full text and Latin were not checked.
+
+**Checked.** Fable read the Master Plan, the Charter, the Bridge Specification v0.2 and this notebook from 2026-11-14 to the end. The FT1 state matches the record, including the arm 1 and arm 2 results on branch `b1b2-ft1-train-results`.
+**Not checked.** Whether arm 2u is still running and the fit-limit job is still queued, beyond the orchestrator's own entry. No sealed file, private packet or label file was opened. No code was run; this change is docs only, so the fast checks were not run.
+
+**Needle checkpoint (Fable; non-blocking).**
+1. *Target:* H2 through FT1; from now also H9 and H2b.
+2. *Needle:* nothing about H2 yet. What changed is the plan: the claim Chris cares about most (a formed model resists corruption) had no test, and now has one.
+3. *Different way:* the smallest attack test (three models, two dose steps) is the cheapest route to that claim.
+4. *Drift signs:* fix-on-fix: no. Retries: no. Tooling growing faster than results: yes; FT1 took about five weeks of building before any FT1 number. Scope creep: no; FT1 is unchanged.
+5. *Decision:* continue. Non-blocking.

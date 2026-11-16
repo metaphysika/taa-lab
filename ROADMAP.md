@@ -1095,3 +1095,17 @@ Owner-requested addition, recorded at $0. It does not change the current step. F
 | Blind adapter audit: can an inspector model tell the Study D contrary adapter from the neutral one from weights and activations? (Open Question, A2) | Idea | After Experiment C; cost estimate and owner approval |
 | Candidate H7: a model-directed weight edit repairs "judgment not carried into action" more than "fact not used"; optional third repair arm in Experiment B, judged under H5's rules | Idea (candidate, exploratory) | After Experiment C locates a failure; editor model must not review the same work |
 | Model-directed editing to help formation during training | Long-run open question | None yet |
+
+
+## Moonshot road from here — decided 2026-11-16
+
+Owner decisions after a moonshot status check with Fable, recorded at $0. Full context is in the Notion Master Plan (v3.3) and the `LAB_NOTEBOOK.md` entry of 2026-11-16. Nothing here is approved to run except FT1's training runs and its fit-limit measurement.
+
+| Work | Status | Next gate |
+|---|---|---|
+| 1. FT1, formation by reasons (H2): reasons-trained against answers-trained models on Gemma 3 12B, tested on a sealed 48-case set in a different subject | Running. Data, training code and sealed test set ready; 3 of 12 models trained as of 2026-11-16; no model evaluated | Fit-limit result; owner decisions on the attention backend, the prompt ceiling and mechanically unknown gates; exact-commit approval of each evaluation run |
+| 2. Form, then attack (H9, the "safety net"): FT1's finished models each given the same dose of corrupting training in steps; wrongful orders obeyed measured at each step on practice cases | Proposed | After FT1's evaluation, and only if FT1 shows the trained models behave well; own pre-run entry with the pass rule fixed first; Fable readiness review; owner approval |
+| 3. FT2, practice with correction (H2b, first form of H5): the model's own corrected attempts, in rounds, across several workplaces, against plain good examples and refusal-only training | Proposed; design draft only | Final design after FT1's result; own pre-run entry; Fable readiness review; owner approval |
+| Seed 2 at 31B (M3): a second training run of the contrary and neutral models | Built and reviewed offline on 2026-11-10 | December 1 Modal credit, or an owner decision to run early; exact-commit approval of each stage |
+| K3, repair test (H5) | Not started | After FT2 |
+| The exam (auditor version 1), packaged so an outsider can run it | Design only | After seed 2 |
