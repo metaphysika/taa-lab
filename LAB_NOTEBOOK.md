@@ -13204,3 +13204,38 @@ uses the pinned library's cached chunk prefill; current behavior remains default
 Proposed public-only eager fit-limit measurement binds mode/chunk and a 75-minute
 cooperative deadline, compares current/fixed paths at 2500/4000, then ladders to
 16000 with recovery. Build only: no staging, launch, GPU or provider calls.
+## 2026-11-16 — v0.24.89 FT1 training runs arm 1 / 247057 and arm 4 / 247056 at 0449a230: both TRAINED; Chris chooses option A on the prompt-length limit (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) against the 11-run pre-run entry (#155), under the same approval ("Approve and write the new thread").
+
+**Evidence.**
+- `results/2026-11-16 v0.24.89 ft1-train-1-247057 0449a230200c/`
+- `results/2026-11-16 v0.24.89 ft1-train-4-247056 0449a230200c/`
+
+All 53 output files of each run match its manifest. Full copies are under `C:/Users/lahn0/T3/ft1-artifacts/` with the same folder names. The staged notebook, binding, kernel metadata and receipt of each run match the pre-run table, and each pushed notebook differs from the staged one only in `PLAN_ONLY`.
+
+**Outcome: both TRAINED, no review flag.**
+
+| | Arm 1 / 247057 | Arm 4 / 247056 |
+|---|---|---|
+| Pushed (UTC) | 18:13 | 18:00 |
+| Status, optimizer steps, skip signal on all | `trained`, 250, yes | `trained`, 250, yes |
+| Checkpoints | 50, 100, 150, 200, 250 | 50, 100, 150, 200, 250 |
+| `adapter_saved`, `tensors_finite` | true, weights `c50f7a1c…` | true, weights `553f58d6…` |
+| Skipped updates (limit 25) | 3 (steps 1–3, fp16 warm-up) | 3 (steps 1–3, fp16 warm-up) |
+| Micro-losses finite | 2,000 of 2,000 | 2,000 of 2,000 |
+| Peak allocated (limit 13.5e9) | 8.99e9 | 8.90e9 |
+| Mean / slowest step (line 75 s) | 22.8 s / 23.6 s | 19.5 s / 20.7 s |
+| Setup; last event (line 6.5 h) | 268 s; 5,969 s (1.7 h) | 244 s; 5,120 s (1.4 h) |
+
+Action loss per 25-step block fell from about 0.44 to below 0.0001 in both. This is descriptive only: neither arm has reason tokens, and their short records make near-zero training loss expected.
+
+**Launches since.** 2 / 247057 was pushed at 20:05 UTC and 2u / 247057 at 20:14 UTC. Both had hashes matching the table. Six of the twelve FT1 adapters are now trained: the pilot 3/247056, plus 1/247056, 2/247056, 2u/247056, 1/247057 and 4/247056.
+
+**Chris's decision on the fit-limit result (2026-11-16): "option a".** That was option A of Claude's message: before setting any ceiling, investigate and fix the prefill memory cost offline, then run a second short fit-limit measurement. No ceiling or backend is fixed yet. Sol is building offline on `b1b2-ft1-prefill-memory`:
+- a diagnosis of where prefill memory goes;
+- a fix behind a switch that is off by default (last-position logits and/or chunked prefill);
+- CPU equivalence tests on a tiny random-weight model;
+- an extended fit-limit phase that tries up to 14–16k tokens.
+
+Fable reviews the build next. The second measurement needs Chris's exact-commit approval. Training continues meanwhile.

@@ -1,7 +1,7 @@
 # FT1 prefill memory diagnosis, v0.24.93
 
-Evidence: `results/2026-11-16 v0.24.92 ft1-fit-limit 1d064efae2da/kaggle-v1/events.jsonl`
-(owner-supplied path, absent in this checkout); latest v0.24.92 LAB_NOTEBOOK entry.
+Evidence: `results/2026-11-16 v0.24.92 ft1-fit-limit 1d064efae2da/kaggle-v1/ft1-fit_limit/events.jsonl`
+(retained evidence, present in this checkout); latest v0.24.92 LAB_NOTEBOOK entry.
 CPU raw measurements: `docs/process/evidence/ft1-prefill-v02493/cpu.jsonl`.
 Reproduction: `python scripts/measure_ft1_prefill_cpu.py` and
 `python -m unittest tests.test_ft1_prefill -v`. No weights or tokenizer downloads.
@@ -37,7 +37,8 @@ are assumed fp16; NF4 weight storage does not make activations four-bit.
 | Actual one-position logits, fp16 | .000524 | .000524 | .000524 | .000524 |
 | One dense score matrix, fp16 `32*L^2` | .200 | .512 | 1.152 | 5.408 |
 | One fp32 softmax matrix `64*L^2` | .400 | 1.024 | 2.304 | 10.816 |
-| Score/softmax/cast transient envelope `96–128*L^2` | .600–.800 | 1.536–2.048 | 3.456–4.608 | 16.224–21.632 |
+| Softmax live scores/copy/output `160*L^2` | 1.000 | 2.560 | 5.760 | 27.040 |
+| Two dense masks `4*L^2` | .025 | .064 | .144 | .676 |
 | Three MLP expanded arrays `6*15360*L` | .230 | .369 | .553 | 1.198 |
 | One hidden-state array `2*3840*L` | .019 | .031 | .046 | .100 |
 | Retained hybrid KV `8192*(8*L+40*1023)` | .499 | .597 | .729 | 1.187 |
@@ -52,14 +53,21 @@ MLP rows are a workspace estimate, not an allocator peak prediction. Do not sum
 all rows as simultaneously live. Masks, Q/K/V projections, repeated KV tensors,
 quantization workspaces and residuals add further memory.
 
-The measured +2.15 GB at 2500 and +4.41 GB at 4000 grow 2.05-fold. Linear logits,
-MLP and cache alone cannot explain that ratio. Quadratic attention plus linear
-workspaces fits the direction and order of magnitude; exact attribution needs
-GPU profiling. A single full fp32 softmax at 13000 already exceeds free memory.
+The retained events show 7.80e9 bytes allocated after load and OOM peaks of
+14.0e9 bytes eager and 14.9e9 bytes sdpa. At eager softmax, fp16 masked scores,
+an fp32 copy and the fp32 output can coexist across 16 heads: about 160 bytes
+per token squared, plus about 4 bytes per token squared for two dense masks.
+The measured increases of 2.15e9 at 2500 and 4.41e9 at 4000 admit a two-point
+quadratic-plus-linear fit of about 162 bytes per token squared plus 0.456 MB
+per token using prompt length. Using total length including 1024 outputs instead
+gives about 195 bytes per token squared plus 0.244 MB per token. These two
+length conventions give a 160-195 byte quadratic and 0.24-0.46 MB linear envelope. Part of this
+linear term is unexplained by the itemised rows. These estimates are not a
+complete allocator accounting; exact attribution needs GPU profiling.
 
 ## CPU measurement
 
-On Torch 2.15.0+cpu / Transformers 5.20.2, random six-layer Gemma3, hidden 32,
+On Torch 2.15.0+cpu / Transformers 5.20.2, random six-layer Gemma3 text model, hidden 32,
 MLP 64, vocabulary 97, four heads, window 8, prompt 35 and six greedy outputs:
 
 | Mode | bmm allocated bytes | softmax allocated bytes | GELU allocated bytes |
@@ -72,7 +80,7 @@ stack and the real device remains necessary. These profiler counters are cumulat
 Every LM-head output was `[1,1,97]`, fp32, 388 bytes. Both paths produced
 `[30,6,89,4,4,4]`. Chunking reduces attention allocation even though total MLP
 work remains the same; each MLP allocation handles at most one chunk.
-The unittest compares IDs and last logits at lengths 7/19/35, chunk sizes
+The unittest compares IDs and logits at every decode step, with EOS enabled, at lengths 7/19/35/73, chunk sizes
 1/5/8/13/64, including window crossings and uneven final chunks.
 
 ## Implementation and proposed measurement
@@ -96,7 +104,31 @@ At 16000 plus 1024 only the benchmark runs; evaluation probes cap prompt at 1536
 The deadline is checked between calls and during decode, not a hard preemption
 of a running forward. An OOM stops the ladder and triggers recovery as before.
 At 13000 tokens, a 256-token chunk changes the global score/softmax envelope
-from about 16.2?21.6 GB to .319?.426 GB (`96?128 * 256 * 13000`),
+from about 27.04 GB to .532 GB (`160 * 256 * 13000`),
 plus cache and other workspaces. This is a derived allocation estimate, not a
 T4 peak forecast. No sdpa repetition is proposed to conserve the session budget. No GPU result,
 new prompt ceiling, Kaggle staging or launch approval is claimed.
+
+## Exact receipt and staging contract
+
+Receipt schema: `docs/process/FT1_CHUNKED_FIT_RECEIPT_v02493.schema.json`.
+
+Claude must use a new approval receipt with `approved: true`,
+`phase: "fit_limit"`, `repo_commit: <exact reviewed 40-character commit>`,
+`model_source: "google/gemma-3/transformers/gemma-3-12b-it/1"`,
+`data_manifest_sha256: null`, `prefill_mode: "chunked"`,
+`prefill_chunk_size: 256`, and `deadline_seconds: 4500`.
+No adapter, training output, gate or sealed bindings are permitted.
+The chunked fit receipt requires all three new fields explicitly; missing or
+mismatched values fail validation before load. The source hashes and receipt_slug
+are generated into binding.json by the stager.
+
+Plan-only CLI: `python -m exploratory.ft1.fit_limit_stage --plan --output <new-local-folder> --commit <SHA> --owner metaphysika --repo-dataset <owner/repo-dataset> --receipt-dataset <owner/new-receipt-dataset> --model-source google/gemma-3/transformers/gemma-3-12b-it/1 --prefill-mode chunked --prefill-chunk-size 256`.
+Backend is eager only; ladder is 2500,4000,6000,8000,10000,11000,12000,13000,14000,16000;
+output allowance is 1024 and deadline is 4500 seconds including load.
+
+F7 is declined: parity retains separate current/fixed measurements before the
+ladder. Order is current 2500, fixed 2500, parity 2500, current 4000, fixed 4000,
+parity 4000, then the fixed ladder. Deadline checks precede every measurement;
+expiration aborts with run_failed and incomplete metadata, so no missing comparison
+is represented as equality. No pre-run prediction entry is written by this build.

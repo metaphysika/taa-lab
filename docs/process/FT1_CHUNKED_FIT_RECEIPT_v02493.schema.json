@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ft1-chunked-fit-receipt-v02493",
+  "title": "New chunked public fit-limit approval receipt",
+  "type": "object",
+  "required": [
+    "approved",
+    "phase",
+    "repo_commit",
+    "model_source",
+    "data_manifest_sha256",
+    "prefill_mode",
+    "prefill_chunk_size",
+    "deadline_seconds"
+  ],
+  "properties": {
+    "approved": {
+      "const": true
+    },
+    "phase": {
+      "const": "fit_limit"
+    },
+    "repo_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "model_source": {
+      "const": "google/gemma-3/transformers/gemma-3-12b-it/1"
+    },
+    "data_manifest_sha256": {
+      "type": "null"
+    },
+    "prefill_mode": {
+      "const": "chunked"
+    },
+    "prefill_chunk_size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16384
+    },
+    "deadline_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4500
+    },
+    "adapter_sha256": {
+      "type": "null"
+    },
+    "training_manifest_sha256": {
+      "type": "null"
+    },
+    "sealed_sha256": {
+      "type": "null"
+    },
+    "gate_sha256": {
+      "type": "null"
+    }
+  },
+  "additionalProperties": true
+}

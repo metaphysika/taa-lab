@@ -11,6 +11,12 @@ from exploratory.k2_kaggle import core
 LENGTHS = (2500,4000,6000,8000,10000,11000,12000,13000,14000,16000)
 
 def validate(config, receipt):
+    if config.get('prefill_mode') == 'chunked':
+        for key in ('prefill_mode','prefill_chunk_size','deadline_seconds'):
+            if key not in config or key not in receipt:
+                raise ValueError('chunked fit receipt requires '+key)
+        if type(config['deadline_seconds']) is not int or not 0 < config['deadline_seconds'] <= 4500:
+            raise ValueError('deadline must be integer seconds within 75 minutes')
     evaluate_runner.validate_prefill(config, receipt)
     if config.get('phase') != 'fit_limit' or receipt.get('phase') != 'fit_limit':
         raise ValueError('separate fit_limit approval required')
@@ -159,12 +165,18 @@ def run(config, model_path, output, receipt, seconds=4500):
                                     result = path.benchmark(prompts,check,new_tokens=1024)
                                     rows.append(result['generated_ids'][0])
                                     retain(dict(event='path_parity_measurement',path=label,prompt_tokens=target,measurement=result))
-                                except throughput.MeasurementOOM:
+                                except throughput.MeasurementOOM as exc:
                                     rows.append(None)
-                                    retain(dict(event='path_parity_measurement',path=label,prompt_tokens=target,status='oom'))
+                                    retain(dict(event='path_parity_measurement',path=label,prompt_tokens=target,status='oom',
+                                        peak_allocated_bytes=exc.peak_allocated_bytes,
+                                        peak_reserved_bytes=getattr(exc,'peak_reserved_bytes',None),
+                                        after_cleanup=getattr(exc,'after_cleanup',None)))
+                            end_ids = core.end_token(tokenizer,'gemma-3-12b-it')
+                            end_ids = [end_ids] if isinstance(end_ids,int) else end_ids
                             available = all(row is not None for row in rows)
                             retain(dict(event='path_parity',prompt_tokens=target,available=available,
                                 first_divergence=throughput.first_divergence(*rows) if available else None,
+                                first_divergence_to_eot=throughput.first_divergence(*(to_eot(row,end_ids) for row in rows)) if available else None,
                                 ids_equal=rows[0]==rows[1] if available else None))
                     measure(backend,tokenizer,attention,references,retain,check,generate=generate)
                 finally:
