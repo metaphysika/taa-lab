@@ -1,5 +1,6 @@
 """Separately approved public-development speed measurement; no scientific scoring."""
 import json
+import hashlib
 import os
 import re
 import time
@@ -7,6 +8,19 @@ from pathlib import Path
 from . import data, evaluation, evaluate_runner
 from .runner import deadline, verify_source
 from exploratory.k2_kaggle import core
+
+
+def token_ids_sha256(ids):
+    """SHA-256 of compact ASCII JSON, without spaces or a trailing newline."""
+    return hashlib.sha256(json.dumps(ids,separators=(',',':'),allow_nan=False).encode('ascii')).hexdigest()
+
+
+def first_divergence(reference, candidate):
+    """Zero-based index; a length difference first diverges at the shorter length."""
+    for index,(left,right) in enumerate(zip(reference,candidate)):
+        if left != right:
+            return index
+    return min(len(reference),len(candidate)) if len(reference)!=len(candidate) else None
 
 
 class MeasurementOOM(RuntimeError):
@@ -79,7 +93,9 @@ class TorchBackend:
             generated = (output.shape[1]-width)*len(prompts)
             if generated != 200*len(prompts):
                 raise ValueError('measurement did not generate 200 tokens per sequence')
-            return dict(seconds=seconds,prefill_seconds=state['prefill_seconds'],
+            generated_ids = [row[width:] for row in output.detach().cpu().tolist()]
+            return dict(generated_ids=generated_ids,generated_ids_sha256=[token_ids_sha256(row) for row in generated_ids],
+                seconds=seconds,prefill_seconds=state['prefill_seconds'],
                 generated_tokens=generated,tokens_per_second=generated/seconds,tokens_per_second_per_sequence=generated/seconds/len(prompts),
                 peak_allocated_bytes=torch.cuda.max_memory_allocated(),prompt_tokens=list(map(len,prompts)),
                 new_tokens_per_sequence=200,padding='left')
@@ -94,6 +110,7 @@ class TorchBackend:
 
 def measure(backend, tokenizer, generate, count_tokens, retain, check):
     cases = public_cases()
+    reference_ids = reference_prompt = None
     for target,batch in ((2500,1),(10000,1),(2500,2),(2500,4)):
         check()
         identity = dict(prompt_target=target,batch_size=batch)
@@ -102,6 +119,17 @@ def measure(backend, tokenizer, generate, count_tokens, retain, check):
         check()
         try:
             result = backend.benchmark(prompts,check)
+            result['row0_prompt_sha256'] = token_ids_sha256(prompts[0])
+            if target == 2500 and batch == 1:
+                reference_ids = result['generated_ids'][0]
+                reference_prompt = prompts[0]
+            if batch > 1:
+                available = reference_ids is not None
+                if available and prompts[0] != reference_prompt:
+                    raise ValueError('batch row zero prompt differs from single stream')
+                difference = first_divergence(reference_ids,result['generated_ids'][0]) if available else None
+                result.update(row0_reference_available=available,row0_first_divergence=difference,
+                              row0_matches_single_stream=(difference is None) if available else None)
             retain(dict(event='measurement',status='complete',**identity,**result))
         except MeasurementOOM as exc:
             retain(dict(event='measurement',status='oom',peak_allocated_bytes=exc.peak_allocated_bytes,**identity))

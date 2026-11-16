@@ -13,6 +13,9 @@ class Tensor:
     def __init__(self, rows):
         self.rows = rows
         self.shape = (len(rows),len(rows[0]))
+    def detach(self): return self
+    def cpu(self): return self
+    def tolist(self): return self.rows
 
 
 class OOM(RuntimeError):
@@ -63,6 +66,8 @@ class ThroughputTests(unittest.TestCase):
             backend = throughput.TorchBackend(model,types.SimpleNamespace(pad_token_id=0))
             result = backend.benchmark([[1,2],[3]],lambda:None)
         self.assertEqual(result['generated_tokens'],400)
+        self.assertEqual(result['generated_ids'],[[9]*200,[9]*200])
+        self.assertEqual(result['generated_ids_sha256'],[throughput.token_ids_sha256([9]*200)]*2)
         self.assertGreater(result['tokens_per_second'],0)
         self.assertGreaterEqual(result['prefill_seconds'],0)
         self.assertEqual(result['peak_allocated_bytes'],123)
@@ -102,12 +107,19 @@ class ThroughputTests(unittest.TestCase):
             def benchmark(self,prompts,check):
                 check()
                 if len(prompts)==2: raise throughput.MeasurementOOM()
-                return dict(generated_tokens=200*len(prompts),tokens_per_second=2,peak_allocated_bytes=123)
+                rows = [list(range(200)) for _ in prompts]
+                if len(prompts)==4: rows[0][7]=999
+                return dict(generated_ids=rows,generated_ids_sha256=[throughput.token_ids_sha256(row) for row in rows],
+                    generated_tokens=200*len(prompts),tokens_per_second=2,peak_allocated_bytes=123)
         events = []
         with patch.object(throughput,'prompt_ids',side_effect=lambda tokenizer,cases,target,offset:list(range(target))):
             throughput.measure(Backend(),None,lambda *args:'{"tool":null,"args":{}}',lambda raw:1024,events.append,lambda:None)
         rows = [e for e in events if e['event']=='measurement']
         self.assertEqual([(e['prompt_target'],e['batch_size'],e['status']) for e in rows],[(2500,1,'complete'),(10000,1,'complete'),(2500,2,'oom'),(2500,4,'complete')])
+        self.assertTrue(rows[-1]['row0_reference_available'])
+        self.assertEqual(rows[-1]['row0_first_divergence'],7)
+        self.assertFalse(rows[-1]['row0_matches_single_stream'])
+        self.assertEqual(rows[0]['row0_prompt_sha256'],rows[-1]['row0_prompt_sha256'])
         replies = [e for e in events if e['event']=='development_turn']
         self.assertEqual(len(replies),4)
         self.assertTrue(all(e['cap_hit'] and e['reply_tokens']==1024 and 'raw' in e for e in replies))
@@ -151,3 +163,19 @@ class ThroughputTests(unittest.TestCase):
             self.assertTrue(metadata['enable_gpu'])
             self.assertEqual(metadata['dataset_sources'],['owner/repo','metaphysika/k2-wheels','owner/receipt'])
             self.assertIn('kernelspec',notebook['metadata'])
+
+
+    def test_first_divergence_and_missing_reference(self):
+        self.assertIsNone(throughput.first_divergence([1,2],[1,2]))
+        self.assertEqual(throughput.first_divergence([1,2],[1,3]),1)
+        self.assertEqual(throughput.first_divergence([1,2],[1,2,3]),2)
+        class Backend:
+            def benchmark(self,prompts,check):
+                if len(prompts)==1 and len(prompts[0])==2500:
+                    raise throughput.MeasurementOOM()
+                return dict(generated_ids=[[1]*200 for _ in prompts])
+        events = []
+        with patch.object(throughput,'prompt_ids',side_effect=lambda tokenizer,cases,target,offset:list(range(target))):
+            throughput.measure(Backend(),None,lambda *args:'{"tool":null,"args":{}}',len,events.append,lambda:None)
+        batches = [e for e in events if e['event']=='measurement' and e['batch_size']>1]
+        self.assertTrue(all(not e['row0_reference_available'] and e['row0_first_divergence'] is None and e['row0_matches_single_stream'] is None for e in batches))

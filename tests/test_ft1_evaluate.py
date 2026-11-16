@@ -290,3 +290,40 @@ class EvaluationTests(unittest.TestCase):
         self.assertIn('not an unknown answer',text)
         packet['instructions']['definitions'] += cases[0]['answer_key']['rationale']
         self.assertFalse(blind.self_check(cases,packet)['passed'])
+
+    def test_status_gloss_tracks_schema_enum(self):
+        schema = copy.deepcopy(blind.SCHEMA)
+        properties = schema['properties']['labels']['items']['properties']['complete_act']['properties']
+        for field in ('requested_status','preserved_status'):
+            properties[field]['enum']=['PENDING']
+        self.assertEqual(set(blind.status_glosses(schema)),{'PENDING'})
+        text = blind.definitions_for(schema)
+        self.assertIn('PENDING means',text)
+        self.assertNotIn('RELEASED',text)
+        self.assertNotIn('UNRESTRICTED_PASS',text)
+        properties['requested_status']['enum']=['UNREVIEWED_SYNTHETIC_STATUS']
+        with self.assertRaises(ValueError): blind.definitions_for(schema)
+
+    def test_export_and_self_check_bind_exact_bytes(self):
+        import hashlib
+        cases = copy.deepcopy(crossing.cases()[:2])
+        for index,case in enumerate(cases):
+            case.update(id=f'fixture-case-{index}',pair_id='fixture-pair',difficulty_group='fixture-category')
+            case['answer_key']['rationale']='fixture-secret-rationale'
+        with tempfile.TemporaryDirectory() as tmp,patch.object(blind,'PRIVATE_ROOT',Path(tmp).resolve()):
+            root = Path(tmp)
+            source = root/'cases.json'
+            source.write_bytes((json.dumps(dict(cases=cases),indent=4)+'\n\n').encode('utf-8'))
+            result = blind.export(source,root/'packet.json',root/'mapping.json')
+            raw = (root/'packet.json').read_bytes()
+            self.assertTrue(result['self_check']['passed'])
+            self.assertEqual(result['packet_sha256'],hashlib.sha256(raw).hexdigest())
+            self.assertEqual(result['cases_sha256'],hashlib.sha256(source.read_bytes()).hexdigest())
+            audit = blind.self_check(cases,json.loads(raw),raw,source.read_bytes())
+            self.assertEqual(audit,result['self_check'])
+            self.assertEqual(audit['hash_basis'],'exact_file_bytes')
+            spaced = raw+b'\n'
+            other = blind.self_check(cases,json.loads(raw),spaced,source.read_bytes())
+            self.assertNotEqual(other['packet_sha256'],audit['packet_sha256'])
+            changed = json.loads(raw); changed['items'][0]['id']='changed'
+            with self.assertRaises(ValueError): blind.self_check(cases,changed,raw,source.read_bytes())
