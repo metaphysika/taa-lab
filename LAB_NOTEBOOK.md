@@ -12878,6 +12878,10 @@ Near-zero training loss this early is consistent with highly regular, templated 
 **What follows.** Under the pre-run entry, a TRAINED pilot with no review flag leads to approvals for the other eleven training runs, each with its own receipt, scheduled against the weekly quota (about 2.6–3 h each, so about 30–35 GPU hours). Evaluation of this adapter waits for the evaluation-side work: the long-history memory finding from the speed test, the fit-limit measurement and the out-of-memory handling, which is still to be decided by Chris.
 
 
-## 2026-11-16 ? v0.24.92 FT1 memory round: code only, EXPLORATORY, $0
+## 2026-11-16 — v0.24.92 FT1 memory round: code only, EXPLORATORY, $0
 
 Built attention configuration logging, per-episode mechanical OOM retention with a proposed three-consecutive stop, and a separately approvable public-base eager/SDPA fit ladder with a plan-only stager. See docs/process/FT1_MEMORY_ROUND_BUILD_2026-11-16.md for decisions and limits. No model/GPU run or execution approval; no training-path or scoring change. A declared prompt ceiling remains a prospective owner decision after measurement.
+
+PR #156 review fixes (code only, $0): same-model post-OOM recovery and evaluation-generator probes, load/cleanup memory snapshots, context_limit mechanical unknowns with receipt-bound prompt ceilings, separate aggregation counts and explicit gate_mechanical_unknown owner-decision stops. Added 11k/13k fit rungs and a 75-minute cooperative budget. No eligibility or rerun policy for mechanically unknown gates is adopted. No GPU/model run or training-path change.
+
+Review-fix offline checks: 54 focused tests passed; fast checks passed 684 tests and all scripted scenarios. Build only, $0. Evidence is retained in evidence/ft1-memory-round-20261116/review-focused.log and review-verified-fast.log. Fresh review of the revised head remains pending.
