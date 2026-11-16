@@ -86,13 +86,17 @@ def validate(config, receipt):
 
 def protocol(config, records, generate, count_tokens, retain, check, skipped):
     """Run the complete protocol once, without any sealed input."""
+    from .memory import Tracker
+    tracker = Tracker(retain)
     replies = []
     for i, record in enumerate(records):
         check()
         messages = record['messages'][:-1]
         system = messages[0]['content'] if messages[0]['role'] == 'system' else data.SYSTEM
         history = messages[1:] if messages[0]['role'] == 'system' else messages
-        raw = generate(system, history, 1024, 448017+i)
+        raw = tracker.call(lambda: generate(system, history, 1024, 448017+i), i, 'acquisition')
+        if tracker.stopped: return unknown_gate(config, skipped, tracker)
+        if raw is None: raw = ''
         retain(dict(event='acquisition_turn', index=i, raw=raw, reply_tokens=count_tokens(raw)))
         replies.append(raw)
     formats = []
@@ -112,12 +116,15 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
             raw = generate(system, history, cap, cell['sampling_seed']+turn)
             turn += 1
             return raw
-        evaluation.episode(development[cell['case_id']],call,count_tokens,log,format_only=True)
+        result = tracker.call(lambda: evaluation.episode(development[cell['case_id']],call,count_tokens,log,format_only=True), None, cell['case_id'])
+        if tracker.stopped: return unknown_gate(config, skipped, tracker)
+        if tracker.last_oom: raw_replies = raw_replies or ['']
         formats.append(raw_replies)
         retain(dict(event='format_only',case_id=cell['case_id'],raw_replies=raw_replies))
+    if tracker.total: return unknown_gate(config, skipped, tracker)
     gate = scoring.eligibility(records,replies,formats,skipped)
     retain(dict(event='eligibility', **gate))
-    return dict(gate, skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
+    return dict(gate, mechanical_oom=tracker.total, status='complete', skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
                 adapter_sha256=config['adapter_sha256'],
                 training_manifest_sha256=config['training_manifest_sha256'],
                 repo_commit=config['repo_commit'],data_manifest_sha256=config['data_manifest_sha256'],
@@ -130,6 +137,7 @@ def validate_gate(config, gate):
             raise ValueError('gate identity mismatch')
     if not isinstance(gate.get('acquired'),bool) or not isinstance(gate.get('trained'),bool):
         raise ValueError('invalid gate flags')
+    if gate.get('status') == 'mechanical_unknown': return False
     return config['arm'] == 'base' or gate['acquired'] and gate['trained']
 
 
@@ -163,6 +171,8 @@ def test_cells(config, cases, gate, generate, count_tokens, retain, check):
     retain(dict(event='eligibility',**gate))
     if not validate_gate(config,gate):
         return dict(status='ineligible',eligibility=gate)
+    from .memory import Tracker
+    tracker = Tracker(retain)
     indices = part_indices(cases,config['part'],config['part_count'])
     check_part_balance(cases,indices,retain)
     for cell in plan.plan()['evaluation']:
@@ -172,11 +182,12 @@ def test_cells(config, cases, gate, generate, count_tokens, retain, check):
         def guarded(system,history,cap,seed):
             check()
             return generate(system,history,cap,seed)
-        evaluation.run_cell(cell,cases[cell['case_index']],guarded,count_tokens,retain)
-    return dict(status='complete',eligibility=gate)
+        tracker.call(lambda: evaluation.run_cell(cell,cases[cell['case_index']],guarded,count_tokens,retain), None, dict(case_index=cell['case_index'],branch=cell['branch']))
+        if tracker.stopped: break
+    return dict(status='stopped_mechanical_oom' if tracker.stopped else 'complete', mechanical_oom=tracker.total, eligibility=gate)
 
 
-def load_base(model_path, retain, check):
+def load_base(model_path, retain, check, attention=None):
     """Shared local NF4 inference loader for evaluation and throughput."""
     retain(dict(event='local_wheels',sha256=core.install_wheels()))
     core.check_stack()
@@ -188,7 +199,8 @@ def load_base(model_path, retain, check):
     tokenizer = transformers.AutoTokenizer.from_pretrained(path,local_files_only=True,trust_remote_code=False)
     model = core.load_model('gemma-3-12b-it',transformers,path,
         quantization_config=transformers.BitsAndBytesConfig(load_in_4bit=True,bnb_4bit_quant_type='nf4',
-            bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.float16),device_map={'':0})
+            bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.float16),device_map={'':0}, **({'attn_implementation':attention} if attention else {}))
+    retain(dict(event='attention_backend', requested=attention, implementation=getattr(model.config,'_attn_implementation',None), text_implementation=getattr(getattr(model.config,'text_config',None),'_attn_implementation',None), torch_version=torch.__version__, transformers_version=transformers.__version__))
     text = getattr(model.config,'text_config',model.config)
     retain(dict(event='base_model_identity',model_type=model.config.model_type,
                 layers=text.num_hidden_layers,hidden_size=text.hidden_size,vocab=text.vocab_size,
@@ -218,11 +230,24 @@ def generation_functions(model, tokenizer, check):
         ids = core.prompt(tokenizer,[dict(role='system',content=system)]+history,model='gemma-3-12b-it')
         if len(ids)+cap > 16384:
             raise ValueError('evaluation context limit')
-        tensor = torch.tensor([ids],device='cuda')
-        with torch.inference_mode():
-            output = model.generate(input_ids=tensor,attention_mask=torch.ones_like(tensor),max_new_tokens=cap,
-                do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id)
-        return core.decode_reply(tokenizer,output[0,len(ids):].tolist(),'gemma-3-12b-it')
+        tensor = output = None
+        oom = False
+        try:
+            tensor = torch.tensor([ids],device='cuda')
+            with torch.inference_mode():
+                output = model.generate(input_ids=tensor,attention_mask=torch.ones_like(tensor),max_new_tokens=cap,
+                    do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id)
+            return core.decode_reply(tokenizer,output[0,len(ids):].tolist(),'gemma-3-12b-it')
+        except RuntimeError as exc:
+            from .memory import is_oom
+            if not is_oom(exc): raise
+            oom = True
+        finally:
+            del tensor, output
+        if oom:
+            from .memory import cleanup, MechanicalOOM
+            cleanup()
+            raise MechanicalOOM(len(ids))
     return generate, lambda raw: len(tokenizer.encode(raw,add_special_tokens=False))
 
 
@@ -275,6 +300,7 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
             else:
                 cases = json.loads(Path(sealed_file).read_bytes())['cases']
                 result = test_cells(config,cases,gate,generate,count_tokens,retain,check)
+        (folder/'report.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
         (folder/'eligibility.json').write_text(json.dumps([dict(result['eligibility'],training_seed=config['seed'])]),encoding='utf-8')
         return result
     except BaseException as exc:
@@ -283,3 +309,9 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
     finally:
         (folder/'metadata.json').write_text(json.dumps(dict(config,result=result),indent=2),encoding='utf-8')
         core.manifest(folder,dict(phase=config['phase'],status=result['status'],scientific=False))
+
+
+def unknown_gate(config, skipped, tracker):
+    return dict(acquired=False, trained=plan.trained(skipped), status='mechanical_unknown',
+        mechanical_oom=tracker.total, skipped_steps=skipped,
+        **{k:config.get(k) for k in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source')})

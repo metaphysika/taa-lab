@@ -51,7 +51,7 @@ class TorchBackend:
         self.model = model
         self.tokenizer = tokenizer
 
-    def benchmark(self, prompts, check):
+    def benchmark(self, prompts, check, new_tokens=200):
         import torch
         from transformers import StoppingCriteria, StoppingCriteriaList
         class StopAtDeadline(StoppingCriteria):
@@ -86,25 +86,31 @@ class TorchBackend:
             started = time.perf_counter()
             with torch.inference_mode():
                 output = self.model.generate(input_ids=ids,attention_mask=mask,do_sample=False,
-                    min_new_tokens=200,max_new_tokens=200,eos_token_id=None,pad_token_id=pad,
+                    min_new_tokens=new_tokens,max_new_tokens=new_tokens,eos_token_id=None,pad_token_id=pad,
                     stopping_criteria=StoppingCriteriaList([StopAtDeadline()]))
             torch.cuda.synchronize()
             seconds = time.perf_counter()-started
             generated = (output.shape[1]-width)*len(prompts)
-            if generated != 200*len(prompts):
-                raise ValueError('measurement did not generate 200 tokens per sequence')
+            if generated != new_tokens*len(prompts):
+                raise ValueError('measurement output count mismatch')
             generated_ids = [row[width:] for row in output.detach().cpu().tolist()]
             return dict(generated_ids=generated_ids,generated_ids_sha256=[token_ids_sha256(row) for row in generated_ids],
                 seconds=seconds,prefill_seconds=state['prefill_seconds'],
                 generated_tokens=generated,tokens_per_second=generated/seconds,tokens_per_second_per_sequence=generated/seconds/len(prompts),
-                peak_allocated_bytes=torch.cuda.max_memory_allocated(),prompt_tokens=list(map(len,prompts)),
-                new_tokens_per_sequence=200,padding='left')
-        except torch.cuda.OutOfMemoryError:
-            raise MeasurementOOM(torch.cuda.max_memory_allocated()) from None
+                peak_reserved_bytes=torch.cuda.max_memory_reserved(),decode_tokens_per_second=(generated-len(prompts))/(seconds-state['prefill_seconds']),peak_allocated_bytes=torch.cuda.max_memory_allocated(),prompt_tokens=list(map(len,prompts)),
+                new_tokens_per_sequence=new_tokens,padding='left')
+        except RuntimeError as exc:
+            from .memory import is_oom
+            if not isinstance(exc,torch.cuda.OutOfMemoryError) and not is_oom(exc): raise
+            failure = MeasurementOOM(torch.cuda.max_memory_allocated())
+            failure.peak_reserved_bytes = torch.cuda.max_memory_reserved()
+            raise failure from None
         finally:
             if before is not None: before.remove()
             if after is not None: after.remove()
             del ids,mask,output
+            import gc
+            gc.collect()
             torch.cuda.empty_cache()
 
 

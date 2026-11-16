@@ -12876,3 +12876,8 @@ Written by Claude (FT1 stage thread) after the run, against the pilot pre-run en
 Near-zero training loss this early is consistent with highly regular, templated training records, and it is a reason to watch for memorization. Whether arm 3 transfers to the different-domain test set is exactly what the evaluation measures; nothing is concluded here.
 
 **What follows.** Under the pre-run entry, a TRAINED pilot with no review flag leads to approvals for the other eleven training runs, each with its own receipt, scheduled against the weekly quota (about 2.6–3 h each, so about 30–35 GPU hours). Evaluation of this adapter waits for the evaluation-side work: the long-history memory finding from the speed test, the fit-limit measurement and the out-of-memory handling, which is still to be decided by Chris.
+
+
+## 2026-11-16 ? v0.24.92 FT1 memory round: code only, EXPLORATORY, $0
+
+Built attention configuration logging, per-episode mechanical OOM retention with a proposed three-consecutive stop, and a separately approvable public-base eager/SDPA fit ladder with a plan-only stager. See docs/process/FT1_MEMORY_ROUND_BUILD_2026-11-16.md for decisions and limits. No model/GPU run or execution approval; no training-path or scoring change. A declared prompt ceiling remains a prospective owner decision after measurement.

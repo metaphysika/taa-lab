@@ -50,7 +50,7 @@ class FakeModel:
 
 def fake_torch():
     cuda = types.SimpleNamespace(synchronize=lambda:None,reset_peak_memory_stats=lambda:None,
-        max_memory_allocated=lambda:123,empty_cache=lambda:None,device_count=lambda:1,
+        max_memory_reserved=lambda:456,max_memory_allocated=lambda:123,empty_cache=lambda:None,device_count=lambda:1,
         get_device_name=lambda index:'Tesla T4',OutOfMemoryError=OOM)
     return types.SimpleNamespace(cuda=cuda,tensor=lambda rows,device:Tensor(rows),inference_mode=Context)
 
