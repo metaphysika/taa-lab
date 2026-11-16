@@ -12877,20 +12877,6 @@ Near-zero training loss this early is consistent with highly regular, templated 
 
 **What follows.** Under the pre-run entry, a TRAINED pilot with no review flag leads to approvals for the other eleven training runs, each with its own receipt, scheduled against the weekly quota (about 2.6–3 h each, so about 30–35 GPU hours). Evaluation of this adapter waits for the evaluation-side work: the long-history memory finding from the speed test, the fit-limit measurement and the out-of-memory handling, which is still to be decided by Chris.
 
-<<<<<<< HEAD
-
-## 2026-11-16 — v0.24.92 FT1 memory round: code only, EXPLORATORY, $0
-
-Built attention configuration logging, per-episode mechanical OOM retention with a proposed three-consecutive stop, and a separately approvable public-base eager/SDPA fit ladder with a plan-only stager. See docs/process/FT1_MEMORY_ROUND_BUILD_2026-11-16.md for decisions and limits. No model/GPU run or execution approval; no training-path or scoring change. A declared prompt ceiling remains a prospective owner decision after measurement.
-
-PR #156 review fixes (code only, $0): same-model post-OOM recovery and evaluation-generator probes, load/cleanup memory snapshots, context_limit mechanical unknowns with receipt-bound prompt ceilings, separate aggregation counts and explicit gate_mechanical_unknown owner-decision stops. Added 11k/13k fit rungs and a 75-minute cooperative budget. No eligibility or rerun policy for mechanically unknown gates is adopted. No GPU/model run or training-path change.
-
-Review-fix offline checks: 54 focused tests passed; fast checks passed 684 tests and all scripted scenarios. Build only, $0. Evidence is retained in evidence/ft1-memory-round-20261116/review-focused.log and review-verified-fast.log. Fresh review of the revised head remains pending.
-
-Final PR #156 follow-ups after Fable approval at d73d8e11 (code only, EXPLORATORY, $0): context-limit cells preserve the OOM streak and name the limit rule; mechanical counts split action/knowledge. An evaluation-probe OOM now triggers one same-model evaluation-generator recovery reply at 2500 prompt tokens and up to 128 output tokens, with peaks and IDs/counts retained. Ladder recovery runs outside the exception handler. Derived planning estimate about 55 minutes, roughly 20 minutes below the 75-minute deadline; both-backends-all-fit estimate about 68 minutes before extra overhead, not a completion guarantee. See the build note for assumptions. No GPU/model run, training change or new eligibility/rerun policy.
-
-Final follow-up offline validation: 95 FT1 tests ran with one local-tokenizer skip; six sealed-dependent tests were excluded under the hard boundary. Fast checks passed 688 tests and all scripted scenarios. Raw followup-*.log files are retained in evidence/ft1-memory-round-20261116/. Plan-only restaging is tied to the final head; bundle hashes are reported in the handoff. Code only, $0; no run or merge.
-=======
 ## 2026-11-16 — v0.24.89 FT1 remaining 11 training runs at 0449a230: pre-run entry, exploratory, $0
 
 Written by Claude (FT1 training stage thread) before any of the eleven runs. One entry covers all eleven.
@@ -12938,4 +12924,15 @@ Written by Claude (FT1 training stage thread) before any of the eleven runs. One
 **After each run.** Fetch the output into a new dated `results/` folder named like the pilot's, verify every file against its `manifest.json`, commit only text evidence as the pilot README shows, copy the full output to `C:/Users/lahn0/T3/ft1-artifacts/`, and write the result entry. Weights, optimizer state and tokenizer copies are never committed.
 
 **Estimated use.** $0. About 2.6–3 GPU hours per run, about 25–33 hours in total, so roughly one to one and a half weeks of quota.
->>>>>>> origin/main
+
+## 2026-11-16 — v0.24.92 FT1 memory round: code only, EXPLORATORY, $0
+
+Built attention configuration logging, per-episode mechanical OOM retention with a proposed three-consecutive stop, and a separately approvable public-base eager/SDPA fit ladder with a plan-only stager. See docs/process/FT1_MEMORY_ROUND_BUILD_2026-11-16.md for decisions and limits. No model/GPU run or execution approval; no training-path or scoring change. A declared prompt ceiling remains a prospective owner decision after measurement.
+
+PR #156 review fixes (code only, $0): same-model post-OOM recovery and evaluation-generator probes, load/cleanup memory snapshots, context_limit mechanical unknowns with receipt-bound prompt ceilings, separate aggregation counts and explicit gate_mechanical_unknown owner-decision stops. Added 11k/13k fit rungs and a 75-minute cooperative budget. No eligibility or rerun policy for mechanically unknown gates is adopted. No GPU/model run or training-path change.
+
+Review-fix offline checks: 54 focused tests passed; fast checks passed 684 tests and all scripted scenarios. Build only, $0. Evidence is retained in evidence/ft1-memory-round-20261116/review-focused.log and review-verified-fast.log. Fresh review of the revised head remains pending.
+
+Final PR #156 follow-ups after Fable approval at d73d8e11 (code only, EXPLORATORY, $0): context-limit cells preserve the OOM streak and name the limit rule; mechanical counts split action/knowledge. An evaluation-probe OOM now triggers one same-model evaluation-generator recovery reply at 2500 prompt tokens and up to 128 output tokens, with peaks and IDs/counts retained. Ladder recovery runs outside the exception handler. Derived planning estimate about 55 minutes, roughly 20 minutes below the 75-minute deadline; both-backends-all-fit estimate about 68 minutes before extra overhead, not a completion guarantee. See the build note for assumptions. No GPU/model run, training change or new eligibility/rerun policy.
+
+Final follow-up offline validation: 95 FT1 tests ran with one local-tokenizer skip; six sealed-dependent tests were excluded under the hard boundary. Fast checks passed 688 tests and all scripted scenarios. Raw followup-*.log files are retained in evidence/ft1-memory-round-20261116/. Plan-only restaging is tied to the final head; bundle hashes are reported in the handoff. Code only, $0; no run or merge. (95 is a local subset; the full FT1 discover run at fdd160e5 is 101 tests OK, 1 skip, run by Fable, so no test was removed.)
