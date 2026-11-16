@@ -12686,3 +12686,193 @@ The r4 packet has 48 items; SHA-256
 `a6a3829dab550b90574937db6bfb476f583c1b3f3f36642304027b142cfcccab`.
 Its self-check passed with zero leaks and binds the packet and cases-file hashes.
 Schema unchanged; no r2/r3 or Astra files opened/modified; no real comparison.
+
+## 2026-11-15 — FT1 owner decisions after the evaluation build: pilot approved, speed test, blind-label disagreement rule (docs only)
+
+Written by Claude (FT1 stage thread). Chris (2026-11-15/16): "Let's go with your recommendations, 1 through 3". Those were the three items in Claude's message:
+
+1. **Pilot training run approved:** arm 3, seed 247056, phase train, at `0449a230200cef7c4f6e08c4bbaa5bbdac8ba636`, under the pre-run entry above (#152).
+   - The receipt quotes his words and names the item. It was uploaded as `metaphysika/ft1-train-approval-3-247056-0449a230200c` (`receipt.json`) and checked with `runner.validate_approval`.
+   - Only `PLAN_ONLY` was changed, by editing the notebook JSON. Exactly one source line differed, and it was checked before the push.
+   - Kernel `metaphysika/ft1-3-247056-train` version 1 was pushed at 2026-11-16 00:55 UTC. The result entry follows the run.
+2. **Speed test agreed in principle, before any evaluation:** a short, $0 throughput measurement on the untrained base model, with no sealed cases and no scoring. It measures:
+   - generation speed at about 2.5k and 10k prompt tokens;
+   - batch 2 and batch 4 speed and memory;
+   - base reply lengths on four public development episodes.
+
+   Sol builds it (v0.24.91, together with a runtime group-balance check for test parts). The run itself still needs its own pre-run entry and Chris's exact-commit approval. Whether evaluation uses batched generation is decided only after the measurement and declared before any evaluation run, because batching can change greedy outputs on near-ties.
+3. **Blind-label disagreement rule (adopted before any comparison; Fable's proposal):**
+   1. Astra's label file is validated against the closed schema first. Schema failures go back to Astra as item IDs and field names only, for correction. They are not disagreements.
+   2. Sol compares the four content fields over all 48 cases. Sol already knows the content; the orchestrator receives counts and opaque IDs only.
+   3. If there are zero disagreements, evaluation proceeds and the comparison hash is recorded.
+   4. Any disagreement stops evaluation. Each disputed item goes to a third, fresh-context labeller that has never seen the roster or the generator. That labeller gets the item text and both labels, without being told which is the generator's.
+      - If the third labeller agrees with the generator, the case is kept and recorded as an Astra miss.
+      - If it agrees with Astra, or gives a third answer, the case is ambiguous. The case and its twin are dropped prospectively by a recorded decision and never rewritten, and the denominators become 24 − k pairs, declared before any model run.
+   5. If more than 4 pairs (8 cases) are dropped, or any difficulty group loses more than 2 pairs, the battery is regenerated under a new hash and relabelled from scratch.
+   6. No relabelling, exclusion or regeneration happens after any model result exists.
+
+   Sol does not adjudicate, because Sol wrote the generator. Chris does not adjudicate either, so that he can say he never touched the labels.
+
+**Started:** Astra's blind labelling of the 48-item packet (`ft1-step2-r2-final-blind.json`, SHA-256 `d1bf7f15…`) against the closed schema (`aa8743f0…`). Astra opens only those two files. The output is private; the orchestrator sees only the file hash, the item count and the validation result.
+
+**Blind labelling result (2026-11-16, under the rule above): the FT1 test set is final.** Counts and hashes only; the orchestrator saw no content.
+- **Astra round 1 (r2 packet, not compared).** Astra labelled all 48 items in a schema-valid file (SHA-256 `13b973aa…`), but flagged all 48 as ambiguous. Astra's structural breakdown: the packet's instructions defined no label fields. Case facts and roster were present in all 48 items. 42 items were otherwise confident; 6 had two readings, on complete act and report recipient.
+  - This was a packet defect, found before any comparison. Sol added case-neutral field definitions (PR #154, reviewed twice by Fable). The packet was regenerated as r4: SHA-256 `a6a3829d…`, self-check `0be9916b…`, PASS, zero leaks, bound to packet hash `a6a3829d…` and cases hash `0d71f261…`. Sol privately confirmed that the gold `correct_option` is null wherever no decision is expressly ordered.
+  - The r2 label file is retained and was never compared.
+- **Astra round 2 (fresh context, r4 packet).** 48 labelled, schema-valid (SHA-256 `fe5ff300…`). Nothing was missing, no field had two readings, all 48 were labelled with full confidence, and no definition was unclear. Astra opened only the packet and the schema.
+- **Comparison** (Sol, with `blind.compare` at `33f8d635`; private output SHA-256 `ec6f4e97e4c581b100e0c682b5f9d09172a656a0dd2f2e04f792191d905ff5b6`):
+  - schema 48/48;
+  - kind, sphere, complete act and report recipient each 48/48 (100%), and 12/12 in every difficulty group (direct, record lookup, recipient lookup, outside sphere);
+  - 0 disagreeing cases and 0 disagreeing pairs.
+  - Under the adopted rule, evaluation may proceed with all 24 pairs. No case was dropped, relabelled or regenerated.
+- **Final battery:** sealed cases SHA-256 `0d71f261052be3a6a5e1224d80d316b0d2424adbe8e34bfb5c3397ff5e00babd`, 48 cases, 12 per group.
+- **Secrecy incident (disclosed).** During the round 4 delta review, a Fable `git grep` across `exploratory/ft1` returned five structural lines of `sealed.py`: stratum names and one line of outside-sphere logic. No case text, keys or IDs were exposed. Fable did not open the file or use the lines. Fable is a reviewer, not a labeller, so Astra's labels are unaffected. Future review briefs forbid repo-wide searches over `exploratory/ft1/`.
+
+## 2026-11-16 — v0.24.91 FT1 speed test (throughput measurement, untrained base, one Kaggle T4) at bf941651: pre-run entry, exploratory, $0 (no run approved)
+
+Written by Claude (FT1 stage thread) before the run. Chris agreed the speed test in principle (2026-11-15/16, item 2 above). It measures; it does not score, and it uses no sealed case, no FT1 data and no adapter.
+
+**Question.** On the evaluation stack, how fast does Gemma 3 12B NF4 generate on one T4? How long are the untrained base model's replies? Does batched greedy generation fit in memory and match single-stream output? The answers decide (i) the evaluation GPU-hour budget and schedule, and (ii) whether evaluation runs single-stream or batched.
+
+**Exact commit.** `bf9416513f15d732e35d45d910f57595468b8fcf` (main, v0.24.91, PR #154; reviewed by Fable twice, APPROVE).
+- **Repo dataset (new):** `metaphysika/taa-k2-repo-bf9416513f15`, built like the K2 launcher's archive (`git archive` with autocrlf off, `results` and `docs` excluded, `COMMIT.txt`, `ARCHIVE.json`). All 120 bound source hashes match it.
+- **Other mounts:** `metaphysika/k2-wheels`; model `google/gemma-3/transformers/gemma-3-12b-it/1`; new receipt dataset `metaphysika/ft1-throughput-approval-bf9416513f15`. No FT1 data or sealed dataset is mounted.
+- **Staged bundle** (`C:/t/ft1d/.k2-launch/ft1-throughput-bf9416…/`), SHA-256: `ft1_throughput.ipynb` `7d10d088…`, `binding.json` `a58e92f8…`, `kernel-metadata.json` `19339aeb…`.
+- **Kernel:** private `metaphysika/ft1-throughput`, internet off, one T4, pushed with `--accelerator NvidiaTeslaT4 --timeout 3600`.
+- **Receipt:** `approved: true`, the exact commit, `phase: "throughput"`, the model source, every data, adapter, sealed and gate field null, and Chris's exact words. Its shape was checked offline with `throughput.validate`, which accepts it with approval and refuses the draft.
+- **The only change before the push:** `PLAN_ONLY = True` → `False`, by editing the notebook JSON. Exactly one line differs, and the flag is checked in the file before pushing.
+
+**What it measures** (`exploratory/ft1/throughput.py`; 45-minute cooperative deadline):
+- load time;
+- single-stream greedy generation of 200 new tokens after a ~2.5k-token and a ~10k-token prompt from public development K2 histories, with prefill seconds and tokens/s;
+- batch 2 and batch 4 at 2.5k, with tokens/s and peak memory, and an OOM recorded per configuration;
+- per-row generated token IDs and hashes, with the first index where batch row 0 diverges from single-stream (null if identical);
+- four public development episodes through the evaluation episode loop with the evaluation system prompt (`crossing.SYSTEM`, the one `evaluation.episode` uses; not `data.SYSTEM`) and the 1,024 cap: turns, reply tokens and cap hits.
+
+**Outcome (fixed now).** This is a measurement, so there is no pass or fail.
+- **COMPLETE:** `metadata.json` status is `complete`.
+- **PARTIAL:** `load_complete` is present but the status is `incomplete` (deadline, OOM outside a guarded configuration, or an exception). Every recorded measurement is used as is.
+- **NOT ESTABLISHED:** no `load_complete`. A relaunch needs Chris's yes.
+- An OOM inside a guarded configuration is a result, not a failure.
+- **Minimum for each use** (Fable 5.2 finding 3):
+  - The budget needs the load time and the single-stream 2.5k row. The 10k row is wanted, but an OOM there is itself a finding.
+  - The batching decision needs the batch-2 and/or batch-4 rows.
+  - A PARTIAL run lacking these is reported as is. A relaunch after PARTIAL or NOT ESTABLISHED needs Chris's yes.
+- **Known risk:** every PARTIAL path re-raises, so the kernel ends in ERROR, and the code prints no measurements to the log. Whether Kaggle keeps `/kaggle/working` files from an errored version is not verified, so PARTIAL evidence depends on it.
+
+**Expectations, written before the run** (Claude):
+- Load 2–4 min.
+- Single-stream decode 4–6 tokens/s (FT0b: 4.89).
+- Prefill 5–20 s at 2.5k, and 30–120 s at 10k, or OOM (FT0 hit OOM at 1,024 on a logits allocation; about 35%).
+- Batch 2 at 1.6–1.9× and batch 4 at 2.5–3.5× aggregate tokens/s. Batch 4 fits at 2.5k (about 80%).
+- Batch row 0 identical to single-stream over 200 tokens: about 50% at batch 2 and 40% at batch 4 (fp16 near-ties).
+- Base development replies: median 150–400 tokens, at least one 1,024 cap hit across the four episodes (about 60%).
+
+**How the numbers will be used (fixed now).**
+- **Rates** (Fable 5.2 finding 2):
+  - The decode rate is 199 × batch ÷ (`seconds` − `prefill_seconds`), with prefill excluded.
+  - The retained `tokens_per_second` field includes prefill and is reported alongside.
+  - The 1.5× batching threshold uses the decode-only rate.
+- **Budget:** per-turn cost is prefill plus reply tokens divided by the decode rate. That is applied to the plan's episode counts, with a +30% margin for the unmerged PEFT adapter on trained arms (Fable), and reported per model and in total against the ~30 h/week quota.
+- **Batching:** Chris decides after seeing the numbers, before any evaluation run.
+  - Claude's default recommendation: batch k is considered only if it fits (no OOM, peak at most 13.5e9 bytes) and gives at least 1.5× decode-only throughput.
+  - **Row 0 is necessary but not sufficient** (Fable 5.2 finding 1, must-fix). Row 0 is the longest prompt, so it is the one unpadded row, and it is a single prompt forced to 200 tokens. A match does not show that padded rows, as in real batched evaluation, match single-stream.
+    - If row 0 diverges, batching is not offered as output-equivalent.
+    - Either way, batching can be adopted only as a declared protocol, applied identically to every model, or after a separate padded-row equivalence check on development cases.
+
+**Estimated use.** $0. About 45–60 GPU minutes.
+
+**Limits.** These are base-model numbers on public development cases.
+- The batch speedup is an upper bound: prompt lengths are near-equal and every row is forced to 200 tokens.
+- "Fits" is shown only at 2.5k.
+- A 10k OOM is a feasibility finding for evaluation, whose context limit is 16,384, not only a budget gap.
+- `development_turn` events carry no prompt length or timing, so the budget formula can be cross-checked only against total kernel time.
+- **Fable 5.2 readiness review** (fresh context, of `bf941651` and this bundle; READY WITH FIXES; the wording fixes are applied above):
+  - Forecast: COMPLETE 55%, PARTIAL 35%, NOT ESTABLISHED 10%.
+  - Expected numbers: decode 4.5–5.5 tokens/s, batch-4 decode-only speedup 3.2–3.8×, 10k OOM 40%, row 0 identical 60% at batch 2 and 50% at batch 4.
+  - Pre-mortem: the four episodes run to the deadline and the errored kernel loses its files; or a non-OOM memory error at 10k stops the run before the batch rows; or a row-0 match is misread as batching being safe.
+  - Checked offline: 119 of 120 source hashes match the archive (the 120th, `sealed.py`, by size only, unread), and the archive is byte-identical to the launcher's build apart from `COMMIT.txt` and `ARCHIVE.json`.
+- Chris approved before the review returned (2026-11-16: "Approve FT1 speed test at bf941651"). The push waited for the review. The fixes are wording only, with no change to the commit, bundle or receipt. Trained-arm reply lengths may differ (they are expected to be shorter). A 10k prefill does not bound the longest histories (up to 16k).
+
+No run is approved by this entry. The speed test needs Chris's exact-commit approval of `bf9416513f15d732e35d45d910f57595468b8fcf`, phase throughput.
+
+## 2026-11-16 — Fable reviewer model changed to Fable 5.2 at medium effort (process, docs only)
+
+Chris (2026-11-16): "lets make sure we are calling fable 5.2 medium and not fable 5.1 … 5.2 is smarter and cheaper." From now on, Fable reviews run as `claude-fable-5-2` with effort `medium`. This is updated in `AGENTS.md` (the source of truth for the roles) and in the Notion Master Plan's Working rules. Earlier review records keep their original model (`claude-fable-5-1`), which is accurate history and not rewritten.
+- The FT1 speed-test readiness review had just started on 5.1. It was cancelled before reporting and restarted on 5.2 medium, so that review is wholly 5.2.
+- Every Fable review earlier in this stage ran on 5.1: the job (b) PR reviews, the pilot readiness review, and the PR #151 and #154 reviews and re-checks.
+
+## 2026-11-16 — v0.24.91 FT1 speed test at bf941651: COMPLETE (throughput measurement on one Kaggle T4, exploratory, $0)
+
+Written by Claude (FT1 stage thread) after the run, against the pre-run entry above. Chris approved on 2026-11-16: "Approve FT1 speed test at bf941651".
+
+**Evidence.** `results/2026-11-16 v0.24.91 ft1-throughput bf9416513f15/` (README, `launch/`, `kaggle-v1/ft1-throughput/events.jsonl`, `metadata.json`, `manifest.json`, log). Status `complete`, and all files match the manifest. The kernel ran from push at 02:40 to COMPLETE at 02:52 UTC, about 12 minutes.
+
+**Measurements.** Base identity: `gemma3`, 48 layers, hidden size 3,840, vocabulary 262,208, config SHA-256 `39172c41…`.
+
+| Configuration | Result |
+|---|---|
+| Load | 240 s |
+| Single stream, 2,500-token prompt | 200 tokens in 33.4 s, prefill 7.0 s. **Decode-only 7.55 tokens/s**; the retained field, which includes prefill, is 6.00. Peak allocated 10.0e9 bytes |
+| Single stream, 10,000-token prompt | **Out of memory** (peak allocated 9.43e9 bytes when it stopped) |
+| Batch 2, 2,500 and 2,493 tokens | 400 tokens in 59.5 s, prefill 11.2 s. Decode-only 8.26 tokens/s aggregate, **1.09×** single stream. Peak 12.2e9. Row 0 identical to single stream over 200 tokens |
+| Batch 4, 2,500 tokens | **Out of memory** (peak 14.7e9) |
+| Four public development episodes (base) | 2, 2, 4 and 4 turns. 12 replies of 35–97 tokens (mean 70). No cap hits, none malformed |
+
+**Against the expectations.**
+- Decode was faster than Claude's 4–6 and Fable's 4.5–5.5 tokens/s.
+- Load took 4 min, at the top of Claude's range and above Fable's 2.5–3.5 min.
+- The 10k prefill ran out of memory; Claude gave 35% and Fable 40%.
+- Batch 4 did not fit; both gave about 75–80% that it would.
+- Batch 2 gave 1.09×, far below the expected 1.6–1.95×.
+- Base replies were much shorter than Claude's expected median of 150–400 tokens, with no cap hit.
+- Row 0 matched at batch 2, which both forecasts put at 50–60%.
+- Outcome COMPLETE; Fable gave 55%.
+
+**Uses, under the rules fixed before the run.**
+- **Batching: not offered.** Batch 2 fits and row 0 matches, but at 1.09× it fails the 1.5× decode-only threshold, and batch 4 does not fit at 2.5k. Evaluation runs single-stream, which needs no protocol change.
+- **Budget** (prefill plus reply tokens ÷ 7.55, with +30% for the unmerged adapter on trained arms):
+  - **Base:** with replies of about 70 tokens and a 2.5k-scale prefill, a turn costs about 16 s. The plan's per-model counts are 40 acquisition replies, 8 format episodes, 48 action episodes and 48 knowledge replies. At 2–4 turns per episode as observed, that is roughly 1.3–1.8 h per model including three loads.
+  - **Trained arms:** reply lengths are unknown. Arm 3 was trained to write reasons, so about 150–250 tokens is plausible. That gives roughly 2–3.5 h each with the margin.
+  - **Total:** about **25–45 T4 hours** for all 13 models, roughly one to one and a half weeks of Kaggle's ~30 h/week quota. This is down from the 95–150 h estimated before the measurement. It is a planning estimate: episode lengths on the sealed cases and the trained arms' reply lengths are not measured.
+- **New feasibility finding: a long-history limit somewhere between 2.5k and 10k prompt tokens on this stack.** The 10k single-stream prefill ran out of memory on the T4. Evaluation episodes grow a history over up to 12 turns, against a context limit of 16,384 in `evaluate_runner`. Long lookup or outside-sphere episodes could reach a length that does not fit.
+  - The exact fitting length is not measured.
+  - How the evaluation runner records an out-of-memory error mid-episode was not tested on GPU.
+  - This must be settled before the first gate or test run. Proposed next step: offline, with the local tokenizer, Sol reports the turn-0 prompt length distribution for the sealed cases (counts only) and the public development turn lengths. Fable reviews how an episode OOM is recorded (a mechanical unknown, not a conduct result). If needed, a short separately approved run finds the largest prompt that fits.
+
+**What this shows and does not show.** These are base-model numbers on public development cases on one T4. They are not trained-arm or sealed-case numbers, and nothing here is a conduct result or touches H2.
+
+## 2026-11-16 — v0.24.89 FT1 pilot training run (arm 3, seed 247056) at 0449a230: TRAINED (one Kaggle T4, exploratory, $0)
+
+Written by Claude (FT1 stage thread) after the run, against the pilot pre-run entry (#152). Chris approved on 2026-11-15/16 (item 1, "Let's go with your recommendations, 1 through 3").
+
+**Evidence.** `results/2026-11-16 v0.24.89 ft1-train-3-247056 0449a230200c/` (README, `launch/`, `kaggle-v1/ft1-3-247056-train/events.jsonl`, `metadata.json`, `manifest.json`, configs, trainer states, log). All 53 output files match the run's manifest. Weights and optimizer state are kept outside git with their manifest hashes; a full 2.0 GB copy is kept outside the repo. The kernel ran from push at 00:55 to COMPLETE at 03:34 UTC.
+
+**Outcome: TRAINED.** Every part of the pre-run rule holds:
+- `metadata.json` status `trained`;
+- 250 `optimizer_step` events;
+- checkpoints saved at 50, 100, 150, 200 and 250;
+- `adapter_saved` with `tensors_finite: true` (adapter weights SHA-256 `f99d7df8…`);
+- `training_complete` with 250 steps and `qualification: false`;
+- **zero skipped updates**, with the skip signal present on all 250 steps.
+
+**No review flag.**
+- Peak allocated at most 9.29e9 bytes, below both the 10.5e9 review line and the 13.5e9 limit.
+- Steps took 36.8 s on average; the slowest took 41.1 s, against the 75 s line.
+- Setup took 226 s, and the run took 9,428 s (2.6 h) to the last event, against the 6.5 h line.
+- All 2,000 micro-losses are finite.
+
+**Against the forecasts.** Claude gave TRAINED 85 / INCOMPLETE 6 / NOT TRAINED 2 / NOT ESTABLISHED 7. Fable (5.1) gave 84/7/1/8. Both favoured TRAINED. Fable's pre-mortem risks (a host interruption, a late memory peak, fp16 drift) did not occur.
+
+**Descriptive only, no learning claim.** The token-weighted training loss per 25-step block fell fast:
+
+| Steps | Action loss | Reason loss |
+|---|---|---|
+| 1–25 | 0.110 | 0.892 |
+| 26–50 | 0.001 | 0.082 |
+| 101–125 | <0.001 | 0.021 |
+| 226–250 | <0.001 | 0.014 |
+
+Near-zero training loss this early is consistent with highly regular, templated training records, and it is a reason to watch for memorization. Whether arm 3 transfers to the different-domain test set is exactly what the evaluation measures; nothing is concluded here.
+
+**What follows.** Under the pre-run entry, a TRAINED pilot with no review flag leads to approvals for the other eleven training runs, each with its own receipt, scheduled against the weekly quota (about 2.6–3 h each, so about 30–35 GPU hours). Evaluation of this adapter waits for the evaluation-side work: the long-history memory finding from the speed test, the fit-limit measurement and the out-of-memory handling, which is still to be decided by Chris.
