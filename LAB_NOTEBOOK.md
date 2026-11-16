@@ -12621,3 +12621,35 @@ Written by Claude (FT1 job (b) stage thread) before the run. After job (b) passe
 **What follows.** TRAINED with no review flag: approvals for the other eleven training runs, scheduled against the quota, each with its own receipt. Each still needs Chris's yes, unless he approves a batch. NOT TRAINED, INCOMPLETE or a review flag: a repair or decision round before any further training. Whatever the outcome, the adapter is evaluated only later, under its own approval.
 
 No run is approved by this entry. The pilot needs Chris's exact-commit approval of `0449a230200cef7c4f6e08c4bbaa5bbdac8ba636` for arm 3, seed 247056, phase train.
+
+## 2026-11-15 — v0.24.90 FT1 evaluation runner build (code only, no run, $0)
+
+FT1 step 2, round 1 build brief. New local-only evaluation entrypoint and plan-only
+Kaggle stager bind the exact source commit, model, adapter files and training
+manifest, data manifest, sealed SHA-256 and evaluation part to a separate receipt.
+Acquisition and eight format-only episodes precede every part's test cells.
+Four disjoint parts cover 48 action and 48 knowledge cells per model. Training
+code and qualification rules are unchanged. Turn journals retain partial evidence.
+
+Private sealed file SHA-256:
+`0d71f261052be3a6a5e1224d80d316b0d2424adbe8e34bfb5c3397ff5e00babd`.
+48 cases: direct 12, record_lookup 12, recipient_lookup 12, outside_sphere 12.
+The private blind packet has 48 items. No model, GPU, Kaggle, Modal or comparison
+run took place. Blind labels, disagreement-rule adoption, exact-commit review and
+owner execution approval remain outstanding.
+
+FT1 evaluation adapter-binding follow-up (same code-only build): adopted Fable's
+training-pilot readiness addition. Require adapter_saved.tensors_finite=true;
+refuse interrupted adapters, checkpoints and all non-trained statuses; accept
+the legacy scientific=false label; explicitly bind the supplied base path.
+Synthetic refusal tests pass. No training change or new private-file generation.
+
+FT1 evaluation runner round 2 (code only, no run, $0): separated the once-per-model
+gate from two default twin-paired test parts; base remains reference-only even
+when its gate fails. Default parts each have 24 cases, six per difficulty group.
+The sealed file is unchanged. The regenerated private packet has 48 items,
+SHA-256 d1bf7f1591121ffbb89e5005891db8cbed957e864d4feea5c593da52caa488ee;
+its private leak self-check passed, zero detected leaks. Closed-schema labels,
+small-JSON mount discovery, gate identity and conflicting duplicate-row refusal
+are built offline. No comparison, model or GPU run. Disagreement policy remains
+for Chris. After the pilot pre-run entry (#152) merged, Claude merged origin/main into this branch and resolved the notebook conflict by keeping both entries, pilot first.
