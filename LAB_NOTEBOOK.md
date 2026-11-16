@@ -12774,3 +12774,9 @@ Written by Claude (FT1 stage thread) before the run. Chris agreed the speed test
 **Limits.** These are base-model numbers on public development cases. Trained-arm reply lengths may differ (they are expected to be shorter). A 10k prefill does not bound the longest histories (up to 16k).
 
 No run is approved by this entry. The speed test needs Chris's exact-commit approval of `bf9416513f15d732e35d45d910f57595468b8fcf`, phase throughput.
+
+## 2026-11-16 — Fable reviewer model changed to Fable 5.2 at medium effort (process, docs only)
+
+Chris (2026-11-16): "lets make sure we are calling fable 5.2 medium and not fable 5.1 … 5.2 is smarter and cheaper." From now on, Fable reviews run as `claude-fable-5-2` with effort `medium`. This is updated in `AGENTS.md` (the source of truth for the roles) and in the Notion Master Plan's Working rules. Earlier review records keep their original model (`claude-fable-5-1`), which is accurate history and not rewritten.
+- The FT1 speed-test readiness review had just started on 5.1. It was cancelled before reporting and restarted on 5.2 medium, so that review is wholly 5.2.
+- Every Fable review earlier in this stage ran on 5.1: the job (b) PR reviews, the pilot readiness review, and the PR #151 and #154 reviews and re-checks.
