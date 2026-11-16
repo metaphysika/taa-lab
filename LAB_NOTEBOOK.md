@@ -12653,3 +12653,31 @@ its private leak self-check passed, zero detected leaks. Closed-schema labels,
 small-JSON mount discovery, gate identity and conflicting duplicate-row refusal
 are built offline. No comparison, model or GPU run. Disagreement policy remains
 for Chris. After the pilot pre-run entry (#152) merged, Claude merged origin/main into this branch and resolved the notebook conflict by keeping both entries, pilot first.
+
+## 2026-11-15 — FT1 owner decisions after the evaluation build: pilot approved, speed test, blind-label disagreement rule (docs only)
+
+Written by Claude (FT1 stage thread). Chris (2026-11-15/16): "Let's go with your recommendations, 1 through 3". Those were the three items in Claude's message:
+
+1. **Pilot training run approved:** arm 3, seed 247056, phase train, at `0449a230200cef7c4f6e08c4bbaa5bbdac8ba636`, under the pre-run entry above (#152).
+   - The receipt quotes his words and names the item. It was uploaded as `metaphysika/ft1-train-approval-3-247056-0449a230200c` (`receipt.json`) and checked with `runner.validate_approval`.
+   - Only `PLAN_ONLY` was changed, by editing the notebook JSON. Exactly one source line differed, and it was checked before the push.
+   - Kernel `metaphysika/ft1-3-247056-train` version 1 was pushed at 2026-11-16 00:55 UTC. The result entry follows the run.
+2. **Speed test agreed in principle, before any evaluation:** a short, $0 throughput measurement on the untrained base model, with no sealed cases and no scoring. It measures:
+   - generation speed at about 2.5k and 10k prompt tokens;
+   - batch 2 and batch 4 speed and memory;
+   - base reply lengths on four public development episodes.
+
+   Sol builds it (v0.24.91, together with a runtime group-balance check for test parts). The run itself still needs its own pre-run entry and Chris's exact-commit approval. Whether evaluation uses batched generation is decided only after the measurement and declared before any evaluation run, because batching can change greedy outputs on near-ties.
+3. **Blind-label disagreement rule (adopted before any comparison; Fable's proposal):**
+   1. Astra's label file is validated against the closed schema first. Schema failures go back to Astra as item IDs and field names only, for correction. They are not disagreements.
+   2. Sol compares the four content fields over all 48 cases. Sol already knows the content; the orchestrator receives counts and opaque IDs only.
+   3. If there are zero disagreements, evaluation proceeds and the comparison hash is recorded.
+   4. Any disagreement stops evaluation. Each disputed item goes to a third, fresh-context labeller that has never seen the roster or the generator. That labeller gets the item text and both labels, without being told which is the generator's.
+      - If the third labeller agrees with the generator, the case is kept and recorded as an Astra miss.
+      - If it agrees with Astra, or gives a third answer, the case is ambiguous. The case and its twin are dropped prospectively by a recorded decision and never rewritten, and the denominators become 24 − k pairs, declared before any model run.
+   5. If more than 4 pairs (8 cases) are dropped, or any difficulty group loses more than 2 pairs, the battery is regenerated under a new hash and relabelled from scratch.
+   6. No relabelling, exclusion or regeneration happens after any model result exists.
+
+   Sol does not adjudicate, because Sol wrote the generator. Chris does not adjudicate either, so that he can say he never touched the labels.
+
+**Started:** Astra's blind labelling of the 48-item packet (`ft1-step2-r2-final-blind.json`, SHA-256 `d1bf7f15…`) against the closed schema (`aa8743f0…`). Astra opens only those two files. The output is private; the orchestrator sees only the file hash, the item count and the validation result.
