@@ -13239,3 +13239,59 @@ Action loss per 25-step block fell from about 0.44 to below 0.0001 in both. This
 - an extended fit-limit phase that tries up to 14–16k tokens.
 
 Fable reviews the build next. The second measurement needs Chris's exact-commit approval. Training continues meanwhile.
+
+## 2026-11-16 — v0.24.93 FT1 fit-limit 2 (chunked prefill) at 09fac296: PRE-RUN entry, before any result (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) before staging. Chris chose "option a" on 2026-11-16: fix the prefill memory cost offline, then run a second short fit-limit measurement. That measurement needs his exact-commit approval, which is not yet given.
+
+**What is being run.**
+- **Commit:** `09fac2962b3759b783b8b2978069627749b0e8ca`, main after merging PR #161 (Sol's build, reviewed by Fable twice; the second review found no blocking findings).
+- **Kaggle:** kernel `metaphysika/ft1-fit-limit` (a new version), one T4, internet off, phase `fit_limit`.
+- **Model and data:** untrained base Gemma 3 12B NF4, public development prompts only. No adapter, gate or sealed material.
+- **Settings:** eager attention only; `prefill_mode: chunked`, `prefill_chunk_size: 256`.
+- **Order:**
+  - parity first: current path 2,500 tokens, fixed path 2,500, current 4,000, fixed 4,000, each with 1,024 forced output tokens;
+  - then the fixed-path ladder: 2,500, 4,000, 6,000, 8,000, 10,000, 11,000, 12,000, 13,000, 14,000, 16,000;
+  - with out-of-memory recovery and evaluation-path probes, as in the first fit run.
+- **Deadline:** cooperative, 4,500 s including load.
+- **Receipt:** a new `ft1-fit2-approval-…` dataset with the eight fields required by `docs/process/FT1_CHUNKED_FIT_RECEIPT_v02493.schema.json`, plus Chris's words.
+
+**Staged, plan-only (not pushed).**
+- Folder: `C:/t/ft1f/.k2-launch/ft1-fit-limit-09fac296…/`.
+- Hashes: notebook `abfc4d51…` (`PLAN_ONLY = True`), binding `97fe55b9…`, kernel metadata `d84e94a5…`.
+- The binding hashes 112 source files, all of which match the archive (after the usual CRLF normalisation). No sealed file is among them.
+- Internet is off. The data sources are `taa-k2-repo-09fac296` (code archive, uploaded), `k2-wheels` and `ft1-fit2-approval-09fac296`. The receipt is drafted and passes the schema, but it is not uploaded until Chris approves.
+
+**Outcome rules, fixed now.**
+- **COMPLETE:** `metadata.json` status `complete`, and every planned measurement recorded as fit or out-of-memory.
+- **Largest fit:** the last rung recorded as `fit` before the first out-of-memory rung. If every rung fits, it is "at least 16,000".
+- **INCOMPLETE (deadline or crash after at least one ladder rung):** the result is "at least the last completed rung". No upper bound is claimed.
+- **NOT ESTABLISHED:** the run fails before any ladder rung, for example on a receipt or validation refusal, a backend read-back mismatch, or a load failure. A relaunch needs Chris's yes.
+- **Parity, fixed against current path** (at 2,500 and at 4,000, judged up to the first end-of-turn token of the current path's reply):
+  - identical up to end of turn: **same**;
+  - first divergence before end of turn but at reply token 256 or later: **ordinary half-precision noise**, as for the eager-versus-sdpa comparison in the first run;
+  - first divergence before reply token 256: **review flag**. Chunked prefill is not used in evaluation until Chris decides.
+  - If the current path itself runs out of memory at 4,000, parity at 4,000 is "unavailable", not "same".
+  - Full-length divergence over all 1,024 tokens is reported descriptively.
+- **Recovery:** after any out-of-memory, memory must return to within 0.1e9 of the after-load figure, and the evaluation probe must reply normally. If not, that is a review flag.
+
+**How the result will be used.** The same rule as the first fit run applies: the proposed prompt ceiling is at least 1,000 tokens below the largest fit. A trained adapter adds some memory, so the ceiling is a proposal for Chris, who decides the ceiling and the backend before any gate run. If the largest fit is still far below 11–13k, Claude brings options B and C back to him.
+
+**Forecasts, written before the run.**
+
+| | Claude | Fable 5.2 |
+|---|---|---|
+| Largest fit ≥ 8,000 | 85% | 92% |
+| Largest fit ≥ 12,000 | 75% | 87% |
+| Largest fit ≥ 14,000 | 65% | 83% |
+| Parity "same" or "noise" at both lengths | 85% | — |
+| Outcome COMPLETE | 70% | — |
+
+Fable's peak estimate with the fix is about 10e9 bytes at 13,000 tokens and about 10.5e9 at 16,000, against 15.64e9 on the card. Fable's figures include a roughly 7% chance of a failure unrelated to memory.
+
+**Known open items, not blocking.** Fable's re-check left three small follow-ups:
+- R1: the equivalence test runs on sdpa rather than eager. Eager passed in Fable's own scratch run.
+- R2: one number pair in the diagnosis doc is wrong.
+- R3: cosmetic.
+
+They go in a later small PR and do not change the code that runs.
