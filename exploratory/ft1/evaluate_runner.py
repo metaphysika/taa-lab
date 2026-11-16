@@ -64,7 +64,27 @@ def adapter_binding(folder, arm, seed):
                 adapter_files=files, skipped_steps=completed[0]['skipped_steps'])
 
 
+def prefill_options(config):
+    mode = config.get('prefill_mode', 'current')
+    size = config.get('prefill_chunk_size')
+    if mode not in ('current', 'chunked') or (mode == 'current' and size is not None):
+        raise ValueError('invalid prefill mode')
+    if mode == 'chunked':
+        if type(size) is not int or not 1 <= size <= 16384:
+            raise ValueError('positive bounded prefill chunk size required')
+        return dict(prefill_chunk_size=size, logits_to_keep=1)
+    return {}
+
+
+def validate_prefill(config, receipt):
+    prefill_options(config)
+    for key in ('prefill_mode', 'prefill_chunk_size'):
+        if config.get(key) != receipt.get(key):
+            raise ValueError('prefill receipt mismatch')
+
+
 def validate(config, receipt):
+    validate_prefill(config, receipt)
     if (config['arm'],config['seed']) not in plan.MODELS or config['phase'] not in ('gate','evaluate'):
         raise ValueError('unplanned evaluation')
     keys = ('repo_commit','phase','arm','seed','adapter_sha256','training_manifest_sha256',
@@ -126,6 +146,8 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
         retain(dict(event='format_only',case_id=cell['case_id'],raw_replies=raw_replies))
     if tracker.total: return unknown_gate(config, skipped, tracker)
     gate = scoring.eligibility(records,replies,formats,skipped)
+    if prefill_options(config):
+        gate.update(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size'])
     retain(dict(event='eligibility', **gate))
     return dict(gate, prompt_ceiling=config.get('prompt_ceiling'), **tracker.counts, status='complete', skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
                 adapter_sha256=config['adapter_sha256'],
@@ -138,6 +160,7 @@ def validate_gate(config, gate):
     for key in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source'):
         if key not in gate or gate[key] != config.get(key):
             raise ValueError('gate identity mismatch')
+    validate_prefill(config, gate)
     if gate.get('prompt_ceiling') != config.get('prompt_ceiling'):
         raise ValueError('gate prompt ceiling mismatch')
     if gate.get('status') in ('gate_mechanical_unknown','mechanical_unknown'):
@@ -217,7 +240,7 @@ def load_base(model_path, retain, check, attention=None):
     return model,tokenizer,path
 
 
-def prepare(model_path, adapter, retain, check, prompt_ceiling=None):
+def prepare(model_path, adapter, retain, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None):
     """Inference NF4 base, optionally the verified adapter; no new LoRA weights."""
     model,tokenizer,path = load_base(model_path,retain,check)
     if adapter is not None:
@@ -226,11 +249,12 @@ def prepare(model_path, adapter, retain, check, prompt_ceiling=None):
         adapter_config.base_model_name_or_path = str(path)
         model = PeftModel.from_pretrained(model,adapter,config=adapter_config,
             local_files_only=True,is_trainable=False)
-    return generation_functions(model,tokenizer,check,prompt_ceiling=prompt_ceiling)
+    return generation_functions(model,tokenizer,check,prompt_ceiling=prompt_ceiling, prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size)
 
 
-def generation_functions(model, tokenizer, check, prompt_ceiling=None):
+def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None):
     import torch, transformers
+    options = prefill_options(dict(prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size))
     model.eval()
     check()
     def generate(system,history,cap,seed, *, prompt_ids=None, return_ids=False):
@@ -246,7 +270,7 @@ def generation_functions(model, tokenizer, check, prompt_ceiling=None):
             tensor = torch.tensor([ids],device='cuda')
             with torch.inference_mode():
                 output = model.generate(input_ids=tensor,attention_mask=torch.ones_like(tensor),max_new_tokens=cap,
-                    do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id)
+                    do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id, **options)
             generated_ids = output[0,len(ids):].tolist()
             return generated_ids if return_ids else core.decode_reply(tokenizer,generated_ids,'gemma-3-12b-it')
         except RuntimeError as exc:
@@ -301,7 +325,10 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
             retain(dict(event='eligibility',**gate))
             result = dict(status='ineligible',eligibility=gate)
         else:
-            generate,count_tokens = prepare(model_path,adapter,retain,check,**({'prompt_ceiling':config['prompt_ceiling']} if config.get('prompt_ceiling') is not None else {}))
+            options = prefill_options(config)
+            if options:
+                retain(dict(event='prefill_config',prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']))
+            generate,count_tokens = prepare(model_path,adapter,retain,check,**(dict(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']) if options else {}),**({'prompt_ceiling':config['prompt_ceiling']} if config.get('prompt_ceiling') is not None else {}))
             if config['phase'] == 'gate':
                 probe = data.PROBE_FILES.get(config['arm'],data.PROBE_FILES['3'])
                 records = json.loads((Path(data_folder)/probe).read_bytes())
@@ -325,6 +352,7 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
 def unknown_gate(config, skipped, tracker):
     retain = tracker.retain
     retain(dict(event='gate_mechanical_unknown',**tracker.counts))
-    return dict(acquired=None, trained=plan.trained(skipped), status='gate_mechanical_unknown',
+    options = dict(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']) if prefill_options(config) else {}
+    return dict(**options, acquired=None, trained=plan.trained(skipped), status='gate_mechanical_unknown',
         decision_required='owner decision on eligibility and reruns', **tracker.counts, skipped_steps=skipped,
         **{k:config.get(k) for k in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source','prompt_ceiling')})

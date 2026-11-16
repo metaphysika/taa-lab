@@ -13192,6 +13192,18 @@ Written by Claude (FT1 training stage thread) after the run, against the pre-run
 
 **What follows.** This goes to Chris as a decision, before any gate or sealed run. Training continues meanwhile and is unaffected.
 
+
+## 2026-11-16 - v0.24.93 FT1 opt-in chunked prefill build (offline)
+
+Diagnosis and CPU reproduction: `docs/process/FT1_PREFILL_MEMORY_DIAGNOSIS_v02493.md`.
+Pinned Transformers already limits generation logits to one position. Dense eager
+attention and fp32 softmax provide a quadratic workspace explanation; chunking
+reduces tiny CPU attention allocations and preserves greedy IDs in window-crossing
+tests. This does not establish 12B NF4 parity or T4 capacity. The optional path
+uses the pinned library's cached chunk prefill; current behavior remains default.
+Proposed public-only eager fit-limit measurement binds mode/chunk and a 75-minute
+cooperative deadline, compares current/fixed paths at 2500/4000, then ladders to
+16000 with recovery. Build only: no staging, launch, GPU or provider calls.
 ## 2026-11-16 — v0.24.89 FT1 training runs arm 1 / 247057 and arm 4 / 247056 at 0449a230: both TRAINED; Chris chooses option A on the prompt-length limit (exploratory, $0)
 
 Written by Claude (FT1 training stage thread) against the 11-run pre-run entry (#155), under the same approval ("Approve and write the new thread").

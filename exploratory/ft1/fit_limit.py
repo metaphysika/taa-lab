@@ -11,6 +11,13 @@ from exploratory.k2_kaggle import core
 LENGTHS = (2500,4000,6000,8000,10000,11000,12000,13000,14000,16000)
 
 def validate(config, receipt):
+    if config.get('prefill_mode') == 'chunked':
+        for key in ('prefill_mode','prefill_chunk_size','deadline_seconds'):
+            if key not in config or key not in receipt:
+                raise ValueError('chunked fit receipt requires '+key)
+        if type(config['deadline_seconds']) is not int or not 0 < config['deadline_seconds'] <= 4500:
+            raise ValueError('deadline must be integer seconds within 75 minutes')
+    evaluate_runner.validate_prefill(config, receipt)
     if config.get('phase') != 'fit_limit' or receipt.get('phase') != 'fit_limit':
         raise ValueError('separate fit_limit approval required')
     if receipt.get('deadline_seconds') != config.get('deadline_seconds'):
@@ -134,7 +141,9 @@ def run(config, model_path, output, receipt, seconds=4500):
         import torch
         if torch.cuda.device_count()!=1 or torch.cuda.get_device_name(0)!='Tesla T4':
             raise ValueError('one visible Tesla T4 required')
-        for attention in ('eager','sdpa'):
+        fixed = bool(evaluate_runner.prefill_options(config))
+        retain(dict(event='prefill_config',prefill_mode=config.get('prefill_mode','current'),prefill_chunk_size=config.get('prefill_chunk_size'),deadline_seconds=seconds))
+        for attention in (('eager',) if fixed else ('eager','sdpa')):
             check()
             model = tokenizer = backend = None
             try:
@@ -142,9 +151,33 @@ def run(config, model_path, output, receipt, seconds=4500):
                 actual = getattr(getattr(model.config,'text_config',model.config),'_attn_implementation',None)
                 top = getattr(model.config,'_attn_implementation',None)
                 retain(dict(event='attention_readback',requested=attention,text=actual,top=top,mismatch=attention not in (actual,top)))
-                backend = throughput.TorchBackend(model,tokenizer)
-                generate,_ = evaluate_runner.generation_functions(model,tokenizer,check)
+                backend = throughput.TorchBackend(model,tokenizer,config)
+                generate,_ = evaluate_runner.generation_functions(model,tokenizer,check,**(dict(prefill_mode=config["prefill_mode"],prefill_chunk_size=config["prefill_chunk_size"]) if fixed else {}))
                 try:
+                    if fixed:
+                        current = throughput.TorchBackend(model,tokenizer)
+                        for target in (2500,4000):
+                            prompts = [throughput.prompt_ids(tokenizer,throughput.public_cases(),target)]
+                            rows = []
+                            for label, path in (('current',current),('fixed',backend)):
+                                check()
+                                try:
+                                    result = path.benchmark(prompts,check,new_tokens=1024)
+                                    rows.append(result['generated_ids'][0])
+                                    retain(dict(event='path_parity_measurement',path=label,prompt_tokens=target,measurement=result))
+                                except throughput.MeasurementOOM as exc:
+                                    rows.append(None)
+                                    retain(dict(event='path_parity_measurement',path=label,prompt_tokens=target,status='oom',
+                                        peak_allocated_bytes=exc.peak_allocated_bytes,
+                                        peak_reserved_bytes=getattr(exc,'peak_reserved_bytes',None),
+                                        after_cleanup=getattr(exc,'after_cleanup',None)))
+                            end_ids = core.end_token(tokenizer,'gemma-3-12b-it')
+                            end_ids = [end_ids] if isinstance(end_ids,int) else end_ids
+                            available = all(row is not None for row in rows)
+                            retain(dict(event='path_parity',prompt_tokens=target,available=available,
+                                first_divergence=throughput.first_divergence(*rows) if available else None,
+                                first_divergence_to_eot=throughput.first_divergence(*(to_eot(row,end_ids) for row in rows)) if available else None,
+                                ids_equal=rows[0]==rows[1] if available else None))
                     measure(backend,tokenizer,attention,references,retain,check,generate=generate)
                 finally:
                     del generate

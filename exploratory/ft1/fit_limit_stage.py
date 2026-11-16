@@ -8,7 +8,9 @@ from . import data, kaggle, mounts
 from exploratory.k2_kaggle import core
 
 
-def stage(output, commit, owner, repo_dataset, receipt_dataset, model_source):
+def stage(output, commit, owner, repo_dataset, receipt_dataset, model_source, prefill_mode="current", prefill_chunk_size=None):
+    from .evaluate_runner import prefill_options
+    prefill_options(dict(prefill_mode=prefill_mode,prefill_chunk_size=prefill_chunk_size))
     if not re.fullmatch('[a-f0-9]{40}',commit):
         raise ValueError('exact commit required')
     core.validate_model_source(model_source,'gemma-3-12b-it')
@@ -28,6 +30,8 @@ def stage(output, commit, owner, repo_dataset, receipt_dataset, model_source):
             sources[name] = hashlib.sha256(subprocess.check_output(['git','show',commit+':'+name],cwd=root)).hexdigest()
     config = dict(phase='fit_limit',repo_commit=commit,model_source=model_source,
         data_manifest_sha256=None,source_sha256=sources,receipt_slug=mounts.receipt_slug(receipt_dataset),deadline_seconds=4500)
+    if prefill_mode != 'current':
+        config.update(prefill_mode=prefill_mode,prefill_chunk_size=prefill_chunk_size)
     source = '''import os, sys, json
 from pathlib import Path
 PLAN_ONLY = True
@@ -65,5 +69,7 @@ if __name__ == '__main__':
     parser.add_argument('--plan',action='store_true',required=True)
     for name in ('output','commit','owner','repo-dataset','receipt-dataset','model-source'):
         parser.add_argument('--'+name,required=True)
+    parser.add_argument('--prefill-mode',choices=('current','chunked'),default='current')
+    parser.add_argument('--prefill-chunk-size',type=int)
     args = vars(parser.parse_args()); args.pop('plan')
     print(json.dumps(stage(**args),indent=2))
