@@ -12936,3 +12936,69 @@ Review-fix offline checks: 54 focused tests passed; fast checks passed 684 tests
 Final PR #156 follow-ups after Fable approval at d73d8e11 (code only, EXPLORATORY, $0): context-limit cells preserve the OOM streak and name the limit rule; mechanical counts split action/knowledge. An evaluation-probe OOM now triggers one same-model evaluation-generator recovery reply at 2500 prompt tokens and up to 128 output tokens, with peaks and IDs/counts retained. Ladder recovery runs outside the exception handler. Derived planning estimate about 55 minutes, roughly 20 minutes below the 75-minute deadline; both-backends-all-fit estimate about 68 minutes before extra overhead, not a completion guarantee. See the build note for assumptions. No GPU/model run, training change or new eligibility/rerun policy.
 
 Final follow-up offline validation: 95 FT1 tests ran with one local-tokenizer skip; six sealed-dependent tests were excluded under the hard boundary. Fast checks passed 688 tests and all scripted scenarios. Raw followup-*.log files are retained in evidence/ft1-memory-round-20261116/. Plan-only restaging is tied to the final head; bundle hashes are reported in the handoff. Code only, $0; no run or merge. (95 is a local subset; the full FT1 discover run at fdd160e5 is 101 tests OK, 1 skip, run by Fable, so no test was removed.)
+
+## 2026-11-16 — v0.24.92 FT1 fit-limit measurement (untrained base, public prompts, one Kaggle T4) at 1d064efa: pre-run entry, exploratory, $0 (no run approved)
+
+Written by Claude (FT1 training stage thread) before the run. Chris's "go" for the evaluation memory round (2026-11-16, "Approve and write the new thread") covered the build only. This run needs his new exact-commit approval.
+
+**Question.** On the evaluation stack (Gemma 3 12B NF4, one T4), what is the longest prompt that still fits with a 1,024-token output allowance, under eager and under sdpa attention? Does memory come back after an out-of-memory error, so that an evaluation run can continue? Do eager and sdpa give the same greedy output? The answers let Chris choose the attention backend and a declared prompt ceiling before any gate or sealed run. The speed test found that 2,500 tokens fit and 10,000 did not; evaluation histories can reach 11–13k tokens by turn 8.
+
+**Exact commit.** `1d064efae2da396a9b0dcbf647ae350e069086ac` (main, v0.24.92, PR #156). Fable 5.2 reviewed it in three rounds: APPROVE WITH FIXES at `0d34d457`, APPROVE at `d73d8e11`, and APPROVE WITH FIXES at `fdd160e5`. The only blocking item of the last round was this re-staging at the merged commit. The merge with main touched only `LAB_NOTEBOOK.md`.
+- **Repo dataset (new):** `metaphysika/taa-k2-repo-1d064efa`, built as before (`git -c core.autocrlf=false archive`, `results` and `docs` excluded, `COMMIT.txt`, `ARCHIVE.json`). All 112 bound source hashes match it after the runner's own CRLF normalisation. `sealed.py` is not in the binding.
+- **Other mounts:** `metaphysika/k2-wheels`; model `google/gemma-3/transformers/gemma-3-12b-it/1`; new receipt dataset `metaphysika/ft1-fit-approval-1d064efa`. No FT1 data, adapter or sealed dataset is mounted.
+- **Staged bundle** (`C:/t/ft1e/.k2-launch/ft1-fit-limit-1d064efa…/`), SHA-256: `ft1_fit_limit.ipynb` `31b3748a…`, `binding.json` `6cb8720e…`, `kernel-metadata.json` `3e9729ac…`.
+- **Kernel:** private `metaphysika/ft1-fit_limit`, internet off, one T4, pushed with `--accelerator NvidiaTeslaT4 --timeout 5400`.
+- **Receipt:** `approved: true`, the exact commit, `phase: "fit_limit"`, the model source, data, adapter, training, sealed and gate fields null, `deadline_seconds: 4500`, and Chris's exact words. Checked offline with `fit_limit.validate`: the approved shape is accepted and the draft is refused.
+- **The only change before the push:** `PLAN_ONLY = True` becomes `False`, by editing the notebook JSON. Exactly one line differs, and the flag is checked in the file before pushing.
+
+**What it measures** (`exploratory/ft1/fit_limit.py`; 75-minute cooperative deadline). Eager first, then sdpa, each on a fresh load:
+- after each load: the attention backend actually used, and allocated, reserved and total device memory;
+- a ladder of public development prompts at 2,500, 4,000, 6,000, 8,000, 10,000, 11,000, 12,000, 13,000, 14,000 and 16,000 tokens, each forcing 1,024 new greedy tokens. For each rung: fit or out-of-memory, peak memory, prefill seconds, decode rate, generated IDs, and memory after cleanup. A backend stops climbing at its first out-of-memory error;
+- after that first error, on the same loaded model:
+  - a `recovery_check` at 2,500 (fit, peak, IDs equal to the first pass);
+  - one over-size call through evaluation's own `generate`;
+  - a short 2,500-token call through `generate`, to show a working reply after the evaluation path's cleanup;
+- eager-versus-sdpa parity at every rung both fit: the first divergence over all 1,024 tokens, and up to the first end-of-turn token.
+
+**Outcome (fixed now).** This is a measurement, so there is no pass or fail.
+- **COMPLETE:** `metadata.json` status `complete`.
+- **PARTIAL:** at least one `fit` event, but status `incomplete` (deadline, an error outside a guarded call, an exception). Everything recorded is used as is.
+  - **Expected-possible:** if both backends fit most rungs, the run can pass 75 minutes and stop with the top sdpa rungs missing.
+  - That outcome is kept and reported, never rerun silently. Any relaunch needs Chris's yes.
+- **NOT ESTABLISHED:** no `fit` event (receipt, mount, source, wheel, model-load or GPU-type stop). A relaunch needs Chris's yes.
+- An out-of-memory error at a rung is a result, not a failure. A failed recovery call is also a result: it would mean evaluation's three-in-a-row stop would fire often.
+
+**Expectations, written before the run.**
+- **Claude:**
+  - Eager fits up to 4,000–6,000: about 70%.
+  - Sdpa fits 8,000–11,000: about 50%; 12,000 or more: about 30%.
+  - Recovery at 2,500 fits after the first error: about 85%.
+  - Parity identical up to the first end token wherever both fit: about 55%.
+  - Outcome: COMPLETE 60%, PARTIAL 25%, NOT ESTABLISHED 15%.
+- **Fable 5.2** (re-checks of `d73d8e11` and `fdd160e5`):
+  - Eager's largest fit is 4,000 or 6,000: 75%. Out-of-memory at or before 8,000: 85%.
+  - Sdpa fits 10,000 or more: 55%; 13,000 or more: 30%; 16,000: under 10%. Sdpa fails by 8,000–10,000, like eager: 35%.
+  - Recovery fits: 90%. IDs equal, given a fit: 85%.
+  - The evaluation probe at the failed rung also runs out of memory: 85%.
+  - Outcome: COMPLETE about 60%, PARTIAL by deadline about 25%, NOT ESTABLISHED about 15%.
+  - Time: 55–65 minutes, longer if decode slows at long prompts.
+- **Pre-mortem (Fable):**
+  - decode slows at long prompts and the deadline cuts the upper sdpa rungs;
+  - Kaggle assigns a non-T4 GPU and the run stops at the GPU check;
+  - an out-of-memory error surfaces in a form the handler does not recognise and ends the run before sdpa;
+  - memory does not come back after an error;
+  - a receipt built without `deadline_seconds`, or with the wrong slug, is refused at start.
+
+**How the result will be used (fixed now).** Chris chooses the attention backend and a declared prompt ceiling before any gate or sealed run.
+- **Claude's default proposal:**
+  - **Backend:** the one with the higher fit limit, provided its recovery check fits.
+  - **Ceiling:** at least 1,000 tokens below that backend's largest fitting rung, applied identically to every model through `prompt_ceiling`. Cells over the ceiling are recorded as `context_limit` unknowns.
+- **If the ceiling is below the lengths evaluation histories reach,** the gap is reported as a feasibility limit, with the expected share of affected cells, and Chris decides. One option is a shorter history window, as a declared protocol change before any sealed run.
+- **Parity:** divergence is read as ordinary half-precision noise unless it begins early and in many rungs.
+- **Mechanically unknown gate:** the pending decision on what such a gate means (Fable, PR #156) is separate. It comes before the first gate run.
+
+**Estimated use.** $0. About 55–70 GPU minutes, 75 at most.
+
+**Limits.** Base model, public development prompts, one T4, one repeat. A trained adapter adds memory (the PEFT adapter is not merged), so trained arms may fit less; that is not measured here.
+
+No run is approved by this entry. The fit-limit run needs Chris's exact-commit approval of `1d064efae2da396a9b0dcbf647ae350e069086ac`, phase fit_limit.
