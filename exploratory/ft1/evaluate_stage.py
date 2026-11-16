@@ -11,7 +11,7 @@ from .evaluate_runner import adapter_binding
 def stage(output, arm, seed, commit, data_folder, sealed_sha256, part, model_source,
           repo_dataset, data_dataset, sealed_dataset, receipt_dataset, owner,
           training_folder=None, training_dataset=None, phase="evaluate", gate_sha256=None,
-          gate_dataset=None, part_count=2):
+          gate_dataset=None, part_count=2, prompt_ceiling=None):
     if (arm,seed) not in plan.MODELS or phase not in ('gate','evaluate') or type(part_count) is not int or not 1 <= part_count <= 24 or part not in range(part_count):
         raise ValueError('unplanned model or part')
     if not re.fullmatch('[a-f0-9]{40}',commit):
@@ -36,7 +36,9 @@ def stage(output, arm, seed, commit, data_folder, sealed_sha256, part, model_sou
         binding = dict(adapter_sha256=None,training_manifest_sha256=None)
     if not re.fullmatch('[a-z0-9_-]+',owner) or any(not re.fullmatch('[a-z0-9_-]+/[a-z0-9_-]+',d) for d in datasets):
         raise ValueError('invalid dataset handle')
-    config = dict(phase=phase,arm=arm,seed=seed,repo_commit=commit,part=part if phase=='evaluate' else None,part_count=part_count if phase=='evaluate' else None,gate_sha256=gate_sha256,
+    if prompt_ceiling is not None and (type(prompt_ceiling) is not int or not 1 <= prompt_ceiling <= 16384):
+        raise ValueError('invalid prompt ceiling')
+    config = dict(prompt_ceiling=prompt_ceiling,phase=phase,arm=arm,seed=seed,repo_commit=commit,part=part if phase=='evaluate' else None,part_count=part_count if phase=='evaluate' else None,gate_sha256=gate_sha256,
         data_manifest_sha256=kaggle.verify_data(data_folder),sealed_sha256=sealed_sha256,
         adapter_sha256=binding['adapter_sha256'],training_manifest_sha256=binding['training_manifest_sha256'],
         source_sha256=kaggle.source_inventory(commit),model_source=model_source,
@@ -92,6 +94,7 @@ if __name__ == '__main__':
         parser.add_argument('--'+name,required=True)
     parser.add_argument('--seed',type=int)
     parser.add_argument('--part',type=int,default=0)
+    parser.add_argument('--prompt-ceiling',type=int)
     parser.add_argument('--part-count',type=int,default=2)
     parser.add_argument('--phase',choices=['gate','evaluate'],default='evaluate')
     for name in ('sealed-sha256','sealed-dataset','gate-sha256','gate-dataset'):

@@ -16,8 +16,8 @@ def episode(case, generate, count_tokens, retain, format_only=False):
         try:
             raw=generate(crossing.SYSTEM,history,1024)
         except Exception as exc:
-            from .memory import MechanicalOOM
-            if not isinstance(exc,MechanicalOOM): raise
+            from .memory import MechanicalUnknown
+            if not isinstance(exc,MechanicalUnknown): raise
             exc.turn = turn
             raise
         tokens=count_tokens(raw)
