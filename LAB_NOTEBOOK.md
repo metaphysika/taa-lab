@@ -12653,3 +12653,26 @@ its private leak self-check passed, zero detected leaks. Closed-schema labels,
 small-JSON mount discovery, gate identity and conflicting duplicate-row refusal
 are built offline. No comparison, model or GPU run. Disagreement policy remains
 for Chris. After the pilot pre-run entry (#152) merged, Claude merged origin/main into this branch and resolved the notebook conflict by keeping both entries, pilot first.
+
+## 2026-11-15 — v0.24.91 FT1 group-balance check and throughput phase (code only, no run, $0)
+
+Built from origin/main at 8e4ca711. Test parts now require equal difficulty-group
+counts and intact W/U twins before any cell runs; only group counts are logged.
+Gate receipts require explicit null test fields; broken mount symlinks are skipped.
+A separately approvable throughput phase uses the shared NF4 evaluation loader,
+public development cases, single-stream 2.5k/10k prompts, batches 2/4 at 2.5k,
+200-token greedy speed probes and four descriptive base-reply-length episodes.
+The stager defaults plan-only, one visible T4 and internet off; the cooperative
+deadline is 45 minutes. No sealed file, training code, GPU/Kaggle job, model run
+or real comparison was used. Details and offline evidence are in
+`docs/process/FT1_THROUGHPUT_BUILD_2026-11-15.md`. Separate exact-commit owner
+approval remains required before measurement.
+
+Item C, same code-only round: exported case-neutral definitions for every blind
+label field and vocabulary value, including when acts are required and how to
+choose the independent report recipient. Full definitions are in the build note.
+The r3 private packet has 48 items; SHA-256
+`a36fad4ce13a5786e766d7eed41adbcd9c0582bffeeb8060fae7cb5bdd5935c3`.
+Its extended leak self-check passed with zero detected leaks. The schema is
+unchanged. No r2 files or Astra labels/notes were opened or changed; no real
+comparison was run. The existing sealed battery and scoring remain unchanged.
