@@ -12801,3 +12801,43 @@ No run is approved by this entry. The speed test needs Chris's exact-commit appr
 Chris (2026-11-16): "lets make sure we are calling fable 5.2 medium and not fable 5.1 … 5.2 is smarter and cheaper." From now on, Fable reviews run as `claude-fable-5-2` with effort `medium`. This is updated in `AGENTS.md` (the source of truth for the roles) and in the Notion Master Plan's Working rules. Earlier review records keep their original model (`claude-fable-5-1`), which is accurate history and not rewritten.
 - The FT1 speed-test readiness review had just started on 5.1. It was cancelled before reporting and restarted on 5.2 medium, so that review is wholly 5.2.
 - Every Fable review earlier in this stage ran on 5.1: the job (b) PR reviews, the pilot readiness review, and the PR #151 and #154 reviews and re-checks.
+
+## 2026-11-16 — v0.24.91 FT1 speed test at bf941651: COMPLETE (throughput measurement on one Kaggle T4, exploratory, $0)
+
+Written by Claude (FT1 stage thread) after the run, against the pre-run entry above. Chris approved on 2026-11-16: "Approve FT1 speed test at bf941651".
+
+**Evidence.** `results/2026-11-16 v0.24.91 ft1-throughput bf9416513f15/` (README, `launch/`, `kaggle-v1/ft1-throughput/events.jsonl`, `metadata.json`, `manifest.json`, log). Status `complete`, and all files match the manifest. The kernel ran from push at 02:40 to COMPLETE at 02:52 UTC, about 12 minutes.
+
+**Measurements.** Base identity: `gemma3`, 48 layers, hidden size 3,840, vocabulary 262,208, config SHA-256 `39172c41…`.
+
+| Configuration | Result |
+|---|---|
+| Load | 240 s |
+| Single stream, 2,500-token prompt | 200 tokens in 33.4 s, prefill 7.0 s. **Decode-only 7.55 tokens/s**; the retained field, which includes prefill, is 6.00. Peak allocated 10.0e9 bytes |
+| Single stream, 10,000-token prompt | **Out of memory** (peak allocated 9.43e9 bytes when it stopped) |
+| Batch 2, 2,500 and 2,493 tokens | 400 tokens in 59.5 s, prefill 11.2 s. Decode-only 8.26 tokens/s aggregate, **1.09×** single stream. Peak 12.2e9. Row 0 identical to single stream over 200 tokens |
+| Batch 4, 2,500 tokens | **Out of memory** (peak 14.7e9) |
+| Four public development episodes (base) | 2, 2, 4 and 4 turns. 12 replies of 35–97 tokens (mean 70). No cap hits, none malformed |
+
+**Against the expectations.**
+- Decode was faster than Claude's 4–6 and Fable's 4.5–5.5 tokens/s.
+- Load took 4 min, at the top of Claude's range and above Fable's 2.5–3.5 min.
+- The 10k prefill ran out of memory; Claude gave 35% and Fable 40%.
+- Batch 4 did not fit; both gave about 75–80% that it would.
+- Batch 2 gave 1.09×, far below the expected 1.6–1.95×.
+- Base replies were much shorter than Claude's expected median of 150–400 tokens, with no cap hit.
+- Row 0 matched at batch 2, which both forecasts put at 50–60%.
+- Outcome COMPLETE; Fable gave 55%.
+
+**Uses, under the rules fixed before the run.**
+- **Batching: not offered.** Batch 2 fits and row 0 matches, but at 1.09× it fails the 1.5× decode-only threshold, and batch 4 does not fit at 2.5k. Evaluation runs single-stream, which needs no protocol change.
+- **Budget** (prefill plus reply tokens ÷ 7.55, with +30% for the unmerged adapter on trained arms):
+  - **Base:** with replies of about 70 tokens and a 2.5k-scale prefill, a turn costs about 16 s. The plan's per-model counts are 40 acquisition replies, 8 format episodes, 48 action episodes and 48 knowledge replies. At 2–4 turns per episode as observed, that is roughly 1.3–1.8 h per model including three loads.
+  - **Trained arms:** reply lengths are unknown. Arm 3 was trained to write reasons, so about 150–250 tokens is plausible. That gives roughly 2–3.5 h each with the margin.
+  - **Total:** about **25–45 T4 hours** for all 13 models, roughly one to one and a half weeks of Kaggle's ~30 h/week quota. This is down from the 95–150 h estimated before the measurement. It is a planning estimate: episode lengths on the sealed cases and the trained arms' reply lengths are not measured.
+- **New feasibility finding: a long-history limit somewhere between 2.5k and 10k prompt tokens on this stack.** The 10k single-stream prefill ran out of memory on the T4. Evaluation episodes grow a history over up to 12 turns, against a context limit of 16,384 in `evaluate_runner`. Long lookup or outside-sphere episodes could reach a length that does not fit.
+  - The exact fitting length is not measured.
+  - How the evaluation runner records an out-of-memory error mid-episode was not tested on GPU.
+  - This must be settled before the first gate or test run. Proposed next step: offline, with the local tokenizer, Sol reports the turn-0 prompt length distribution for the sealed cases (counts only) and the public development turn lengths. Fable reviews how an episode OOM is recorded (a mechanical unknown, not a conduct result). If needed, a short separately approved run finds the largest prompt that fits.
+
+**What this shows and does not show.** These are base-model numbers on public development cases on one T4. They are not trained-arm or sealed-case numbers, and nothing here is a conduct result or touches H2.
