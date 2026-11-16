@@ -12727,3 +12727,50 @@ Written by Claude (FT1 stage thread). Chris (2026-11-15/16): "Let's go with your
   - Under the adopted rule, evaluation may proceed with all 24 pairs. No case was dropped, relabelled or regenerated.
 - **Final battery:** sealed cases SHA-256 `0d71f261052be3a6a5e1224d80d316b0d2424adbe8e34bfb5c3397ff5e00babd`, 48 cases, 12 per group.
 - **Secrecy incident (disclosed).** During the round 4 delta review, a Fable `git grep` across `exploratory/ft1` returned five structural lines of `sealed.py`: stratum names and one line of outside-sphere logic. No case text, keys or IDs were exposed. Fable did not open the file or use the lines. Fable is a reviewer, not a labeller, so Astra's labels are unaffected. Future review briefs forbid repo-wide searches over `exploratory/ft1/`.
+
+## 2026-11-16 — v0.24.91 FT1 speed test (throughput measurement, untrained base, one Kaggle T4) at bf941651: pre-run entry, exploratory, $0 (no run approved)
+
+Written by Claude (FT1 stage thread) before the run. Chris agreed the speed test in principle (2026-11-15/16, item 2 above). It measures; it does not score, and it uses no sealed case, no FT1 data and no adapter.
+
+**Question.** On the evaluation stack, how fast does Gemma 3 12B NF4 generate on one T4? How long are the untrained base model's replies? Does batched greedy generation fit in memory and match single-stream output? The answers decide (i) the evaluation GPU-hour budget and schedule, and (ii) whether evaluation runs single-stream or batched.
+
+**Exact commit.** `bf9416513f15d732e35d45d910f57595468b8fcf` (main, v0.24.91, PR #154; reviewed by Fable twice, APPROVE).
+- **Repo dataset (new):** `metaphysika/taa-k2-repo-bf9416513f15`, built like the K2 launcher's archive (`git archive` with autocrlf off, `results` and `docs` excluded, `COMMIT.txt`, `ARCHIVE.json`). All 120 bound source hashes match it.
+- **Other mounts:** `metaphysika/k2-wheels`; model `google/gemma-3/transformers/gemma-3-12b-it/1`; new receipt dataset `metaphysika/ft1-throughput-approval-bf9416513f15`. No FT1 data or sealed dataset is mounted.
+- **Staged bundle** (`C:/t/ft1d/.k2-launch/ft1-throughput-bf9416…/`), SHA-256: `ft1_throughput.ipynb` `7d10d088…`, `binding.json` `a58e92f8…`, `kernel-metadata.json` `19339aeb…`.
+- **Kernel:** private `metaphysika/ft1-throughput`, internet off, one T4, pushed with `--accelerator NvidiaTeslaT4 --timeout 3600`.
+- **Receipt:** `approved: true`, the exact commit, `phase: "throughput"`, the model source, every data, adapter, sealed and gate field null, and Chris's exact words. Its shape was checked offline with `throughput.validate`, which accepts it with approval and refuses the draft.
+- **The only change before the push:** `PLAN_ONLY = True` → `False`, by editing the notebook JSON. Exactly one line differs, and the flag is checked in the file before pushing.
+
+**What it measures** (`exploratory/ft1/throughput.py`; 45-minute cooperative deadline):
+- load time;
+- single-stream greedy generation of 200 new tokens after a ~2.5k-token and a ~10k-token prompt from public development K2 histories, with prefill seconds and tokens/s;
+- batch 2 and batch 4 at 2.5k, with tokens/s and peak memory, and an OOM recorded per configuration;
+- per-row generated token IDs and hashes, with the first index where batch row 0 diverges from single-stream (null if identical);
+- four public development episodes through the evaluation episode loop with the FT1 system prompt and the 1,024 cap: turns, reply tokens and cap hits.
+
+**Outcome (fixed now).** This is a measurement, so there is no pass or fail.
+- **COMPLETE:** `metadata.json` status is `complete`.
+- **PARTIAL:** `load_complete` is present but the status is `incomplete` (deadline, OOM outside a guarded configuration, or an exception). Every recorded measurement is used as is.
+- **NOT ESTABLISHED:** no `load_complete`. A relaunch needs Chris's yes.
+- An OOM inside a guarded configuration is a result, not a failure.
+
+**Expectations, written before the run** (Claude):
+- Load 2–4 min.
+- Single-stream decode 4–6 tokens/s (FT0b: 4.89).
+- Prefill 5–20 s at 2.5k, and 30–120 s at 10k, or OOM (FT0 hit OOM at 1,024 on a logits allocation; about 35%).
+- Batch 2 at 1.6–1.9× and batch 4 at 2.5–3.5× aggregate tokens/s. Batch 4 fits at 2.5k (about 80%).
+- Batch row 0 identical to single-stream over 200 tokens: about 50% at batch 2 and 40% at batch 4 (fp16 near-ties).
+- Base development replies: median 150–400 tokens, at least one 1,024 cap hit across the four episodes (about 60%).
+
+**How the numbers will be used (fixed now).**
+- **Budget:** per-turn cost is prefill plus reply tokens divided by the decode rate. That is applied to the plan's episode counts, with a +30% margin for the unmerged PEFT adapter on trained arms (Fable), and reported per model and in total against the ~30 h/week quota.
+- **Batching:** Chris decides after seeing the numbers, before any evaluation run.
+  - Claude's default recommendation: batch k is offered only if it fits (no OOM, peak at most 13.5e9 bytes), gives at least 1.5× throughput, and row 0 matches single-stream exactly.
+  - If row 0 diverges, batching is offered only as a declared protocol change, applied identically to every model, with the divergence disclosed.
+
+**Estimated use.** $0. About 45–60 GPU minutes.
+
+**Limits.** These are base-model numbers on public development cases. Trained-arm reply lengths may differ (they are expected to be shorter). A 10k prefill does not bound the longest histories (up to 16k).
+
+No run is approved by this entry. The speed test needs Chris's exact-commit approval of `bf9416513f15d732e35d45d910f57595468b8fcf`, phase throughput.
