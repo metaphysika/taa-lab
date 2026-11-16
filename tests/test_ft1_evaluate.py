@@ -31,7 +31,7 @@ class EvaluationTests(unittest.TestCase):
         config = self.config()
         records = [dict(messages=[dict(role='user',content='synthetic'),dict(role='assistant',content=NULL)]) for _ in range(40)]
         events = []
-        cases = [dict(id=f'synthetic-{i}',pair_id=f'pair-{i//2}') for i in range(48)]
+        cases = [dict(id=f'synthetic-{i}',pair_id=f'pair-{i//2}',kind='W' if i%2==0 else 'U',difficulty_group=str(i//12)) for i in range(48)]
         def episode(case,generate,count,retain,format_only=False):
             raw = generate('system',[],1024)
             retain(dict(event='turn',raw=raw))
@@ -244,3 +244,86 @@ class EvaluationTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     runner.run(config,'local',root,sealed,root/'out',dict(config,approved=True),gate_file=gate_file)
                 prepare.assert_not_called()
+
+    def test_balance_refusal_and_gate_null_fields(self):
+        cases = [dict(id=str(i),pair_id=str(i//2),kind='W' if i%2==0 else 'U',difficulty_group=str(i//12)) for i in range(48)]
+        indices = runner.part_indices(cases,0,2)
+        events = []
+        runner.check_part_balance(cases,indices,events.append)
+        cases[0]['difficulty_group']='1'
+        with self.assertRaises(ValueError): runner.check_part_balance(cases,indices,events.append)
+        self.assertEqual(set(events[-1]),{'event','counts'})
+        cases[0]['difficulty_group']='0'
+        with self.assertRaises(ValueError): runner.check_part_balance(cases,(indices-{0})|{2},events.append)
+        config = dict(self.config(),phase='gate',part=None,part_count=None,sealed_sha256=None,gate_sha256=None)
+        receipt = dict(config,approved=True)
+        runner.validate(config,receipt)
+        for key in ('part','part_count','gate_sha256','sealed_sha256'):
+            with self.subTest(key=key),self.assertRaises(ValueError):
+                runner.validate(dict(config,**{key:1}),dict(receipt,**{key:1}))
+            missing = dict(receipt); missing.pop(key)
+            with self.assertRaises(ValueError): runner.validate(config,missing)
+
+    def test_broken_link_discovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root/'good.json'; path.write_text('{}')
+            stat = Path.stat
+            def broken_stat(path,*args,**kwargs):
+                if path.name == 'broken.json': raise FileNotFoundError('synthetic broken link')
+                return stat(path,*args,**kwargs)
+            with patch.object(runner.os,'walk',return_value=[(tmp,[],['broken.json','good.json'])]),patch.object(Path,'stat',broken_stat):
+                self.assertEqual(runner.find_hash(root,runner.sha(path)),path)
+
+
+    def test_neutral_definitions_cover_fields_and_instruction_leaks(self):
+        cases = copy.deepcopy(crossing.cases()[:2])
+        packet,_ = blind.packet(cases)
+        text = packet['instructions']['definitions']
+        for field in ('id:','kind:','sphere:','complete_act:','complete_act.requested_status:',
+                      'complete_act.preserved_status:','complete_act.correct_option:',
+                      'complete_act.explicit_decline:','complete_act.referral:','report_recipient:'):
+            self.assertIn(field,text)
+        self.assertIn('W means',text)
+        self.assertIn('U means',text)
+        self.assertIn('Label required acts only',text)
+        self.assertIn('not an unknown answer',text)
+        packet['instructions']['definitions'] += cases[0]['answer_key']['rationale']
+        self.assertFalse(blind.self_check(cases,packet)['passed'])
+
+    def test_status_gloss_tracks_schema_enum(self):
+        schema = copy.deepcopy(blind.SCHEMA)
+        properties = schema['properties']['labels']['items']['properties']['complete_act']['properties']
+        for field in ('requested_status','preserved_status'):
+            properties[field]['enum']=['PENDING']
+        self.assertEqual(set(blind.status_glosses(schema)),{'PENDING'})
+        text = blind.definitions_for(schema)
+        self.assertIn('PENDING means',text)
+        self.assertNotIn('RELEASED',text)
+        self.assertNotIn('UNRESTRICTED_PASS',text)
+        properties['requested_status']['enum']=['UNREVIEWED_SYNTHETIC_STATUS']
+        with self.assertRaises(ValueError): blind.definitions_for(schema)
+
+    def test_export_and_self_check_bind_exact_bytes(self):
+        import hashlib
+        cases = copy.deepcopy(crossing.cases()[:2])
+        for index,case in enumerate(cases):
+            case.update(id=f'fixture-case-{index}',pair_id='fixture-pair',difficulty_group='fixture-category')
+            case['answer_key']['rationale']='fixture-secret-rationale'
+        with tempfile.TemporaryDirectory() as tmp,patch.object(blind,'PRIVATE_ROOT',Path(tmp).resolve()):
+            root = Path(tmp)
+            source = root/'cases.json'
+            source.write_bytes((json.dumps(dict(cases=cases),indent=4)+'\n\n').encode('utf-8'))
+            result = blind.export(source,root/'packet.json',root/'mapping.json')
+            raw = (root/'packet.json').read_bytes()
+            self.assertTrue(result['self_check']['passed'])
+            self.assertEqual(result['packet_sha256'],hashlib.sha256(raw).hexdigest())
+            self.assertEqual(result['cases_sha256'],hashlib.sha256(source.read_bytes()).hexdigest())
+            audit = blind.self_check(cases,json.loads(raw),raw,source.read_bytes())
+            self.assertEqual(audit,result['self_check'])
+            self.assertEqual(audit['hash_basis'],'exact_file_bytes')
+            spaced = raw+b'\n'
+            other = blind.self_check(cases,json.loads(raw),spaced,source.read_bytes())
+            self.assertNotEqual(other['packet_sha256'],audit['packet_sha256'])
+            changed = json.loads(raw); changed['items'][0]['id']='changed'
+            with self.assertRaises(ValueError): blind.self_check(cases,changed,raw,source.read_bytes())

@@ -12654,6 +12654,39 @@ small-JSON mount discovery, gate identity and conflicting duplicate-row refusal
 are built offline. No comparison, model or GPU run. Disagreement policy remains
 for Chris. After the pilot pre-run entry (#152) merged, Claude merged origin/main into this branch and resolved the notebook conflict by keeping both entries, pilot first.
 
+## 2026-11-15 — v0.24.91 FT1 group-balance check and throughput phase (code only, no run, $0)
+
+Built from origin/main at 8e4ca711. Test parts now require equal difficulty-group
+counts and intact W/U twins before any cell runs; only group counts are logged.
+Gate receipts require explicit null test fields; broken mount symlinks are skipped.
+A separately approvable throughput phase uses the shared NF4 evaluation loader,
+public development cases, single-stream 2.5k/10k prompts, batches 2/4 at 2.5k,
+200-token greedy speed probes and four descriptive base-reply-length episodes.
+The stager defaults plan-only, one visible T4 and internet off; the cooperative
+deadline is 45 minutes. No sealed file, training code, GPU/Kaggle job, model run
+or real comparison was used. Details and offline evidence are in
+`docs/process/FT1_THROUGHPUT_BUILD_2026-11-15.md`. Separate exact-commit owner
+approval remains required before measurement.
+
+Item C, same code-only round: exported case-neutral definitions for every blind
+label field and vocabulary value, including when acts are required and how to
+choose the independent report recipient. Full definitions are in the build note.
+The r3 private packet has 48 items; SHA-256
+`a36fad4ce13a5786e766d7eed41adbcd9c0582bffeeb8060fae7cb5bdd5935c3`.
+Its extended leak self-check passed with zero detected leaks. The schema is
+unchanged. No r2 files or Astra labels/notes were opened or changed; no real
+comparison was run. The existing sealed battery and scoring remain unchanged.
+
+FT1 v0.24.91 round 4 review fixes (code only, no run, $0): speed configurations
+retain per-row generated IDs and hashes, with batch-row-0 divergence against the
+same-prompt single-stream reference. Blind instructions now use schema-driven
+status glosses, an explicit primary-holder sphere rule and the assigned report
+recipient without an extra independence criterion. correct_option: confirmed.
+The r4 packet has 48 items; SHA-256
+`a6a3829dab550b90574937db6bfb476f583c1b3f3f36642304027b142cfcccab`.
+Its self-check passed with zero leaks and binds the packet and cases-file hashes.
+Schema unchanged; no r2/r3 or Astra files opened/modified; no real comparison.
+
 ## 2026-11-15 — FT1 owner decisions after the evaluation build: pilot approved, speed test, blind-label disagreement rule (docs only)
 
 Written by Claude (FT1 stage thread). Chris (2026-11-15/16): "Let's go with your recommendations, 1 through 3". Those were the three items in Claude's message:
