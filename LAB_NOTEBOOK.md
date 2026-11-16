@@ -13119,3 +13119,75 @@ Nothing is approved to run by this entry. Each new test needs its own pre-run en
 3. *Different way:* the smallest attack test (three models, two dose steps) is the cheapest route to that claim.
 4. *Drift signs:* fix-on-fix: no. Retries: no. Tooling growing faster than results: yes; FT1 took about five weeks of building before any FT1 number. Scope creep: no; FT1 is unchanged.
 5. *Decision:* continue. Non-blocking.
+
+## 2026-11-16 — v0.24.89 FT1 training run arm 2u / 247056 at 0449a230: TRAINED (one Kaggle T4, exploratory, $0)
+
+Written by Claude (FT1 training stage thread) against the 11-run pre-run entry (#155), under the same approval ("Approve and write the new thread").
+
+**Evidence.** `results/2026-11-16 v0.24.89 ft1-train-2u-247056 0449a230200c/`. All 53 output files match the manifest, in the download and in the full copy kept under `C:/Users/lahn0/T3/ft1-artifacts/`. The launch hashes match the pre-run table.
+
+**Outcome: TRAINED, no review flag.**
+- Status `trained`, 250 optimizer steps, and the skip signal present on every step.
+- Checkpoints at 50, 100, 150, 200 and 250.
+- `adapter_saved` with `tensors_finite: true`; weights `380f0990…`.
+- Two skipped updates (steps 1–2, fp16 warm-up; the limit is 25).
+- 2,000 of 2,000 micro-losses finite.
+- Peak allocated 9.08e9 bytes. Mean step 25.5 s, slowest 27.7 s. Setup 232 s; last event at 6,630 s (1.8 h).
+- Action loss per 25-step block fell from 0.256 to 0.0001 (descriptive only; no reason tokens in this arm).
+
+The run was pushed at 16:00 and was COMPLETE by 17:57 UTC. Arm 4 / 247056 was pushed at 18:00 UTC.
+
+## 2026-11-16 — v0.24.92 FT1 fit-limit measurement at 1d064efa: COMPLETE — both attention backends run out of memory at 6,000 prompt tokens (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) after the run, against the pre-run entry (#157). Chris approved on 2026-11-16: "Approve FT1 fit-limit at 1d064efa".
+
+**Evidence.** `results/2026-11-16 v0.24.92 ft1-fit-limit 1d064efae2da/`, containing the README, `launch/` and `kaggle-v1/` (`events.jsonl`, `metadata.json` with status `complete`, `manifest.json` and the log). Both files the manifest lists match it.
+
+**Launch.**
+- The first push at 14:58 UTC was refused by Kaggle's two-GPU-session limit while two training runs held both slots, and no kernel was created.
+- The same verified notebook was pushed at 15:49 UTC, the moment arm 1 finished.
+- It queued until about 17:50 and reached COMPLETE at about 18:10 UTC, after about 21 minutes of kernel time.
+- The pushed notebook differs from the staged one only in `PLAN_ONLY`.
+
+**Outcome: COMPLETE.**
+
+| | eager | sdpa |
+|---|---|---|
+| Backend actually used (readback) | eager, no mismatch | sdpa, no mismatch |
+| Memory after load, of 15.64e9 on the card | 7.80e9 | 7.81e9 |
+| 2,500 tokens + 1,024 out | fit; peak 9.95e9; prefill 6.9 s; decode 7.92 tok/s | fit; peak 10.03e9; prefill 7.8 s; decode 7.13 tok/s |
+| 4,000 tokens + 1,024 out | fit; peak 12.21e9; prefill 13.9 s; decode 7.83 tok/s | fit; peak 12.23e9; prefill 13.6 s; decode 6.75 tok/s |
+| 6,000 tokens | **out of memory** (peak 14.02e9) | **out of memory** (peak 14.93e9) |
+| Memory after cleanup | back to 7.81e9 | back to 7.81e9 |
+| Recovery at 2,500, same loaded model | fit; IDs equal to the first pass | fit; IDs equal to the first pass |
+| Evaluation's own `generate` at 6,000 | `mechanical_oom`, as designed | `mechanical_oom`, as designed |
+| Evaluation's `generate` at 2,500 afterwards | fit; working reply | fit; working reply |
+
+- **Parity, eager against sdpa:**
+  - At 2,500 tokens the generated IDs are identical over all 1,024 tokens. The model ends its reply after 4 tokens; the rest is forced end-of-turn tokens.
+  - At 4,000 tokens they first diverge at token 874. Eager's reply ends at token 949, so the divergence falls inside the reply, late. Under the rule fixed before the run, that is read as ordinary half-precision noise.
+- **Largest fitting rung:** 4,000 for both backends. The limit lies somewhere between 4,000 and 6,000 tokens and is not measured more finely.
+
+**Against the forecasts.**
+
+| | Claude | Fable 5.2 | Result |
+|---|---|---|---|
+| Eager fits up to 4,000–6,000 | about 70% | 75% | Right |
+| Sdpa fits 8,000 or more | about 80% (50% for 8–11k, 30% for 12k+) | 55% for 10k or more | Wrong: sdpa fit no more than eager |
+| Recovery fits | 85% | 90% | Right; IDs equal too |
+| Outcome COMPLETE | 60% | 60% | COMPLETE |
+
+**What this means, under the use rule fixed before the run.**
+- **The per-episode out-of-memory handling works on the real GPU.** Memory returns fully, and the next calls run normally, through evaluation's own code path too. An out-of-memory episode can be recorded as a mechanical unknown without ending the run.
+- **Backend.** Eager is the default proposal: it fits the same lengths as sdpa, decodes about 10–15% faster here, and its recovery fits. Parity differences are late and small.
+- **Ceiling.** The rule fixed before the run gives a ceiling at least 1,000 tokens below the largest fitting rung, which is about 3,000 tokens. Evaluation histories can reach 11–13k tokens by turn 8. That is far above it, so under that ceiling many long episodes would become `context_limit` unknowns, and FT1 could easily end as "cannot tell". Under the rule this is a feasibility limit for Chris to decide on.
+
+**A likely fixable cause (Claude's reading, unverified).**
+- The extra memory above the loaded model grows faster than the token count: about +2.15e9 bytes at 2,500 tokens (3,524 with output) and +4.41e9 at 4,000 (5,024). The prompt grew 1.6 times, but the extra memory grew 2.05 times.
+- That pattern points to a cost that grows with the square of the prompt during the first pass over it (prefill). Examples would be attention scores built for the whole prompt at once, or very large intermediate tensors, rather than the memory each token keeps for later (the cache).
+- If so, feeding the prompt in pieces (chunked prefill), or a similar change in how the prompt is processed, could raise the limit a long way without changing what the model sees or outputs.
+- This is a hypothesis to check offline. It is not a finding.
+
+**Limits.** These are base-model numbers on public development prompts, from one T4 and one repeat. A trained adapter adds memory, so trained arms may fit less. The exact limit between 4,000 and 6,000 is not measured.
+
+**What follows.** This goes to Chris as a decision, before any gate or sealed run. Training continues meanwhile and is unaffected.
