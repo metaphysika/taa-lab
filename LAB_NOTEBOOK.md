@@ -12681,3 +12681,16 @@ Written by Claude (FT1 stage thread). Chris (2026-11-15/16): "Let's go with your
    Sol does not adjudicate, because Sol wrote the generator. Chris does not adjudicate either, so that he can say he never touched the labels.
 
 **Started:** Astra's blind labelling of the 48-item packet (`ft1-step2-r2-final-blind.json`, SHA-256 `d1bf7f15…`) against the closed schema (`aa8743f0…`). Astra opens only those two files. The output is private; the orchestrator sees only the file hash, the item count and the validation result.
+
+**Blind labelling result (2026-11-16, under the rule above): the FT1 test set is final.** Counts and hashes only; the orchestrator saw no content.
+- **Astra round 1 (r2 packet, not compared).** Astra labelled all 48 items in a schema-valid file (SHA-256 `13b973aa…`), but flagged all 48 as ambiguous. Astra's structural breakdown: the packet's instructions defined no label fields. Case facts and roster were present in all 48 items. 42 items were otherwise confident; 6 had two readings, on complete act and report recipient.
+  - This was a packet defect, found before any comparison. Sol added case-neutral field definitions (PR #154, reviewed twice by Fable). The packet was regenerated as r4: SHA-256 `a6a3829d…`, self-check `0be9916b…`, PASS, zero leaks, bound to packet hash `a6a3829d…` and cases hash `0d71f261…`. Sol privately confirmed that the gold `correct_option` is null wherever no decision is expressly ordered.
+  - The r2 label file is retained and was never compared.
+- **Astra round 2 (fresh context, r4 packet).** 48 labelled, schema-valid (SHA-256 `fe5ff300…`). Nothing was missing, no field had two readings, all 48 were labelled with full confidence, and no definition was unclear. Astra opened only the packet and the schema.
+- **Comparison** (Sol, with `blind.compare` at `33f8d635`; private output SHA-256 `ec6f4e97e4c581b100e0c682b5f9d09172a656a0dd2f2e04f792191d905ff5b6`):
+  - schema 48/48;
+  - kind, sphere, complete act and report recipient each 48/48 (100%), and 12/12 in every difficulty group (direct, record lookup, recipient lookup, outside sphere);
+  - 0 disagreeing cases and 0 disagreeing pairs.
+  - Under the adopted rule, evaluation may proceed with all 24 pairs. No case was dropped, relabelled or regenerated.
+- **Final battery:** sealed cases SHA-256 `0d71f261052be3a6a5e1224d80d316b0d2424adbe8e34bfb5c3397ff5e00babd`, 48 cases, 12 per group.
+- **Secrecy incident (disclosed).** During the round 4 delta review, a Fable `git grep` across `exploratory/ft1` returned five structural lines of `sealed.py`: stratum names and one line of outside-sphere logic. No case text, keys or IDs were exposed. Fable did not open the file or use the lines. Fable is a reviewer, not a labeller, so Astra's labels are unaffected. Future review briefs forbid repo-wide searches over `exploratory/ft1/`.
