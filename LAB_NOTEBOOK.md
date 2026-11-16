@@ -12747,13 +12747,18 @@ Written by Claude (FT1 stage thread) before the run. Chris agreed the speed test
 - single-stream greedy generation of 200 new tokens after a ~2.5k-token and a ~10k-token prompt from public development K2 histories, with prefill seconds and tokens/s;
 - batch 2 and batch 4 at 2.5k, with tokens/s and peak memory, and an OOM recorded per configuration;
 - per-row generated token IDs and hashes, with the first index where batch row 0 diverges from single-stream (null if identical);
-- four public development episodes through the evaluation episode loop with the FT1 system prompt and the 1,024 cap: turns, reply tokens and cap hits.
+- four public development episodes through the evaluation episode loop with the evaluation system prompt (`crossing.SYSTEM`, the one `evaluation.episode` uses; not `data.SYSTEM`) and the 1,024 cap: turns, reply tokens and cap hits.
 
 **Outcome (fixed now).** This is a measurement, so there is no pass or fail.
 - **COMPLETE:** `metadata.json` status is `complete`.
 - **PARTIAL:** `load_complete` is present but the status is `incomplete` (deadline, OOM outside a guarded configuration, or an exception). Every recorded measurement is used as is.
 - **NOT ESTABLISHED:** no `load_complete`. A relaunch needs Chris's yes.
 - An OOM inside a guarded configuration is a result, not a failure.
+- **Minimum for each use** (Fable 5.2 finding 3):
+  - The budget needs the load time and the single-stream 2.5k row. The 10k row is wanted, but an OOM there is itself a finding.
+  - The batching decision needs the batch-2 and/or batch-4 rows.
+  - A PARTIAL run lacking these is reported as is. A relaunch after PARTIAL or NOT ESTABLISHED needs Chris's yes.
+- **Known risk:** every PARTIAL path re-raises, so the kernel ends in ERROR, and the code prints no measurements to the log. Whether Kaggle keeps `/kaggle/working` files from an errored version is not verified, so PARTIAL evidence depends on it.
 
 **Expectations, written before the run** (Claude):
 - Load 2–4 min.
@@ -12764,14 +12769,30 @@ Written by Claude (FT1 stage thread) before the run. Chris agreed the speed test
 - Base development replies: median 150–400 tokens, at least one 1,024 cap hit across the four episodes (about 60%).
 
 **How the numbers will be used (fixed now).**
+- **Rates** (Fable 5.2 finding 2):
+  - The decode rate is 199 × batch ÷ (`seconds` − `prefill_seconds`), with prefill excluded.
+  - The retained `tokens_per_second` field includes prefill and is reported alongside.
+  - The 1.5× batching threshold uses the decode-only rate.
 - **Budget:** per-turn cost is prefill plus reply tokens divided by the decode rate. That is applied to the plan's episode counts, with a +30% margin for the unmerged PEFT adapter on trained arms (Fable), and reported per model and in total against the ~30 h/week quota.
 - **Batching:** Chris decides after seeing the numbers, before any evaluation run.
-  - Claude's default recommendation: batch k is offered only if it fits (no OOM, peak at most 13.5e9 bytes), gives at least 1.5× throughput, and row 0 matches single-stream exactly.
-  - If row 0 diverges, batching is offered only as a declared protocol change, applied identically to every model, with the divergence disclosed.
+  - Claude's default recommendation: batch k is considered only if it fits (no OOM, peak at most 13.5e9 bytes) and gives at least 1.5× decode-only throughput.
+  - **Row 0 is necessary but not sufficient** (Fable 5.2 finding 1, must-fix). Row 0 is the longest prompt, so it is the one unpadded row, and it is a single prompt forced to 200 tokens. A match does not show that padded rows, as in real batched evaluation, match single-stream.
+    - If row 0 diverges, batching is not offered as output-equivalent.
+    - Either way, batching can be adopted only as a declared protocol, applied identically to every model, or after a separate padded-row equivalence check on development cases.
 
 **Estimated use.** $0. About 45–60 GPU minutes.
 
-**Limits.** These are base-model numbers on public development cases. Trained-arm reply lengths may differ (they are expected to be shorter). A 10k prefill does not bound the longest histories (up to 16k).
+**Limits.** These are base-model numbers on public development cases.
+- The batch speedup is an upper bound: prompt lengths are near-equal and every row is forced to 200 tokens.
+- "Fits" is shown only at 2.5k.
+- A 10k OOM is a feasibility finding for evaluation, whose context limit is 16,384, not only a budget gap.
+- `development_turn` events carry no prompt length or timing, so the budget formula can be cross-checked only against total kernel time.
+- **Fable 5.2 readiness review** (fresh context, of `bf941651` and this bundle; READY WITH FIXES; the wording fixes are applied above):
+  - Forecast: COMPLETE 55%, PARTIAL 35%, NOT ESTABLISHED 10%.
+  - Expected numbers: decode 4.5–5.5 tokens/s, batch-4 decode-only speedup 3.2–3.8×, 10k OOM 40%, row 0 identical 60% at batch 2 and 50% at batch 4.
+  - Pre-mortem: the four episodes run to the deadline and the errored kernel loses its files; or a non-OOM memory error at 10k stops the run before the batch rows; or a row-0 match is misread as batching being safe.
+  - Checked offline: 119 of 120 source hashes match the archive (the 120th, `sealed.py`, by size only, unread), and the archive is byte-identical to the launcher's build apart from `COMMIT.txt` and `ARCHIVE.json`.
+- Chris approved before the review returned (2026-11-16: "Approve FT1 speed test at bf941651"). The push waited for the review. The fixes are wording only, with no change to the commit, bundle or receipt. Trained-arm reply lengths may differ (they are expected to be shorter). A 10k prefill does not bound the longest histories (up to 16k).
 
 No run is approved by this entry. The speed test needs Chris's exact-commit approval of `bf9416513f15d732e35d45d910f57595468b8fcf`, phase throughput.
 
