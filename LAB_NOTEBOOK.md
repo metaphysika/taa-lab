@@ -12841,3 +12841,38 @@ Written by Claude (FT1 stage thread) after the run, against the pre-run entry ab
   - This must be settled before the first gate or test run. Proposed next step: offline, with the local tokenizer, Sol reports the turn-0 prompt length distribution for the sealed cases (counts only) and the public development turn lengths. Fable reviews how an episode OOM is recorded (a mechanical unknown, not a conduct result). If needed, a short separately approved run finds the largest prompt that fits.
 
 **What this shows and does not show.** These are base-model numbers on public development cases on one T4. They are not trained-arm or sealed-case numbers, and nothing here is a conduct result or touches H2.
+
+## 2026-11-16 — v0.24.89 FT1 pilot training run (arm 3, seed 247056) at 0449a230: TRAINED (one Kaggle T4, exploratory, $0)
+
+Written by Claude (FT1 stage thread) after the run, against the pilot pre-run entry (#152). Chris approved on 2026-11-15/16 (item 1, "Let's go with your recommendations, 1 through 3").
+
+**Evidence.** `results/2026-11-16 v0.24.89 ft1-train-3-247056 0449a230200c/` (README, `launch/`, `kaggle-v1/ft1-3-247056-train/events.jsonl`, `metadata.json`, `manifest.json`, configs, trainer states, log). All 53 output files match the run's manifest. Weights and optimizer state are kept outside git with their manifest hashes; a full 2.0 GB copy is kept outside the repo. The kernel ran from push at 00:55 to COMPLETE at 03:34 UTC.
+
+**Outcome: TRAINED.** Every part of the pre-run rule holds:
+- `metadata.json` status `trained`;
+- 250 `optimizer_step` events;
+- checkpoints saved at 50, 100, 150, 200 and 250;
+- `adapter_saved` with `tensors_finite: true` (adapter weights SHA-256 `f99d7df8…`);
+- `training_complete` with 250 steps and `qualification: false`;
+- **zero skipped updates**, with the skip signal present on all 250 steps.
+
+**No review flag.**
+- Peak allocated at most 9.29e9 bytes, below both the 10.5e9 review line and the 13.5e9 limit.
+- Steps took 36.8 s on average; the slowest took 41.1 s, against the 75 s line.
+- Setup took 226 s, and the run took 9,428 s (2.6 h) to the last event, against the 6.5 h line.
+- All 2,000 micro-losses are finite.
+
+**Against the forecasts.** Claude gave TRAINED 85 / INCOMPLETE 6 / NOT TRAINED 2 / NOT ESTABLISHED 7. Fable (5.1) gave 84/7/1/8. Both favoured TRAINED. Fable's pre-mortem risks (a host interruption, a late memory peak, fp16 drift) did not occur.
+
+**Descriptive only, no learning claim.** The token-weighted training loss per 25-step block fell fast:
+
+| Steps | Action loss | Reason loss |
+|---|---|---|
+| 1–25 | 0.110 | 0.892 |
+| 26–50 | 0.001 | 0.082 |
+| 101–125 | <0.001 | 0.021 |
+| 226–250 | <0.001 | 0.014 |
+
+Near-zero training loss this early is consistent with highly regular, templated training records, and it is a reason to watch for memorization. Whether arm 3 transfers to the different-domain test set is exactly what the evaluation measures; nothing is concluded here.
+
+**What follows.** Under the pre-run entry, a TRAINED pilot with no review flag leads to approvals for the other eleven training runs, each with its own receipt, scheduled against the weekly quota (about 2.6–3 h each, so about 30–35 GPU hours). Evaluation of this adapter waits for the evaluation-side work: the long-history memory finding from the speed test, the fit-limit measurement and the out-of-memory handling, which is still to be decided by Chris.
