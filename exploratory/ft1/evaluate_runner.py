@@ -68,9 +68,12 @@ def validate(config, receipt):
     if (config['arm'],config['seed']) not in plan.MODELS or config['phase'] not in ('gate','evaluate'):
         raise ValueError('unplanned evaluation')
     keys = ('repo_commit','phase','arm','seed','adapter_sha256','training_manifest_sha256',
-            'data_manifest_sha256','sealed_sha256','gate_sha256','part','part_count','model_source')
+            'data_manifest_sha256','sealed_sha256','gate_sha256','part','part_count','model_source','prompt_ceiling')
     if receipt.get('approved') is not True or any(receipt.get(k) != config.get(k) for k in keys):
         raise ValueError('separate exact evaluation approval required')
+    ceiling = config.get('prompt_ceiling')
+    if ceiling is not None and (type(ceiling) is not int or not 1 <= ceiling <= 16384):
+        raise ValueError('invalid prompt ceiling')
     if config['phase'] == 'gate':
         fields = ('part','part_count','gate_sha256','sealed_sha256')
         if any(key not in receipt or receipt[key] is not None or config.get(key) is not None for key in fields):
@@ -86,13 +89,17 @@ def validate(config, receipt):
 
 def protocol(config, records, generate, count_tokens, retain, check, skipped):
     """Run the complete protocol once, without any sealed input."""
+    from .memory import Tracker
+    tracker = Tracker(retain)
     replies = []
     for i, record in enumerate(records):
         check()
         messages = record['messages'][:-1]
         system = messages[0]['content'] if messages[0]['role'] == 'system' else data.SYSTEM
         history = messages[1:] if messages[0]['role'] == 'system' else messages
-        raw = generate(system, history, 1024, 448017+i)
+        raw = tracker.call(lambda: generate(system, history, 1024, 448017+i), 0, dict(phase='acquisition',index=i))
+        if tracker.stopped: return unknown_gate(config, skipped, tracker)
+        if tracker.last_unknown: continue
         retain(dict(event='acquisition_turn', index=i, raw=raw, reply_tokens=count_tokens(raw)))
         replies.append(raw)
     formats = []
@@ -112,12 +119,15 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
             raw = generate(system, history, cap, cell['sampling_seed']+turn)
             turn += 1
             return raw
-        evaluation.episode(development[cell['case_id']],call,count_tokens,log,format_only=True)
+        result = tracker.call(lambda: evaluation.episode(development[cell['case_id']],call,count_tokens,log,format_only=True), None, dict(phase='format',case_id=cell['case_id']))
+        if tracker.stopped: return unknown_gate(config, skipped, tracker)
+        if tracker.last_unknown: continue
         formats.append(raw_replies)
         retain(dict(event='format_only',case_id=cell['case_id'],raw_replies=raw_replies))
+    if tracker.total: return unknown_gate(config, skipped, tracker)
     gate = scoring.eligibility(records,replies,formats,skipped)
     retain(dict(event='eligibility', **gate))
-    return dict(gate, skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
+    return dict(gate, prompt_ceiling=config.get('prompt_ceiling'), **tracker.counts, status='complete', skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
                 adapter_sha256=config['adapter_sha256'],
                 training_manifest_sha256=config['training_manifest_sha256'],
                 repo_commit=config['repo_commit'],data_manifest_sha256=config['data_manifest_sha256'],
@@ -128,6 +138,11 @@ def validate_gate(config, gate):
     for key in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source'):
         if key not in gate or gate[key] != config.get(key):
             raise ValueError('gate identity mismatch')
+    if gate.get('prompt_ceiling') != config.get('prompt_ceiling'):
+        raise ValueError('gate prompt ceiling mismatch')
+    if gate.get('status') in ('gate_mechanical_unknown','mechanical_unknown'):
+        from .memory import GateDecisionRequired
+        raise GateDecisionRequired('mechanically unknown gate requires a recorded owner decision on eligibility or reruns')
     if not isinstance(gate.get('acquired'),bool) or not isinstance(gate.get('trained'),bool):
         raise ValueError('invalid gate flags')
     return config['arm'] == 'base' or gate['acquired'] and gate['trained']
@@ -163,6 +178,8 @@ def test_cells(config, cases, gate, generate, count_tokens, retain, check):
     retain(dict(event='eligibility',**gate))
     if not validate_gate(config,gate):
         return dict(status='ineligible',eligibility=gate)
+    from .memory import Tracker
+    tracker = Tracker(retain)
     indices = part_indices(cases,config['part'],config['part_count'])
     check_part_balance(cases,indices,retain)
     for cell in plan.plan()['evaluation']:
@@ -172,11 +189,12 @@ def test_cells(config, cases, gate, generate, count_tokens, retain, check):
         def guarded(system,history,cap,seed):
             check()
             return generate(system,history,cap,seed)
-        evaluation.run_cell(cell,cases[cell['case_index']],guarded,count_tokens,retain)
-    return dict(status='complete',eligibility=gate)
+        tracker.call(lambda: evaluation.run_cell(cell,cases[cell['case_index']],guarded,count_tokens,retain), None, dict(case_id=cases[cell['case_index']]['id'],branch=cell['branch']))
+        if tracker.stopped: break
+    return dict(status='stopped_mechanical_oom' if tracker.stopped else 'complete', **tracker.counts, eligibility=gate)
 
 
-def load_base(model_path, retain, check):
+def load_base(model_path, retain, check, attention=None):
     """Shared local NF4 inference loader for evaluation and throughput."""
     retain(dict(event='local_wheels',sha256=core.install_wheels()))
     core.check_stack()
@@ -188,15 +206,18 @@ def load_base(model_path, retain, check):
     tokenizer = transformers.AutoTokenizer.from_pretrained(path,local_files_only=True,trust_remote_code=False)
     model = core.load_model('gemma-3-12b-it',transformers,path,
         quantization_config=transformers.BitsAndBytesConfig(load_in_4bit=True,bnb_4bit_quant_type='nf4',
-            bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.float16),device_map={'':0})
+            bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.float16),device_map={'':0}, **({'attn_implementation':attention} if attention else {}))
+    retain(dict(event='attention_backend', requested=attention, implementation=getattr(model.config,'_attn_implementation',None), text_implementation=getattr(getattr(model.config,'text_config',None),'_attn_implementation',None), torch_version=torch.__version__, transformers_version=transformers.__version__))
     text = getattr(model.config,'text_config',model.config)
     retain(dict(event='base_model_identity',model_type=model.config.model_type,
                 layers=text.num_hidden_layers,hidden_size=text.hidden_size,vocab=text.vocab_size,
                 config_sha256=sha(Path(path)/'config.json')))
+    from .memory import snapshot
+    retain(dict(event='memory_snapshot',boundary='after_load',**snapshot()))
     return model,tokenizer,path
 
 
-def prepare(model_path, adapter, retain, check):
+def prepare(model_path, adapter, retain, check, prompt_ceiling=None):
     """Inference NF4 base, optionally the verified adapter; no new LoRA weights."""
     model,tokenizer,path = load_base(model_path,retain,check)
     if adapter is not None:
@@ -205,24 +226,39 @@ def prepare(model_path, adapter, retain, check):
         adapter_config.base_model_name_or_path = str(path)
         model = PeftModel.from_pretrained(model,adapter,config=adapter_config,
             local_files_only=True,is_trainable=False)
-    return generation_functions(model,tokenizer,check)
+    return generation_functions(model,tokenizer,check,prompt_ceiling=prompt_ceiling)
 
 
-def generation_functions(model, tokenizer, check):
+def generation_functions(model, tokenizer, check, prompt_ceiling=None):
     import torch, transformers
     model.eval()
     check()
-    def generate(system,history,cap,seed):
+    def generate(system,history,cap,seed, *, prompt_ids=None, return_ids=False):
         check()
         transformers.set_seed(seed)
-        ids = core.prompt(tokenizer,[dict(role='system',content=system)]+history,model='gemma-3-12b-it')
-        if len(ids)+cap > 16384:
-            raise ValueError('evaluation context limit')
-        tensor = torch.tensor([ids],device='cuda')
-        with torch.inference_mode():
-            output = model.generate(input_ids=tensor,attention_mask=torch.ones_like(tensor),max_new_tokens=cap,
-                do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id)
-        return core.decode_reply(tokenizer,output[0,len(ids):].tolist(),'gemma-3-12b-it')
+        ids = prompt_ids if prompt_ids is not None else core.prompt(tokenizer,[dict(role='system',content=system)]+history,model='gemma-3-12b-it')
+        if len(ids)+cap > 16384 or prompt_ceiling is not None and len(ids) > prompt_ceiling:
+            from .memory import ContextLimit
+            raise ContextLimit(len(ids),rule='16384' if len(ids)+cap > 16384 else 'prompt_ceiling')
+        tensor = output = None
+        oom = False
+        try:
+            tensor = torch.tensor([ids],device='cuda')
+            with torch.inference_mode():
+                output = model.generate(input_ids=tensor,attention_mask=torch.ones_like(tensor),max_new_tokens=cap,
+                    do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id)
+            generated_ids = output[0,len(ids):].tolist()
+            return generated_ids if return_ids else core.decode_reply(tokenizer,generated_ids,'gemma-3-12b-it')
+        except RuntimeError as exc:
+            from .memory import is_oom
+            if not is_oom(exc): raise
+            oom = True
+        finally:
+            del tensor, output
+        if oom:
+            from .memory import cleanup, MechanicalOOM
+            cleanup()
+            raise MechanicalOOM(len(ids))
     return generate, lambda raw: len(tokenizer.encode(raw,add_special_tokens=False))
 
 
@@ -265,16 +301,17 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
             retain(dict(event='eligibility',**gate))
             result = dict(status='ineligible',eligibility=gate)
         else:
-            generate,count_tokens = prepare(model_path,adapter,retain,check)
+            generate,count_tokens = prepare(model_path,adapter,retain,check,**({'prompt_ceiling':config['prompt_ceiling']} if config.get('prompt_ceiling') is not None else {}))
             if config['phase'] == 'gate':
                 probe = data.PROBE_FILES.get(config['arm'],data.PROBE_FILES['3'])
                 records = json.loads((Path(data_folder)/probe).read_bytes())
                 gate = protocol(config,records,generate,count_tokens,retain,check,skipped)
                 (folder/'gate.json').write_text(json.dumps(gate,indent=2),encoding='utf-8')
-                result = dict(status='gate_complete',eligibility=gate)
+                result = dict(status=gate.get('status') if gate.get('status') == 'gate_mechanical_unknown' else 'gate_complete',eligibility=gate)
             else:
                 cases = json.loads(Path(sealed_file).read_bytes())['cases']
                 result = test_cells(config,cases,gate,generate,count_tokens,retain,check)
+        (folder/'report.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
         (folder/'eligibility.json').write_text(json.dumps([dict(result['eligibility'],training_seed=config['seed'])]),encoding='utf-8')
         return result
     except BaseException as exc:
@@ -283,3 +320,11 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
     finally:
         (folder/'metadata.json').write_text(json.dumps(dict(config,result=result),indent=2),encoding='utf-8')
         core.manifest(folder,dict(phase=config['phase'],status=result['status'],scientific=False))
+
+
+def unknown_gate(config, skipped, tracker):
+    retain = tracker.retain
+    retain(dict(event='gate_mechanical_unknown',**tracker.counts))
+    return dict(acquired=None, trained=plan.trained(skipped), status='gate_mechanical_unknown',
+        decision_required='owner decision on eligibility and reruns', **tracker.counts, skipped_steps=skipped,
+        **{k:config.get(k) for k in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source','prompt_ceiling')})

@@ -27,8 +27,12 @@ def main():
     gates=json.loads(Path(a.eligibility).read_text(encoding='utf-8'))
     eligibility=gate_rows(gates)
     summaries,descriptive=aggregate(cases,events,eligibility)
-    result=dict(predictions=analyze(summaries),rejection_sensitivity=analyze_rejection_sensitivity(summaries),
+    stopped=any(s.get('decision_required') for s in descriptive.values())
+    result=dict(status='gate_decision_required' if stopped else 'complete',
+                predictions=None if stopped else analyze(summaries),rejection_sensitivity=None if stopped else analyze_rejection_sensitivity(summaries),
                 models=[dict(arm=arm,training_seed=seed,counts=s['counts'],
+                             mechanical_unknowns=s['mechanical_unknowns'],gate_status=s['gate_status'],
+                             decision_required=s.get('decision_required'),
                              denominators=dict(pairs=24,servile_W=s['servile_w_denominator'],U=24,knowledge=48),
                              pair_correct_min=sum(p['minimum'] for p in s['pair_bounds']),
                              pair_correct_max=sum(p['maximum'] for p in s['pair_bounds']),
