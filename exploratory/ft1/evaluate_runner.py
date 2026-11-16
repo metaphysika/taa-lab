@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import time
+from collections import Counter
 from pathlib import Path
 from . import data, evaluation, kaggle, plan, scoring
 from .runner import deadline, verify_source
@@ -19,7 +20,10 @@ def find_hashes(root, targets, max_bytes=5*1024*1024):
     for directory, _, names in os.walk(root):
         for name in names:
             path = Path(directory)/name
-            if path.suffix.lower() != '.json' or path.stat().st_size > max_bytes:
+            try:
+                if path.suffix.lower() != '.json' or path.stat().st_size > max_bytes:
+                    continue
+            except FileNotFoundError:
                 continue
             digest = sha(path)
             for key, expected in targets.items():
@@ -67,6 +71,10 @@ def validate(config, receipt):
             'data_manifest_sha256','sealed_sha256','gate_sha256','part','part_count','model_source')
     if receipt.get('approved') is not True or any(receipt.get(k) != config.get(k) for k in keys):
         raise ValueError('separate exact evaluation approval required')
+    if config['phase'] == 'gate':
+        fields = ('part','part_count','gate_sha256','sealed_sha256')
+        if any(key not in receipt or receipt[key] is not None or config.get(key) is not None for key in fields):
+            raise ValueError('gate receipt requires null test fields')
     if config['phase'] == 'evaluate':
         if type(config['part_count']) is not int or not 1 <= config['part_count'] <= 24 or config['part'] not in range(config['part_count']):
             raise ValueError('invalid evaluation part')
@@ -137,11 +145,26 @@ def part_indices(cases, part, part_count):
     return {i for index, indices in enumerate(pairs.values()) if index % part_count == part for i in indices}
 
 
+def check_part_balance(cases, indices, retain):
+    groups = {case['difficulty_group'] for case in cases}
+    counts = Counter(cases[i]['difficulty_group'] for i in indices)
+    retain(dict(event='part_balance',counts={group:counts[group] for group in sorted(groups)}))
+    pairs = {}
+    for i, case in enumerate(cases):
+        pairs.setdefault(case['pair_id'],[]).append(i)
+    if (not indices or len(set(counts[group] for group in groups)) != 1 or
+            any(len(pair) != 2 or sorted(cases[i]['kind'] for i in pair) != ['U','W'] or
+                any(i in indices for i in pair) and not all(i in indices for i in pair)
+                for pair in pairs.values())):
+        raise ValueError('test part group or twin balance failed')
+
+
 def test_cells(config, cases, gate, generate, count_tokens, retain, check):
     retain(dict(event='eligibility',**gate))
     if not validate_gate(config,gate):
         return dict(status='ineligible',eligibility=gate)
     indices = part_indices(cases,config['part'],config['part_count'])
+    check_part_balance(cases,indices,retain)
     for cell in plan.plan()['evaluation']:
         if (cell['arm'],cell['training_seed']) != (config['arm'],config['seed']) or cell['case_index'] not in indices:
             continue
@@ -153,8 +176,8 @@ def test_cells(config, cases, gate, generate, count_tokens, retain, check):
     return dict(status='complete',eligibility=gate)
 
 
-def prepare(model_path, adapter, retain, check):
-    """Inference NF4 base, optionally the verified adapter; no new LoRA weights."""
+def load_base(model_path, retain, check):
+    """Shared local NF4 inference loader for evaluation and throughput."""
     retain(dict(event='local_wheels',sha256=core.install_wheels()))
     core.check_stack()
     import torch, transformers
@@ -170,12 +193,23 @@ def prepare(model_path, adapter, retain, check):
     retain(dict(event='base_model_identity',model_type=model.config.model_type,
                 layers=text.num_hidden_layers,hidden_size=text.hidden_size,vocab=text.vocab_size,
                 config_sha256=sha(Path(path)/'config.json')))
+    return model,tokenizer,path
+
+
+def prepare(model_path, adapter, retain, check):
+    """Inference NF4 base, optionally the verified adapter; no new LoRA weights."""
+    model,tokenizer,path = load_base(model_path,retain,check)
     if adapter is not None:
         from peft import PeftConfig, PeftModel
         adapter_config = PeftConfig.from_pretrained(adapter,local_files_only=True)
         adapter_config.base_model_name_or_path = str(path)
         model = PeftModel.from_pretrained(model,adapter,config=adapter_config,
             local_files_only=True,is_trainable=False)
+    return generation_functions(model,tokenizer,check)
+
+
+def generation_functions(model, tokenizer, check):
+    import torch, transformers
     model.eval()
     check()
     def generate(system,history,cap,seed):
