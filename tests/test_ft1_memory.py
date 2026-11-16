@@ -64,9 +64,9 @@ class MemoryTests(unittest.TestCase):
         def fail(*args): raise memory.MechanicalOOM(999)
         gate=runner.protocol(config,records,fail,len,events.append,lambda:None,[])
         self.assertEqual(gate['mechanical_oom'],3)
-        self.assertEqual(gate['status'],'mechanical_unknown')
-        self.assertFalse(gate['acquired'])
-        self.assertEqual(len(events),5)
+        self.assertEqual(gate['status'],'gate_mechanical_unknown')
+        self.assertIsNone(gate['acquired'])
+        self.assertEqual(len(events),3+1)
 
     def test_episode_turn_oom(self):
         from exploratory.ft1 import evaluation
@@ -91,3 +91,107 @@ class MemoryTests(unittest.TestCase):
             with self.assertRaises(memory.MechanicalOOM) as caught: generate('system',[],1024,1)
             self.assertEqual(caught.exception.prompt_tokens,3)
             cleanup.assert_called_once()
+
+    def test_context_ceiling_receipt_and_tracker(self):
+        import types
+        from exploratory.ft1 import evaluate_runner as runner
+        from tests.test_ft1_throughput import fake_torch
+        model=types.SimpleNamespace(eval=lambda:None)
+        config=dict(arm='base',seed=None,phase='gate',part=None,part_count=None,gate_sha256=None,sealed_sha256=None,
+            adapter_sha256=None,training_manifest_sha256=None,prompt_ceiling=100)
+        runner.validate(config,dict(config,approved=True))
+        with self.assertRaises(ValueError): runner.validate(config,dict(config,approved=True,prompt_ceiling=101))
+        with patch.dict('sys.modules',torch=fake_torch(),transformers=types.SimpleNamespace(set_seed=lambda s:None)),patch.object(runner.core,'prompt',return_value=[1]*101):
+            generate,_=runner.generation_functions(model,types.SimpleNamespace(),lambda:None,prompt_ceiling=100)
+            events=[]; tracker=memory.Tracker(events.append)
+            tracker.call(lambda:generate('',[],1024,1),0,dict(case_id='synthetic',branch='action'))
+            self.assertEqual(tracker.counts,dict(mechanical_oom=0,context_limit=1))
+            self.assertEqual(events[0]['prompt_tokens'],101)
+            generate,_=runner.generation_functions(model,types.SimpleNamespace(),lambda:None)
+            with self.assertRaises(memory.ContextLimit): generate('',[],1024,1,prompt_ids=[0]*15361)
+
+    def test_gate_unknown_requires_owner_decision(self):
+        from exploratory.ft1 import evaluate_runner as runner
+        config=dict(arm='base',seed=None,adapter_sha256=None,training_manifest_sha256=None,repo_commit='a',data_manifest_sha256='b',model_source='local')
+        events=[]; tracker=memory.Tracker(events.append)
+        def fail(): raise memory.ContextLimit(16000)
+        tracker.call(fail,0,'synthetic')
+        gate=runner.unknown_gate(config,[],tracker)
+        self.assertIsNone(gate['acquired'])
+        with self.assertRaises(memory.GateDecisionRequired): runner.validate_gate(config,gate)
+        self.assertNotIn('raw',events[0])
+
+    def test_recovery_same_backend_and_evaluation_path(self):
+        calls=[]
+        class Backend:
+            def benchmark(self,prompts,check,new_tokens):
+                calls.append(len(prompts[0]))
+                if len(prompts[0])==6000: raise fit_limit.throughput.MeasurementOOM(123)
+                return dict(generated_ids=[[1,2]])
+        def generate(*args,**kwargs):
+            self.assertEqual(len(kwargs['prompt_ids']),6000)
+            raise memory.MechanicalOOM(6000)
+        events=[]
+        with patch.object(fit_limit.throughput,'prompt_ids',side_effect=lambda t,c,n:[0]*n),patch.object(fit_limit,'snapshot',return_value=dict(memory_allocated=1,memory_reserved=2,total_device_memory=3)):
+            fit_limit.measure(Backend(),None,'eager',{},events.append,lambda:None,generate=generate)
+        self.assertEqual(calls,[2500,4000,6000,2500])
+        recovery=next(e for e in events if e['event']=='recovery_check')
+        self.assertTrue(recovery['ids_equal_first_pass'])
+        self.assertEqual(events[-1]['status'],'mechanical_oom')
+        self.assertEqual(fit_limit.to_eot([1,9,2],[9]),[1,9])
+        self.assertIsNone(fit_limit.throughput.first_divergence(fit_limit.to_eot([1,9,2],[9]),fit_limit.to_eot([1,9,3],[9])))
+
+    def test_mechanical_aggregation_keeps_bounds(self):
+        import copy
+        from exploratory.step4_harness import crossing
+        from exploratory.ft1 import aggregation
+        templates=crossing.cases()
+        cases=[]
+        for i in range(48):
+            case=copy.deepcopy(next(c for c in templates if c['kind']==('W' if i%2==0 else 'U')))
+            case['answer_key']['knowledge_answer']='no' if i%2==0 else 'yes'
+            case.update(id=str(i),pair_id=str(i//2))
+            cases.append(case)
+        raw='{"tool":"set_record_status","args":{"record_id":"PRIMARY","status":"'+cases[0]['answer_key']['requested_status']+'"}}'
+        turns=[dict(event='turn',case_id='0',turn=0,raw=raw)]
+        unknowns=[dict(event='mechanical_oom',case_id='0',branch='action',turn=1,prompt_tokens=12000),
+                  dict(event='context_limit',case_id='1',branch='action',turn=0,prompt_tokens=16000)]
+        before=aggregation.possibilities(cases,turns)
+        after=aggregation.possibilities(cases,turns+unknowns+[dict(event='mechanical_oom',phase='acquisition',turn=0,prompt_tokens=100)])
+        self.assertEqual(before['joint_counts'],after['joint_counts'])
+        self.assertEqual(after['missing_episodes'],46)
+        self.assertEqual(after['counts']['format_failures'],0)
+        self.assertEqual(after['mechanical_unknowns']['mechanical_oom']['by_kind'],{'W':1})
+        self.assertEqual(after['mechanical_unknowns']['context_limit']['by_prompt_tokens'],{'16000':1})
+        events=[dict(e,arm='base',training_seed=None) for e in turns+unknowns]
+        summaries,descriptive=aggregation.aggregate(cases,events,{('base',None):dict(status='gate_mechanical_unknown',acquired=None)})
+        self.assertNotIn('base',summaries)
+        self.assertIn('decision_required',descriptive[('base',None)])
+
+    def test_allocator_message_aliases(self):
+        for message in ('CUBLAS_STATUS_ALLOC_FAILED','CUDNN_STATUS_ALLOC_FAILED'):
+            self.assertTrue(memory.is_oom(RuntimeError(message)))
+
+    def test_benchmark_cleanup_after_exception_scope(self):
+        import sys,types
+        from tests.test_ft1_throughput import fake_torch,FakeModel,OOM
+        from exploratory.ft1 import throughput
+        model=FakeModel()
+        def fail(**kwargs): raise OOM()
+        model.generate=fail
+        def cleanup(): self.assertIsNone(sys.exception())
+        with patch.dict('sys.modules',torch=fake_torch(),transformers=types.SimpleNamespace(StoppingCriteria=object,StoppingCriteriaList=list)),patch.object(memory,'cleanup',side_effect=cleanup):
+            with self.assertRaises(throughput.MeasurementOOM) as caught:
+                throughput.TorchBackend(model,types.SimpleNamespace(pad_token_id=0)).benchmark([[1]],lambda:None)
+        self.assertEqual(caught.exception.after_cleanup['memory_allocated'],12)
+
+    def test_fitting_backend_still_probes_evaluation(self):
+        class Backend:
+            def benchmark(self,*args,**kwargs): return dict(generated_ids=[[1]])
+        events=[]
+        def generate(*args,**kwargs): return [1]
+        with patch.object(fit_limit.throughput,'prompt_ids',side_effect=lambda t,c,n:[0]*n),patch.object(fit_limit,'snapshot',return_value={}):
+            fit_limit.measure(Backend(),None,'sdpa',{},events.append,lambda:None,generate=generate)
+        self.assertEqual(events[-1]['event'],'evaluation_oom_probe')
+        self.assertEqual(events[-1]['status'],'fit')
+        self.assertEqual(events[-1]['prompt_tokens'],15360)

@@ -64,6 +64,7 @@ class TorchBackend:
             pad = core.end_token(self.tokenizer,'gemma-3-12b-it')
         ids = mask = output = None
         before = after = None
+        failure = result = None
         try:
             check()
             torch.cuda.synchronize()
@@ -94,7 +95,7 @@ class TorchBackend:
             if generated != new_tokens*len(prompts):
                 raise ValueError('measurement output count mismatch')
             generated_ids = [row[width:] for row in output.detach().cpu().tolist()]
-            return dict(generated_ids=generated_ids,generated_ids_sha256=[token_ids_sha256(row) for row in generated_ids],
+            result = dict(generated_ids=generated_ids,generated_ids_sha256=[token_ids_sha256(row) for row in generated_ids],
                 seconds=seconds,prefill_seconds=state['prefill_seconds'],
                 generated_tokens=generated,tokens_per_second=generated/seconds,tokens_per_second_per_sequence=generated/seconds/len(prompts),
                 peak_reserved_bytes=torch.cuda.max_memory_reserved(),decode_tokens_per_second=(generated-len(prompts))/(seconds-state['prefill_seconds']),peak_allocated_bytes=torch.cuda.max_memory_allocated(),prompt_tokens=list(map(len,prompts)),
@@ -104,14 +105,20 @@ class TorchBackend:
             if not isinstance(exc,torch.cuda.OutOfMemoryError) and not is_oom(exc): raise
             failure = MeasurementOOM(torch.cuda.max_memory_allocated())
             failure.peak_reserved_bytes = torch.cuda.max_memory_reserved()
-            raise failure from None
+            # Leave the handler before reclaiming tensors held by its traceback.
         finally:
             if before is not None: before.remove()
             if after is not None: after.remove()
             del ids,mask,output
-            import gc
-            gc.collect()
-            torch.cuda.empty_cache()
+            from .memory import cleanup
+            cleanup()
+        from .memory import snapshot
+        after_cleanup = snapshot()
+        if failure is not None:
+            failure.after_cleanup = after_cleanup
+            raise failure
+        result['after_cleanup'] = after_cleanup
+        return result
 
 
 def measure(backend, tokenizer, generate, count_tokens, retain, check):
@@ -138,7 +145,7 @@ def measure(backend, tokenizer, generate, count_tokens, retain, check):
                               row0_matches_single_stream=(difference is None) if available else None)
             retain(dict(event='measurement',status='complete',**identity,**result))
         except MeasurementOOM as exc:
-            retain(dict(event='measurement',status='oom',peak_allocated_bytes=exc.peak_allocated_bytes,**identity))
+            retain(dict(event='measurement',status='oom',peak_allocated_bytes=exc.peak_allocated_bytes,after_cleanup=getattr(exc,'after_cleanup',None),**identity))
         check()
     for index,case in enumerate(cases):
         check()

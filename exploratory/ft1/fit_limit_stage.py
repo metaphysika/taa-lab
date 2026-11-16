@@ -21,14 +21,13 @@ def stage(output, commit, owner, repo_dataset, receipt_dataset, model_source):
     for basename in allowed:
         name = 'exploratory/ft1/'+basename
         sources[name] = hashlib.sha256(subprocess.check_output(['git','show',commit+':'+name],cwd=root)).hexdigest()
-    root = Path(__file__).resolve().parents[2]
     names = subprocess.check_output(['git','ls-tree','-r','--name-only',commit,
         'exploratory/step4_harness','exploratory/measurement_v02456','exploratory/k2_kaggle','formation'],cwd=root,text=True).splitlines()
     for name in names:
         if name.endswith('.py'):
             sources[name] = hashlib.sha256(subprocess.check_output(['git','show',commit+':'+name],cwd=root)).hexdigest()
     config = dict(phase='fit_limit',repo_commit=commit,model_source=model_source,
-        data_manifest_sha256=None,source_sha256=sources,receipt_slug=mounts.receipt_slug(receipt_dataset))
+        data_manifest_sha256=None,source_sha256=sources,receipt_slug=mounts.receipt_slug(receipt_dataset),deadline_seconds=4500)
     source = '''import os, sys, json
 from pathlib import Path
 PLAN_ONLY = True
@@ -43,7 +42,8 @@ else:
     from exploratory.ft1.mounts import find_receipt
     from exploratory.ft1.fit_limit import run
     receipt = json.loads(find_receipt('/kaggle/input',CONFIG['receipt_slug']).read_bytes())
-    run(CONFIG,'/kaggle/input/models/'+CONFIG['model_source'],'/kaggle/working/ft1-fit_limit',receipt)
+    # Kaggle session scheduling must allow at least the 75-minute cooperative budget.
+    run(CONFIG,'/kaggle/input/models/'+CONFIG['model_source'],'/kaggle/working/ft1-fit_limit',receipt,seconds=CONFIG['deadline_seconds'])
 '''.replace('CONFIG_VALUE',repr(config))
     folder = data.safe_output(output)
     folder.mkdir(parents=True)

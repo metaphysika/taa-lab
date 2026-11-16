@@ -50,7 +50,7 @@ class FakeModel:
 
 def fake_torch():
     cuda = types.SimpleNamespace(synchronize=lambda:None,reset_peak_memory_stats=lambda:None,
-        max_memory_reserved=lambda:456,max_memory_allocated=lambda:123,empty_cache=lambda:None,device_count=lambda:1,
+        memory_allocated=lambda:12,memory_reserved=lambda:45,get_device_properties=lambda i:types.SimpleNamespace(total_memory=15000),max_memory_reserved=lambda:456,max_memory_allocated=lambda:123,empty_cache=lambda:None,device_count=lambda:1,
         get_device_name=lambda index:'Tesla T4',OutOfMemoryError=OOM)
     return types.SimpleNamespace(cuda=cuda,tensor=lambda rows,device:Tensor(rows),inference_mode=Context)
 
@@ -150,7 +150,7 @@ class ThroughputTests(unittest.TestCase):
             self.assertEqual(len(throughput.prompt_ids(None,throughput.public_cases(),25)),25)
         import subprocess
         commit = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory() as tmp,patch.object(throughput_stage.kaggle,'source_inventory',return_value={}):
             folder = Path(tmp)/'stage'
             config = throughput_stage.stage(folder,commit,'owner','owner/repo','owner/receipt',self.config()['model_source'])
             self.assertIsNone(config['data_manifest_sha256'])
