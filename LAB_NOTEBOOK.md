@@ -13191,3 +13191,16 @@ Written by Claude (FT1 training stage thread) after the run, against the pre-run
 **Limits.** These are base-model numbers on public development prompts, from one T4 and one repeat. A trained adapter adds memory, so trained arms may fit less. The exact limit between 4,000 and 6,000 is not measured.
 
 **What follows.** This goes to Chris as a decision, before any gate or sealed run. Training continues meanwhile and is unaffected.
+
+
+## 2026-11-16 - v0.24.93 FT1 opt-in chunked prefill build (offline)
+
+Diagnosis and CPU reproduction: `docs/process/FT1_PREFILL_MEMORY_DIAGNOSIS_v02493.md`.
+Pinned Transformers already limits generation logits to one position. Dense eager
+attention and fp32 softmax provide a quadratic workspace explanation; chunking
+reduces tiny CPU attention allocations and preserves greedy IDs in window-crossing
+tests. This does not establish 12B NF4 parity or T4 capacity. The optional path
+uses the pinned library's cached chunk prefill; current behavior remains default.
+Proposed public-only eager fit-limit measurement binds mode/chunk and a 75-minute
+cooperative deadline, compares current/fixed paths at 2500/4000, then ladders to
+16000 with recovery. Build only: no staging, launch, GPU or provider calls.

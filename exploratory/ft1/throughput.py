@@ -47,7 +47,8 @@ def prompt_ids(tokenizer, cases, target, offset=0):
 
 
 class TorchBackend:
-    def __init__(self, model, tokenizer):
+    def __init__(self, model, tokenizer, prefill_config=None):
+        self.options = evaluate_runner.prefill_options(prefill_config or {})
         self.model = model
         self.tokenizer = tokenizer
 
@@ -72,13 +73,15 @@ class TorchBackend:
             # Explicit left padding and masks, independent of tokenizer defaults.
             ids = torch.tensor([[pad]*(width-len(row))+row for row in prompts],device='cuda')
             mask = torch.tensor([[0]*(width-len(row))+[1]*len(row) for row in prompts],device='cuda')
-            state = {}
+            state = dict(prefill_tokens=0)
             def prefill_start(module,args,kwargs):
                 if 'start' not in state:
                     check(); torch.cuda.synchronize()
                     state['start'] = time.perf_counter()
+                if state['prefill_tokens'] < width:
+                    state['prefill_tokens'] += kwargs['input_ids'].shape[-1]
             def prefill_end(module,args,output):
-                if 'prefill_seconds' not in state:
+                if 'prefill_seconds' not in state and state['prefill_tokens'] >= width:
                     torch.cuda.synchronize()
                     state['prefill_seconds'] = time.perf_counter()-state['start']
             before = self.model.register_forward_pre_hook(prefill_start,with_kwargs=True)
@@ -88,7 +91,7 @@ class TorchBackend:
             with torch.inference_mode():
                 output = self.model.generate(input_ids=ids,attention_mask=mask,do_sample=False,
                     min_new_tokens=new_tokens,max_new_tokens=new_tokens,eos_token_id=None,pad_token_id=pad,
-                    stopping_criteria=StoppingCriteriaList([StopAtDeadline()]))
+                    stopping_criteria=StoppingCriteriaList([StopAtDeadline()]), **self.options)
             torch.cuda.synchronize()
             seconds = time.perf_counter()-started
             generated = (output.shape[1]-width)*len(prompts)
