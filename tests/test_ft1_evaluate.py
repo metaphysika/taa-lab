@@ -218,8 +218,9 @@ class EvaluationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp,patch.object(evaluate_stage.kaggle,'verify_data',return_value='b'*64),patch.object(evaluate_stage.kaggle,'source_inventory',return_value={}):
             folder = Path(tmp)/'gate-stage'
             config = evaluate_stage.stage(folder,'base',None,runner.kaggle.subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),tmp,None,0,
-                'google/gemma-3/transformers/gemma-3-12b-it/1','owner/repo','owner/data',None,'owner/receipt','owner',phase='gate')
+                'google/gemma-3/transformers/gemma-3-12b-it/1','owner/repo','owner/data',None,'owner/receipt','owner',phase='gate',attention='eager',prefill_mode='chunked',prefill_chunk_size=256,prompt_ceiling=14000)
             runner.validate(config,dict(config,approved=True))
+            self.assertEqual({k:config[k] for k in ('attention','prefill_mode','prefill_chunk_size','prompt_ceiling')},dict(attention='eager',prefill_mode='chunked',prefill_chunk_size=256,prompt_ceiling=14000))
             self.assertIsNone(config['sealed_sha256'])
             self.assertIsNone(config['gate_sha256'])
             notebook = json.loads((folder/'ft1_evaluate.ipynb').read_text())
@@ -327,3 +328,29 @@ class EvaluationTests(unittest.TestCase):
             self.assertNotEqual(other['packet_sha256'],audit['packet_sha256'])
             changed = json.loads(raw); changed['items'][0]['id']='changed'
             with self.assertRaises(ValueError): blind.self_check(cases,changed,raw,source.read_bytes())
+
+
+class SettingsTests(unittest.TestCase):
+    def test_settings(self):
+        config = dict(EvaluationTests().config(), attention='eager', prefill_mode='chunked', prefill_chunk_size=256, prompt_ceiling=14000)
+        runner.validate(config, dict(config, approved=True))
+        gate = dict(config, acquired=True, trained=True)
+        runner.validate_gate(config, gate)
+        for key in ('attention','prefill_mode','prefill_chunk_size','prompt_ceiling'):
+            missing = dict(config, approved=True); missing.pop(key)
+            with self.subTest(key=key), self.assertRaises(ValueError): runner.validate(config, missing)
+            missing = dict(gate); missing.pop(key)
+            with self.subTest(key=key), self.assertRaises(ValueError): runner.validate_gate(config, missing)
+
+    def test_prepare_attention_readback(self):
+        from types import SimpleNamespace
+        model = SimpleNamespace(config=SimpleNamespace(_attn_implementation='eager'))
+        events = []
+        with patch.object(runner,'load_base',return_value=(model,None,None)) as load, patch.object(runner,'generation_functions'):
+            runner.prepare('unused',None,events.append,lambda:None,attention='eager')
+        self.assertEqual(load.call_args.kwargs,dict(attention='eager'))
+        self.assertFalse(events[0]['mismatch'])
+        model.config._attn_implementation='sdpa'
+        with patch.object(runner,'load_base',return_value=(model,None,None)), patch.object(runner,'generation_functions'):
+            runner.prepare('unused',None,events.append,lambda:None,attention='eager')
+        self.assertTrue(events[-1]['mismatch'])

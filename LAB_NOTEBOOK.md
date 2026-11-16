@@ -13295,3 +13295,11 @@ Fable's peak estimate with the fix is about 10e9 bytes at 13,000 tokens and abou
 - R3: cosmetic.
 
 They go in a later small PR and do not change the code that runs.
+
+
+## 2026-11-16 - v0.24.94 FT1 evaluation settings offline build
+
+Bound evaluation attention, prefill and ceiling to receipts and gates under
+Chris's eager/chunked 256/14,000 decision. See docs/process/FT1_EVAL_SETTINGS_v02494.md.
+Synthetic base/trained-arm plan-only staging passed with mocked inventories.
+No GPU, provider, Kaggle or scientific execution; no sealed material inspected.
