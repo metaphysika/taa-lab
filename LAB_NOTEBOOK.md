@@ -13370,3 +13370,9 @@ Fable's peak estimates (about 10e9 at 13,000 and 10.5e9 at 16,000) were close: t
 - **Backend and prefill.** Claude's proposal is eager with chunked prefill at 256.
 - **Limits.** These are base-model numbers on one T4 with public prompts. Trained LoRA adapters add a little memory, much less than the roughly 5e9 margin to the card. The ceiling, backend and prefill choice are Chris's decisions before any gate run.
 - **Follow-ups (non-blocking).** Fable's R1–R3 notes on PR #161, about the equivalence test's backend, one doc number pair and cosmetic issues, go in a small later PR.
+
+**Chris's decision on the fit-limit 2 result (2026-11-16), verbatim: "Approve eager, chunked 256, ceiling 14,000".**
+- All FT1 evaluation, including gates, tests and any reruns, uses eager attention with `prefill_mode: chunked` and `prefill_chunk_size: 256`.
+- The prompt ceiling is 14,000 tokens (the pre-run rule allowed up to 15,000). Longer histories are `context_limit` unknowns, and out-of-memory episodes are `mechanical_oom` unknowns.
+- This is a protocol setting, not run approval. Each gate or test run still needs Chris's exact-commit approval.
+- The mechanically-unknown gate rule is still open. It comes to Chris with the gate-run proposal.
