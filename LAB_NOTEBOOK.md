@@ -13517,3 +13517,37 @@ All 53 output files of each run match its manifest, and full copies are under `C
 - arm 4: 247056, 247057.
 
 Every adapter's minimal folder is uploaded as a private Kaggle dataset, `ft1-adapter-<arm>-<seed>-0449a230200c`, and passes `adapter_binding` locally. Against the forecast of about 90% TRAINED per run, 12 of 12 are TRAINED. Nothing is evaluated yet: each model's gate run waits for Chris's approval (pre-run entry #166).
+
+## 2026-11-17 — FT1 gate runs at cb5b8657: Chris's approval, gate rule A, first two pushed, and hashes of the other 11 (before their push)
+
+**Chris's words (2026-11-17), verbatim: "Approve the 13 FT1 gate runs at cb5b8657 and Gate rule A".**
+- This approves all 13 gate runs (base plus 12 adapters) at `cb5b865775e9c6357834e953bf7d14d653e45d95`, in the order of the pre-run entry (#166).
+- **Gate rule A** applies from now on. A gate that ends `gate_mechanical_unknown` is rerun once at the same commit. If the rerun is also mechanically unknown, that model is excluded from test parts and reported as "could not be gated". Base stays as the reference in any case.
+- Each receipt carries these words, plus a context line naming the message they answered.
+
+**First two pushed at 03:18 UTC 2026-11-17.**
+
+| Gate | Kernel | Pushed notebook | Receipt |
+|---|---|---|---|
+| base | `ft1-gate-base-none-0` | `03cb1807…` | `15b8aaa5…` |
+| 3 / 247056 | `ft1-gate-3-247056-0` | `355acc30…` | `983aff8f…` |
+
+Each pushed notebook differs from its staged one (#166 table) only in `PLAN_ONLY`. Both receipts pass `evaluate_runner.validate` against their bindings. A wrong-attention receipt is refused.
+
+**The other 11, staged plan-only before any push.** Each binding has arm and seed, `phase: gate`, eager, chunked 256, ceiling 14,000, `sealed_sha256: null` and its own receipt slug. Each hashes 123 source files with 0 mismatches against the archive, has internet off, and mounts its own `ft1-adapter-<arm>-<seed>-0449a230200c`. Receipts are drafted and validated, but not uploaded.
+
+| Gate | Notebook | Binding | Kernel metadata | Adapter digest |
+|---|---|---|---|---|
+| 1 / 247056 | `5f44def1…` | `d9e5d36d…` | `42e382cb…` | `3e1cf64c…` |
+| 1 / 247057 | `f97e9552…` | `f292539a…` | `4de09129…` | `efade213…` |
+| 2 / 247056 | `0d320eb9…` | `f214472f…` | `092b431b…` | `652ec463…` |
+| 2 / 247057 | `92020047…` | `ed2a4d97…` | `02411915…` | `badebb19…` |
+| 2 / 247058 | `f597f2e4…` | `c47a8708…` | `c432f779…` | `daaf04c2…` |
+| 2u / 247056 | `fd3b1242…` | `49a56031…` | `101d4b82…` | `4801d83b…` |
+| 2u / 247057 | `0ec4b229…` | `5b9fe12e…` | `feb9104b…` | `4f0660a4…` |
+| 3 / 247057 | `1e5fe724…` | `1e4df820…` | `4495df34…` | `b90c13da…` |
+| 3 / 247058 | `6111aedf…` | `b0027375…` | `517be40b…` | `75339d46…` |
+| 4 / 247056 | `2079fcc5…` | `984865c3…` | `65188af7…` | `be7e0c5f…` |
+| 4 / 247057 | `b253b34a…` | `1207392e…` | `32f4c07a…` | `0143d992…` |
+
+These are pushed two at a time only after the arm 3 / 247056 gate ends `gate_complete`, as the pre-run entry requires.
