@@ -13667,3 +13667,56 @@ Both are `gate_complete`, with 0 out-of-memory and 0 context-limit episodes.
 **Quota.** At 14:49 UTC the push of 2 / 247057 was refused with "Maximum weekly GPU quota of 30.00 hours reached". Nothing was started, and its receipt dataset had already been uploaded. 2 / 247056, already running, completed normally.
 
 The remaining four gates wait for quota: 2 / 247057, 2 / 247058, 3 / 247057 and 3 / 247058. A quota refusal is not a NOT ESTABLISHED gate, because nothing ran. A retry runs about hourly with the same staged bundles, and no change is made to any gate.
+
+## 2026-11-17 — FT1 gates at cb5b8657: forecasts for the last four gates, written before they run; consequences of the 1 / 247057 failure
+
+Written by Claude (FT1 gate-stage thread) after Fable 5.2's idle-days review. No result of 2 / 247057, 2 / 247058, 3 / 247057 or 3 / 247058 exists yet. They wait for Kaggle's weekly quota reset (about 2026-11-21 01:00 UTC) and launch unchanged from the staged bundles.
+
+**What the rules already imply.** The pre-run draft (`docs/process/FT1_PRERUN_DRAFT_2026-11-12.md`, scoring section) says: "An arm with fewer than two acquired, trained seeds makes every prediction involving it 'not established'."
+- **Arm 1** has 1 of 2 seeds acquired. So P2, and every other prediction involving arm 1, is **not established**, unless Chris later approves a disclosed replacement seed.
+- **Arm 3** has 0 of 1 so far. P1, the main comparison, is testable only if **both** 3 / 247057 and 3 / 247058 are acquired.
+- Gate bars, the 1,024-token cap and all thresholds stay as fixed, whatever Friday shows.
+
+**Forecasts (Fable 5.2, idle-days review; Claude alongside).**
+
+| Item | Fable | Claude |
+|---|---|---|
+| All four gates `gate_complete` | 90% | 90% |
+| Any of the four mechanically unknown | 7% | 7% |
+| 2 / 247057 acquired | 80% | 80% |
+| 2 / 247058 acquired | 80% | 80% |
+| Arm 2 ends with at least 2 acquired seeds | 93% | 95% |
+| 3 / 247057 acquired | 30% | 30% |
+| 3 / 247058 acquired | 30% | 30% |
+| Both arm-3 seeds acquired (needed for P1 to be testable) | 13% | 15% |
+| If an arm-3 seed fails, the cause is again a cap-hit reason loop | 80% | 75% |
+| Final acquired adapters of 12 | most likely 8 (range 7–9) | most likely 8 (range 7–9) |
+
+Notes:
+- Fable's earlier forecast of about 6–7 of 12 acquired now looks low.
+- Fable had rated arm 1's format risk negligible, and 1 / 247057 collapsed. One failure among seven non-arm-3 adapters puts single-seed risk at roughly 15–20%, so arm 2 is forecast a little below certainty.
+- 3 / 247056 missed narrowly: 24 of 27 valid turns against the 0.9 bar, and 5 finished against 6.
+
+**FT1 odds update (Fable).**
+
+| Prediction | Before (2026-11-16) | Now |
+|---|---|---|
+| P1 supported | 15% | about 4% |
+| P1 counts against | 30% | about 4% |
+| P1 not established or not testable | 55% | about 92% |
+| P2 | — | not established by rule, unless a replacement seed is approved |
+| P3 met (arm 2 beats base) | 50% | about 45% |
+
+The most likely FT1 outcome is therefore an answer to "did training transfer at all?" (P3, P5, the 2u comparison). The reasons question then moves to the arm-3 follow-up.
+
+**Plan for the idle days (Chris, 2026-11-17: "go!" on Fable's ranked plan).**
+1. This forecast entry.
+2. Draft the arm-3 follow-up and freeze it before any test-part result exists:
+   - it is triggered only if arm 3 ends with fewer than two acquired seeds;
+   - it fixes the training format (multi-turn, tool → args → reason order, reasons that end);
+   - it keeps the test, scorer, cap, gate bars and P1 thresholds, with new seeds;
+   - it asks Chris whether to add a disclosed replacement arm-1 seed.
+3. Draft the descriptive pressure / no-pressure split for Chris's wording approval, before testing.
+4. Stage the test-part pre-run entry and receipts plan-only. Launch still needs Chris's exact-commit approval.
+
+Nothing here runs a model. H9 and FT2 design wait; seed 2 is not run early.
