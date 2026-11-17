@@ -13296,6 +13296,7 @@ Fable's peak estimate with the fix is about 10e9 bytes at 13,000 tokens and abou
 
 They go in a later small PR and do not change the code that runs.
 
+<<<<<<< HEAD
 
 ## 2026-11-16 - v0.24.94 FT1 evaluation settings offline build
 
@@ -13318,3 +13319,85 @@ Fetched origin/main is already included; PR #164 is still open at this check.
 Validation: 49 focused FT1 tests and 694 agent-safe fast tests passed, plus
 all scripted scenarios. Logs: .k2-launch/review-focused.log and
 .k2-launch/review-fast-final.log (local only). No conflict markers remain.
+=======
+## 2026-11-16 — v0.24.89 FT1 training runs arm 2u / 247057 and arm 2 / 247057 at 0449a230: both TRAINED (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) against the 11-run pre-run entry (#155), under the same approval ("Approve and write the new thread").
+
+**Evidence.** `results/2026-11-16 v0.24.89 ft1-train-2u-247057 0449a230200c/` and `results/2026-11-16 v0.24.89 ft1-train-2-247057 0449a230200c/`. In each run, all 53 output files match the manifest, and full copies are kept under `C:/Users/lahn0/T3/ft1-artifacts/`. Launch hashes match the pre-run table, and each pushed notebook differs from its staged one only in `PLAN_ONLY`.
+
+| | Arm 2u / 247057 | Arm 2 / 247057 |
+|---|---|---|
+| Pushed (UTC) | 20:14 | 20:05 |
+| Status, steps, skip signal on all | `trained`, 250, yes | `trained`, 250, yes |
+| Checkpoints | 50, 100, 150, 200, 250 | 50, 100, 150, 200, 250 |
+| `adapter_saved`, `tensors_finite` | true, `3340bef3…` | true, `64745eb1…` |
+| Skipped updates (limit 25) | 3 (steps 1–3) | 0 |
+| Micro-losses finite | 2,000 of 2,000 | 2,000 of 2,000 |
+| Peak allocated (limit 13.5e9) | 9.08e9 | 9.29e9 |
+| Mean / slowest step (line 75 s) | 23.8 s / 24.8 s | 34.4 s / 38.5 s |
+| Setup; last event (line 6.5 h) | 232 s; 6,184 s (1.7 h) | 264 s; 8,872 s (2.5 h) |
+
+No review flag. Eight of twelve adapters are trained. 3 / 247057 was pushed at 22:02 and 4 / 247057 at 23:18 UTC. 2 / 247058 and 3 / 247058 remain.
+
+**README note.** Templating the arm 2 / 247057 README from arm 2 / 247056 found that the latter's pushed-notebook hash in git's Windows checkout (`8a0e7e3d…`) differs from the hash the README records (`ad23b008…`). The cause is CRLF conversion on checkout of an LF file. The blob git stores matches the push-time hash; this was checked the same way for 2 / 247057, whose blob is `e290a2b7…`. No evidence changed.
+
+## 2026-11-16 — v0.24.93 FT1 fit-limit 2 (chunked prefill) at 09fac296: COMPLETE — every rung fits up to 16,000 prompt tokens (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) after the run, against the pre-run entry (#163). Chris approved on 2026-11-16: "Approve FT1 fit-limit 2 at 09fac296".
+
+**Evidence.** `results/2026-11-16 v0.24.93 ft1-fit-limit-2 09fac2962b37/`, containing the README, `launch/` and `kaggle-v2/`. The `metadata.json` status is `complete`, and both files the manifest lists match it.
+
+**Launch.** Pushed at 22:34 UTC after waiting for a GPU slot. COMPLETE by about 23:17, after 2,507 s of kernel time against the 4,500 s deadline. The pushed notebook differs from the staged one only in `PLAN_ONLY`. The backend read back as eager, with no mismatch. Memory after load was 7.80e9 of 15.64e9.
+
+**Outcome: COMPLETE. Largest fit: at least 16,000 prompt tokens (every rung fits).**
+
+| Prompt tokens (+1,024 out) | Peak allocated | Peak reserved | Prefill | Decode |
+|---|---|---|---|---|
+| 2,500 | 8.56e9 | 8.84e9 | 6.6 s | 8.20 tok/s |
+| 4,000 | 8.71e9 | 9.03e9 | 10.8 s | 8.17 tok/s |
+| 6,000 | 8.97e9 | 9.51e9 | 16.8 s | 8.12 tok/s |
+| 8,000 | 9.22e9 | 10.48e9 | 23.1 s | 8.10 tok/s |
+| 10,000 | 9.47e9 | 12.86e9 | 29.8 s | 7.98 tok/s |
+| 11,000 | 9.58e9 | 13.90e9 | 33.2 s | 7.83 tok/s |
+| 12,000 | 9.69e9 | 15.39e9 | 36.7 s | 7.72 tok/s |
+| 13,000 | 9.82e9 | 15.39e9 | 40.6 s | 7.57 tok/s |
+| 14,000 | 9.94e9 | 15.39e9 | 44.2 s | 7.41 tok/s |
+| 16,000 | 10.20e9 | 15.39e9 | 52.1 s | 7.12 tok/s |
+
+- **Memory.** Allocated memory above the model now grows roughly linearly: about 0.13e9 per 1,000 tokens, against the first run's 12.21e9 already at 4,000. After every call, memory returned to 7.81e9.
+- **Evaluation probe.** The evaluation path's own `generate`, at 15,360 prompt tokens with EOS honoured, fit: 533 tokens, peak 10.13e9, 124 s.
+- **Reserved memory.** From 12,000 tokens up, the PyTorch caching allocator held 15.39e9 of 15.64e9 reserved, although only about 10e9 was allocated. Nothing ran out of memory. This is allocator caching, not use. In a long evaluation run, fragmentation could still cause an out-of-memory at a lower length than measured here. The per-episode `mechanical_oom` handling covers that case and keeps the run going.
+
+**Parity, fixed path against current path, under the pre-run rule.**
+- **2,500 tokens:** generated IDs are identical over all 1,024 tokens. **Same.**
+- **4,000 tokens:** first divergence at reply token 874. The current path's reply ends at token 949, so the divergence falls before its end of turn and at or after token 256: **ordinary half-precision noise** under the rule fixed before the run.
+  - Descriptively: at token 874 the fixed path ends its turn, while the current path continues for 75 more tokens.
+  - The first run's eager-versus-sdpa comparison diverged at exactly the same token, 874.
+  - So the final replies differ in length and ending, not only in noise inside the text. No review flag.
+- **Fixed-path speed.** Prefill time and decode speed match the current path at 2,500 and 4,000 tokens: chunking costs no measurable time.
+
+**Against the forecasts.**
+
+| | Claude | Fable 5.2 | Result |
+|---|---|---|---|
+| Largest fit ≥ 8,000 | 85% | 92% | Yes |
+| Largest fit ≥ 12,000 | 75% | 87% | Yes |
+| Largest fit ≥ 14,000 | 65% | 83% | Yes (≥ 16,000) |
+| Parity "same" or "noise" at both | 85% | — | Yes |
+| COMPLETE | 70% | — | COMPLETE |
+
+Fable's peak estimates (about 10e9 at 13,000 and 10.5e9 at 16,000) were close: the measured peaks are 9.82e9 and 10.20e9.
+
+**What this means, under the use rule fixed before the run.**
+- **Ceiling.** The rule takes at least 1,000 tokens below the largest fit, which allows a prompt ceiling of up to about 15,000 tokens. That is above the 11–13k-token evaluation histories, so the `context_limit` unknowns that made FT1 likely untestable at about 3,000 should be rare.
+- **Backend and prefill.** Claude's proposal is eager with chunked prefill at 256.
+- **Limits.** These are base-model numbers on one T4 with public prompts. Trained LoRA adapters add a little memory, much less than the roughly 5e9 margin to the card. The ceiling, backend and prefill choice are Chris's decisions before any gate run.
+- **Follow-ups (non-blocking).** Fable's R1–R3 notes on PR #161, about the equivalence test's backend, one doc number pair and cosmetic issues, go in a small later PR.
+
+**Chris's decision on the fit-limit 2 result (2026-11-16), verbatim: "Approve eager, chunked 256, ceiling 14,000".**
+- All FT1 evaluation, including gates, tests and any reruns, uses eager attention with `prefill_mode: chunked` and `prefill_chunk_size: 256`.
+- The prompt ceiling is 14,000 tokens (the pre-run rule allowed up to 15,000). Longer histories are `context_limit` unknowns, and out-of-memory episodes are `mechanical_oom` unknowns.
+- This is a protocol setting, not run approval. Each gate or test run still needs Chris's exact-commit approval.
+- The mechanically-unknown gate rule is still open. It comes to Chris with the gate-run proposal.
+>>>>>>> origin/main
