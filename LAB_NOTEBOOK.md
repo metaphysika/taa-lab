@@ -13641,3 +13641,29 @@ Claude judged it model behaviour, not a harness fault, and continued launches wi
 Fable had rated arm 1's format risk negligible, so this is a forecast miss for that seed. Arm 1 trains only `decline_order` then finish; the collapse to an immediate finish fits that, but is not tested here.
 
 **Running and remaining.** 4 / 247057 and 2 / 247056 are running. 2 / 247057, 2 / 247058, 3 / 247057 and 3 / 247058 are still to be pushed.
+
+## 2026-11-17 — v0.24.94 FT1 gates at cb5b8657, batch 2: arm 4 / 247057 and arm 2 / 247056 acquired; Kaggle weekly GPU quota reached, last four gates wait
+
+Written by Claude (FT1 gate-stage thread) against the pre-run entry (#166), the approval addendum (#168) and the proceed entry (#170).
+
+**Evidence.**
+- `results/2026-11-17 v0.24.94 ft1-gate-4-247057 cb5b86577/`
+- `results/2026-11-17 v0.24.94 ft1-gate-2-247056 cb5b86577/`
+
+The same launch and filing checks as batch 1 (#171) were applied, and all pass. Attention read-back observed eager at both stages.
+
+| Gate | Pushed (UTC) | Time to COMPLETE (incl. queue) | Acquisition parsed / correct of 40 | Format turns parsed; finished of 8 | `acquired` |
+|---|---|---|---|---|---|
+| 4 / 247057 | 13:09 | about 100 min | 40 / 40 | 34 / 34; 8 | **true** |
+| 2 / 247056 | 14:37 | about 57 min | 40 / 39 | 32 / 32; 8 | **true** |
+
+Both are `gate_complete`, with 0 out-of-memory and 0 context-limit episodes.
+
+**Tally so far: 9 of 13 gates done.**
+- Base is the reference.
+- Six adapters acquired: 1 / 247056, 2 / 247056, 2u / 247056, 2u / 247057, 4 / 247056 and 4 / 247057.
+- Two adapters are not acquired because they fail format: 3 / 247056 and 1 / 247057.
+
+**Quota.** At 14:49 UTC the push of 2 / 247057 was refused with "Maximum weekly GPU quota of 30.00 hours reached". Nothing was started, and its receipt dataset had already been uploaded. 2 / 247056, already running, completed normally.
+
+The remaining four gates wait for quota: 2 / 247057, 2 / 247058, 3 / 247057 and 3 / 247058. A quota refusal is not a NOT ESTABLISHED gate, because nothing ran. A retry runs about hourly with the same staged bundles, and no change is made to any gate.
