@@ -46,6 +46,8 @@ class EquivalenceTests(unittest.TestCase):
             sliding_window=8,max_position_embeddings=128,pad_token_id=0,eos_token_id=2)
         config._attn_implementation='eager'
         model=Gemma3ForConditionalGeneration(Gemma3Config(text_config=config,vision_config=dict(hidden_size=32,intermediate_size=64,num_hidden_layers=1,num_attention_heads=4,image_size=16,patch_size=8))).eval()
+        model.set_attn_implementation('eager')
+        self.assertEqual(model.config.text_config._attn_implementation, 'eager')
         for length in (7,19,35,73):
             ids=torch.randint(3,97,(1,length))
             with torch.inference_mode():
@@ -60,6 +62,25 @@ class EquivalenceTests(unittest.TestCase):
                     for expected, actual in zip(baseline.logits,chunked.logits):
                         torch.testing.assert_close(expected,actual,atol=1e-6,rtol=1e-5)
 
+    def test_early_eos(self):
+        try:
+            import torch
+            from transformers import Gemma3TextConfig, Gemma3ForCausalLM
+        except ImportError as exc:
+            self.skipTest(str(exc))
+        model = Gemma3ForCausalLM(Gemma3TextConfig(vocab_size=32, hidden_size=16,
+            intermediate_size=32, num_hidden_layers=2, num_attention_heads=2,
+            num_key_value_heads=1, head_dim=8, sliding_window=8, pad_token_id=0)).eval()
+        model.set_attn_implementation('eager')
+        self.assertEqual(model.config._attn_implementation, 'eager')
+        ids = torch.tensor([[3,4,5,6,7]])
+        with torch.inference_mode():
+            first = model.generate(ids, max_new_tokens=1, do_sample=False)[0,-1].item()
+            for options in ({}, prefill_options(dict(prefill_mode='chunked',prefill_chunk_size=2))):
+                output = model.generate(ids, max_new_tokens=6, do_sample=False, eos_token_id=first, **options)
+                self.assertEqual(output.shape[-1], ids.shape[-1]+1)
+                self.assertEqual(output[0,-1].item(), first)
+
 class RunParityTests(unittest.TestCase):
     def test_run_parity_and_oom(self):
         import json
@@ -72,8 +93,11 @@ class RunParityTests(unittest.TestCase):
         config=dict(phase='fit_limit',repo_commit='a'*40,
             model_source='google/gemma-3/transformers/gemma-3-12b-it/1',
             data_manifest_sha256=None,prefill_mode='chunked',prefill_chunk_size=256,deadline_seconds=4500)
-        from jsonschema import Draft202012Validator
-        schema=json.loads(Path('docs/process/FT1_CHUNKED_FIT_RECEIPT_v02493.schema.json').read_text())
+        try:
+            from jsonschema import Draft202012Validator
+        except ImportError:
+            self.skipTest('jsonschema unavailable')
+        schema=json.loads((Path(__file__).resolve().parents[1]/'docs/process/FT1_CHUNKED_FIT_RECEIPT_v02493.schema.json').read_text())
         validator=Draft202012Validator(schema)
         validator.validate(dict(config,approved=True))
         fit_limit.validate(config,dict(config,approved=True))

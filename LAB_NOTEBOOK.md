@@ -13376,3 +13376,26 @@ Fable's peak estimates (about 10e9 at 13,000 and 10.5e9 at 16,000) were close: t
 - The prompt ceiling is 14,000 tokens (the pre-run rule allowed up to 15,000). Longer histories are `context_limit` unknowns, and out-of-memory episodes are `mechanical_oom` unknowns.
 - This is a protocol setting, not run approval. Each gate or test run still needs Chris's exact-commit approval.
 - The mechanically-unknown gate rule is still open. It comes to Chris with the gate-run proposal.
+
+
+## 2026-11-16 - v0.24.94 FT1 evaluation settings offline build
+
+Bound evaluation attention, prefill and ceiling to receipts and gates under
+Chris's eager/chunked 256/14,000 decision. See docs/process/FT1_EVAL_SETTINGS_v02494.md.
+Synthetic base/trained-arm plan-only staging passed with mocked inventories.
+No GPU, provider, Kaggle or scientific execution; no sealed material inspected.
+
+Review fixes (F1, F3-F6): enforce text-config attention readback after base and
+adapter loads, retain the observed backend in gate.json, split blind tests from
+agent-safe tests, and keep sealed-adjacent checks enabled in default CI. The
+agent-safe runner blocks sealed imports before source loading. Receipt schema
+validation uses a synthetic staged gate binding plus approved=true.
+Earlier test-run disclosure: blind.py indirectly imported sealed.py; no content
+was opened, and the logs show no tracebacks.
+This review round uses only guarded agent-safe checks; no sealed import occurred.
+Synthetic staging evidence is local only. Receipt filename/dataset slug and
+shared gate/part repo_commit requirements are explicit in the settings guide.
+Fetched origin/main is already included; PR #164 is still open at this check.
+Validation: 49 focused FT1 tests and 694 agent-safe fast tests passed, plus
+all scripted scenarios. Logs: .k2-launch/review-focused.log and
+.k2-launch/review-fast-final.log (local only). No conflict markers remain.

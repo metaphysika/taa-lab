@@ -76,11 +76,23 @@ def prefill_options(config):
     return {}
 
 
+def attention_option(config):
+    attention = config.get('attention')
+    if attention not in (None, 'default', 'eager', 'sdpa'):
+        raise ValueError('invalid attention backend')
+    return None if attention == 'default' else attention
+
+
+def evaluation_settings(config):
+    return {key: config[key] for key in ('attention', 'prefill_mode', 'prefill_chunk_size') if key in config}
+
+
 def validate_prefill(config, receipt):
     prefill_options(config)
-    for key in ('prefill_mode', 'prefill_chunk_size'):
+    attention_option(config)
+    for key in ('prefill_mode', 'prefill_chunk_size', 'attention'):
         if config.get(key) != receipt.get(key):
-            raise ValueError('prefill receipt mismatch')
+            raise ValueError('evaluation settings mismatch')
 
 
 def validate(config, receipt):
@@ -148,6 +160,7 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
     gate = scoring.eligibility(records,replies,formats,skipped)
     if prefill_options(config):
         gate.update(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size'])
+    gate.update(evaluation_settings(config))
     retain(dict(event='eligibility', **gate))
     return dict(gate, prompt_ceiling=config.get('prompt_ceiling'), **tracker.counts, status='complete', skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
                 adapter_sha256=config['adapter_sha256'],
@@ -160,7 +173,10 @@ def validate_gate(config, gate):
     for key in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source'):
         if key not in gate or gate[key] != config.get(key):
             raise ValueError('gate identity mismatch')
-    validate_prefill(config, gate)
+    settings_gate = gate
+    if attention_option(config) is None:
+        settings_gate = dict(gate, attention=config.get('attention'))
+    validate_prefill(config, settings_gate)
     if gate.get('prompt_ceiling') != config.get('prompt_ceiling'):
         raise ValueError('gate prompt ceiling mismatch')
     if gate.get('status') in ('gate_mechanical_unknown','mechanical_unknown'):
@@ -240,15 +256,29 @@ def load_base(model_path, retain, check, attention=None):
     return model,tokenizer,path
 
 
-def prepare(model_path, adapter, retain, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None):
+def attention_readback(model, requested, retain, stage):
+    text = getattr(model.config, 'text_config', None)
+    observed = getattr(text if text is not None else model.config, '_attn_implementation', None)
+    mismatch = requested is not None and requested != observed
+    retain(dict(event='attention_readback', stage=stage, requested=requested,
+                observed=observed, mismatch=mismatch))
+    if mismatch:
+        raise ValueError('attention readback mismatch')
+    return observed
+
+
+def prepare(model_path, adapter, retain, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None, attention=None):
     """Inference NF4 base, optionally the verified adapter; no new LoRA weights."""
-    model,tokenizer,path = load_base(model_path,retain,check)
+    model,tokenizer,path = load_base(model_path,retain,check, **({'attention': attention} if attention else {}))
+    attention_readback(model, attention, retain, 'base')
     if adapter is not None:
         from peft import PeftConfig, PeftModel
         adapter_config = PeftConfig.from_pretrained(adapter,local_files_only=True)
         adapter_config.base_model_name_or_path = str(path)
         model = PeftModel.from_pretrained(model,adapter,config=adapter_config,
             local_files_only=True,is_trainable=False)
+    if adapter is not None:
+        attention_readback(model, attention, retain, 'adapter')
     return generation_functions(model,tokenizer,check,prompt_ceiling=prompt_ceiling, prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size)
 
 
@@ -319,6 +349,13 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
             stream.write(json.dumps(dict(event,arm=config['arm'],training_seed=config['seed']),allow_nan=False)+'\n')
             stream.flush()
             os.fsync(stream.fileno())
+    observed_attention = None
+    original_retain = retain
+    def retain(event):
+        nonlocal observed_attention
+        if event.get('event') == 'attention_readback':
+            observed_attention = event['observed']
+        original_retain(event)
     result = dict(status='incomplete')
     try:
         if gate is not None and not validate_gate(config,gate):
@@ -328,11 +365,12 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
             options = prefill_options(config)
             if options:
                 retain(dict(event='prefill_config',prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']))
-            generate,count_tokens = prepare(model_path,adapter,retain,check,**(dict(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']) if options else {}),**({'prompt_ceiling':config['prompt_ceiling']} if config.get('prompt_ceiling') is not None else {}))
+            generate,count_tokens = prepare(model_path,adapter,retain,check,**(dict(attention=attention_option(config)) if attention_option(config) else {}),**(dict(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']) if options else {}),**({'prompt_ceiling':config['prompt_ceiling']} if config.get('prompt_ceiling') is not None else {}))
             if config['phase'] == 'gate':
                 probe = data.PROBE_FILES.get(config['arm'],data.PROBE_FILES['3'])
                 records = json.loads((Path(data_folder)/probe).read_bytes())
                 gate = protocol(config,records,generate,count_tokens,retain,check,skipped)
+                gate['attention'] = observed_attention
                 (folder/'gate.json').write_text(json.dumps(gate,indent=2),encoding='utf-8')
                 result = dict(status=gate.get('status') if gate.get('status') == 'gate_mechanical_unknown' else 'gate_complete',eligibility=gate)
             else:
@@ -353,6 +391,7 @@ def unknown_gate(config, skipped, tracker):
     retain = tracker.retain
     retain(dict(event='gate_mechanical_unknown',**tracker.counts))
     options = dict(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']) if prefill_options(config) else {}
+    options.update(evaluation_settings(config))
     return dict(**options, acquired=None, trained=plan.trained(skipped), status='gate_mechanical_unknown',
         decision_required='owner decision on eligibility and reruns', **tracker.counts, skipped_steps=skipped,
         **{k:config.get(k) for k in ('arm','seed','adapter_sha256','training_manifest_sha256','repo_commit','data_manifest_sha256','model_source','prompt_ceiling')})
