@@ -13399,3 +13399,90 @@ Fetched origin/main is already included; PR #164 is still open at this check.
 Validation: 49 focused FT1 tests and 694 agent-safe fast tests passed, plus
 all scripted scenarios. Logs: .k2-launch/review-focused.log and
 .k2-launch/review-fast-final.log (local only). No conflict markers remain.
+
+## 2026-11-17 — v0.24.89 FT1 training runs arm 3 / 247057 and arm 4 / 247057 at 0449a230: both TRAINED (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) against the 11-run pre-run entry (#155).
+
+**Evidence.**
+- `results/2026-11-16 v0.24.89 ft1-train-3-247057 0449a230200c/`
+- `results/2026-11-16 v0.24.89 ft1-train-4-247057 0449a230200c/`
+
+All 53 output files of each run match its manifest, and full copies are under `C:/Users/lahn0/T3/ft1-artifacts/`. Launch hashes match the pre-run table, and each pushed notebook differs from its staged one only in `PLAN_ONLY`.
+
+| | Arm 3 / 247057 | Arm 4 / 247057 |
+|---|---|---|
+| Pushed (UTC) | 22:02 | 23:18 |
+| Status, steps, skip signal on all | `trained`, 250, yes | `trained`, 250, yes |
+| Checkpoints | 50, 100, 150, 200, 250 | 50, 100, 150, 200, 250 |
+| `adapter_saved`, `tensors_finite` | true, `4ec28bcf…` | true, `163e3b2b…` |
+| Skipped updates (limit 25) | 0 | 3 (steps 1–3) |
+| Micro-losses finite | 2,000 of 2,000 | 2,000 of 2,000 |
+| Peak allocated (limit 13.5e9) | 9.29e9 | 8.90e9 |
+| Mean / slowest step (line 75 s) | 30.6 s / 34.4 s | 18.8 s / 20.4 s |
+| Setup; last event (line 6.5 h) | 243 s; 7,906 s (2.2 h) | 227 s; 4,944 s (1.4 h) |
+
+- No review flag.
+- Ten of twelve adapters are trained. 2 / 247058 was pushed at 00:16 and 3 / 247058 at 00:43 UTC.
+- Each trained adapter's minimal folder (`manifest.json`, `metadata.json`, `events.jsonl`, `adapter/`) is uploaded as a private dataset, `ft1-adapter-<arm>-<seed>-0449a230200c`, for the gate runs. Each passes `adapter_binding` locally.
+
+## 2026-11-17 — v0.24.94 FT1 gate runs at cb5b8657: PRE-RUN entry, before any result (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) before any gate run. Approval is not yet given. The approval asked for covers all 13 gate runs at one exact commit: base plus the 12 adapters, in the order below.
+
+**What a gate run is.** It uses no sealed material: neither the sealed file nor any sealed output is mounted or read. It runs one model on the public FT1 data:
+- 40 acquisition replies;
+- 8 format-only K2 episodes.
+
+It writes `gate.json`, `eligibility.json`, events, metadata and a manifest. The prescribed thresholds, in `exploratory/ft1/scoring.py` and unchanged, are:
+- **Acquisition:** at least 32 of 40 parsed and at least 28 correct.
+- **Format:** valid turns at least 90% and at least 6 of 8 episodes finished.
+- **Acquired:** both acquisition and format pass.
+
+A trained arm needs `acquired=true` (and `trained=true`) before its test parts can run. Base is always kept as the reference, whatever its gate result.
+
+**Exact commit and settings.**
+- **Commit:** `cb5b865775e9c6357834e953bf7d14d653e45d95`, main after PR #165, which Fable reviewed twice. Code archive: dataset `taa-k2-repo-cb5b8657`.
+- **Settings:** eager attention, `prefill_mode: chunked`, `prefill_chunk_size: 256` and `prompt_ceiling: 14000`, as Chris decided on 2026-11-16.
+- **Model and data:** model source `google/gemma-3/transformers/gemma-3-12b-it/1`; data `ft1-data-5b2b3638845c` (manifest `95759f67…`).
+- **Adapters:** each trained arm mounts its own private adapter dataset `ft1-adapter-<arm>-<seed>-0449a230200c`. That dataset holds only that run's `manifest.json`, `metadata.json`, `events.jsonl` and `adapter/`, and it passes `adapter_binding` locally.
+- **Kaggle:** one T4, internet off, the in-code cooperative deadline of 7.5 h, and a Kaggle timeout of 31,500 s.
+- **Receipts:** one receipt dataset per run, `ft1-gate-approval-<model>-cb5b8657`, using the fields in `docs/process/FT1_EVAL_SETTINGS_v02494.md` plus Chris's words.
+
+**Order (Fable's F2 on PR #165).**
+1. Base and arm 3 / 247056 run first.
+   - Base is the live check that the attention read-back works on Kaggle.
+   - Arm 3 / 247056 is the first run of chunked prefill through a LoRA adapter.
+2. The other 11 gates are staged and pushed only after the arm 3 / 247056 gate finishes with `gate_complete`. That means no attention read-back or settings failure and no mechanical stop.
+   - Each is pushed two at a time as GPU slots free.
+   - The adapters still training (2 / 247058 and 3 / 247058) are staged when they are TRAINED and uploaded.
+
+**Staged so far (plan-only, `PLAN_ONLY = True`).** Both bindings hash 123 source files, all matching the archive after CRLF normalisation. The source file `exploratory/ft1/sealed.py` is among them as code. No sealed data is mounted.
+
+| Gate | Notebook | Binding | Kernel metadata |
+|---|---|---|---|
+| base | `f55b9a3c…` | `77bfde9c…` | `e695d718…` |
+| 3 / 247056 | `1fe9d552…` | `cc0afb0d…` | `930f5bb7…` |
+
+The later 11 bundles' hashes are recorded in an addendum before they are pushed.
+
+**Outcome rules, fixed now.**
+- **COMPLETE:** status `gate_complete`, with `gate.json` written.
+  - The `acquired` value is reported as the code computes it.
+  - An adapter with `acquired=false` is reported as not acquired and does not go on to test parts. That is a result, not a failure.
+- **MECHANICALLY UNKNOWN:** status `gate_mechanical_unknown`, meaning an out-of-memory or context-limit episode. It goes to Chris's gate rule, which is still open. Claude's proposal is rule A: rerun that gate once at the same commit; if it is still mechanically unknown, the model is excluded from testing and reported as "could not be gated".
+- **NOT ESTABLISHED:** the run fails before writing `gate.json`. Examples are an attention read-back mismatch, a settings or receipt refusal, a load failure, or a Kaggle kill. A relaunch needs Chris's yes, and the remaining gates wait.
+- Any review-worthy surprise, such as a peak above 13.5e9 or a run over 6.5 h, also stops launches until Chris decides.
+
+**Forecasts, written before the run.**
+
+| | Claude |
+|---|---|
+| Base gate COMPLETE | 85% |
+| Arm 3 / 247056 gate COMPLETE | 80% |
+| Arm 3 / 247056 `acquired=true`, if COMPLETE | 70% |
+| Attention read-back passes on Kaggle (base) | 90% |
+| Any of the 13 gates mechanically unknown | 15% |
+| Wall time per gate, 0.75–2 h | 75% |
+
+Base's `acquired` value is not forecast: base is a reference, and its acquisition is expected to be low.
