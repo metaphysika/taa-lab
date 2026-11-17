@@ -5,13 +5,13 @@ import hashlib
 import subprocess
 from pathlib import Path
 from . import data, kaggle, mounts, plan
-from .evaluate_runner import adapter_binding
+from .evaluate_runner import adapter_binding, prefill_options, attention_option
 
 
 def stage(output, arm, seed, commit, data_folder, sealed_sha256, part, model_source,
           repo_dataset, data_dataset, sealed_dataset, receipt_dataset, owner,
           training_folder=None, training_dataset=None, phase="evaluate", gate_sha256=None,
-          gate_dataset=None, part_count=2, prompt_ceiling=None):
+          gate_dataset=None, part_count=2, prompt_ceiling=None, prefill_mode=None, prefill_chunk_size=None, attention=None):
     if (arm,seed) not in plan.MODELS or phase not in ('gate','evaluate') or type(part_count) is not int or not 1 <= part_count <= 24 or part not in range(part_count):
         raise ValueError('unplanned model or part')
     if not re.fullmatch('[a-f0-9]{40}',commit):
@@ -43,6 +43,10 @@ def stage(output, arm, seed, commit, data_folder, sealed_sha256, part, model_sou
         adapter_sha256=binding['adapter_sha256'],training_manifest_sha256=binding['training_manifest_sha256'],
         source_sha256=kaggle.source_inventory(commit),model_source=model_source,
         receipt_slug=mounts.receipt_slug(receipt_dataset))
+    settings = dict(prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size, attention=attention)
+    prefill_options({k:v for k,v in settings.items() if v is not None})
+    attention_option(settings)
+    config.update({k:v for k,v in settings.items() if v is not None})
     root = Path(__file__).resolve().parents[2]
     dependencies = subprocess.check_output(['git','ls-tree','-r','--name-only',commit,'exploratory/step4_harness','exploratory/measurement_v02456','formation'],cwd=root,text=True).splitlines()
     for name in dependencies:
@@ -95,6 +99,9 @@ if __name__ == '__main__':
     parser.add_argument('--seed',type=int)
     parser.add_argument('--part',type=int,default=0)
     parser.add_argument('--prompt-ceiling',type=int)
+    parser.add_argument('--prefill-mode',choices=['current','chunked'])
+    parser.add_argument('--prefill-chunk-size',type=int)
+    parser.add_argument('--attention',choices=['eager','sdpa','default'])
     parser.add_argument('--part-count',type=int,default=2)
     parser.add_argument('--phase',choices=['gate','evaluate'],default='evaluate')
     for name in ('sealed-sha256','sealed-dataset','gate-sha256','gate-dataset'):

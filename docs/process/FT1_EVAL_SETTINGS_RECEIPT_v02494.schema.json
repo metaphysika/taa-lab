@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FT1 approved evaluation settings v0.24.94",
+  "type": "object",
+  "required": [
+    "approved",
+    "repo_commit",
+    "phase",
+    "arm",
+    "seed",
+    "adapter_sha256",
+    "training_manifest_sha256",
+    "data_manifest_sha256",
+    "sealed_sha256",
+    "gate_sha256",
+    "part",
+    "part_count",
+    "model_source",
+    "prompt_ceiling",
+    "attention",
+    "prefill_mode",
+    "prefill_chunk_size"
+  ],
+  "properties": {
+    "repo_commit": {},
+    "phase": {
+      "enum": [
+        "gate",
+        "evaluate"
+      ]
+    },
+    "arm": {},
+    "seed": {},
+    "adapter_sha256": {},
+    "training_manifest_sha256": {},
+    "data_manifest_sha256": {},
+    "sealed_sha256": {},
+    "gate_sha256": {},
+    "part": {},
+    "part_count": {},
+    "model_source": {},
+    "prompt_ceiling": {
+      "const": 14000
+    },
+    "attention": {
+      "const": "eager"
+    },
+    "prefill_mode": {
+      "const": "chunked"
+    },
+    "prefill_chunk_size": {
+      "const": 256
+    },
+    "approved": {
+      "const": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "gate"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "part": {
+            "type": "null"
+          },
+          "part_count": {
+            "type": "null"
+          },
+          "sealed_sha256": {
+            "type": "null"
+          },
+          "gate_sha256": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "part": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23
+          },
+          "part_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "sealed_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "gate_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -57,13 +57,14 @@ The retained events show 7.80e9 bytes allocated after load and OOM peaks of
 14.0e9 bytes eager and 14.9e9 bytes sdpa. At eager softmax, fp16 masked scores,
 an fp32 copy and the fp32 output can coexist across 16 heads: about 160 bytes
 per token squared, plus about 4 bytes per token squared for two dense masks.
-The measured increases of 2.15e9 at 2500 and 4.41e9 at 4000 admit a two-point
-quadratic-plus-linear fit of about 162 bytes per token squared plus 0.456 MB
-per token using prompt length. Using total length including 1024 outputs instead
-gives about 195 bytes per token squared plus 0.244 MB per token. These two
-length conventions give a 160-195 byte quadratic and 0.24-0.46 MB linear envelope. Part of this
-linear term is unexplained by the itemised rows. These estimates are not a
-complete allocator accounting; exact attribution needs GPU profiling.
+The measured increases of 2.15e9 at 2500 and 4.41e9 at 4000 support a
+rough 160-180 bytes/token squared estimate, with a linear term anywhere from ~0 to
+0.46 MB/token. Two points cannot pin these terms independently. These estimates
+are not a complete allocator accounting; exact attribution needs GPU profiling.
+
+Fit-limit 2 at 09fac296 measured at least 16,000 prompt tokens fitting with eager,
+chunked 256: peaks were 9.82e9 bytes at 13k and 10.20e9 at 16k. See
+`results/2026-11-16 v0.24.93 ft1-fit-limit-2 09fac2962b37/` and the notebook.
 
 ## CPU measurement
 
