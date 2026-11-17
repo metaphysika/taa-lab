@@ -13487,6 +13487,37 @@ The later 11 bundles' hashes are recorded in an addendum before they are pushed.
 
 Base's `acquired` value is not forecast: base is a reference, and its acquisition is expected to be low.
 
+## 2026-11-17 — v0.24.89 FT1 training runs arm 2 / 247058 and arm 3 / 247058 at 0449a230: both TRAINED — all 12 FT1 adapters trained (exploratory, $0)
+
+Written by Claude (FT1 training stage thread) against the 11-run pre-run entry (#155).
+
+**Evidence.**
+- `results/2026-11-16 v0.24.89 ft1-train-2-247058 0449a230200c/`
+- `results/2026-11-16 v0.24.89 ft1-train-3-247058 0449a230200c/`
+
+All 53 output files of each run match its manifest, and full copies are under `C:/Users/lahn0/T3/ft1-artifacts/`. Launch hashes match the pre-run table, and each pushed notebook differs from its staged one only in `PLAN_ONLY`.
+
+| | Arm 2 / 247058 | Arm 3 / 247058 |
+|---|---|---|
+| Pushed (UTC) | 00:16 | 00:43 |
+| Status, steps, skip signal on all | `trained`, 250, yes | `trained`, 250, yes |
+| Checkpoints | 50, 100, 150, 200, 250 | 50, 100, 150, 200, 250 |
+| `adapter_saved`, `tensors_finite` | true, `179df017…` | true, `51d4895c…` |
+| Skipped updates (limit 25) | 1 (step 1) | 0 |
+| Micro-losses finite | 2,000 of 2,000 | 2,000 of 2,000 |
+| Peak allocated (limit 13.5e9) | 9.29e9 | 9.29e9 |
+| Mean / slowest step (line 75 s) | 32.6 s / 35.9 s | 28.9 s / 31.8 s |
+| Setup; last event (line 6.5 h) | 232 s; 8,387 s (2.3 h) | 212 s; 7,449 s (2.1 h) |
+
+**Training stage complete.** All 12 FT1 adapters are TRAINED, with no review flag on any run:
+- arm 1: 247056, 247057;
+- arm 2: 247056, 247057, 247058;
+- arm 2u: 247056, 247057;
+- arm 3: 247056 (pilot), 247057, 247058;
+- arm 4: 247056, 247057.
+
+Every adapter's minimal folder is uploaded as a private Kaggle dataset, `ft1-adapter-<arm>-<seed>-0449a230200c`, and passes `adapter_binding` locally. Against the forecast of about 90% TRAINED per run, 12 of 12 are TRAINED. Nothing is evaluated yet: each model's gate run waits for Chris's approval (pre-run entry #166).
+
 ## 2026-11-17 — FT1 gate runs at cb5b8657: Chris's approval, gate rule A, first two pushed, and hashes of the other 11 (before their push)
 
 **Chris's words (2026-11-17), verbatim: "Approve the 13 FT1 gate runs at cb5b8657 and Gate rule A".**
