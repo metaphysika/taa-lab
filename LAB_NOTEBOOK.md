@@ -13551,3 +13551,36 @@ Each pushed notebook differs from its staged one (#166 table) only in `PLAN_ONLY
 | 4 / 247057 | `b253b34a…` | `1207392e…` | `32f4c07a…` | `0143d992…` |
 
 These are pushed two at a time only after the arm 3 / 247056 gate ends `gate_complete`, as the pre-run entry requires.
+
+## 2026-11-17 — v0.24.94 FT1 gates at cb5b8657: base and arm 3 / 247056 both gate_complete; arm 3 / 247056 fails format (cap-hit reason loops); remaining 11 gates paused for Chris
+
+Written by Claude (FT1 stage thread) against the pre-run entry (#166) and the approval addendum (#168).
+
+**Evidence.**
+- `results/2026-11-17 v0.24.94 ft1-gate-base cb5b86577/`
+- `results/2026-11-17 v0.24.94 ft1-gate-3-247056 cb5b86577/`
+
+Each manifest matches. Each pushed notebook differs from its staged one only in `PLAN_ONLY`.
+
+| | Base | Arm 3 / 247056 |
+|---|---|---|
+| Status | `gate_complete` | `gate_complete` |
+| Kernel time | about 27 min | about 84 min |
+| Attention read-back | eager (base stage) | eager (base and adapter stages) |
+| Out-of-memory / context-limit episodes | 0 / 0 | 0 / 0 |
+| Acquisition: parsed / correct of 40 (bar 32 / 28) | 40 / 7: fails | 39 / 38: passes |
+| Format: valid turns (bar 0.9); finished of 8 (bar 6) | 28/28; 8: passes | 24/27 = 0.889; 5: fails |
+| `acquired` | false (reference anyway) | **false** |
+
+**Against the forecasts.**
+- Base COMPLETE (85%) and arm 3 / 247056 COMPLETE (80%): both yes.
+- Attention read-back passes (90%): yes.
+- Arm 3 / 247056 `acquired=true` (70%): **no**.
+
+**What failed, descriptively.** All three malformed format turns of arm 3 / 247056 hit the 1,024-token output cap. The JSON's `action` part is well formed, but the `reason` text repeats the same rule sentences until it is cut off, so the object never closes. One acquisition reply also reached 1,024 tokens. Under the fixed rules a cap-hit unclosed reply is `malformed`, not a mechanical unknown, so this counts as a format failure and not under gate rule A. No conduct label is involved.
+
+**Claude's decision: the remaining 11 gates are paused.** The pre-run condition for pushing them (arm 3 / 247056 `gate_complete`) is met. They are paused anyway, under the entry's stop rule for review-worthy surprises, for two reasons:
+- the primary arm failing format through reason loops is review-worthy;
+- each model gets only one gate.
+
+If a harness cause existed, or if Chris chose a prospective, disclosed protocol change, gates already run could not be repeated under the one-gate rule without an amendment. Fable is diagnosing whether the cause is the harness (stop tokens, templates, chunked prefill through PEFT) or the trained model with greedy decoding, using public data and outputs only. Chris decides how to proceed. Both results stand as recorded, whatever follows.
