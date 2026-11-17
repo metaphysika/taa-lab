@@ -13584,3 +13584,23 @@ Each manifest matches. Each pushed notebook differs from its staged one only in 
 - each model gets only one gate.
 
 If a harness cause existed, or if Chris chose a prospective, disclosed protocol change, gates already run could not be repeated under the one-gate rule without an amendment. Fable is diagnosing whether the cause is the harness (stop tokens, templates, chunked prefill through PEFT) or the trained model with greedy decoding, using public data and outputs only. Chris decides how to proceed. Both results stand as recorded, whatever follows.
+
+## 2026-11-17 — FT1 gates at cb5b8657: Fable's diagnosis of the arm 3 / 247056 format failure; Chris decides to proceed with the other 11 gates unchanged (before their push)
+
+Written by Claude (FT1 gate-stage thread) before any of the 11 remaining gates is pushed.
+
+**Fable 5.2's diagnosis (public data and gate outputs only; no sealed material).**
+- **Model behaviour, not a harness bug.** Base is clean under the identical settings, stop tokens and templates.
+- **Likely cause.** Arm 3 trained on short, templated reasons in single-turn examples, ordered reason → tool. K2 format episodes are multi-turn and ordered tool → args → reason. The model never practised closing a reason in that position, and under greedy decoding it loops on interchangeable openers until the 1,024-token cap.
+- **Risk by arm.** The other arm-3 seeds (247057, 247058): high. Arm 2: unknown. Arms 1, 2u and 4: negligible. Fable's forecast is about 6–7 of 12 adapters `acquired=true`.
+- **Options Fable laid out.**
+  - (a) Proceed with the 11 gates unchanged. Recommended.
+  - (b1–b4) Test-side changes: raise the output cap, add a repetition stop or penalty, count a cap hit as mechanical unknown, or accept a truncated reason. Fable advised against all four: they bend the test to rescue one arm, and any of them would require rerunning base and 3 / 247056 under an amendment.
+  - (c) After (a), a new pre-registered arm-3 follow-up that fixes the training format. It touches only arm 3, so gates for arms 1, 2, 2u and 4 stay valid.
+- **Untested corner.** Chunked prefill through PEFT has had no direct side-by-side equivalence test, only indirect evidence (base and adapter read-backs, and the arm 3 / 247056 run completing with zero out-of-memory or context-limit episodes).
+
+**Chris's decision (2026-11-17), verbatim: "Proceed with the 11 gates".**
+- This is option (a). The 11 gates run at `cb5b865775e9c6357834e953bf7d14d653e45d95` with the staged bundles unchanged, under the existing approval ("Approve the 13 FT1 gate runs at cb5b8657 and Gate rule A") and the outcome rules of the pre-run entry. No test-side change is made.
+- Before push, each of the 11 staged bundles was re-hashed and matches the table in the approval addendum (notebook, binding, kernel metadata and adapter digest), and each staged notebook still has `PLAN_ONLY = True`.
+- Order: arms 1, 2u and 4 first, then arm 2, then 3 / 247057 and 3 / 247058, two at a time.
+- Option (c), the arm-3 training-format follow-up, will be drafted as a separate pre-registered study for Chris's approval. It is not approved and nothing of it is launched.
