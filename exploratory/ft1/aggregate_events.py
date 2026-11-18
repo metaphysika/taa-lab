@@ -41,6 +41,9 @@ def main():
                              mechanical_turn_rate=s['mechanical_turn_rate'])
                         for (arm,seed),s in descriptive.items()])
     if SUPPLEMENTARY_MODEL in descriptive:
+        for model in result['models']:
+            if (model['arm'], model['training_seed']) == SUPPLEMENTARY_MODEL:
+                model.update(supplementary=True, label=SUPPLEMENTARY_LABEL)
         replacement = descriptive[SUPPLEMENTARY_MODEL]
         decision_required = replacement.get('decision_required')
         included = any(s['training_seed'] == SUPPLEMENTARY_MODEL[1] for s in summaries.get('1', []))

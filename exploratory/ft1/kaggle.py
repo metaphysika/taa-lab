@@ -47,7 +47,7 @@ def configuration(arm,seed,repo_commit,data_manifest_sha256):
 
 def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
           model_source=None,repo_dataset=None,data_dataset=None,owner=None,receipt_dataset=None,
-          first_gate_file=None,first_gate_dataset=None):
+          first_gate_file=None,first_gate_dataset=None,first_training_folder=None,first_training_dataset=None):
     if not all((model_source,repo_dataset,data_dataset,owner,receipt_dataset)):
         raise ValueError('versioned model source, repo/data datasets and owner are required')
     plan.core.validate_model_source(model_source,'gemma-3-12b-it')
@@ -62,14 +62,14 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
         raise ValueError('FT1-R has no qualification phase')
     datasets = [repo_dataset,data_dataset,'metaphysika/k2-wheels',receipt_dataset]
     if is_ft1r and cell != plan_ft1r.FIRST_MODEL:
-        gate_bytes = Path(first_gate_file).read_bytes() if first_gate_file else None
-        gate_hash = hashlib.sha256(gate_bytes).hexdigest() if gate_bytes is not None else None
-        plan_ft1r.require_first_gate(cell, gate_bytes, gate_hash, config['data_manifest_sha256'])
-        if not re.fullmatch('[a-z0-9_-]+/[a-z0-9_-]+', first_gate_dataset or ''):
-            raise ValueError('versioned first gate dataset required')
-        config['first_gate_sha256'] = gate_hash
-        datasets.append(first_gate_dataset)
-    elif first_gate_file is not None or first_gate_dataset is not None:
+        config.update(plan_ft1r.require_first_gate(cell, first_gate_file, first_training_folder,
+                                                  config['data_manifest_sha256']))
+        if any(not re.fullmatch('[a-z0-9_-]+/[a-z0-9_-]+', handle or '')
+               for handle in (first_gate_dataset, first_training_dataset)):
+            raise ValueError('versioned first gate and first training datasets required')
+        datasets.extend((first_gate_dataset, first_training_dataset))
+    elif any(value is not None for value in (first_gate_file, first_gate_dataset,
+                                              first_training_folder, first_training_dataset)):
         raise ValueError('unexpected first gate input')
     manifest=json.loads((Path(data_folder)/'manifest.json').read_bytes())
     config['arm_data_sha256']=manifest['sha256'][f'arm-{arm}.jsonl']
@@ -106,8 +106,9 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
         source = source.replace('    run(CONFIG,',
             '    from exploratory.ft1.plan_ft1r import FirstGateDecisionRequired\n'
             '    gates = [p for p in Path("/kaggle/input").rglob("gate.json") if p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest() == CONFIG["first_gate_sha256"]]\n'
-            '    if len(gates) != 1: raise FirstGateDecisionRequired("Missing or ambiguous first gate. Stop for Chris.")\n'
-            '    run(CONFIG,').replace('OUTPUT, receipt)', 'OUTPUT, receipt, first_gate_file=gates[0])')
+            '    training = [p.parent for p in Path("/kaggle/input").rglob("manifest.json") if hashlib.sha256(p.read_bytes()).hexdigest() == CONFIG["first_training_manifest_sha256"]]\n'
+            '    if len(gates) != 1 or len(training) != 1: raise FirstGateDecisionRequired("Missing or ambiguous first gate or adapter. Stop for Chris.")\n'
+            '    run(CONFIG,').replace('OUTPUT, receipt)', 'OUTPUT, receipt, first_gate_file=gates[0], first_training_folder=training[0])')
     notebook=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'}},
                   cells=[dict(cell_type='code',execution_count=None,metadata={},outputs=[],source=source.splitlines(True))])
     (folder/'ft1_plan.ipynb').write_text(json.dumps(notebook,indent=2),encoding='utf-8')
@@ -120,9 +121,14 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
 
 def source_inventory(commit, *, include_sealed=True):
     root=Path(__file__).resolve().parents[2]
-    names=subprocess.check_output(['git','ls-tree','-r','--name-only',commit,'exploratory/ft1'],cwd=root,text=True).splitlines()
-    if not include_sealed:
-        names = [name for name in names if name != 'exploratory/ft1/sealed.py']
+    if include_sealed:
+        names=subprocess.check_output(['git','ls-tree','-r','--name-only',commit,'exploratory/ft1'],cwd=root,text=True).splitlines()
+    else:
+        modules = ('__init__', 'data', 'data_diagnostics', 'evaluate_runner', 'evaluate_stage',
+                   'evaluation', 'ft1r_data', 'kaggle', 'memory', 'mounts', 'plan', 'plan_ft1r',
+                   'qualification', 'runner', 'scoring', 'selection', 'training')
+        names = [f'exploratory/ft1/{name}.py' for name in modules]
+        names.append('exploratory/ft1/selection_expected.json')
     names=[n for n in names if n.endswith(('.py','selection_expected.json'))]+['exploratory/k2_kaggle/'+n for n in ('core.py','ft0.py','ft0b.py')]
     return {name:hashlib.sha256(subprocess.check_output(['git','show',commit+':'+name],cwd=root)).hexdigest() for name in names}
 
@@ -166,5 +172,11 @@ if __name__=='__main__':
     p.add_argument('--receipt-dataset',required=True); p.add_argument('--data-dataset',required=True); p.add_argument('--owner',required=True)
     p.add_argument('--repo-commit',required=True); p.add_argument('--data',required=True); p.add_argument('--output',required=True)
     p.add_argument('--first-gate-file'); p.add_argument('--first-gate-dataset')
+    p.add_argument('--first-training-folder'); p.add_argument('--first-training-dataset')
     a=p.parse_args()
-    print(json.dumps(stage(a.output,a.arm,a.seed,a.repo_commit,a.data,a.qualification,a.model_source,a.repo_dataset,a.data_dataset,a.owner,a.receipt_dataset,a.first_gate_file,a.first_gate_dataset),indent=2))
+    args = vars(a)
+    args.pop('plan')
+    args.pop('mode')
+    args['folder'] = args.pop('output')
+    args['data_folder'] = args.pop('data')
+    print(json.dumps(stage(**args), indent=2))

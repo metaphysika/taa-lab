@@ -58,13 +58,13 @@ class StepMonitor:
 
 
 def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False,manifest_tokens=None,run_started=None,
-          *, first_gate_bytes=None, first_gate_sha256=None, data_manifest_sha256=None):
+          *, first_gate_file=None, first_training_folder=None, data_manifest_sha256=None):
     """Same pinned HF Trainer path as FT0b; never called by the plan CLI."""
     cell = arm, seed
     if cell in plan_ft1r.TRAINING_ORDER:
         if qualification:
             raise ValueError('FT1-R has no qualification phase')
-        plan_ft1r.require_first_gate(cell, first_gate_bytes, first_gate_sha256, data_manifest_sha256)
+        plan_ft1r.require_first_gate(cell, first_gate_file, first_training_folder, data_manifest_sha256)
     elif cell not in plan.MODELS[1:] and cell != plan.SUPPLEMENTARY_MODEL:
         raise ValueError('unplanned cell')
     if len(rows) != 2000:

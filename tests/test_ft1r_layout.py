@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from exploratory.ft1 import data, data_diagnostics, ft1r_data, plan, plan_ft1r, scoring, selection, training
+from exploratory.ft1 import data, data_diagnostics, ft1r_data, kaggle, plan, plan_ft1r, scoring, selection, training
 from exploratory.k2_kaggle import core
 from scripts.ft1r_data_report import report_for
 from tests.test_ft1_runner import Tokenizer
@@ -230,6 +230,13 @@ class LayoutTests(unittest.TestCase):
             self.assertTrue(json.loads((root/'dataset'/'manifest.json').read_bytes())['tokenizer_verified'])
             for name, digest in verified['file_sha256'].items():
                 self.assertEqual(hashlib.sha256((root/'dataset'/name).read_bytes()).hexdigest(), digest)
+            self.assertEqual(kaggle.verify_data(root/'dataset', data.FT1R_LAYOUT),
+                             verified['file_sha256']['manifest.json'])
+            with self.assertRaisesRegex(ValueError, 'layout mismatch'):
+                kaggle.verify_data(root/'dataset')
+            (root/'dataset'/ft1r_data.PROBE_FILE).write_bytes(b'[]')
+            with self.assertRaisesRegex(ValueError, 'binding mismatch'):
+                kaggle.verify_data(root/'dataset', data.FT1R_LAYOUT)
             with (patch('exploratory.ft1.selection.CANDIDATE_STOP', 10000),
                   patch('scripts.ft1r_data_report.is_real_tokenizer', return_value=True)):
                 refused = report_for(Oversized(), root/'refusal.json', root/'refused')

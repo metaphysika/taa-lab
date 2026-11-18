@@ -1,13 +1,42 @@
 """Synthetic controls for FT1's replacement and FT1-R gate wiring."""
+import ast
 import hashlib
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from exploratory.ft1 import aggregation, data, evaluate_runner, ft1r_data, kaggle, plan, plan_ft1r, runner, training
-from scripts.ft1r_data_report import report_for, tokenizer_fingerprint
+from exploratory.ft1 import aggregation, data, evaluate_runner, evaluate_stage, ft1r_data, kaggle, plan, plan_ft1r, runner, training
+from scripts.ft1r_data_report import report_for, tokenizer_fingerprint, tokenizer_inventory
+
+
+def first_gate_fixture(root):
+    arm, seed = plan_ft1r.FIRST_MODEL
+    core = plan.core
+    training_folder = root/'training'
+    adapter = training_folder/'adapter'
+    adapter.mkdir(parents=True)
+    (adapter/'adapter_config.json').write_bytes(b'{}')
+    (adapter/'adapter_model.safetensors').write_bytes(b'synthetic weights')
+    metadata = dict(arm=arm, seed=seed, phase='train', status='trained',
+                    data_layout=data.FT1R_LAYOUT, data_manifest_sha256='b'*64)
+    (training_folder/'metadata.json').write_text(json.dumps(metadata), encoding='utf-8')
+    events = [dict(event='training_complete', qualification=False, steps=250, skipped_steps=[]),
+              dict(event='adapter_saved', tensors_finite=True, sha256=core.inventory(adapter))]
+    (training_folder/'events.jsonl').write_text('\n'.join(map(json.dumps, events)), encoding='utf-8')
+    core.manifest(training_folder, dict(phase='train', status='trained'))
+    binding = evaluate_runner.adapter_binding(training_folder, arm, seed, data_manifest_sha256='b'*64)
+    gate_file = root/'gate'/'gate.json'
+    gate_file.parent.mkdir()
+    gate = dict(arm=arm, seed=seed, layout=data.FT1R_LAYOUT, data_manifest_sha256='b'*64,
+                status='complete', trained=True, acquired=True,
+                adapter_sha256=binding['adapter_sha256'],
+                training_manifest_sha256=binding['training_manifest_sha256'])
+    gate_file.write_text(json.dumps(gate), encoding='utf-8')
+    core.manifest(gate_file.parent, dict(phase='gate', status='gate_complete'))
+    return gate_file, training_folder
 
 
 class WiringTests(unittest.TestCase):
@@ -45,29 +74,87 @@ class WiringTests(unittest.TestCase):
     def test_first_gate_blocks_later_training_before_preparation(self):
         arm, seed = '2', 247061
         manifest_hash = 'b'*64
-        gate = dict(arm='3', seed=247061, layout=data.FT1R_LAYOUT,
-                    data_manifest_sha256=manifest_hash, status='complete', trained=True, acquired=True)
-        payload = json.dumps(gate).encode()
-        digest = hashlib.sha256(payload).hexdigest()
-        config = dict(kaggle.configuration(arm, seed, 'a'*40, manifest_hash),
-                      phase='train', first_gate_sha256=digest)
-        receipt = dict(config, approved=True)
-        plan_ft1r.require_first_gate((arm, seed), payload, digest, manifest_hash)
         plan_ft1r.require_first_gate(plan_ft1r.FIRST_MODEL, None, None, manifest_hash)
-        with self.assertRaisesRegex(ValueError, 'phase approval'):
-            runner.validate_approval(config, dict(receipt, first_gate_sha256=None))
-        for bad in (dict(gate, acquired=False), dict(gate, trained=False),
-                    dict(gate, status='gate_mechanical_unknown'), dict(gate, seed=247062),
-                    dict(gate, data_manifest_sha256='c'*64), dict(gate, layout=None)):
-            wrong = json.dumps(bad).encode()
-            with self.assertRaisesRegex(plan_ft1r.FirstGateDecisionRequired, 'Chris'):
-                plan_ft1r.require_first_gate((arm, seed), wrong, hashlib.sha256(wrong).hexdigest(), manifest_hash)
-        with patch.object(runner, 'verify_source'), patch.object(kaggle, 'prepare') as prepare:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gate_file, folder = first_gate_fixture(root)
+            gate = json.loads(gate_file.read_bytes())
+            binding = plan_ft1r.require_first_gate((arm, seed), gate_file, folder, manifest_hash)
+            config = dict(kaggle.configuration(arm, seed, 'a'*40, manifest_hash), phase='train', **binding)
+            receipt = dict(config, approved=True)
+            for field in binding:
+                with self.assertRaisesRegex(ValueError, 'phase approval'):
+                    runner.validate_approval(config, dict(receipt, **{field: None}))
+            copy = root/'gate.json'
+            copy.write_bytes(gate_file.read_bytes())
             with self.assertRaises(plan_ft1r.FirstGateDecisionRequired):
-                runner.run(config, None, None, None, receipt)
-            prepare.assert_not_called()
+                plan_ft1r.require_first_gate((arm, seed), copy, folder, manifest_hash)
+            gate_file.write_bytes(gate_file.read_bytes() + b' ')
+            with self.assertRaises(plan_ft1r.FirstGateDecisionRequired):
+                plan_ft1r.require_first_gate((arm, seed), gate_file, folder, manifest_hash)
+            for changes in (dict(acquired=False), dict(trained=False),
+                            dict(status='gate_mechanical_unknown'), dict(seed=247062),
+                            dict(data_manifest_sha256='c'*64), dict(layout=None),
+                            dict(adapter_sha256='c'*64), dict(training_manifest_sha256='d'*64)):
+                with self.subTest(changes=changes):
+                    gate_file.write_text(json.dumps(dict(gate, **changes)), encoding='utf-8')
+                    plan.core.manifest(gate_file.parent, dict(phase='gate', status='gate_complete'))
+                    with self.assertRaisesRegex(plan_ft1r.FirstGateDecisionRequired, 'Chris'):
+                        plan_ft1r.require_first_gate((arm, seed), gate_file, folder, manifest_hash)
+            gate_file.write_text(json.dumps(gate), encoding='utf-8')
+            plan.core.manifest(gate_file.parent, dict(phase='gate', status='gate_complete', changed=True))
+            with (patch.object(runner, 'verify_source'),
+                  patch.object(kaggle, 'prepare') as prepare):
+                with self.assertRaises(plan_ft1r.FirstGateDecisionRequired):
+                    runner.run(config, None, None, None, receipt, first_gate_file=gate_file,
+                               first_training_folder=folder)
+                prepare.assert_not_called()
         with self.assertRaises(plan_ft1r.FirstGateDecisionRequired):
             training.train(None, None, [], arm, seed, None, None, None)
+
+    def test_stage_later_training_and_gate_notebooks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gate_file, folder = first_gate_fixture(root)
+            dataset = root/'data'
+            dataset.mkdir()
+            manifest = dict(sha256={'arm-2.jsonl': 'd'*64, ft1r_data.PROBE_FILE: 'e'*64})
+            (dataset/'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+            model = 'google/gemma-3/transformers/gemma-3-12b-it/1'
+            commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+            with patch.object(kaggle, 'verify_data', return_value='b'*64) as verify:
+                config = kaggle.stage(root/'train-plan', '2', 247061, commit, dataset,
+                                      model_source=model, repo_dataset='owner/repo',
+                                      data_dataset='owner/data', owner='owner', receipt_dataset='owner/receipt',
+                                      first_gate_file=gate_file, first_gate_dataset='owner/gate',
+                                      first_training_folder=folder, first_training_dataset='owner/adapter')
+                staged_gate = evaluate_stage.stage(
+                    root/'gate-plan', *plan_ft1r.FIRST_MODEL, commit, dataset, None, 0, model,
+                    'owner/repo', 'owner/data', None, 'owner/receipt', 'owner',
+                    training_folder=folder, training_dataset='owner/adapter', phase='gate')
+            self.assertEqual(verify.call_count, 2)
+            verify.assert_called_with(dataset, data.FT1R_LAYOUT)
+            self.assertEqual(config['acquisition_file'], ft1r_data.PROBE_FILE)
+            self.assertEqual(config['first_gate_sha256'], hashlib.sha256(gate_file.read_bytes()).hexdigest())
+            self.assertEqual(staged_gate['training_manifest_sha256'], config['first_training_manifest_sha256'])
+            for key, value in plan_ft1r.EVALUATION_SETTINGS.items():
+                self.assertEqual(staged_gate[key], value)
+            for name, notebook, binding in (
+                    ('train-plan', 'ft1_plan.ipynb', config),
+                    ('gate-plan', 'ft1_evaluate.ipynb', staged_gate)):
+                self.assertEqual(binding['data_layout'], data.FT1R_LAYOUT)
+                self.assertNotIn('exploratory/ft1/sealed.py', binding['source_sha256'])
+                cell = json.loads((root/name/notebook).read_bytes())['cells'][0]
+                source = ''.join(cell['source'])
+                compile(source, notebook, 'exec')
+                tree = ast.parse(source)
+                self.assertIs(tree.body[2].value.value, True)
+                self.assertEqual(ast.literal_eval(tree.body[3].value), binding)
+                if name == 'train-plan':
+                    self.assertIn('first_gate_file=gates[0], first_training_folder=training[0]', source)
+                    self.assertIn('CONFIG["first_training_manifest_sha256"]', source)
+            metadata = json.loads((root/'train-plan'/'kernel-metadata.json').read_bytes())
+            self.assertEqual(metadata['dataset_sources'][-2:], ['owner/gate', 'owner/adapter'])
 
     def test_r_gate_uses_versioned_probe_and_records_layout(self):
         arm, seed = plan_ft1r.FIRST_MODEL
@@ -100,6 +187,8 @@ class WiringTests(unittest.TestCase):
             expected = tokenizer_fingerprint(root)
             asset.write_bytes(b'second')
             actual = tokenizer_fingerprint(root)
+            inventory = tokenizer_inventory(root)
+            self.assertEqual(inventory, {'tokenizer.json': hashlib.sha256(b'second').hexdigest()})
             self.assertNotEqual(expected, actual)
             with (patch('scripts.ft1r_data_report.is_real_tokenizer', return_value=True),
                   patch('scripts.ft1r_data_report.core.end_token'),
@@ -108,8 +197,11 @@ class WiringTests(unittest.TestCase):
                   patch.object(ft1r_data, 'fit', return_value={})):
                 for index, supplied in enumerate((None, expected)):
                     report = report_for(object(), root/f'report-{index}.json', root/'export',
-                                        tokenizer_sha256=actual, expected_tokenizer_sha256=supplied)
+                                        tokenizer_sha256=actual, expected_tokenizer_sha256=supplied,
+                                        tokenizer_file_sha256=inventory)
                     self.assertTrue(report['tokenizer_verified'])
                     self.assertEqual(report['tokenizer_sha256'], actual)
+                    self.assertEqual(report['tokenizer_file_sha256'], inventory)
+                    self.assertIn('independent source', report['tokenizer_export_requirement'])
                     self.assertFalse(report['passed'])
                     self.assertFalse((root/'export').exists())

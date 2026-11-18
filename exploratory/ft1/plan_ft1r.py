@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+from pathlib import Path
 
 from . import data, ft1r_data, plan as ft1
 
@@ -19,24 +20,42 @@ class FirstGateDecisionRequired(ValueError):
     pass
 
 
-def require_first_gate(cell, gate_bytes, gate_sha256, data_manifest_sha256):
+def require_first_gate(cell, gate_file, training_folder, data_manifest_sha256):
     if cell == FIRST_MODEL:
-        return
-    if gate_bytes is not None and hashlib.sha256(gate_bytes).hexdigest() == gate_sha256:
-        try:
-            gate = json.loads(gate_bytes)
-        except ValueError:
-            gate = None
-        if (isinstance(gate, dict) and (gate.get('arm'), gate.get('seed')) == FIRST_MODEL
+        return {}
+    from .evaluate_runner import adapter_binding
+
+    try:
+        gate_file = Path(gate_file)
+        gate_bytes = gate_file.read_bytes()
+        manifest_bytes = (gate_file.parent/'manifest.json').read_bytes()
+        gate = json.loads(gate_bytes)
+        manifest = json.loads(manifest_bytes)
+        gate_hash = hashlib.sha256(gate_bytes).hexdigest()
+        if (gate_file.name == 'gate.json'
+                and manifest['sha256']['gate.json'] == gate_hash
+                and manifest['metadata']['phase'] == 'gate'
+                and manifest['metadata']['status'] == 'gate_complete'
+                and (gate.get('arm'), gate.get('seed')) == FIRST_MODEL
                 and gate.get('layout') == data.FT1R_LAYOUT
                 and data_manifest_sha256 is not None
                 and gate.get('data_manifest_sha256') == data_manifest_sha256
                 and gate.get('status') == 'complete'
                 and gate.get('trained') is True and gate.get('acquired') is True):
-            return
-    raise FirstGateDecisionRequired(
-        'FT1-R R3 stop: arm 3 / 247061 needs a bound acquired gate. '
-        'If it was not acquired, record the outcome for Chris to decide before further training.')
+            adapter = adapter_binding(training_folder, *FIRST_MODEL,
+                                      data_manifest_sha256=data_manifest_sha256)
+            if all(gate[key] == adapter[key] for key in ('adapter_sha256', 'training_manifest_sha256')):
+                return dict(first_gate_sha256=gate_hash,
+                            first_gate_manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+                            first_training_manifest_sha256=adapter['training_manifest_sha256'])
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
+        raise FirstGateDecisionRequired(FIRST_GATE_STOP) from exc
+    raise FirstGateDecisionRequired(FIRST_GATE_STOP)
+
+
+FIRST_GATE_STOP = (
+    'FT1-R R3 stop: arm 3 / 247061 needs a retained, adapter-bound acquired gate. '
+    'Record a failed gate for Chris. Further training requires a new reviewed code change.')
 
 
 def plan():

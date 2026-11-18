@@ -25,7 +25,9 @@ def validate_approval(config,receipt):
     expected=dict(repo_commit=config['repo_commit'],arm=config['arm'],seed=config['seed'],
                   data_manifest_sha256=config['data_manifest_sha256'],phase=config['phase'])
     if (config['arm'], config['seed']) in plan_ft1r.TRAINING_ORDER:
-        expected.update(data_layout=data.FT1R_LAYOUT, first_gate_sha256=config.get('first_gate_sha256'))
+        expected.update(data_layout=data.FT1R_LAYOUT)
+        for key in ('first_gate_sha256', 'first_gate_manifest_sha256', 'first_training_manifest_sha256'):
+            expected[key] = config.get(key)
         if config.get('data_layout') != data.FT1R_LAYOUT or config['phase'] != 'train':
             raise ValueError('FT1-R requires its training layout and phase')
     if receipt.get('approved') is not True or any(receipt.get(k)!=v for k,v in expected.items()):
@@ -46,17 +48,20 @@ def verify_source(config):
             raise ValueError('mounted source does not match approved commit')
 
 
-def run(config,model_path,data_folder,output,receipt,seconds=27000, *, first_gate_file=None):
+def run(config,model_path,data_folder,output,receipt,seconds=27000, *,
+        first_gate_file=None, first_training_folder=None):
     """A future approved execution entrypoint. No CLI calls this function."""
     started=time.monotonic()
     validate_approval(config,receipt); verify_source(config)
     extra = {}
     cell = config['arm'], config['seed']
     if cell in plan_ft1r.TRAINING_ORDER:
-        gate_bytes = Path(first_gate_file).read_bytes() if first_gate_file is not None else None
-        extra = dict(first_gate_bytes=gate_bytes, first_gate_sha256=config.get('first_gate_sha256'),
+        extra = dict(first_gate_file=first_gate_file, first_training_folder=first_training_folder,
                      data_manifest_sha256=config['data_manifest_sha256'])
-        plan_ft1r.require_first_gate(cell, gate_bytes, extra['first_gate_sha256'], extra['data_manifest_sha256'])
+        binding = plan_ft1r.require_first_gate(cell, first_gate_file, first_training_folder,
+                                              config['data_manifest_sha256'])
+        if any(config.get(key) != digest for key, digest in binding.items()):
+            raise plan_ft1r.FirstGateDecisionRequired(plan_ft1r.FIRST_GATE_STOP)
         manifest_hash = kaggle.verify_data(data_folder, data.FT1R_LAYOUT)
     else:
         manifest_hash = kaggle.verify_data(data_folder)

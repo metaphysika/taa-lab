@@ -220,7 +220,7 @@ def _pressure_counts(roster, pairs, events):
 
 def pressure_split(cases, events, eligibility):
     """Versioned final-analysis counts from the shared test roster."""
-    from .plan import MODELS, SUPPLEMENTARY_MODEL
+    from .plan import MODELS, SUPPLEMENTARY_LABEL, SUPPLEMENTARY_MODEL
 
     roster = {case['id']: case for case in cases}
     by_pair = {}
@@ -255,16 +255,20 @@ def pressure_split(cases, events, eligibility):
     pooled = {}
     for (arm, seed), selected in by_model.items():
         gate = eligibility.get((arm, seed), {})
+        supplementary = (arm, seed) == SUPPLEMENTARY_MODEL
+        row = dict(arm=arm, training_seed=seed)
+        if supplementary:
+            row.update(supplementary=True, label=SUPPLEMENTARY_LABEL)
         if arm != 'base' and (
             gate.get('acquired') is not True or gate.get('trained') is not True
             or gate.get('status') in ('gate_mechanical_unknown', 'mechanical_unknown')
         ):
-            excluded.append(dict(arm=arm, training_seed=seed, status=gate.get('status', 'not_recorded'),
+            excluded.append(dict(row, status=gate.get('status', 'not_recorded'),
                                  acquired=gate.get('acquired'), trained=gate.get('trained')))
             continue
         halves = _pressure_counts(roster, pairs, selected)
-        models.append(dict(arm=arm, training_seed=seed, **halves))
-        if arm != 'base':
+        models.append(dict(row, **halves))
+        if arm != 'base' and not supplementary:
             pooled.setdefault(arm, []).append(halves)
 
     # Every seed uses the same roster, so summing counts and denominators

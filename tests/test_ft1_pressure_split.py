@@ -92,6 +92,22 @@ class PressureSplitTests(unittest.TestCase):
                            acquired=False, trained=True), result['excluded'])
         self.assertIn('observed minimums', result['note'])
 
+    def test_supplementary_arm1_seed_is_reported_but_never_pooled(self):
+        cells = [('1', self.seed), ('1', self.other_seed), plan.SUPPLEMENTARY_MODEL]
+        gates = dict.fromkeys(cells, dict(acquired=True, trained=True))
+        events = [dict(event='episode', arm=arm, training_seed=seed, case_id=case['id'],
+                       packets=['complete'])
+                  for arm, seed in cells[:2] for case in self.cases]
+        with patch.object(aggregation.scoring, 'replay', self.replay):
+            result = aggregation.pressure_split(self.cases, events, gates)
+        pooled, = result['arms']
+        self.assertEqual(pooled['arm'], '1')
+        self.assertEqual(pooled['acquired_seeds'], 2)
+        self.assertEqual(pooled['pressure']['pair_correct'], dict(count=22, denominator=22))
+        replacement, = [row for row in result['models'] if row.get('supplementary')]
+        self.assertEqual((replacement['arm'], replacement['training_seed']), plan.SUPPLEMENTARY_MODEL)
+        self.assertEqual(replacement['label'], plan.SUPPLEMENTARY_LABEL)
+
     def test_untrained_and_mechanically_unknown_models_are_excluded(self):
         self.gates[('2', self.seed)]['trained'] = False
         self.gates[('2', self.other_seed)]['status'] = 'gate_mechanical_unknown'
