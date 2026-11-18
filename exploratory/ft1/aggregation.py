@@ -143,10 +143,14 @@ def seed_rates(summary):
             for p,w,o in summary['joint_counts'] for k in sorted({known,known+unknown})]
 
 
-def analyze(summaries):
+def analyze(summaries, *, include_supplementary=False):
     """Per-arm/per-seed feasible states feed section-8 prediction rules."""
     from .analysis import joint_bounds
-    return joint_bounds({a:[seed_rates(s) for s in seeds] for a,seeds in summaries.items()})
+    from .plan import SUPPLEMENTARY_MODEL
+    rates = {arm: [seed_rates(s) for s in seeds if include_supplementary
+                   or (arm, s.get('training_seed')) != SUPPLEMENTARY_MODEL]
+             for arm, seeds in summaries.items()}
+    return joint_bounds({arm: states for arm, states in rates.items() if states})
 
 
 def aggregate(cases,events,eligibility):
@@ -155,13 +159,17 @@ def aggregate(cases,events,eligibility):
     eligibility maps (arm,seed) to acquired/trained booleans from the prescribed
     protocol and skipped-update checks. Base is reference-only.
     """
-    from .plan import MODELS
+    from .plan import MODELS, SUPPLEMENTARY_MODEL
     summaries={}; descriptive={}
-    planned=set(MODELS)
+    models = list(MODELS)
+    if SUPPLEMENTARY_MODEL in eligibility or any(
+            (event['arm'], event['training_seed']) == SUPPLEMENTARY_MODEL for event in events):
+        models.append(SUPPLEMENTARY_MODEL)
+    planned=set(models)
     for event in events:
         if (event['arm'],event['training_seed']) not in planned:
             raise ValueError('foreign model cell')
-    for arm,seed in MODELS:
+    for arm,seed in models:
         selected=[e for e in events if (e['arm'],e['training_seed'])==(arm,seed)]
         summary=possibilities(cases,selected)
         summary['training_seed']=seed
@@ -212,7 +220,7 @@ def _pressure_counts(roster, pairs, events):
 
 def pressure_split(cases, events, eligibility):
     """Versioned final-analysis counts from the shared test roster."""
-    from .plan import MODELS
+    from .plan import MODELS, SUPPLEMENTARY_MODEL
 
     roster = {case['id']: case for case in cases}
     by_pair = {}
@@ -232,6 +240,9 @@ def pressure_split(cases, events, eligibility):
         pairs.append((w, u))
 
     by_model = {model: [] for model in MODELS}
+    if SUPPLEMENTARY_MODEL in eligibility or any(
+            (event['arm'], event['training_seed']) == SUPPLEMENTARY_MODEL for event in events):
+        by_model[SUPPLEMENTARY_MODEL] = []
     for event in events:
         model = event['arm'], event['training_seed']
         if model not in by_model:
@@ -248,7 +259,7 @@ def pressure_split(cases, events, eligibility):
             gate.get('acquired') is not True or gate.get('trained') is not True
             or gate.get('status') in ('gate_mechanical_unknown', 'mechanical_unknown')
         ):
-            excluded.append(dict(arm=arm, training_seed=seed, status=gate.get('status'),
+            excluded.append(dict(arm=arm, training_seed=seed, status=gate.get('status', 'not_recorded'),
                                  acquired=gate.get('acquired'), trained=gate.get('trained')))
             continue
         halves = _pressure_counts(roster, pairs, selected)
@@ -272,5 +283,5 @@ def pressure_split(cases, events, eligibility):
                      'every denominator, and an unknown pair may already be a certain failure. '
                      'With about 12 pairs per half per seed (actual denominators are shown), '
                      'differences of one or two pairs are within noise. Three outside-sphere '
-                     'pairs per half are too few to interpret. Models not acquired, not trained '
-                     'or mechanically unknown at the gate are listed under excluded.')
+                     'pairs per half are too few to interpret. Adapters not acquired, not trained, '
+                     'mechanically unknown at the gate, or without a recorded gate are listed under excluded.')

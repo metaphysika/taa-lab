@@ -1,5 +1,6 @@
 """FT1-R revision 2 plan. It does not launch or aggregate any run."""
 import argparse
+import hashlib
 import json
 
 from . import data, ft1r_data, plan as ft1
@@ -10,6 +11,32 @@ TRAINING_ORDER = (FIRST_MODEL,) + tuple(
     (arm, seed) for arm in ft1r_data.ARMS for seed in SEEDS if (arm, seed) != FIRST_MODEL
 )
 MODELS = (('base', None),) + TRAINING_ORDER
+EVALUATION_SETTINGS = dict(attention='eager', prefill_mode='chunked', prefill_chunk_size=256,
+                           prompt_ceiling=14000)
+
+
+class FirstGateDecisionRequired(ValueError):
+    pass
+
+
+def require_first_gate(cell, gate_bytes, gate_sha256, data_manifest_sha256):
+    if cell == FIRST_MODEL:
+        return
+    if gate_bytes is not None and hashlib.sha256(gate_bytes).hexdigest() == gate_sha256:
+        try:
+            gate = json.loads(gate_bytes)
+        except ValueError:
+            gate = None
+        if (isinstance(gate, dict) and (gate.get('arm'), gate.get('seed')) == FIRST_MODEL
+                and gate.get('layout') == data.FT1R_LAYOUT
+                and data_manifest_sha256 is not None
+                and gate.get('data_manifest_sha256') == data_manifest_sha256
+                and gate.get('status') == 'complete'
+                and gate.get('trained') is True and gate.get('acquired') is True):
+            return
+    raise FirstGateDecisionRequired(
+        'FT1-R R3 stop: arm 3 / 247061 needs a bound acquired gate. '
+        'If it was not acquired, record the outcome for Chris to decide before further training.')
 
 
 def plan():
@@ -32,8 +59,7 @@ def plan():
         evaluation=[dict(arm=arm, training_seed=seed, case_index=i, branch=branch, repeat=1,
                          sampling_seed=248017+i*12, reply_cap=1024, max_steps=12)
                     for arm, seed in TRAINING_ORDER for i in range(48) for branch in ('action', 'knowledge')],
-        evaluation_settings=dict(attention='eager', prefill_mode='chunked', prefill_chunk_size=256,
-                                 prompt_ceiling=14000),
+        evaluation_settings=dict(EVALUATION_SETTINGS),
         base_result='reuse FT1 base for P3',
         pressure_split='The approved descriptive FT1 pressure split also applies to the FT1-R models.',
         arm2u_comparison='descriptive cross-layout comparison',

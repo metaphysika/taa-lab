@@ -1,7 +1,7 @@
 """Injected offline FT1 training mode. No model loader, backend, or launch."""
 import json
 import math
-from . import plan
+from . import data, plan, plan_ft1r
 from exploratory.k2_kaggle import core, ft0b
 
 
@@ -57,13 +57,27 @@ class StepMonitor:
         self.check()
 
 
-def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False,manifest_tokens=None,run_started=None):
+def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False,manifest_tokens=None,run_started=None,
+          *, first_gate_bytes=None, first_gate_sha256=None, data_manifest_sha256=None):
     """Same pinned HF Trainer path as FT0b; never called by the plan CLI."""
+    cell = arm, seed
+    if cell in plan_ft1r.TRAINING_ORDER:
+        if qualification:
+            raise ValueError('FT1-R has no qualification phase')
+        plan_ft1r.require_first_gate(cell, first_gate_bytes, first_gate_sha256, data_manifest_sha256)
+    elif cell not in plan.MODELS[1:] and cell != plan.SUPPLEMENTARY_MODEL:
+        raise ValueError('unplanned cell')
+    if len(rows) != 2000:
+        raise ValueError('unplanned cell')
+    if cell in plan_ft1r.TRAINING_ORDER and any(
+            row['messages'][0] != dict(role='system', content=data.FT1R_SYSTEM)
+            or tuple(json.loads(row['messages'][-1]['content'])) != ('tool', 'args', 'reason')
+            for row in rows):
+        raise ValueError('FT1-R training requires the versioned system line and target order')
     import time
     import torch
     setup_started=time.monotonic() if run_started is None else run_started
     from transformers import Trainer,TrainingArguments,TrainerCallback
-    if (arm,seed) not in plan.MODELS[1:] or len(rows)!=2000: raise ValueError('unplanned cell')
     if qualification and (arm!='3' or seed!=plan.SEEDS[0]): raise ValueError('qualification uses arm 3 real records')
     check(); ft0b.check_internals()
     ft0b.tables(model,'after_cast',retain,cast=True)

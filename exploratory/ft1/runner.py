@@ -6,7 +6,7 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from . import data,kaggle,training
+from . import data,kaggle,plan_ft1r,training
 
 
 class DeadlineExceeded(RuntimeError):
@@ -24,6 +24,10 @@ def deadline(seconds,clock=time.monotonic):
 def validate_approval(config,receipt):
     expected=dict(repo_commit=config['repo_commit'],arm=config['arm'],seed=config['seed'],
                   data_manifest_sha256=config['data_manifest_sha256'],phase=config['phase'])
+    if (config['arm'], config['seed']) in plan_ft1r.TRAINING_ORDER:
+        expected.update(data_layout=data.FT1R_LAYOUT, first_gate_sha256=config.get('first_gate_sha256'))
+        if config.get('data_layout') != data.FT1R_LAYOUT or config['phase'] != 'train':
+            raise ValueError('FT1-R requires its training layout and phase')
     if receipt.get('approved') is not True or any(receipt.get(k)!=v for k,v in expected.items()):
         raise ValueError('separate exact-commit FT1 phase approval required')
 
@@ -33,6 +37,8 @@ def verify_source(config):
     inventory=config.get('source_sha256',{})
     if 'exploratory/ft1/runner.py' not in inventory: raise ValueError('runner source is not bound')
     for name,digest in inventory.items():
+        if config.get('data_layout') == data.FT1R_LAYOUT and name == 'exploratory/ft1/sealed.py':
+            raise ValueError('FT1-R training and gate source must exclude the sealed module')
         path=(root/name).resolve()
         if not path.is_relative_to(root) or (path.suffix!='.py' and name!='exploratory/ft1/selection_expected.json'):
             raise ValueError('invalid source binding')
@@ -40,12 +46,28 @@ def verify_source(config):
             raise ValueError('mounted source does not match approved commit')
 
 
-def run(config,model_path,data_folder,output,receipt,seconds=27000):
+def run(config,model_path,data_folder,output,receipt,seconds=27000, *, first_gate_file=None):
     """A future approved execution entrypoint. No CLI calls this function."""
     started=time.monotonic()
     validate_approval(config,receipt); verify_source(config)
-    if kaggle.verify_data(data_folder)!=config['data_manifest_sha256']: raise ValueError('manifest changed')
+    extra = {}
+    cell = config['arm'], config['seed']
+    if cell in plan_ft1r.TRAINING_ORDER:
+        gate_bytes = Path(first_gate_file).read_bytes() if first_gate_file is not None else None
+        extra = dict(first_gate_bytes=gate_bytes, first_gate_sha256=config.get('first_gate_sha256'),
+                     data_manifest_sha256=config['data_manifest_sha256'])
+        plan_ft1r.require_first_gate(cell, gate_bytes, extra['first_gate_sha256'], extra['data_manifest_sha256'])
+        manifest_hash = kaggle.verify_data(data_folder, data.FT1R_LAYOUT)
+    else:
+        manifest_hash = kaggle.verify_data(data_folder)
+    if manifest_hash != config['data_manifest_sha256']:
+        raise ValueError('manifest changed')
     armfile=Path(data_folder)/f"arm-{config['arm']}.jsonl"
+    if cell in plan_ft1r.TRAINING_ORDER:
+        from .ft1r_data import PROBE_FILE
+        manifest = json.loads((Path(data_folder)/'manifest.json').read_bytes())
+        if config.get('acquisition_file') != PROBE_FILE or config.get('acquisition_sha256') != manifest['sha256'][PROBE_FILE]:
+            raise ValueError('FT1-R probe binding mismatch')
     if hashlib.sha256(armfile.read_bytes()).hexdigest()!=config['arm_data_sha256']: raise ValueError('arm data changed')
     output=data.safe_output(output); output.mkdir(parents=True)
     events=output/'events.jsonl'
@@ -63,7 +85,7 @@ def run(config,model_path,data_folder,output,receipt,seconds=27000):
         check()
         result=training.train(model,tokenizer,rows,config['arm'],config['seed'],retain,output,check,
                               qualification=config['phase']=='qualify',run_started=started,
-                              manifest_tokens=json.loads((Path(data_folder)/'manifest.json').read_bytes())['record_tokens'][config['arm']])
+                              manifest_tokens=json.loads((Path(data_folder)/'manifest.json').read_bytes())['record_tokens'][config['arm']], **extra)
         if config['phase']=='qualify':
             from .qualification import report
             result['qualification_report']=report(recorded)

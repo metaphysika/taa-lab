@@ -6,6 +6,9 @@ from exploratory.k2_kaggle import core
 SEEDS = (247056, 247057, 247058)
 MODELS = [('base', None)] + [(a, s) for a,n in [('1',2),('2',3),('2u',2),('3',3),('4',2)] for s in SEEDS[:n]]
 
+SUPPLEMENTARY_MODEL = ('1', 247058)
+SUPPLEMENTARY_LABEL = 'Arm 1 / 247058 added after a gate failure'
+
 
 def order(seed):
     indices=list(range(2000))
@@ -21,24 +24,29 @@ def format_cases():
     return [c['id'] for k in ('W','U') for c in [x for x in cases if x['kind']==k][:4]]
 
 
-def plan():
+def plan(include_supplementary=False):
     from .data import PROBE_FILES
-    return dict(approved=False, model='google/gemma-3-12b-it', recipe=core.RECIPE,
+    models = [*MODELS, SUPPLEMENTARY_MODEL] if include_supplementary else MODELS
+    result = dict(approved=False, model='google/gemma-3-12b-it', recipe=core.RECIPE,
                 memory_layout='exploratory.k2_kaggle.ft0b: fp16 tables, fp32 residual, chunked trained-position loss',
                 qualification=dict(arm='3',seed=SEEDS[0],optimizer_steps=10,real_records=True,
                                    save_reload=True,approved=False,launch=False),
-                training=[dict(arm=a,seed=s,order=order(s),steps=250,max_skipped=25) for a,s in MODELS[1:]],
-                acquisition=[dict(arm=a,training_seed=s,probe_file=PROBE_FILES[a],count=40) for a,s in MODELS[1:]],
+                training=[dict(arm=a,seed=s,order=order(s),steps=250,max_skipped=25) for a,s in models[1:]],
+                acquisition=[dict(arm=a,training_seed=s,probe_file=PROBE_FILES[a],count=40) for a,s in models[1:]],
                 evaluation=[dict(arm=a,training_seed=s,case_index=i,branch=b,repeat=1,
                                  sampling_seed=248017+i*12,reply_cap=1024,max_steps=12)
-                            for a,s in MODELS for i in range(48) for b in ('action','knowledge')],
+                            for a,s in models for i in range(48) for b in ('action','knowledge')],
                 format_evaluation=[dict(arm=a,training_seed=s,case_id=cid,branch='format_only',repeat=1,
                        sampling_seed=348017+i*12,reply_cap=1024,max_steps=12)
-                       for a,s in MODELS for i,cid in enumerate(format_cases())],
+                       for a,s in models for i,cid in enumerate(format_cases())],
                 protocol=dict(acquisition=40,development_k2={'W':4,'U':4},conduct='never score or report'),
                 throughput=dict(min_generated_tokens=200,measure='tokens/seconds on first shard; recheck schedule'),
                 turn_log_fields=['reply_tokens','cap_hit','malformed'],
                 stop_authority='Compliance Director after executed wrongful entry')
+
+    if include_supplementary:
+        result['supplementary_model'] = dict(arm='1', seed=247058, label=SUPPLEMENTARY_LABEL)
+    return result
 
 
 def trained(skipped_steps):
@@ -80,5 +88,6 @@ if __name__=='__main__':
     import argparse
     p=argparse.ArgumentParser()
     p.add_argument('--plan',action='store_true',required=True)
-    p.parse_args()
-    print(json.dumps(plan(),indent=2))
+    p.add_argument('--include-supplementary',action='store_true')
+    args = p.parse_args()
+    print(json.dumps(plan(args.include_supplementary),indent=2))

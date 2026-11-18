@@ -4,7 +4,7 @@ import re
 import hashlib
 import subprocess
 from pathlib import Path
-from . import data, kaggle, mounts, plan
+from . import data, kaggle, mounts, plan, plan_ft1r
 from .evaluate_runner import adapter_binding, prefill_options, attention_option
 
 
@@ -12,10 +12,20 @@ def stage(output, arm, seed, commit, data_folder, sealed_sha256, part, model_sou
           repo_dataset, data_dataset, sealed_dataset, receipt_dataset, owner,
           training_folder=None, training_dataset=None, phase="evaluate", gate_sha256=None,
           gate_dataset=None, part_count=2, prompt_ceiling=None, prefill_mode=None, prefill_chunk_size=None, attention=None):
-    if (arm,seed) not in plan.MODELS or phase not in ('gate','evaluate') or type(part_count) is not int or not 1 <= part_count <= 24 or part not in range(part_count):
+    cell = arm, seed
+    layout = data.FT1R_LAYOUT if cell in plan_ft1r.TRAINING_ORDER else None
+    if (cell not in (*plan.MODELS, plan.SUPPLEMENTARY_MODEL) and layout is None) or phase not in (('gate',) if layout else ('gate','evaluate')) or type(part_count) is not int or not 1 <= part_count <= 24 or part not in range(part_count):
         raise ValueError('unplanned model or part')
     if not re.fullmatch('[a-f0-9]{40}',commit):
         raise ValueError('exact commit and sealed hash required')
+    if layout:
+        planned = plan_ft1r.EVALUATION_SETTINGS
+        options = dict(attention=attention, prefill_mode=prefill_mode,
+                       prefill_chunk_size=prefill_chunk_size, prompt_ceiling=prompt_ceiling)
+        if any(value is not None and value != planned[key] for key, value in options.items()):
+            raise ValueError('FT1-R gate requires the planned evaluation settings')
+        attention, prefill_mode = planned['attention'], planned['prefill_mode']
+        prefill_chunk_size, prompt_ceiling = planned['prefill_chunk_size'], planned['prompt_ceiling']
     core = plan.core
     core.validate_model_source(model_source,'gemma-3-12b-it')
     datasets = [repo_dataset,data_dataset,receipt_dataset,'metaphysika/k2-wheels']
@@ -25,11 +35,13 @@ def stage(output, arm, seed, commit, data_folder, sealed_sha256, part, model_sou
         datasets += [sealed_dataset,gate_dataset]
     elif any(v is not None for v in (sealed_sha256,sealed_dataset,gate_sha256,gate_dataset)):
         raise ValueError('gate phase has no sealed or prior gate input')
+    data_hash = kaggle.verify_data(data_folder, layout) if layout else kaggle.verify_data(data_folder)
     if arm != 'base':
         if not training_dataset:
             raise ValueError('training dataset required')
         datasets.append(training_dataset)
-        binding = adapter_binding(training_folder,arm,seed)
+        binding = adapter_binding(training_folder,arm,seed,
+                                  **({'data_manifest_sha256': data_hash} if layout else {}))
     else:
         if training_folder is not None or training_dataset is not None:
             raise ValueError('base has no adapter')
@@ -39,10 +51,13 @@ def stage(output, arm, seed, commit, data_folder, sealed_sha256, part, model_sou
     if prompt_ceiling is not None and (type(prompt_ceiling) is not int or not 1 <= prompt_ceiling <= 16384):
         raise ValueError('invalid prompt ceiling')
     config = dict(prompt_ceiling=prompt_ceiling,phase=phase,arm=arm,seed=seed,repo_commit=commit,part=part if phase=='evaluate' else None,part_count=part_count if phase=='evaluate' else None,gate_sha256=gate_sha256,
-        data_manifest_sha256=kaggle.verify_data(data_folder),sealed_sha256=sealed_sha256,
+        data_manifest_sha256=data_hash,sealed_sha256=sealed_sha256,
         adapter_sha256=binding['adapter_sha256'],training_manifest_sha256=binding['training_manifest_sha256'],
-        source_sha256=kaggle.source_inventory(commit),model_source=model_source,
+        source_sha256=(kaggle.source_inventory(commit, include_sealed=False) if layout
+                       else kaggle.source_inventory(commit)),model_source=model_source,
         receipt_slug=mounts.receipt_slug(receipt_dataset))
+    if layout:
+        config['data_layout'] = layout
     settings = dict(prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size, attention=attention)
     prefill_options({k:v for k,v in settings.items() if v is not None})
     attention_option(settings)
