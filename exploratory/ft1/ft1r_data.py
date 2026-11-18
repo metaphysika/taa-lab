@@ -46,7 +46,7 @@ def choose(counter, target, reasons, lines, balance, prompts=(), preferred=None)
     if preferred is not None:
         reason, rest = preferred[:2]
         t2, t3 = trained(rest), trained(reason)
-        if counter.trained(reason) <= restatable and fits(t2, t3):
+        if rest in rests and counter.trained(reason) <= restatable and fits(t2, t3):
             return reason, rest, t2, t3
 
     rest_counts = [(rest, trained(rest)) for rest in rests]
@@ -64,6 +64,10 @@ def choose(counter, target, reasons, lines, balance, prompts=(), preferred=None)
     return min(options)[2:]
 
 
+class HistoryOverflow(data.InfeasibleCandidate):
+    """A complete match would fit without the rendered history."""
+
+
 def match_record(counter, index, card, original, balance):
     _, target, reasons, lines, meta = card
     context, history = split_history(lines)
@@ -75,15 +79,22 @@ def match_record(counter, index, card, original, balance):
         if prior_target != history[-1]:
             raise ValueError('previous step does not match the most recent action')
         try:
-            reason, rest, _, _ = choose(counter, prior_target, prior_reasons, prior_lines, 0)
+            prior_context, _ = split_history(prior_lines)
+            reason, rest, _, _ = choose(counter, prior_target, prior_reasons, prior_context, 0)
         except data.InfeasibleCandidate:
             history_status = 'unmatched'
         else:
             history_status = 'reason_bearing'
     prompts = (prompt(context, history, rest), prompt(context, history, reason))
-    # Use the original action-only source lines as before. Rendered chat turns,
-    # including the arm's own text, never enter the restatement candidates.
-    choice = choose(counter, target, reasons, lines, balance, prompts, original)
+    try:
+        choice = choose(counter, target, reasons, context, balance, prompts, original)
+    except data.InfeasibleCandidate:
+        if history:
+            without_history = prompt(context)
+            choose(counter, target, reasons, context, balance,
+                   (without_history, without_history), original)
+            raise HistoryOverflow(0)
+        raise
     return prompts, choice, history_status
 
 
@@ -102,14 +113,17 @@ def generate_training(counter):
     selected = {}
     balances = {}
     refused = []
+    history_overflow_slots = []
     balance = 0
     for slot, (index, card, choice) in original.items():
         balances[slot] = balance
         try:
             matched = match_record(counter, index, card, choice, balance)
-        except data.InfeasibleCandidate:
+        except data.InfeasibleCandidate as exc:
             selected[slot] = None
             refused.append(slot)
+            if isinstance(exc, HistoryOverflow):
+                history_overflow_slots.append(slot)
         else:
             selected[slot] = (index, card, matched)
             balance += matched[1][2] - matched[1][3]
@@ -125,6 +139,7 @@ def generate_training(counter):
     history = {}
     endings = {}
     changes = []
+    arm2_wording_change_count = 0
     table = []
     for slot in range(len(data.MIX)):
         index, card, (prompts, (reason, rest, t2, t3), status) = selected[slot]
@@ -144,6 +159,8 @@ def generate_training(counter):
             output[arm].append(record)
         table.append(dict(id=ident, arm2=t2, arm3=t3, difference=t2-t3))
         old_index, old_card, old_choice = original[slot]
+        if old_choice[1] != rest:
+            arm2_wording_change_count += 1
         if (old_index, old_choice[:2]) != (index, (reason, rest)):
             changes.append(dict(slot=slot, original=old_card[-1]['id'], selected=ident,
                                 original_variant=old_card[2].index(old_choice[0]),
@@ -159,7 +176,10 @@ def generate_training(counter):
         failures.append(str(exc))
     report = dict(passed=not failures, failures=[], aggregate_failures=failures,
                   changes=changes, matching_change_count=len(changes)-len(replacements),
+                  arm2_wording_change_count=arm2_wording_change_count,
                   replacements=replacements, replacement_count=len(replacements),
+                  history_overflow_replacement_count=len(history_overflow_slots),
+                  history_overflow_slots=history_overflow_slots,
                   refused_slots=refused, history=history,
                   history_counts=dict(data.Counts(history.values())), arm3_last_slots=endings,
                   matching=dict(per_record=table,
@@ -187,7 +207,5 @@ def probes(counter):
         index, kind = data_diagnostics.heldout_case(i)
         _, target, _, lines, meta = data.card(index, kind, 'heldout')
         context, history = split_history(lines)
-        if history:
-            context = context + [HISTORY_HEADER] + [data.dump(ordered(a)) + ' -> recorded' for a in history]
-        rows.append(row(counter, prompt(context), ordered(target), meta))
+        rows.append(row(counter, prompt(context, history), ordered(target), meta))
     return rows

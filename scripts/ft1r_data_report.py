@@ -9,6 +9,14 @@ from exploratory.ft1 import data, data_diagnostics, ft1r_data
 from exploratory.k2_kaggle import core
 
 
+def is_real_tokenizer(tokenizer):
+    try:
+        from transformers import PreTrainedTokenizerBase
+    except ImportError:
+        return False
+    return isinstance(tokenizer, PreTrainedTokenizerBase)
+
+
 def report_for(tokenizer, report_path, output_path=None):
     report_path = data.safe_output(report_path)
     output_path = data.safe_output(output_path) if output_path else None
@@ -16,7 +24,10 @@ def report_for(tokenizer, report_path, output_path=None):
         raise ValueError('report and dataset require separate paths')
     counter = data.Counter(tokenizer)
     report = dict(layout=data.FT1R_LAYOUT, versions=data_diagnostics.runtime_versions(),
-                  passed=False, limits=dict(trained=640, total=1024))
+                  passed=False, tokenizer_verified=False,
+                  limits=dict(trained=640, total=1024,
+                              history_overflow='Replace records whose history pushes them above 1,024 tokens.',
+                              tool_result='Training uses "recorded". At test the tool result is a JSON world update, inherited from FT1.'))
     try:
         core.end_token(tokenizer)
         rows, manifest, training = ft1r_data.generate_training(counter)
@@ -24,10 +35,16 @@ def report_for(tokenizer, report_path, output_path=None):
         probes = ft1r_data.probes(counter)
         report['probes'] = dict(count=len(probes), fit=ft1r_data.fit(probes))
         report['passed'] = training['passed']
+        report['tokenizer_verified'] = is_real_tokenizer(tokenizer)
     except ValueError as exc:
         report['refusal'] = str(exc)
 
+    if output_path and not report['tokenizer_verified']:
+        report['passed'] = False
+        report.setdefault('refusal', 'real tokenizer verification required')
+
     if output_path and report['passed']:
+        manifest['tokenizer_verified'] = report['tokenizer_verified']
         payloads = {f'arm-{arm}.jsonl': ''.join(data.dump(row)+'\n' for row in records).encode('utf-8')
                     for arm, records in rows.items()}
         payloads[ft1r_data.PROBE_FILE] = data.dump(probes).encode('utf-8')

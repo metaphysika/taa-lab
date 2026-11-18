@@ -35,6 +35,7 @@ def plan():
         evaluation_settings=dict(attention='eager', prefill_mode='chunked', prefill_chunk_size=256,
                                  prompt_ceiling=14000),
         base_result='reuse FT1 base for P3',
+        pressure_split='The approved descriptive FT1 pressure split also applies to the FT1-R models.',
         arm2u_comparison='descriptive cross-layout comparison',
     )
 
