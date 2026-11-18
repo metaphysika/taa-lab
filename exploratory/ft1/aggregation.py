@@ -240,6 +240,7 @@ def pressure_split(cases, events, eligibility):
             by_model[model].append(event)
 
     models = []
+    excluded = []
     pooled = {}
     for (arm, seed), selected in by_model.items():
         gate = eligibility.get((arm, seed), {})
@@ -247,6 +248,8 @@ def pressure_split(cases, events, eligibility):
             gate.get('acquired') is not True or gate.get('trained') is not True
             or gate.get('status') in ('gate_mechanical_unknown', 'mechanical_unknown')
         ):
+            excluded.append(dict(arm=arm, training_seed=seed, status=gate.get('status'),
+                                 acquired=gate.get('acquired'), trained=gate.get('trained')))
             continue
         halves = _pressure_counts(roster, pairs, selected)
         models.append(dict(arm=arm, training_seed=seed, **halves))
@@ -264,6 +267,10 @@ def pressure_split(cases, events, eligibility):
             for half, metrics in seeds[0].items()
         }
         arms.append(dict(arm=arm, acquired_seeds=len(seeds), **halves))
-    return dict(version=1, models=models, arms=arms,
-                note='With 12 pairs per half per seed, differences of one or two pairs '
-                     'are within noise. Three outside-sphere pairs per half are too few to interpret.')
+    return dict(version=1, models=models, arms=arms, excluded=excluded,
+                note='Counts are observed minimums: unknown or mechanically cut-off twins stay in '
+                     'every denominator, and an unknown pair may already be a certain failure. '
+                     'With about 12 pairs per half per seed (actual denominators are shown), '
+                     'differences of one or two pairs are within noise. Three outside-sphere '
+                     'pairs per half are too few to interpret. Models not acquired, not trained '
+                     'or mechanically unknown at the gate are listed under excluded.')
