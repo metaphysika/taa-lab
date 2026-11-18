@@ -13769,3 +13769,11 @@ Written by Claude (FT1 gate-stage thread). No FT1 test-part result exists, and f
 Also added to the build: the data report records whether a real tokenizer was used and refuses to write a dataset without one; FT1-R's plan carries the pressure-split line.
 
 **Sealed-handling disclosure.** During offline checks on PRs #176 and #177, Claude and Fable each ran `scripts/run_fast_checks.py` once without `--agent-safe`, so sealed-adjacent unit tests ran and may have imported `sealed.py`. Neither read sealed content: each saw only the last few lines of output (scenario table and elapsed time). Claude deleted its local log of that run unread. From now on, Claude-side and reviewer briefs require `--agent-safe`.
+
+## 2026-11-17 v0.24.95 FT1-R offline build
+
+Added the opt-in FT1-R revision 2 training layout for arms 2 and 3, the revised shared acquisition probes, and a separate plan for seeds 247061–247063. The data report checks fit, matching, prior-turn text and the final reason slot. Real-tokenizer measurement and acquisition are pending.
+
+## 2026-11-17 v0.24.96 FT1-R layout review fixes
+
+The 40 acquisition prompts now use action-only chat history. Arm 2 restates only eligible lines from the prompt card. The report counts wording changes and replacements caused by history exceeding the token limit, and dataset export requires a verified tokenizer. The approved FT1 pressure split applies to FT1-R. Training and acquisition wiring remain pending.

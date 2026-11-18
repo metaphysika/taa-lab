@@ -46,7 +46,16 @@ def select_training(counter):
             # This is never emitted or accepted as training data. It preserves
             # 91855bb8's deterministic ordering for subsequent untouched slots.
             balance+=exc.reference_delta
-    selected=dict(originals); replacements=[]; used=set(range(2000))
+    def candidate(slot,index):
+        card=data.card(index,data.MIX[slot])
+        return index,card,data.choose(counter,*card[:4],balances[slot])
+
+    selected,replacements=replace_refused(originals,refused,candidate,set(range(2000)))
+    return selected,replacements,refused
+
+
+def replace_refused(originals,refused,candidate,used):
+    selected=dict(originals); replacements=[]
     for unit in units():
         if all(originals[i] is not None for i in unit): continue
         wanted=[cell(i,data.MIX[i]) for i in unit]
@@ -58,22 +67,20 @@ def select_training(counter):
             if [cell(j,data.MIX[i]) for i,j in zip(unit,indices)]!=wanted: continue
             candidates=[]
             for i,j in zip(unit,indices):
-                card=data.card(j,data.MIX[i])
-                try: choice=data.choose(counter,*card[:4],balances[i])
+                try: candidates.append(candidate(i,j))
                 except data.InfeasibleCandidate:
                     rejected.append(j)
                     break
-                candidates.append((j,card,choice))
             else:
-                for i,candidate in zip(unit,candidates):
-                    selected[i]=candidate
+                for i,entry in zip(unit,candidates):
+                    selected[i]=entry
                     replacements.append(dict(slot=i,refused=i if i in refused else None,
-                        replacement=candidate[0],unit=unit,rejected_candidates=list(rejected)))
+                        replacement=entry[0],unit=unit,rejected_candidates=list(rejected)))
                 used.update(indices)
                 break
         else:
             raise ValueError('same-cell feasible candidate pool exhausted; stop for owner review')
-    return selected,replacements,refused
+    return selected,replacements
 
 
 def selection_rows(output):
