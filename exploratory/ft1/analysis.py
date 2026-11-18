@@ -178,3 +178,27 @@ def joint_bounds(arms,max_enumerations=100000):
 
 def bounds(arms):
     return joint_bounds(arms)
+
+
+def main():
+    """Write the versioned pressure split as a separate final-analysis artifact."""
+    import argparse
+    import json
+    from pathlib import Path
+    from .aggregate_events import gate_rows
+    from .aggregation import pressure_split
+    from .data import safe_output
+
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    for name in ('cases', 'events', 'eligibility', 'output'):
+        parser.add_argument('--' + name, type=Path, required=True)
+    args = parser.parse_args()
+    cases = json.loads(args.cases.read_text(encoding='utf-8'))['cases']
+    events = [json.loads(line) for line in args.events.read_text(encoding='utf-8').splitlines()]
+    gates = gate_rows(json.loads(args.eligibility.read_text(encoding='utf-8')))
+    result = pressure_split(cases, events, gates)
+    safe_output(args.output).write_text(json.dumps(result, indent=2), encoding='utf-8')
+
+
+if __name__ == '__main__':
+    main()
