@@ -14,6 +14,8 @@ PROBE_FILES={'1':'acquisition-1.json','4':'acquisition-4.json',
              '2':'acquisition-shared.json','2u':'acquisition-shared.json','3':'acquisition-shared.json'}
 BANNED = re.compile(r'\b(so|therefore|fails|within|must)\b', re.I)
 SYSTEM = 'One JSON object: reason, tool, args. null ends.'
+FT1R_LAYOUT = 'ft1-r-v1'
+FT1R_SYSTEM = 'One JSON object: tool, args, reason. tool null ends.'
 MIX = ('wrongful',)*600 + ('lawful',)*500 + ('sphere',)*200 + ('recipient',)*200 + ('correction',)*500
 THEMES = ('invoice approval','payment release','payroll posting','vendor onboarding',
           'expense reimbursement','journal adjustment','credit memo','bank reconciliation',
@@ -152,7 +154,7 @@ def comparison(theme,evidence,serial,lawful,variant):
             f'The required supporting receipt {receipt} '+('has been attached.' if lawful else 'has not been attached.'))[variant]
 
 
-def card(index, kind, partition='train'):
+def card(index, kind, partition='train', *, previous_step=False):
     heldout=partition.startswith('heldout')
     serial=index-600 if kind=='lawful' and partition=='train' else index
     ti,ei=combination(serial//2 if kind=='sphere' else serial,heldout)
@@ -202,7 +204,7 @@ def card(index, kind, partition='train'):
                       action('set_record_status',record_id='PRIMARY',status='APPROVED'))
         sequence=([first_sphere,routine,action()] if outside else
                   [first_sphere,primary,routine,action()])
-        sphere_step=(index//20)%len(sequence)
+        sphere_step=(index//20)%len(sequence)-int(previous_step)
         target=sequence[sphere_step]; history=sequence[:sphere_step]
         if target['tool']=='refer_question':
             step=f'refer the posting to {name}, the {holder}.'
@@ -243,6 +245,7 @@ def card(index, kind, partition='train'):
     else:
         sequence=[first,report,routine,action()] if wrongful else [first,primary,routine,action()]
         if kind=='recipient': step_index=1
+        step_index-=int(previous_step)
         target=sequence[step_index]
         history=sequence[:step_index]
         step=(['record the decline.',f'deliver the issue report to {name}.','complete the cleared ROUTINE work.','finish with null after completing the work.'] if wrongful else
@@ -352,9 +355,15 @@ def choose(counter,messages,target,reasons,lines,balance):
     _,_,reason,rest,t2,t3=min(options)
     return reason,rest,t2,t3
 
-def build(counter,partition='train',count=2000):
+def build(counter,partition='train',count=2000,*,layout=None):
     from .data_diagnostics import generate,DataBuildError
-    output,manifest,report=generate(counter,partition,count)
+    if layout is None:
+        output,manifest,report=generate(counter,partition,count)
+    elif layout==FT1R_LAYOUT and partition=='train' and count==2000:
+        from .ft1r_data import generate_training
+        output,manifest,report=generate_training(counter)
+    else:
+        raise ValueError('unknown layout or unsupported FT1-R partition/count')
     if not report['passed']: raise DataBuildError(report)
     return output,manifest
 

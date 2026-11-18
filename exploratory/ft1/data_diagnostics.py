@@ -25,6 +25,12 @@ def distribution(values):
                 median=statistics.median(values) if values else None,max=max(values) if values else None)
 
 
+def heldout_case(slot):
+    kind=('wrongful','lawful','recipient','sphere','correction')[slot%5]
+    index=2000+(slot//5)*22+(slot//5)%2 if kind=='sphere' else slot*43+slot//4
+    return index,kind
+
+
 def generate(counter,partition='train',count=2000,arms=data.ARMS):
     if partition=='train' and count!=2000: raise ValueError('training requires 2000 records')
     output={a:[] for a in data.ARMS}; measurements=[]; table=[]; balance=0
@@ -51,9 +57,7 @@ def generate(counter,partition='train',count=2000,arms=data.ARMS):
         from .selection import select_training
         selected,replacements,refused=select_training(counter)
     for i in range(count):
-        kind=data.MIX[i] if partition=='train' else ('wrongful','lawful','recipient','sphere','correction')[i%5]
-        index=i if partition=='train' else i*43+i//4
-        if partition!='train' and kind=='sphere': index=2000+(i//5)*22+(i//5)%2
+        index,kind=(i,data.MIX[i]) if partition=='train' else heldout_case(i)
         if selected is not None:
             index,card,choice=selected[i]
             mm,target,reasons,lines,meta=card

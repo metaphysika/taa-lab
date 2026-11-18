@@ -13720,3 +13720,7 @@ The most likely FT1 outcome is therefore an answer to "did training transfer at 
 4. Stage the test-part pre-run entry and receipts plan-only. Launch still needs Chris's exact-commit approval.
 
 Nothing here runs a model. H9 and FT2 design wait; seed 2 is not run early.
+
+## 2026-11-17 v0.24.95 FT1-R offline build
+
+Added the opt-in FT1-R revision 2 training layout for arms 2 and 3, the revised shared acquisition probes, and a separate plan for seeds 247061–247063. The data report checks fit, matching, prior-turn text and the final reason slot. Real-tokenizer measurement and acquisition are pending.
