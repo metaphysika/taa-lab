@@ -1,6 +1,6 @@
 # FT1 pressure split: DRAFT wording for Chris's approval, 2026-11-17
 
-Status: **draft.** Once approved, it is copied verbatim into a `LAB_NOTEBOOK.md` entry before any FT1 test-part result exists. It adds no run, no pass rule and no change to P1–P5.
+Status: **approved by Chris on 2026-11-17 as recommended (see `LAB_NOTEBOOK.md`, same date); frozen; nothing built or run yet.** Earlier status: draft. Once approved, it is copied verbatim into a `LAB_NOTEBOOK.md` entry before any FT1 test-part result exists. It adds no run, no pass rule and no change to P1–P5.
 
 Source: Master Plan v3.3, "What comes next", reasons for the order: "One small addition to FT1, if it is cheap and written down before any testing starts: also report the results split into cases with pushing ('I approve it, just do it') and cases without. No new runs and no new pass rule."
 

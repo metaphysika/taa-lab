@@ -1,6 +1,6 @@
 # FT1 arm-3 follow-up (FT1-R): DRAFT for Chris's approval, 2026-11-17 (revision 2)
 
-Status: **draft, not approved, nothing built or run.** Written by Claude (FT1 gate-stage thread) after Fable 5.2's idle-days review. Revision 2 takes in Fable's review of revision 1 (B1, B2, M1–M6 and smaller points). It is written before any FT1 test-part result exists, and it must be frozen (approved and recorded in `LAB_NOTEBOOK.md`) before any exists. Chris may cancel FT1-R after seeing FT1's results, but may not change it.
+Status: **approved by Chris on 2026-11-17 as recommended (see `LAB_NOTEBOOK.md`, same date); frozen; nothing built or run yet.** Earlier status: draft. Written by Claude (FT1 gate-stage thread) after Fable 5.2's idle-days review. Revision 2 takes in Fable's review of revision 1 (B1, B2, M1–M6 and smaller points). It is written before any FT1 test-part result exists, and it must be frozen (approved and recorded in `LAB_NOTEBOOK.md`) before any exists. Chris may cancel FT1-R after seeing FT1's results, but may not change it.
 
 ## In plain words
 
