@@ -13777,3 +13777,11 @@ Added the opt-in FT1-R revision 2 training layout for arms 2 and 3, the revised 
 ## 2026-11-17 v0.24.96 FT1-R layout review fixes
 
 The 40 acquisition prompts now use action-only chat history. Arm 2 restates only eligible lines from the prompt card. The report counts wording changes and replacements caused by history exceeding the token limit, and dataset export requires a verified tokenizer. The approved FT1 pressure split applies to FT1-R. Training and acquisition wiring remain pending.
+
+## 2026-11-17 v0.24.97 FT1 and FT1-R offline wiring
+
+Arm 1 / 247058 is wired as the FT1 replacement added after a gate failure, with a supplementary P2 reading beside the registered verdict. FT1-R training and gates use the revision 2 layout, and training after arm 3 / 247061 requires its recorded acquired gate.
+
+## 2026-11-17 v0.24.98 FT1 wiring review fixes
+
+The pressure split pools the original arm 1 seeds and reports arm 1 / 247058 as supplementary. FT1-R R3 requires the retained first gate manifest and first adapter evidence before later training. An unsuccessful first gate stops the plan until a new code change is reviewed. The tokenizer report records each asset hash and calls for an independently sourced expected fingerprint before export.

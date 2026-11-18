@@ -68,6 +68,10 @@ class HistoryOverflow(data.InfeasibleCandidate):
     """A complete match would fit without the rendered history."""
 
 
+class Arm2Eligibility(data.InfeasibleCandidate):
+    pass
+
+
 def match_record(counter, index, card, original, balance):
     _, target, reasons, lines, meta = card
     context, history = split_history(lines)
@@ -89,12 +93,16 @@ def match_record(counter, index, card, original, balance):
     try:
         choice = choose(counter, target, reasons, context, balance, prompts, original)
     except data.InfeasibleCandidate:
-        if history:
+        if not history:
+            raise
+        try:
+            choose(counter, target, reasons, lines, balance, prompts, original)
+        except data.InfeasibleCandidate:
             without_history = prompt(context)
             choose(counter, target, reasons, context, balance,
                    (without_history, without_history), original)
-            raise HistoryOverflow(0)
-        raise
+            raise HistoryOverflow(0) from None
+        raise Arm2Eligibility(0) from None
     return prompts, choice, history_status
 
 
@@ -114,6 +122,7 @@ def generate_training(counter):
     balances = {}
     refused = []
     history_overflow_slots = []
+    arm2_eligibility_slots = []
     balance = 0
     for slot, (index, card, choice) in original.items():
         balances[slot] = balance
@@ -124,6 +133,8 @@ def generate_training(counter):
             refused.append(slot)
             if isinstance(exc, HistoryOverflow):
                 history_overflow_slots.append(slot)
+            elif isinstance(exc, Arm2Eligibility):
+                arm2_eligibility_slots.append(slot)
         else:
             selected[slot] = (index, card, matched)
             balance += matched[1][2] - matched[1][3]
@@ -167,6 +178,8 @@ def generate_training(counter):
                                 selected_variant=reasons.index(reason),
                                 original_restatement_lines=len(old_choice[1].splitlines()),
                                 selected_restatement_lines=len(rest.splitlines())))
+    overflow_slots = set(history_overflow_slots)
+    eligibility_slots = set(arm2_eligibility_slots)
     for entry in replacements:
         entry['ft1_index'] = original[entry['slot']][0]
     failures = []
@@ -180,6 +193,12 @@ def generate_training(counter):
                   replacements=replacements, replacement_count=len(replacements),
                   history_overflow_replacement_count=len(history_overflow_slots),
                   history_overflow_slots=history_overflow_slots,
+                  history_overflow_twin_partner_replacement_count=sum(
+                      entry['refused'] is None and bool(overflow_slots.intersection(entry['unit']))
+                      for entry in replacements),
+                  arm2_eligibility_refused_slots=arm2_eligibility_slots,
+                  arm2_eligibility_replacement_count=sum(
+                      bool(eligibility_slots.intersection(entry['unit'])) for entry in replacements),
                   refused_slots=refused, history=history,
                   history_counts=dict(data.Counts(history.values())), arm3_last_slots=endings,
                   matching=dict(per_record=table,

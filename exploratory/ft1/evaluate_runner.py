@@ -5,7 +5,7 @@ import os
 import time
 from collections import Counter
 from pathlib import Path
-from . import data, evaluation, kaggle, plan, scoring
+from . import data, evaluation, ft1r_data, kaggle, plan, plan_ft1r, scoring
 from .runner import deadline, verify_source
 from exploratory.k2_kaggle import core
 
@@ -38,7 +38,7 @@ def find_hash(root, digest):
     return find_hashes(root, {'target': digest})['target']
 
 
-def adapter_binding(folder, arm, seed):
+def adapter_binding(folder, arm, seed, *, data_manifest_sha256=None):
     folder = Path(folder).resolve()
     candidate_parts = (*folder.parts, *(folder/'adapter').resolve().parts)
     if any(part.lower() == 'interrupted-adapter' or part.lower().startswith('checkpoint-') for part in candidate_parts):
@@ -47,6 +47,10 @@ def adapter_binding(folder, arm, seed):
     meta = json.loads((folder/'metadata.json').read_bytes())
     if (meta.get('arm'), meta.get('seed'), meta.get('phase'), meta.get('status')) != (arm, seed, 'train', 'trained'):
         raise ValueError('completed matching FT1 training required')
+    if (arm, seed) in plan_ft1r.TRAINING_ORDER and (
+            meta.get('data_layout') != data.FT1R_LAYOUT
+            or meta.get('data_manifest_sha256') != data_manifest_sha256):
+        raise ValueError('FT1-R adapter data binding mismatch')
     for name in ('metadata.json', 'events.jsonl'):
         if sha(folder/name) != manifest['sha256'].get(name):
             raise ValueError('training evidence mismatch')
@@ -95,10 +99,24 @@ def validate_prefill(config, receipt):
             raise ValueError('evaluation settings mismatch')
 
 
+def cell_schedule(config):
+    cell = config['arm'], config['seed']
+    if cell in plan_ft1r.TRAINING_ORDER:
+        return plan_ft1r.plan()
+    return plan.plan(include_supplementary=True) if cell == plan.SUPPLEMENTARY_MODEL else plan.plan()
+
+
 def validate(config, receipt):
     validate_prefill(config, receipt)
-    if (config['arm'],config['seed']) not in plan.MODELS or config['phase'] not in ('gate','evaluate'):
+    cell = config['arm'], config['seed']
+    expected_layout = data.FT1R_LAYOUT if cell in plan_ft1r.TRAINING_ORDER else None
+    if config.get('data_layout') != expected_layout or receipt.get('data_layout') != expected_layout:
+        raise ValueError('evaluation data layout mismatch')
+    if ((cell not in (*plan.MODELS, plan.SUPPLEMENTARY_MODEL) and expected_layout is None)
+            or config['phase'] not in (('gate',) if expected_layout else ('gate', 'evaluate'))):
         raise ValueError('unplanned evaluation')
+    if expected_layout and any(config.get(k) != v for k, v in plan_ft1r.EVALUATION_SETTINGS.items()):
+        raise ValueError('FT1-R gate requires the planned evaluation settings')
     keys = ('repo_commit','phase','arm','seed','adapter_sha256','training_manifest_sha256',
             'data_manifest_sha256','sealed_sha256','gate_sha256','part','part_count','model_source','prompt_ceiling')
     if receipt.get('approved') is not True or any(receipt.get(k) != config.get(k) for k in keys):
@@ -123,6 +141,11 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
     """Run the complete protocol once, without any sealed input."""
     from .memory import Tracker
     tracker = Tracker(retain)
+    if config.get('data_layout') == data.FT1R_LAYOUT and (len(records) != 40 or any(
+            row['messages'][0] != dict(role='system', content=data.FT1R_SYSTEM)
+            or tuple(json.loads(row['messages'][-1]['content'])) != ('tool', 'args', 'reason')
+            for row in records)):
+        raise ValueError('FT1-R acquisition requires 40 versioned probes')
     replies = []
     for i, record in enumerate(records):
         check()
@@ -136,7 +159,7 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
         replies.append(raw)
     formats = []
     development = {c['id']: c for c in core.manager_cases()}
-    for cell in plan.plan()['format_evaluation']:
+    for cell in cell_schedule(config)['format_evaluation']:
         if (cell['arm'],cell['training_seed']) != (config['arm'],config['seed']):
             continue
         raw_replies = []
@@ -221,7 +244,7 @@ def test_cells(config, cases, gate, generate, count_tokens, retain, check):
     tracker = Tracker(retain)
     indices = part_indices(cases,config['part'],config['part_count'])
     check_part_balance(cases,indices,retain)
-    for cell in plan.plan()['evaluation']:
+    for cell in cell_schedule(config)['evaluation']:
         if (cell['arm'],cell['training_seed']) != (config['arm'],config['seed']) or cell['case_index'] not in indices:
             continue
         check()
@@ -322,7 +345,9 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
     if not 0 < seconds <= 27000:
         raise ValueError('deadline must be within 7.5 hours')
     check = deadline(seconds)
-    if kaggle.verify_data(data_folder) != config['data_manifest_sha256']:
+    layout = config.get('data_layout')
+    data_hash = kaggle.verify_data(data_folder, layout) if layout else kaggle.verify_data(data_folder)
+    if data_hash != config['data_manifest_sha256']:
         raise ValueError('evaluation data hash mismatch')
     gate = None
     if config['phase'] == 'evaluate':
@@ -335,7 +360,8 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
     skipped = []
     adapter = None
     if config['arm'] != 'base':
-        binding = adapter_binding(training_folder,config['arm'],config['seed'])
+        binding = adapter_binding(training_folder,config['arm'],config['seed'],
+                                  **({'data_manifest_sha256': data_hash} if layout else {}))
         if any(binding[k] != config[k] for k in ('adapter_sha256','training_manifest_sha256')):
             raise ValueError('training binding mismatch')
         skipped = binding['skipped_steps']
@@ -367,10 +393,12 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
                 retain(dict(event='prefill_config',prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']))
             generate,count_tokens = prepare(model_path,adapter,retain,check,**(dict(attention=attention_option(config)) if attention_option(config) else {}),**(dict(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size']) if options else {}),**({'prompt_ceiling':config['prompt_ceiling']} if config.get('prompt_ceiling') is not None else {}))
             if config['phase'] == 'gate':
-                probe = data.PROBE_FILES.get(config['arm'],data.PROBE_FILES['3'])
+                probe = ft1r_data.PROBE_FILE if layout else data.PROBE_FILES.get(config['arm'],data.PROBE_FILES['3'])
                 records = json.loads((Path(data_folder)/probe).read_bytes())
                 gate = protocol(config,records,generate,count_tokens,retain,check,skipped)
                 gate['attention'] = observed_attention
+                if layout:
+                    gate['layout'] = layout
                 (folder/'gate.json').write_text(json.dumps(gate,indent=2),encoding='utf-8')
                 result = dict(status=gate.get('status') if gate.get('status') == 'gate_mechanical_unknown' else 'gate_complete',eligibility=gate)
             else:

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from .aggregation import aggregate,analyze,analyze_rejection_sensitivity
 from .data import safe_output
+from .plan import SUPPLEMENTARY_MODEL, SUPPLEMENTARY_LABEL
 
 def gate_rows(gates):
     eligibility = {}
@@ -27,7 +28,7 @@ def main():
     gates=json.loads(Path(a.eligibility).read_text(encoding='utf-8'))
     eligibility=gate_rows(gates)
     summaries,descriptive=aggregate(cases,events,eligibility)
-    stopped=any(s.get('decision_required') for s in descriptive.values())
+    stopped=any(s.get('decision_required') for cell,s in descriptive.items() if cell != SUPPLEMENTARY_MODEL)
     result=dict(status='gate_decision_required' if stopped else 'complete',
                 predictions=None if stopped else analyze(summaries),rejection_sensitivity=None if stopped else analyze_rejection_sensitivity(summaries),
                 models=[dict(arm=arm,training_seed=seed,counts=s['counts'],
@@ -39,6 +40,19 @@ def main():
                              knowledge=s['knowledge'],secondary_bounds=s['secondary_bounds'],missing_episodes=s['missing_episodes'],
                              mechanical_turn_rate=s['mechanical_turn_rate'])
                         for (arm,seed),s in descriptive.items()])
+    if SUPPLEMENTARY_MODEL in descriptive:
+        for model in result['models']:
+            if (model['arm'], model['training_seed']) == SUPPLEMENTARY_MODEL:
+                model.update(supplementary=True, label=SUPPLEMENTARY_LABEL)
+        replacement = descriptive[SUPPLEMENTARY_MODEL]
+        decision_required = replacement.get('decision_required')
+        included = any(s['training_seed'] == SUPPLEMENTARY_MODEL[1] for s in summaries.get('1', []))
+        reading = 'not established'
+        if included and not stopped:
+            p2_arms = {arm: summaries[arm] for arm in ('base', '1', '2') if arm in summaries}
+            reading = analyze(p2_arms, include_supplementary=True)['P2']
+        result['supplementary_P2'] = dict(label=SUPPLEMENTARY_LABEL, verdict=reading,
+                                          replacement_included=included, decision_required=decision_required)
     safe_output(a.output).write_text(json.dumps(result,indent=2),encoding='utf-8')
     # Do not print private case data or per-case summaries.
 

@@ -88,9 +88,38 @@ class PressureSplitTests(unittest.TestCase):
                          [('base', None), ('2', self.seed)])
         pooled, = result['arms']
         self.assertEqual(pooled['acquired_seeds'], 1)
-        self.assertIn(dict(arm='2', training_seed=self.other_seed, status=None,
+        self.assertIn(dict(arm='2', training_seed=self.other_seed, status='not_recorded',
                            acquired=False, trained=True), result['excluded'])
         self.assertIn('observed minimums', result['note'])
+
+    def test_supplementary_arm1_seed_is_reported_but_never_pooled(self):
+        cells = [('1', self.seed), ('1', self.other_seed), plan.SUPPLEMENTARY_MODEL]
+        gates = dict.fromkeys(cells, dict(acquired=True, trained=True))
+        events = [dict(event='episode', arm=arm, training_seed=seed, case_id=case['id'],
+                       packets=['complete'])
+                  for arm, seed in cells[:2] for case in self.cases]
+        with patch.object(aggregation.scoring, 'replay', self.replay):
+            result = aggregation.pressure_split(self.cases, events, gates)
+        pooled, = result['arms']
+        self.assertEqual(pooled['arm'], '1')
+        self.assertEqual(pooled['acquired_seeds'], 2)
+        self.assertEqual(pooled['pressure']['pair_correct'], dict(count=22, denominator=22))
+        replacement, = [row for row in result['models'] if row.get('supplementary')]
+        self.assertEqual((replacement['arm'], replacement['training_seed']), plan.SUPPLEMENTARY_MODEL)
+        self.assertEqual(replacement['label'], plan.SUPPLEMENTARY_LABEL)
+
+    def test_untrained_and_mechanically_unknown_models_are_excluded(self):
+        self.gates[('2', self.seed)]['trained'] = False
+        self.gates[('2', self.other_seed)]['status'] = 'gate_mechanical_unknown'
+        with patch.object(aggregation.scoring, 'replay', self.replay):
+            result = aggregation.pressure_split(self.cases, self.events, self.gates)
+        self.assertEqual([(m['arm'], m['training_seed']) for m in result['models']], [('base', None)])
+        self.assertEqual(result['arms'], [])
+        excluded = {(m['arm'], m['training_seed']): m for m in result['excluded']}
+        self.assertFalse(excluded['2', self.seed]['trained'])
+        self.assertEqual(excluded['2', self.other_seed]['status'], 'gate_mechanical_unknown')
+        self.assertEqual(excluded['1', self.seed]['status'], 'not_recorded')
+        self.assertIn('without a recorded gate', result['note'])
 
     def test_missing_and_mismatched_pressure_flags_raise(self):
         for invalid in (None, False):

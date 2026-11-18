@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from exploratory.ft1 import data, data_diagnostics, ft1r_data, plan, plan_ft1r, scoring, selection, training
+from exploratory.ft1 import data, data_diagnostics, ft1r_data, kaggle, plan, plan_ft1r, scoring, selection, training
 from exploratory.k2_kaggle import core
 from scripts.ft1r_data_report import report_for
 from tests.test_ft1_runner import Tokenizer
@@ -147,7 +147,8 @@ class LayoutTests(unittest.TestCase):
         self.assertLessEqual(abs(choice[2]-choice[3]), max(8, .05*choice[3]))
 
     def test_refused_slots_use_next_same_cell_candidates(self):
-        refused = (1500, 1501)
+        refused = (101,)
+        eligibility_slot = 103
 
         class HistoryCounter(data.CharacterCounter):
             def prompt(self, messages):
@@ -157,11 +158,31 @@ class LayoutTests(unittest.TestCase):
                 return super().prompt(messages)
 
         counter = HistoryCounter()
-        rows, _, report = ft1r_data.generate_training(counter)
+        choose = ft1r_data.choose
+
+        def tighter_eligibility(counter, target, reasons, lines, balance, prompts=(), preferred=None):
+            if (prompts and 'train-ACC-00103' in prompts[0][1]['content']
+                    and len(prompts[0]) > 2 and ft1r_data.HISTORY_HEADER not in lines):
+                raise data.InfeasibleCandidate(0)
+            return choose(counter, target, reasons, lines, balance, prompts, preferred)
+
+        with patch.object(ft1r_data, 'choose', side_effect=tighter_eligibility):
+            rows, _, report = ft1r_data.generate_training(counter)
+        eligibility_slots = set(report['arm2_eligibility_refused_slots'])
+        self.assertIn(eligibility_slot, eligibility_slots)
+        self.assertEqual({entry['slot'] for entry in report['replacements']
+                          if eligibility_slot in entry['unit']}, {103, 703})
+        self.assertEqual(report['arm2_eligibility_replacement_count'],
+                         sum(bool(eligibility_slots.intersection(entry['unit']))
+                             for entry in report['replacements']))
         self.assertTrue(report['passed'])
         self.assertTrue(set(refused) <= set(report['refused_slots']))
         self.assertTrue(set(refused) <= {entry['slot'] for entry in report['replacements']})
-        self.assertEqual(report['history_overflow_replacement_count'], 2)
+        self.assertEqual(report['history_overflow_replacement_count'], 1)
+        partner_count = sum(entry['refused'] is None and refused[0] in entry['unit']
+                            for entry in report['replacements'])
+        self.assertEqual(report['history_overflow_twin_partner_replacement_count'], partner_count)
+        self.assertEqual(partner_count, 1)
         original, _, _ = data_diagnostics.generate(counter, arms=('2', '3'))
         self.assertGreater(report['arm2_wording_change_count'], 0)
         self.assertEqual(report['arm2_wording_change_count'], sum(
@@ -202,15 +223,25 @@ class LayoutTests(unittest.TestCase):
             self.assertIn('real tokenizer verification required', refused['refusal'])
             self.assertFalse((root/'stub-dataset').exists())
             with patch('scripts.ft1r_data_report.is_real_tokenizer', return_value=True):
-                verified = report_for(Tokenizer(), root/'verified.json', root/'dataset')
+                verified = report_for(Tokenizer(), root/'verified.json', root/'dataset',
+                                      tokenizer_sha256='a'*64, expected_tokenizer_sha256='a'*64)
             self.assertTrue(verified['passed'])
             self.assertTrue(verified['tokenizer_verified'])
             self.assertTrue(json.loads((root/'dataset'/'manifest.json').read_bytes())['tokenizer_verified'])
             for name, digest in verified['file_sha256'].items():
                 self.assertEqual(hashlib.sha256((root/'dataset'/name).read_bytes()).hexdigest(), digest)
-            with patch('exploratory.ft1.selection.CANDIDATE_STOP', 10000):
+            self.assertEqual(kaggle.verify_data(root/'dataset', data.FT1R_LAYOUT),
+                             verified['file_sha256']['manifest.json'])
+            with self.assertRaisesRegex(ValueError, 'layout mismatch'):
+                kaggle.verify_data(root/'dataset')
+            (root/'dataset'/ft1r_data.PROBE_FILE).write_bytes(b'[]')
+            with self.assertRaisesRegex(ValueError, 'binding mismatch'):
+                kaggle.verify_data(root/'dataset', data.FT1R_LAYOUT)
+            with (patch('exploratory.ft1.selection.CANDIDATE_STOP', 10000),
+                  patch('scripts.ft1r_data_report.is_real_tokenizer', return_value=True)):
                 refused = report_for(Oversized(), root/'refusal.json', root/'refused')
             self.assertFalse(refused['passed'])
+            self.assertTrue(refused['tokenizer_verified'])
             self.assertIn('pool exhausted', refused['refusal'])
             self.assertFalse((root/'refused').exists())
             with self.assertRaisesRegex(ValueError, 'No truncation'):
