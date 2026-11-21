@@ -1889,7 +1889,9 @@ def build_detached_item(case: dict) -> dict:
 
 def render_detached_prompt(item: dict) -> str:
     """Adapter that renders a detached item through P3's verdict.render_detached_item."""
-    from exploratory.track_b import verdict
+    import importlib
+
+    verdict = importlib.import_module("exploratory.track_b.verdict")
 
     card = item["task_card"]
     return verdict.render_detached_item(
