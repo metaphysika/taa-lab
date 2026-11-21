@@ -31,28 +31,43 @@ def _load_adapter(base, path):
     if not quantization.load_in_4bit or actual != RECIPE["quantization"]:
         raise ValueError("base quantization differs from FT1")
     config = PeftConfig.from_pretrained(path, local_files_only=True)
-    targets = core.lora_targets("gemma-3-12b-it", [name for name, _ in base.named_modules()])
+    _check_adapter_config(config, [name for name, _ in base.named_modules()])
+    base = prepare_model_for_kbit_training(base)
+    base.config.use_cache = False
+    return PeftModel.from_pretrained(base, path, config=config, is_trainable=True, local_files_only=True)
+
+
+def _check_adapter_config(config, names):
+    targets = set(core.lora_targets("gemma-3-12b-it", names))
+    if not isinstance(config.target_modules, (set, list, tuple)):
+        raise ValueError("adapter configuration differs from FT1")
+    suffixes = set(config.target_modules)
+    resolved = {name for name in names
+                if name in suffixes or any(name.endswith("." + suffix) for suffix in suffixes)}
     if (
         config.r != RECIPE["lora_r"]
         or config.lora_alpha != RECIPE["lora_alpha"]
         or config.lora_dropout != RECIPE["dropout"]
         or config.bias != RECIPE["bias"]
         or config.task_type != "CAUSAL_LM"
-        or set(config.target_modules) != set(targets)
+        or resolved != targets
         or config.rank_pattern
         or config.alpha_pattern
         or config.use_dora
         or config.use_rslora
         or config.modules_to_save
+        or config.layers_to_transform is not None
+        or config.exclude_modules is not None
+        or config.lora_bias is not False
+        or config.fan_in_fan_out is not False
+        or config.use_qalora is not False
     ):
         raise ValueError("adapter configuration differs from FT1")
-    base = prepare_model_for_kbit_training(base)
-    base.config.use_cache = False
-    return PeftModel.from_pretrained(base, path, config=config, is_trainable=True, local_files_only=True)
 
 
 def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retain,
-          steps=None, checkpoint_steps=None, repair=False, check=lambda: None):
+          steps=None, checkpoint_steps=None, repair=False, expected_count=2000,
+          check=lambda: None):
     """Continue adapter weights with a fresh FT1 optimizer and relative step numbers.
 
     adapter_sha256 is core.digest(core.inventory(adapter)). output is a new directory.
@@ -63,18 +78,27 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
     if type(steps) is not int or not 1 <= steps <= limit:
         raise ValueError("invalid optimizer step budget")
     defaults = REPAIR_CHECKPOINTS if repair else CORRUPTION_CHECKPOINTS
-    checkpoints = tuple(step for step in defaults if step <= steps) if checkpoint_steps is None else tuple(checkpoint_steps)
-    if (any(type(step) is not int or not 1 <= step <= steps for step in checkpoints)
+    checkpoints = (tuple(step for step in defaults if step < steps) + (steps,)
+                   if checkpoint_steps is None else tuple(checkpoint_steps))
+    if (not checkpoints or checkpoints[-1] != steps
+            or any(type(step) is not int or not 1 <= step <= steps for step in checkpoints)
             or tuple(sorted(set(checkpoints))) != checkpoints):
-        raise ValueError("checkpoint steps must be increasing and within the budget")
+        raise ValueError("checkpoint steps must increase and end at the step budget")
     adapter = Path(adapter)
     output = Path(output)
     check()
     inventory = core.inventory(adapter)
     if core.digest(inventory) != adapter_sha256:
         raise ValueError("input adapter hash mismatch")
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(f"output already exists: {output}")
     if not {"adapter_config.json", "adapter_model.safetensors"} <= inventory.keys():
         raise ValueError("input adapter configuration or safetensors missing")
+    if type(expected_count) is not int or len(rows) != expected_count:
+        raise ValueError("training row count differs from expected count")
+    accumulation = RECIPE["accumulation"]
+    if expected_count < accumulation * steps:
+        raise ValueError("insufficient records for the requested optimizer steps")
 
     import torch
     from transformers import Trainer, TrainerCallback, TrainingArguments
@@ -87,24 +111,25 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
         check()
         encoded, mask = record(tokenizer, rows[index])
         ordered.append(dict(encoded, reason_mask=mask))
-    accumulation = RECIPE["accumulation"]
-    if len(ordered) < accumulation * steps:
-        raise ValueError("insufficient records for the requested optimizer steps")
-
+    output.mkdir(parents=True, exist_ok=False)
     model = _load_adapter(base, adapter)
+    trainable = [(name, parameter) for name, parameter in model.named_parameters()
+                 if parameter.requires_grad]
+    if not any("lora_B" in name.split(".") and parameter.detach().count_nonzero().item()
+               for name, parameter in trainable):
+        raise ValueError("resumed adapter has no nonzero trainable LoRA B weights")
+    retain(dict(event="adapter_loaded", adapter_sha256=adapter_sha256,
+                trainable_tensors=len(trainable), nonzero_lora_b=True))
     cuda = next(model.parameters()).device.type == "cuda"
     ft0b.tables(model, "after_cast" if cuda else "cpu_layout", retain, cast=cuda)
-    trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
-    if not trainable:
-        raise ValueError("resumed adapter has no trainable weights")
-    initial = [parameter.detach().float().cpu().clone() for parameter in trainable]
-    output.mkdir(parents=True, exist_ok=False)
+    initial = [parameter.detach().float().cpu().clone() for _, parameter in trainable]
     pending = []
-    monitor = StepMonitor(retain, check)
+    max_skipped = steps // 10
+    monitor = StepMonitor(retain, check, max_skipped=max_skipped)
 
     def log_norm(step):
         squares = [(parameter.detach().float().cpu() - start).square().sum().item()
-                   for parameter, start in zip(trainable, initial)]
+                   for (_, parameter), start in zip(trainable, initial)]
         norm = core.finite_scalar(math.sqrt(math.fsum(squares)))
         retain(dict(event="adapter_update_norm", step=step, l2=norm))
 
@@ -173,7 +198,8 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
     if actual is None or int(actual) != expected or trainer.loss_is_scaled_for_ga not in (None, True):
         raise ValueError("Trainer token denominator/scaling differs from FT0b")
     retain(dict(event="training_setup", adapter_sha256=adapter_sha256,
-                data_order_sha256=core.digest(order), steps=steps, checkpoint_steps=list(checkpoints)))
+                data_order_sha256=core.digest(order), steps=steps, checkpoint_steps=list(checkpoints),
+                rows=len(rows), expected_count=expected_count, max_skipped=max_skipped))
     log_norm(0)
     check()
     result = trainer.train()

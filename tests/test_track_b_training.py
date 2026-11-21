@@ -27,6 +27,9 @@ class Scalar(float):
     def square(self):
         return Scalar(self ** 2)
 
+    def count_nonzero(self):
+        return Scalar(bool(self))
+
 
 class Parameter:
     device = Scalar.device
@@ -47,6 +50,9 @@ class Adapter:
 
     def parameters(self):
         return iter((self.parameter,))
+
+    def named_parameters(self):
+        return iter((("layer.lora_B.default.weight", self.parameter),))
 
     def save_pretrained(self, path, *, safe_serialization):
         assert safe_serialization
@@ -106,27 +112,39 @@ class TrainingTests(unittest.TestCase):
         self.output = self.root / "output"
         self.events = []
 
-    def test_resume_loss_checkpoints_and_norm(self):
+    def run_scripted_training(self, device="cpu", *, steps=3, checkpoint_steps=(1, 3)):
         torch = SimpleNamespace(tensor=lambda value: value, utils=SimpleNamespace(
             data=SimpleNamespace(SequentialSampler=iter)))
         arguments = Mock(side_effect=lambda **kwargs: SimpleNamespace(device="cpu", **kwargs))
         transformers = SimpleNamespace(Trainer=ScriptedTrainer, TrainerCallback=object,
                                        TrainingArguments=arguments)
-        rows = [bool(i % 2) for i in range(24)]
+        rows = [bool(i % 2) for i in range(steps * plan.core.RECIPE["accumulation"])]
         tokenizer = Mock()
+        model = Adapter(self.adapter)
+        model.parameter.device = SimpleNamespace(type=device)
         with (patch.dict("sys.modules", {"torch": torch, "transformers": transformers}),
-              patch.object(training, "_load_adapter", side_effect=lambda base, path: Adapter(path)),
+              patch.object(training, "_load_adapter", return_value=model) as load,
               patch.object(training, "record", side_effect=lambda tok, reason: (
                   dict(labels=[-100, 2, 3 if reason else -100]), [False, False, reason])),
               patch.object(training, "split_loss", side_effect=scripted_loss),
               patch.object(training.ft0b, "check_internals"),
-              patch.object(training.ft0b, "tables"),
+              patch.object(training.ft0b, "tables") as tables,
               patch.object(training.ft0b.ft0, "finite_tensors")):
             result = training.train(None, tokenizer, rows, adapter=self.adapter,
                                     adapter_sha256=self.sha, output=self.output, seed=4,
-                                    retain=self.events.append, steps=3, checkpoint_steps=(1, 3))
+                                    retain=self.events.append, steps=steps, checkpoint_steps=checkpoint_steps,
+                                    expected_count=len(rows))
+        load.assert_called_once_with(None, self.adapter)
+        return result, arguments.call_args.kwargs, tables, model
 
+    def test_resume_loss_checkpoints_and_norm(self):
+        result, arguments, _, _ = self.run_scripted_training()
         self.assertEqual(result, {"steps": 3, "skipped_steps": []})
+        loaded = next(event for event in self.events if event["event"] == "adapter_loaded")
+        self.assertEqual(loaded["adapter_sha256"], self.sha)
+        self.assertTrue(loaded["nonzero_lora_b"])
+        setup = next(event for event in self.events if event["event"] == "training_setup")
+        self.assertEqual((setup["rows"], setup["expected_count"], setup["max_skipped"]), (24, 24, 0))
         losses = [event for event in self.events if event["event"] == "loss_split"]
         baseline = scripted_loss(Adapter(self.adapter), {}, [[False, True]], Mock(), 2)
         self.assertEqual([row["step"] for row in losses], [1, 2, 3])
@@ -148,7 +166,43 @@ class TrainingTests(unittest.TestCase):
                               "gradient_accumulation_steps": "accumulation",
                               "optim": "optimizer", "lr_scheduler_type": "scheduler",
                               "warmup_steps": "warmup", "weight_decay": "weight_decay"}.items():
-            self.assertEqual(arguments.call_args.kwargs[argument], plan.core.RECIPE[key])
+            self.assertEqual(arguments[argument], plan.core.RECIPE[key])
+
+    def test_fake_cuda_trainer_recipe(self):
+        _, args, tables, model = self.run_scripted_training("cuda", steps=11, checkpoint_steps=None)
+        self.assertTrue(args["fp16"])
+        self.assertFalse(args["use_cpu"])
+        self.assertTrue(args["gradient_checkpointing"])
+        self.assertEqual(args["max_steps"], 11)
+        self.assertEqual(args["save_strategy"], "no")
+        tables.assert_called_once_with(model, "after_cast", self.events.append, cast=True)
+        setup = next(event for event in self.events if event["event"] == "training_setup")
+        self.assertEqual(setup["checkpoint_steps"], [11])
+        self.assertEqual(setup["max_skipped"], 1)
+
+    def test_zero_lora_b_refuses_training(self):
+        (self.adapter / "adapter_model.safetensors").write_text("0")
+        self.sha = training.core.digest(training.core.inventory(self.adapter))
+        with self.assertRaisesRegex(ValueError, "no nonzero trainable LoRA B"):
+            self.run_scripted_training()
+        self.assertEqual(self.events, [])
+
+    def test_preflight_refuses_invalid_checkpoints_count_and_existing_output(self):
+        def run(**kwargs):
+            training.train(None, None, [], adapter=self.adapter, adapter_sha256=self.sha,
+                           output=self.output, seed=4, retain=self.events.append, steps=3, **kwargs)
+
+        with patch.object(training, "_load_adapter") as load:
+            for schedule in ((), (1, 2)):
+                with self.subTest(schedule=schedule), self.assertRaisesRegex(ValueError, "end at"):
+                    run(checkpoint_steps=schedule)
+            with self.assertRaisesRegex(ValueError, "row count"):
+                run()
+            self.output.mkdir()
+            with self.assertRaisesRegex(FileExistsError, "output already exists"):
+                run()
+        load.assert_not_called()
+        self.assertEqual(self.events, [])
 
     def test_hash_refusal_precedes_load(self):
         (self.adapter / "adapter_model.safetensors").write_text("4")
@@ -169,8 +223,11 @@ class TrainingTests(unittest.TestCase):
                                named_modules=lambda: [(name, None) for name in names])
         config = SimpleNamespace(
             r=recipe["lora_r"], lora_alpha=recipe["lora_alpha"], lora_dropout=recipe["dropout"],
-            bias=recipe["bias"], task_type="CAUSAL_LM", target_modules=set(names),
+            bias=recipe["bias"], task_type="CAUSAL_LM",
+            target_modules={names[0].split(".")[-1], *(name.removeprefix("model.") for name in names[1:])},
             rank_pattern={}, alpha_pattern={}, use_dora=False, use_rslora=False, modules_to_save=None,
+            layers_to_transform=None, exclude_modules=None, lora_bias=False, fan_in_fan_out=False,
+            use_qalora=False,
         )
         peft = Mock()
         peft.PeftConfig.from_pretrained.return_value = config
@@ -183,9 +240,29 @@ class TrainingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "quantization differs"):
                 training._load_adapter(base, self.adapter)
             quantization.bnb_4bit_use_double_quant = True
-            config.target_modules.remove(names[0])
+            non_target = "model.vision_tower.layer." + names[0].split(".")[-1]
+            names.append(non_target)
             with self.assertRaisesRegex(ValueError, "configuration differs"):
                 training._load_adapter(base, self.adapter)
+            names.pop()
+            for field, value in {"layers_to_transform": [0], "exclude_modules": ["q_proj"],
+                                 "lora_bias": True, "fan_in_fan_out": True, "use_qalora": True}.items():
+                with self.subTest(field=field), patch.object(config, field, value):
+                    with self.assertRaisesRegex(ValueError, "configuration differs"):
+                        training._load_adapter(base, self.adapter)
+
+    def test_retained_ft1_adapter_config_resolves_to_all_language_targets(self):
+        path = (Path(__file__).resolve().parents[1] / "results"
+                / "2026-11-15 v0.24.89 ft1-qualification 0449a230200c" / "kaggle-v2"
+                / "ft1-3-247056-qualify" / "adapter" / "adapter_config.json")
+        config = SimpleNamespace(**json.loads(path.read_text(encoding="utf-8")))
+        names = []
+        for layer in range(48):
+            for projection in plan.core.RECIPE["projections"]:
+                block = "self_attn" if projection in {"q_proj", "k_proj", "v_proj", "o_proj"} else "mlp"
+                names.append(f"model.language_model.layers.{layer}.{block}.{projection}")
+        self.assertLess(len(config.target_modules), len(names))
+        training._check_adapter_config(config, names)
 
     def test_recipe_equals_ft1(self):
         self.assertEqual(training.RECIPE, plan.core.RECIPE)
