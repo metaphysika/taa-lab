@@ -14037,3 +14037,15 @@ Written by Claude (FT1 test-part stage thread). **Disclosure:** Chris gave this 
 - No Claude or Fable judgment touched it.
 
 Whether Track A's cases could be influenced is Track A's own disclosure.
+
+## 2026-11-21 — v0.24.100 FT1-R training run arm 3 / 247061 at 01992b34: TRAINED; FT1-R stays paused (exploratory, $0)
+
+Written by Claude (FT1 test-part stage thread) against the combined pre-run entry. Evidence: `results/2026-11-21 v0.24.100 ft1r-train-3-247061 01992b345701/`, with all 53 output files matching the manifest.
+
+**Result.**
+- Status `trained`, 250 steps.
+- 1 skipped update (limit 25); 2,000 of 2,000 micro-losses finite; adapter tensors finite, `397f828e…`.
+- Peak allocated 9.50e9 (limit 13.5e9); mean step 35.2 s; 2.5 h in total.
+- No review flag. Against the forecast of TRAINED at 95–96%: yes.
+
+**Paused.** Under Chris's relayed pause, the adapter is not uploaded as a dataset, and its gate (the Q5 stop-or-go point) is not staged or launched. Resuming needs Chris's word. FT1 test parts now have both Kaggle slots.
