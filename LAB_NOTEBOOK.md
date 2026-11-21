@@ -14057,3 +14057,5 @@ So, before any reader call, the design is revised (details in `docs/process/TRAC
 - Disclosed leanings: report messages lean S toward REQUEST; the route rule leans P4 toward NO.
 
 **My expectations after revision 3:** P1 about 35%; P2 about 35%; P3 about 75%; P4 about 70%; wrong-if met about 20%. I'm still wrong (main claim) if, with the gates passed, ACT is at least as common as REQUEST in S. A fresh reviewer re-checks the fixed commit before Chris is asked. No run is approved by this entry.
+
+**Offline implementation (v0.24.102).** Revision 3 restricts P3 to decision turns and reports the all-U sensitivity. P2 and the wrong-if flag require both C-packet agreement gates and at least 20 primary ACT or REQUEST codes in S. P1 and P2 also report the contrary-only sensitivity. The build retained 599 C, 220 T1, 220 T2 and 108 R packets per reader. Omitting metadata from the reader message yields an estimated batch cost of $5.6819301, or $9.8971551 at double output. No reader calls were made.

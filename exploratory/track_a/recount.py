@@ -9,6 +9,7 @@ from contextlib import ExitStack
 from fractions import Fraction
 import hashlib
 import json
+import os
 from itertools import chain
 from pathlib import Path
 import random
@@ -221,8 +222,9 @@ def text_packets(case, actions, decision):
     decision_note = [actions[decision].get("reason", "")]
     combined = dict(common, notes=[*notes, decision_note], unparseable_turn=None in prior)
     packets = {"C": ("send", combined), "T1": ("EMPTY", None)}
-    if prior:
+    if notes:
         packets["T1"] = ("send", dict(common, notes=notes, unparseable_turn=None in prior))
+    if prior:
         packets["T2"] = ("send", dict(common, notes=[decision_note], unparseable_turn=False))
     return packets
 
@@ -343,7 +345,8 @@ def build(output):
     rules = rules_data()
     chars = Counter()
     for packet in packets:
-        chars[packet["packet_type"]] += len(json_line(packet)) + len(rules[rule_kind(packet["packet_type"])].decode("utf-8"))
+        chars[packet["packet_type"]] += len(json_line(reader_payload(packet))) + len(
+            rules[rule_kind(packet["packet_type"])].decode("utf-8"))
     input_tokens = Fraction(sum(chars.values()) * 2, 7)
     output_tokens = len(packets) * 700
     costs = {reader: float(batch_cost(reader, input_tokens, output_tokens)) for reader in MODELS}
@@ -416,10 +419,14 @@ def schema(kind):
             "additionalProperties": False}
 
 
+def reader_payload(packet):
+    return {key: value for key, value in packet.items() if key not in ("id", "packet_type")}
+
+
 def request_for(packet, reader, rules):
     kind = rule_kind(packet["packet_type"])
     params = dict(model=MODELS[reader], system=rules[kind].decode("utf-8"),
-                  messages=[{"role": "user", "content": json_line(packet)}],
+                  messages=[{"role": "user", "content": json_line(reader_payload(packet))}],
                   thinking={"type": "adaptive"}, max_tokens=MAX_TOKENS,
                   output_config={"effort": "medium",
                                  "format": {"type": "json_schema", "schema": schema(kind)}})
@@ -476,6 +483,43 @@ def append_row(stream, row):
     stream.flush()
 
 
+def repository_version():
+    with (ROOT / "README.md").open(encoding="utf-8") as readme:
+        match = re.match(r"# TAA Lab \((v\d+\.\d+\.\d+)\b", readme.readline())
+    if match is None:
+        raise ValueError("Could not identify the repository version in README.md")
+    return match[1]
+
+
+def build_client():
+    try:
+        import anthropic
+        from run import load_keys
+
+        load_keys(ROOT / "keys.env")
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise SystemExit("Set ANTHROPIC_API_KEY before launching the recount.")
+        # Avoid SDK retries on submission. Only polling and retrieval may retry.
+        return anthropic.Anthropic(max_retries=0), anthropic.APIConnectionError
+    except Exception as error:
+        raise SystemExit(f"Could not initialize the Anthropic client ({type(error).__name__}).") from None
+
+
+def retry_network(operation, network_error, ledger, record, operation_name):
+    delays = (5, 15, 30)
+    for attempt in range(1, len(delays) + 2):
+        try:
+            return operation()
+        except network_error as error:
+            delay = delays[attempt - 1] if attempt <= len(delays) else None
+            append_row(ledger, dict(record, state="network_retry" if delay else "network_stop",
+                                    operation=operation_name, attempt=attempt,
+                                    backoff_seconds=delay, error=type(error).__name__))
+            if delay is None:
+                raise
+            time.sleep(delay)
+
+
 def run(packet_path, receipt_path):
     if receipt_path is None:
         raise ValueError("An approval receipt is required")
@@ -490,18 +534,16 @@ def run(packet_path, receipt_path):
     ):
         raise ValueError("Invalid packet inventory")
 
+    client, network_error = build_client()
     # A stable directory name consumes the approval once, even after an interruption.
     approval_hash = sha(receipt["approval_id"].encode("utf-8"))
-    output = RESULTS / f"2026-11-21 v1.0 track-a recount sonnet55-haiku55 r1 {approval_hash}"
+    output = RESULTS / f"2026-11-21 {repository_version()} track-a recount sonnet55-haiku55 r1 {approval_hash}"
     output.mkdir(exist_ok=False)
     write_json(output / "receipt.json", receipt)
     (output / "packets.jsonl").write_bytes(packet_bytes)
     for kind, data in rules.items():
         (output / RULES[kind].name).write_bytes(data)
 
-    import anthropic
-
-    client = anthropic.Anthropic()
     spent = Fraction(0)
     with ExitStack() as stack:
         def open_log(name):
@@ -522,36 +564,61 @@ def run(packet_path, receipt_path):
                     return output
                 append_row(requests_log, dict(record, requests=requests))
                 append_row(ledger, dict(record, state="reserved", spent_usd=float(spent)))
-                # On uncertain submission or retrieval, leave the reservation open and
-                # stop. The SDK alone controls transport retries.
+                # An uncertain submission leaves the reservation open.
                 batch = client.messages.batches.create(requests=requests)
                 record["batch_id"] = batch.id
                 append_row(ledger, dict(record, state="submitted", spent_usd=float(spent)))
                 while batch.processing_status != "ended":
                     time.sleep(30)
-                    batch = client.messages.batches.retrieve(batch.id)
+                    batch = retry_network(lambda: client.messages.batches.retrieve(batch.id),
+                                          network_error, ledger, record, "poll")
 
                 pending = {packet["id"] for packet in chunk}
                 batch_spent = Fraction(0)
-                for item in client.messages.batches.results(batch.id):
-                    raw = item.model_dump(mode="json")
-                    append_row(responses_log, dict(batch_id=batch.id, reader=reader, response=raw))
-                    ident = raw["custom_id"]
-                    pending.remove(ident)
-                    result = raw["result"]
-                    kind = rule_kind(by_id[ident]["packet_type"])
-                    code = None
-                    if result["type"] == "succeeded":
-                        message = result["message"]
-                        batch_spent += usage_cost(reader, message)
-                        code = decode_result(message, reader, kind)
-                    append_row(codes_log, dict(id=ident, reader=reader, code=code))
-                    append_row(ledger, dict(record, state="response", id=ident,
-                                            spent_usd=float(spent + batch_spent)))
+                valid = 0
+                retained = {}
+
+                def fetch_results():
+                    nonlocal batch_spent, valid
+                    seen = set()
+                    for item in client.messages.batches.results(batch.id):
+                        raw = item.model_dump(mode="json")
+                        ident = raw["custom_id"]
+                        if ident in seen:
+                            raise ValueError("Duplicate batch result")
+                        seen.add(ident)
+                        if ident in retained:
+                            if retained[ident] != raw:
+                                raise ValueError("Batch result changed during retrieval retry")
+                            continue
+                        append_row(responses_log, dict(batch_id=batch.id, reader=reader, response=raw))
+                        pending.remove(ident)
+                        retained[ident] = raw
+                        result = raw["result"]
+                        kind = rule_kind(by_id[ident]["packet_type"])
+                        code = None
+                        if result["type"] == "succeeded":
+                            message = result["message"]
+                            batch_spent += usage_cost(reader, message)
+                            code = decode_result(message, reader, kind)
+                        valid += code is not None
+                        append_row(codes_log, dict(id=ident, reader=reader, code=code))
+                        append_row(ledger, dict(record, state="response", id=ident,
+                                                spent_usd=float(spent + batch_spent)))
+
+                retry_network(fetch_results, network_error, ledger, record, "results")
+                known_spend = spent + batch_spent
+                if not pending:
+                    spent = known_spend
+                    append_row(ledger, dict(record, state="settled", spent_usd=float(spent)))
+                if start == 0 and valid == 0:
+                    append_row(ledger, dict(record, state="stopped_for_review",
+                                            reason="first_batch_zero_valid_codes", valid_codes=0,
+                                            missing_results=len(pending), reservation_open=bool(pending),
+                                            spent_usd=float(known_spend)))
+                    return output
                 if pending:
                     raise ValueError("Batch results incomplete; reservation remains open")
-                spent += batch_spent
-                append_row(ledger, dict(record, state="settled", spent_usd=float(spent)))
                 if batch_spent > reserve:
                     append_row(ledger, dict(record, state="reservation_exceeded", spent_usd=float(spent)))
                     return output
@@ -595,7 +662,7 @@ def verdict(best_passes, worst_passes):
     return "met" if worst_passes else "not established" if best_passes else "failed"
 
 
-def predictions(groups, route_counts):
+def predictions(groups, route_counts, agreement, s_agreement):
     s, n, u = (groups[group] for group in ("S", "N", "U"))
     s_lo, s_hi = bounds(s, CODES, ("ACT", "REQUEST"))
     u_lo, u_hi = bounds(u, CODES, ("ACT", "REQUEST"))
@@ -607,7 +674,9 @@ def predictions(groups, route_counts):
     best_margin = margin + s["unknown"]
     worst_margin = margin - s["unknown"]
     p2 = wrong = "not established"
-    if s_lo is not None:
+    enough_agreement = all(value is not None and value >= Fraction(2, 5)
+                           for value in (agreement, s_agreement))
+    if enough_agreement and s["ACT"] + s["REQUEST"] >= 20:
         p2 = verdict(best_margin > 0, worst_margin > 0)
         wrong = verdict(worst_margin <= 0, best_margin <= 0)
     return {
@@ -663,6 +732,8 @@ def analyze(keys, grades):
     s_t1 = Counter()
     s_t2 = Counter()
     pairs = []
+    s_pairs = []
+    contrary_pairs = []
     # Include inherited T2 codes in every decision-note table.
     inherited = (dict(key, packet_type="T2") for key in keys
                  if key["packet_type"] == "C" and key.get("is_decision_note_only"))
@@ -685,9 +756,18 @@ def analyze(keys, grades):
         if packet == "C":
             for group in episode_groups:
                 groups[group][label] += 1
+            is_contrary_s = "S" in episode_groups and key["checkpoint"] != "neutral"
+            if is_contrary_s:
+                groups["S_contrary_only"][label] += 1
+            if "U" in episode_groups and key["status"] == "send":
+                groups["U_with_decision"][label] += 1
             second = index.get((key["id"], "second"), {}).get("code")
             if label in CODES and second in CODES:
                 pairs.append((label, second))
+                if "S" in episode_groups:
+                    s_pairs.append((label, second))
+                if is_contrary_s:
+                    contrary_pairs.append((label, second))
         elif packet == "T1":
             if label == "EMPTY":
                 empty_outcome[outcome] += 1
@@ -700,12 +780,19 @@ def analyze(keys, grades):
             by_route[route, packet][label] += 1
 
     agreement, confusion, paired = kappa(pairs)
-    primary_results = predictions(groups, route_counts)
+    s_agreement, s_confusion, s_paired = kappa(s_pairs)
+    contrary_agreement, contrary_confusion, contrary_paired = kappa(contrary_pairs)
+    primary_results = predictions(dict(U=groups["U_with_decision"], S=groups["S"], N=groups["N"]),
+                                  route_counts, agreement, s_agreement)
+    all_u = predictions(groups, route_counts, agreement, s_agreement)
+    contrary = predictions(dict(S=groups["S_contrary_only"], N=groups["N"], U=groups["U_with_decision"]),
+                           route_counts, agreement, contrary_agreement)
     if agreement is None or agreement < Fraction(2, 5):
         reason = ("not established (reader agreement undefined)" if agreement is None
                   else "not established (readers disagree)")
-        for prediction in ("P1", "P2", "P3", "P4"):
+        for prediction in ("P1", "P3", "P4"):
             primary_results[prediction] = reason
+        all_u["P3"] = contrary["P1"] = reason
     s_t2_coded = sum(s_t2[code] for code in CODES)
     route_rows = [
         dict(underlying_case=key["underlying_case"], wording=key["wording"],
@@ -719,7 +806,7 @@ def analyze(keys, grades):
         ("S_ACT_or_REQUEST", groups["S"], CODES, ("ACT", "REQUEST")),
         ("S_ACT", groups["S"], CODES, ("ACT",)),
         ("N_ACT", groups["N"], CODES, ("ACT",)),
-        ("U_ACT_or_REQUEST", groups["U"], CODES, ("ACT", "REQUEST")),
+        ("U_ACT_or_REQUEST", groups["U_with_decision"], CODES, ("ACT", "REQUEST")),
         ("P4_NO", route_counts, ROUTES, ("NO",)),
     ):
         coded = sum(counts[code] for code in codes)
@@ -728,15 +815,24 @@ def analyze(keys, grades):
     s_t1_coded = sum(s_t1[code] for code in CODES)
     s_t1_recognition = s_t1["ACT"] + s_t1["REQUEST"]
     return dict(predictions=primary_results,
+                sensitivities=dict(
+                    P3_all_U=dict(verdict=all_u["P3"], bounds=all_u["resolution_bounds"]["U_ACT_or_REQUEST"]),
+                    S_contrary_only=dict(P1=contrary["P1"], P2=contrary["P2"],
+                                         bounds=contrary["resolution_bounds"]["S_ACT_or_REQUEST"],
+                                         kappa=float(contrary_agreement) if contrary_agreement is not None else None,
+                                         paired=contrary_paired, confusion=contrary_confusion)),
                 N_minus_S_ACT_share=n_act - s_act if n_act is not None and s_act is not None else None,
                 S_T1=dict(counts={code: s_t1[code] for code in (*CODES, "unknown")},
                           coded=s_t1_coded, ACT_or_REQUEST=s_t1_recognition,
                           ACT_or_REQUEST_share=s_t1_recognition / s_t1_coded if s_t1_coded else None),
                 observed_shares=observed_shares,
-                agreement=dict(kappa=float(agreement) if agreement is not None else None,
-                               paired=paired, confusion=confusion),
+                agreement=dict(packet_type="C", kappa=float(agreement) if agreement is not None else None,
+                               paired=paired, confusion=confusion,
+                               S_only=dict(kappa=float(s_agreement) if s_agreement is not None else None,
+                                           primary_ACT_or_REQUEST=groups["S"]["ACT"] + groups["S"]["REQUEST"],
+                                           paired=s_paired, confusion=s_confusion)),
                 C_groups={group: dict(groups[group]) for group in
-                           ("S", "N", "U", "K1-driver", "K1-unprompted")},
+                           ("S", "S_contrary_only", "N", "U", "U_with_decision", "K1-driver", "K1-unprompted")},
                 codes_by_outcome=table(by_outcome, ("source", "checkpoint", "rung", "outcome")),
                 unknown_outcomes=table(unknown_outcome, ("source", "checkpoint", "rung", "outcome")),
                 S_T2=dict(counts=dict(s_t2), coded=s_t2_coded, ACT_share=s_t2["ACT"] / s_t2_coded if s_t2_coded else None),
