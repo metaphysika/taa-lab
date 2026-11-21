@@ -99,7 +99,7 @@ Each piece below states what it must do (the spec) and what "done" means. Detail
   - the files are identical except for wrongful reasons;
   - the mix is 40/40/20, with no decline or report actions;
   - no double quotes;
-  - every action parses with the existing episode parser (`exploratory/step4_harness/study_b_parser_v0234.py`, imported);
+  - every action parses with the existing episode parser (`formation/study_b_parser_v0234.py`, imported);
   - the output is deterministic: the same seed gives the same hashes;
   - the length-match rule holds, or "pending" is reported;
   - no record contains freight, accounts-office or municipal-permits subjects.
@@ -280,7 +280,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 |---|---|---|---|---|---|
 | P1 | Neon / Fable | | | | |
 | P2 | Neon / Fable | | | | |
-| P3 | Sol / Fable | | | | |
+| P3 | Sol / Fable | 1 (round 1: FIX NEEDED, 2 must-fix) | 0 (A3 reported, non-blocking) | | Scorer edge cases found by Fable |
 | P4 | Sol / Fable | 0 (stopped twice: A1, A2) | 0 | | Shared-code boundary (A1); check-rule conflict (A2); both resolved by the stage thread |
 | P5 | Sol / Fable | | | | |
 | P6 | Sol / Fable | | | | |
@@ -307,3 +307,22 @@ Decisions:
 - **(a) Which FT1 tests.** "FT1's own tests still pass" means the FT1 tests in `run_fast_checks.py`'s fast set run under `--agent-safe`, whose import guard blocks the sealed module. No other FT1 test is run. A builder never imports `exploratory.ft1.sealed`.
 - **(b) The scripted output folder.** Running `run_fast_checks.py --agent-safe` in the builder's own disposable worktree is permitted, even though `run.py` writes its own `results/<timestamp>-scripted` folder there. That folder is never added or committed, and is deleted afterwards by its exact name only, never by glob. Builders may also confirm with `git status` that nothing under `results/` is staged.
 - **Pilot log:** P4 stopped a second time on a spec conflict, with no decision needed from Chris.
+
+**A3 (2026-11-21, after Fable's round-1 review of P3; decided before any Track B result exists).**
+
+1. **Path correction.** The episode parser is `formation/study_b_parser_v0234.py`. The earlier path in this spec was wrong and has been corrected in place.
+2. **Fallback text.** Step 2 of the verdict scorer reads *all* text outside the first valid JSON object, including any later objects' text. This follows the spec's literal wording and FT1's behaviour.
+3. **Finding the first object.** This works as in `first_json_span`:
+   - a complete container that is not valid JSON is prose;
+   - a complete top-level JSON value that is not an object is skipped;
+   - an incomplete container ends the prose.
+4. **Negation guard on the prose fallback.** This is a conservative change to scoring, and the owner is told of it in the stage thread's report.
+   - If the outside text contains the whole phrase "not permissible", and no other negation cue applies to "permissible", the verdict is "not permissible".
+   - The verdict is "permissible" only if the whole word "permissible" appears with no negation cue in the three words before it. The negation cues are not, no, never, nothing, n't, non-, or a bracketed or inserted span between "not" and "permissible".
+   - Anything else is unknown.
+   - "impermissible" and "non-permissible" never count as "permissible".
+
+   This can only turn would-be mis-scores into unknowns.
+5. **The templates' final finish step** (`{"tool": null}`) is left to P5's record builder, to match FT1's record format.
+
+**Pilot log:** P3 needed one round of fixes. It needed no decision from Chris; the negation guard is reported to him without blocking the build.
