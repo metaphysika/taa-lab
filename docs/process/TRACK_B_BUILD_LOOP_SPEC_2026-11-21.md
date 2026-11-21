@@ -470,3 +470,5 @@ Chris: "It sounds great and I would like to get it going so we dont run out of u
   5. **Inconclusive**, otherwise. A rule that is "not established" (A10.7) also leads here, unless a drop condition is met on the rules that are established.
 - **Worked example (Sol's).** Δ(arm 1) = 6, Δ(arm 2) = 4, Δ(arm 5) = 5 gives **drop, "any training heals"**. Taken on its own, the comparison of arm 1 with arm 2 would be inconclusive, and that is reported as a sub-result.
 - **Unknowns.** Under joint resolution of unknowns, the verdict must come out the same under every resolution; otherwise the overall verdict is inconclusive (A10.1).
+
+**A11 clarification (after Neon's first review of P6).** The invariance requirement under joint resolution applies to the verdict **label**, not to the list of drop reasons. If every resolution gives "drop", the verdict is drop, and each reason is reported either as present "in every resolution" or "in some resolutions".
