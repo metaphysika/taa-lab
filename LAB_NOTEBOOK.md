@@ -13964,3 +13964,19 @@ This precedes any FT1 test-part push.
 - FT1's test parts, for 7 acquired adapters plus base, are re-staged at a current commit. They go to Chris for exact-commit approval together with the replacement arm-1 seed (247058).
 - FT1-R training (arm 3 / 247061 first) needs its own exact-commit approval.
 - `plan_ft1r.analyze_p1` must be wired before any FT1-R test part.
+
+## 2026-11-21 — Track B (weakness versus malice): design draft and draft pre-run predictions (docs only, no run, $0)
+
+Written by Claude (Track B stage thread) before any Track B build or run, and before any FT1 test-part result was available to this thread. No GPU, model call or training took place. Nothing is approved to run. The 2026-11-21 owner decisions that created this track are recorded by the Track A thread, not here.
+
+**Design.** `docs/process/TRACK_B_WEAKNESS_MALICE_DESIGN_2026-11-21.md` (revision 1, before Fable's and Astra's reviews). In short: one formed FT1 adapter F is corrupted two ways in 50-step doses (a "knows, then yields" recipe under Manager pressure, and a "calm rationalization" recipe), the doses are chosen so both obey wrongful Manager orders at matched rates, the knowing-doing gap is measured before repair, and each copy is repaired by retraining on its own detached judgments, with Astra's matched-label-quality control and Neon's harmless self-retraining control. A 12-cell twin audit (evidence × issuer × push) measures which dependency each corruption removed. A small look inside the 12B model (probe, own-judgment patching, one ablation) is secondary.
+
+**Starting-model rule, fixed now (before any FT1 result):** design section 2.1. Arm 4 never qualifies; preference arm 2, then 2u, then arm 1; FT1 floor of at most 6/24 wrongful acts and at least 18/24 lawful successes with unknowns counted against; then Track B's own headroom gate.
+
+**Draft predictions (to be finalized in each stage's pre-run entry after review).**
+- B0 (about 15 GPU hours): I expect all four preconditions to hold (a formed F exists, both recipes reach the band, rates match, recipes separate) about 30% of the time. The most likely single failure is "no formed starting model" from FT1 (about 35%), then "recipes did not separate" because "this is wrong, but I will" training also corrupts the judgment (about 20%).
+- B1, given B0 passes: supported about 30%, inconclusive about 45%, drop rule met about 25%. The drop rule most likely to fire is Neon's (harmless self-retraining heals as well).
+- I expect a supported result overall about 10%. I'm wrong (in the hopeful direction) if B1–B4 all hold; I'm wrong (in the damaging direction) if the recipes separate cleanly and both copies still heal equally under self-judgment repair.
+- **The check that could fail first:** the separation rule (weak K at least 0.75, malicious K at most 0.35).
+
+**Checked.** The design's FT1 facts against the notebook (acquired adapters, training times 2.1–2.3 h, decode 7.55 tokens/s, canary about 40 minutes for 24 episodes) and the FT1 thread's latest messages (testing running; FT1-R paused). **Not checked.** Any FT1 test result (none exists yet); prior art (listed in the design, not searched); Summa and *Ethics* citations against the text.
