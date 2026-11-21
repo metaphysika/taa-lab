@@ -281,7 +281,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 | P1 | Neon / Fable | | | | |
 | P2 | Neon / Fable | | | | |
 | P3 | Sol / Fable | | | | |
-| P4 | Sol / Fable | 0 (stopped: spec change A1) | 0 | | Shared-code boundary; resolved by the stage thread |
+| P4 | Sol / Fable | 0 (stopped twice: A1, A2) | 0 | | Shared-code boundary (A1); check-rule conflict (A2); both resolved by the stage thread |
 | P5 | Sol / Fable | | | | |
 | P6 | Sol / Fable | | | | |
 | P7 | Sol / Fable | | | | |
@@ -298,3 +298,12 @@ Every threshold appears once, as a named constant, with a comment citing the des
 - **Resume:** loads the given adapter as trainable (for example `PeftModel.from_pretrained(..., is_trainable=True)`) after verifying its hash.
 - **Unchanged:** everything else in P4's spec and its "done means".
 - **Pilot log:** P4 round 0, stopped on a needed spec change; no decision needed from Chris.
+
+**A2 (2026-11-21, P4 second attempt; applies to every piece).** P4's builder stopped again, correctly. Two "done means" items conflicted with the hard rules:
+- the full FT1 test set includes tests that import `exploratory.ft1.sealed`;
+- `run_fast_checks.py --agent-safe` also runs `run.py --scenario all`, which writes a folder under `results/`.
+
+Decisions:
+- **(a) Which FT1 tests.** "FT1's own tests still pass" means the FT1 tests in `run_fast_checks.py`'s fast set run under `--agent-safe`, whose import guard blocks the sealed module. No other FT1 test is run. A builder never imports `exploratory.ft1.sealed`.
+- **(b) The scripted output folder.** Running `run_fast_checks.py --agent-safe` in the builder's own disposable worktree is permitted, even though `run.py` writes its own `results/<timestamp>-scripted` folder there. That folder is never added or committed, and is deleted afterwards by its exact name only, never by glob. Builders may also confirm with `git status` that nothing under `results/` is staged.
+- **Pilot log:** P4 stopped a second time on a spec conflict, with no decision needed from Chris.
