@@ -280,7 +280,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 |---|---|---|---|---|---|
 | P1 | Neon / Fable | 1 (round 1 FIX NEEDED: W/L label leaked in card IDs; "verified" stamp without Gemma 3 tokenizer) | 0 | | A5: layout of F, shares by trained turn |
 | P2 | Neon / Fable | 1 (round 1 FIX NEEDED: sealing weak, seed recoverable, refusal misses worktrees, overlap check can pass on nothing, paraphrase check weak, template not shared) | 0 | | A6: pool-and-draw sealing; stage thread saw 7 sealed family names, all retired |
-| P3 | Sol / Fable | 2 (round 1 FIX NEEDED; round 2 FIX NEEDED: inserted-span negation) | 0 (A3 and A7 reported, non-blocking) | | Prose negation reading abandoned for strict JSON-first scoring (A7) |
+| P3 | Sol / Fable | 2 fix rounds, 3 reviews; PASS on review 3 | 0 (A3 and A7 reported, non-blocking) | | Prose negation reading abandoned for strict JSON-first scoring (A7). Three edge-case should-fixes (glued prose pieces, duplicate keys, truncated second object) go to a reviewed follow-up before any result |
 | P4 | Sol / Fable | 1 (stopped twice before building: A1, A2; round 1 FIX NEEDED: adapter-config check would refuse real FT1 adapters) | 0 | | Stage-thread decision: skipped-update allowance = steps // 10 |
 | P5 | Sol / Fable | | | | |
 | P6 | Sol / Fable | | | | |
