@@ -278,7 +278,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 
 | Piece | Builder / reviewer | Rounds | Chris decisions needed | Defects after "done" | Notes |
 |---|---|---|---|---|---|
-| P1 | Neon / Fable | | | | |
+| P1 | Neon / Fable | 1 (round 1 FIX NEEDED: W/L label leaked in card IDs; "verified" stamp without Gemma 3 tokenizer) | 0 | | A5: layout of F, shares by trained turn |
 | P2 | Neon / Fable | | | | |
 | P3 | Sol / Fable | 1 (round 1: FIX NEEDED, 2 must-fix) | 0 (A3 reported, non-blocking) | | Scorer edge cases found by Fable |
 | P4 | Sol / Fable | 1 (stopped twice before building: A1, A2; round 1 FIX NEEDED: adapter-config check would refuse real FT1 adapters) | 0 | | Stage-thread decision: skipped-update allowance = steps // 10 |
@@ -328,3 +328,16 @@ Decisions:
 **Pilot log:** P3 needed one round of fixes. It needed no decision from Chris; the negation guard is reported to him without blocking the build.
 
 **A4 (2026-11-21, P1).** The action-only recipe (a standard-tier option) empties the `reason` **only on wrongful-act records**. Its lawful and routine records keep the same neutral reasons as the other two recipes, so all three recipes differ only in the wrongful reason. This is how Neon built it, from the spec's "identical except wrongful reason" rule. Design section 3's "as in Study D" therefore describes the empty wrongful reason, not a file with no reasons at all.
+
+**A5 (2026-11-21, after Fable's round-1 review of P1).**
+
+1. **Record layout matches the starting model.** The starting-model candidates (FT1 arms 2, 2u and 1) were trained at `0449a230` on FT1's **original** record layout: FT1's original system line, and the original key order of the trained JSON action. They were not trained on the FT1-R layout (`FT1R_SYSTEM`; tool, args, reason). So P1, and P5's repair records, use FT1's original layout, taken from `exploratory/ft1/data.py`'s original (non-FT1R) constants by import. A `layout` flag may also offer the FT1-R layout for a possible later FT1-R starting model; the default is the original.
+2. **Shares counted in trained turns.**
+   - 40% of the 2,000 records have **the wrongful act itself** as the trained turn, so the weak/malicious difference sits in 40% of records.
+   - 40% have the lawful twin's ordered act as the trained turn.
+   - 20% are routine-work or finish turns, from either kind of case.
+
+   Follow-up and finish turns of wrongful cases belong to the 20%. This replaces the reading under which wrongful cases' follow-ups counted toward the 40%.
+3. **Card IDs carry no label.** IDs and file names shown in any prompt must not reveal W/L, the record type or the step.
+4. **`exploratory/track_b/__init__.py` is an empty file** in every piece.
+5. **Track B tests in the fast set.** Adding the Track B test modules to the fast set in `scripts/run_fast_checks.py` is a shared-file edit. The stage thread does it after wave 1 merges; builders do not.
