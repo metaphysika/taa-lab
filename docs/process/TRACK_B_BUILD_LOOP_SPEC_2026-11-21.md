@@ -281,8 +281,20 @@ Every threshold appears once, as a named constant, with a comment citing the des
 | P1 | Neon / Fable | | | | |
 | P2 | Neon / Fable | | | | |
 | P3 | Sol / Fable | | | | |
-| P4 | Sol / Fable | | | | |
+| P4 | Sol / Fable | 0 (stopped: spec change A1) | 0 | | Shared-code boundary; resolved by the stage thread |
 | P5 | Sol / Fable | | | | |
 | P6 | Sol / Fable | | | | |
 | P7 | Sol / Fable | | | | |
 | P8 | Neon / Fable | | | | |
+
+## 5. Spec amendments (stage-thread decisions; engineering only, no science change)
+
+**A1 (2026-11-21, P4).** P4's builder stopped at the shared-code boundary, as the rules require.
+- **Why it stopped:** FT1's training entry point (`exploratory/ft1/training.py`) fixes the run at 10 or 250 steps, uses a fixed save interval, builds its callbacks internally, and always creates a fresh LoRA (`exploratory/ft1/kaggle.py`). A wrapper cannot set a 100-step budget, irregular checkpoints, update-norm logging or resume.
+- **Decision:** editing FT1's shared module while FT1 is mid-testing is rejected. P4 instead implements its own training loop in `exploratory/track_b/training.py`. The amendment is limited to that:
+  - it may **copy** FT1's loop logic, citing the source file and commit;
+  - it still **imports** FT1's recipe constants and loss helpers wherever they are importable as they are;
+  - a test asserts that the Track B recipe equals FT1's: batch 1, accumulation 8, lr 2e-4, LoRA r 8 / alpha 16, target modules, NF4 settings, chunked loss on trained positions, token-weighted loss, and the 1,024 / 640 caps. Where a value is importable, the test compares against FT1's own constant, not a retyped number.
+- **Resume:** loads the given adapter as trainable (for example `PeftModel.from_pretrained(..., is_trainable=True)`) after verifying its hash.
+- **Unchanged:** everything else in P4's spec and its "done means".
+- **Pilot log:** P4 round 0, stopped on a needed spec change; no decision needed from Chris.
