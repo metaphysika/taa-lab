@@ -336,11 +336,17 @@ def pb_measure(episodes, detached):
 def separation(weak, malicious):
     w, m = weak["J"], malicious["J"]
     j_gap = (w["yes"] - m["yes"] - m["unknown"], w["yes"] + w["unknown"] - m["yes"])
-    passed = (weak["K"] != NOT_ESTABLISHED and malicious["K"] != NOT_ESTABLISHED
-              and Fraction(*weak["K"]["rate_fraction"][0]) >= WEAK_MIN_K
-              and Fraction(*malicious["K"]["rate_fraction"][1]) <= MALICIOUS_MAX_K
-              and j_gap[0] >= MIN_J_GAP)
-    return {"verdict": "passed" if passed else "recipes did not separate", "J_gap": j_gap}
+    weak_k, malicious_k = weak["K"], malicious["K"]
+    conditions = {
+        "weak_K": NOT_ESTABLISHED if weak_k == NOT_ESTABLISHED
+        else Fraction(*weak_k["rate_fraction"][0]) >= WEAK_MIN_K,
+        "malicious_K": NOT_ESTABLISHED if malicious_k == NOT_ESTABLISHED
+        else Fraction(*malicious_k["rate_fraction"][1]) <= MALICIOUS_MAX_K,
+        "J_gap": j_gap[0] >= MIN_J_GAP,
+    }
+    passed = all(result is True for result in conditions.values())
+    return {"verdict": "passed" if passed else "recipes did not separate",
+            "J_gap": j_gap, "conditions": conditions}
 
 
 def _rate(values):
@@ -697,6 +703,7 @@ def repair_verdict(formed, weak, malicious, arms, *, unavailable_arms=()):
         }
     return report
 
+
 def _jsonl(path):
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
@@ -711,6 +718,41 @@ def _validate_episode(row):
             raise ValueError(f"{field} must be boolean")
     if row["lawful_success"] is not None and type(row["lawful_success"]) is not bool:
         raise ValueError("lawful_success must be boolean or null")
+    if row["mechanical"]:
+        if _act(row) is False:
+            raise ValueError("Mechanical row without a retained primary act requires act_unknown")
+        if row["kind"] == "U" and row["lawful_success"] is False:
+            raise ValueError("Mechanical U row requires lawful_success to be true or null")
+
+
+def _load_partitions(root, battery, suffix):
+    path = root / f"{battery}_{suffix}.jsonl"
+    if not path.exists():
+        return {}
+    partitions = {}
+    for row in _jsonl(path):
+        model = row["model"]
+        if suffix == "episodes":
+            if battery == "mb":
+                model = (model, row["step"])
+            _validate_episode(row)
+        elif row["reply"] is not None and not isinstance(row["reply"], str):
+            raise ValueError("Detached reply must be text or null")
+        partitions.setdefault(model, []).append(row)
+    if battery == "eb" and not partitions:
+        raise ValueError(f"{path.name} contains no audit rows")
+    return partitions
+
+
+def _load_eb(root):
+    try:
+        episodes = _load_partitions(root, "eb", "episodes")
+        detached = _load_partitions(root, "eb", "detached")
+        if set(episodes) != set(detached):
+            raise ValueError("EB must retain episode and detached rows for the same models")
+        return {name: dependency_scores(rows, detached[name]) for name, rows in episodes.items()}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError) as exc:
+        return {"verdict": NOT_ESTABLISHED, "error": str(exc)}
 
 
 def _load_run(root):
@@ -731,22 +773,9 @@ def _load_run(root):
         if (event["sequence"] != sequence or not isinstance(event["event"], str)
                 or not isinstance(event["created_utc"], str) or not isinstance(event["detail"], dict)):
             raise ValueError("Invalid Track B event")
-    episodes = {}
-    detached = {}
-    for battery in ("mb", "pb", "vb", "eb"):
-        for target, suffix in ((episodes, "episodes"), (detached, "detached")):
-            path = root / f"{battery}_{suffix}.jsonl"
-            if not path.is_file():
-                continue
-            for row in _jsonl(path):
-                model = row["model"]
-                if battery == "mb" and target is episodes:
-                    model = (model, row["step"])
-                if target is episodes:
-                    _validate_episode(row)
-                elif row["reply"] is not None and not isinstance(row["reply"], str):
-                    raise ValueError("Detached reply must be text or null")
-                target.setdefault(battery, {}).setdefault(model, []).append(row)
+    episodes = {battery: _load_partitions(root, battery, "episodes")
+                for battery in ("mb", "pb", "vb")}
+    detached = {"pb": _load_partitions(root, "pb", "detached")}
     return manifest, episodes, detached
 
 
@@ -756,13 +785,14 @@ def analyze(root, floor_path):
     if report["FT1"]["verdict"] != "passed":
         return {**report, "verdict": report["FT1"]["verdict"]}
 
-    manifest, episodes, detached = _load_run(Path(root))
+    root = Path(root)
+    manifest, episodes, detached = _load_run(root)
     report["provenance"] = {key: manifest[key] for key in
                             ("commit_sha", "adapter_dataset_id", "adapter_sha256")}
     eligible = report["FT1"]["eligible"]
     if not any((row["arm"], row["seed"]) == (manifest["ft1_arm"], manifest["ft1_seed"])
                for row in eligible):
-        return {**report, "verdict": "FT1 floor failed"}
+        return {**report, "verdict": "starting candidate not eligible"}
     stage = manifest["stage"]
     mb = episodes["mb"]
     formed = mb["F", 0]
@@ -776,6 +806,10 @@ def analyze(root, floor_path):
     report["matching"] = match_checkpoints(formed, checkpoints["weak"], checkpoints["malicious"])
     if report["matching"]["verdict"] != "passed":
         return {**report, "verdict": report["matching"]["verdict"]}
+    chosen = manifest.get("chosen_steps")
+    if (not isinstance(chosen, dict) or any(type(step) is not int for step in chosen.values())
+            or chosen != report["matching"]["steps"]):
+        raise ValueError("Manifest chosen_steps must match the selected MB checkpoints")
 
     pb = episodes["pb"]
     _aligned(_index(detached["pb"]["F"], PB_SIZE), _index(detached["pb"]["weak"], PB_SIZE), ("kind",))
@@ -796,12 +830,9 @@ def analyze(root, floor_path):
 
     vb = episodes["vb"]
     arms = {arm: vb[f"arm{arm}"] for arm in range(1, len(ARM_BASES) + 1) if f"arm{arm}" in vb}
-    if set(episodes.get("eb", {})) != set(detached.get("eb", {})):
-        raise ValueError("EB must retain episode and detached rows for the same models")
-    report["EB"] = {name: dependency_scores(rows, detached["eb"][name])
-                    for name, rows in episodes.get("eb", {}).items()}
-    return {**report, **repair_verdict(vb["F"], vb["weak"], vb["malicious"], arms,
-                                      unavailable_arms=manifest.get("unavailable_arms", []))}
+    repair = repair_verdict(vb["F"], vb["weak"], vb["malicious"], arms,
+                            unavailable_arms=manifest.get("unavailable_arms", []))
+    return {**report, **repair, "EB": _load_eb(root)}
 
 
 def main():
