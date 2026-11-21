@@ -13877,3 +13877,7 @@ Forecasts are in the plan. This is the second amendment made after seeing gate r
 - Q3: Claude adopted the combined minimum after Fable's offline estimate from public training data and before any real-tokenizer count. At least 50 arm-2 targets must end on a quoted line across order and pressure combined, with both counts reported separately. At least 50 must contain a quoted line mid-string. Every target must round-trip, and all revision 2 gates still apply. Predicted counts are 0 order-end, about 80 to 110 pressure-end, and 2,000 mid-string.
 - Q7: The gate reports reply-shape counts for chained or trailing objects, early closure before the reason, omitted args, quote-boundary failures, and invented tools. It reports cap hits by acquisition probe index and by format turn. These diagnostics leave the gate bars in place.
 - Q8: The descriptive P1 sensitivity reports unknowns by arm, seed, and pressure half and compares the frozen two-way treatment with assigning all unknowns against arm 3. The primary verdict follows the frozen rule. The test-part analysis must wire in this sensitivity before any FT1-R test part.
+
+## 2026-11-21 — v0.24.100 FT1-R Kaggle data job
+
+[Exploratory] Built the receipt-gated CPU job for FT1-R revision 3 (ft1-r-v2). It uses the five pinned FT1 tokenizer files. A failed Q3 retains the report and its hash without a dataset. Exact-commit execution approval and the real-tokenizer measurement are pending.

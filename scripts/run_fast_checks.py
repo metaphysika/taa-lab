@@ -16,7 +16,7 @@ SMOKE = (
 )
 FAST = (
     'tests.test_ft1_prefill', 'tests.test_ft1_memory', 'tests.test_ft1_evaluate', 'tests.test_ft1_throughput',
-    'tests.test_ft1r_layout', 'tests.test_ft1_pressure_split', 'tests.test_ft1_wiring',
+    'tests.test_ft1r_layout', 'tests.test_ft1r_data_job', 'tests.test_ft1_pressure_split', 'tests.test_ft1_wiring',
     'tests.test_seed2_v02482',
     'tests.test_ci_tiers', 'tests.test_v020', 'tests.test_v0206',
     'tests.test_obligations', 'tests.test_premise_repairs',
