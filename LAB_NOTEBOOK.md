@@ -14100,3 +14100,9 @@ Predictions, gates and reading rules are as in the pre-run entry and Revisions 2
 - Results folder retained unchanged: `C:/t/track-a-run/results/2026-11-21 v0.24.102 track-a recount sonnet55-haiku55 r1 a713838f…9471/`.
 
 **Next (needs Chris's yes, since this is a relaunch after a partial run):** proposed, a small offline-reviewed resume step that skips every packet already coded, first retrieves the in-flight batch by its id, keeps the same commit-bound packets, rules, readers and the same $12 cap counting the $1.18 already spent, and is launched as a detached process so no tool time limit applies. Alternative: stop here and analyse the 496 coded packets as a labelled partial result. No analysis of the partial codes will be run before Chris decides.
+
+## 2026-11-21 — Track A Step 1 recount: Chris approves finishing the run (option A), recorded before the resume
+
+**Chris's words (Track A thread, 2026-11-21), in reply to options A (finish the run with a resume step) and B (stop and analyse the 496 coded packets as partial):** "Finish A"
+
+This approves a resume of the same run: same packets, rules, readers and $12 cap counting the $1.18 already spent; first retrieve the paid in-flight batch by id; then code only packets not yet coded; launched as a detached process. The resume code is offline-built by Sol, checked before launch, and run at its own exact commit with a resume receipt that references approval `track-a-step1-20261121-01`. No analysis of the partial codes has been run.
