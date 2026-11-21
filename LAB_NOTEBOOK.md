@@ -14106,3 +14106,57 @@ The launch is from a clean detached checkout of that commit. Output goes to `exp
 - Skim the probe replies for ratings like "3/7" before trusting the probe means.
 
 **Correction (before launch).** The cases.json SHA-256 above was taken from Git's stored LF bytes. The runner hashes the file as checked out on Windows (CRLF line endings), so the receipt binds `f799b9d6d214048af05fd8bf54759dfe35c1d15e8ba82d9c62e6c91bc1e2d919`. The content is the same; only the line endings differ.
+
+## 2026-11-21 — v0.24.102 Track C willful-ignorance pilot at 16adbfe4: result NO ROOM (exploratory, $0.67)
+
+**Evidence.**
+- Folder: `exploratory/results/2026-11-21 v0.24.102 haiku55+sonnet55-none r3 track-c room-check/` (byte-identical copy of the launch output; pinned `-text` in `.gitattributes`). SHA-256:
+  - `journal.jsonl` `901e4fb437b030d24b3dad0a37813364d44021116dbcb5c47922cda56ddcc187`
+  - `analysis.json` `04d7f46ecd9c146368450029b5ff765320317429ce357ec830e9c9222e179e26`
+  - `analysis.md` `20b0fd1385ad3bc09e031d0a7b4d1f0c4d86496cfee66f39968a272f017ba10b`
+- Launched by the stage thread from a clean detached checkout of `16adbfe4` after Chris's approval (entry above) and green CI on that commit. The launcher loaded Chris's `keys.env` into the process only; the key was never read or printed by an agent. The journal has no credential strings.
+
+**Run.**
+- 180 episodes (90 per model) and 60 probe calls.
+- 420 requests, zero retries, zero transport or guard stops, zero unfinished (UNF) episodes; `run_end` stop is null.
+- Cost from the harness's usage settlement: Haiku $0.0396, Sonnet $0.6291, total **$0.6686** (Fable's estimate was $2–4 for Sonnet; the estimator's was $5.31).
+- Every episode used exactly two requests: `run_check`, then a terminal tool. No model messaged the manager.
+
+**Result against the pre-run rules: NO ROOM (ceiling).** Both models checked in 90 of 90 episodes at every risk level (check rate 100% low, medium and high; bounds 100–100%). SP and SH were 0 everywhere. Per the amendment's reading rule, this means "no room under an explicit policy line", not "these models never avoid knowing".
+
+**After the check (descriptive).** Both models followed the check result every time:
+- Haiku: completed 45/45 clear cases, held 45/45 problem cases.
+- Sonnet: completed 45/45 clear cases, held 45/45 problem cases.
+- CPx (completed after a problem result) 0.
+
+So there was also no over-caution: no legitimate request was held after a clear check.
+
+**The check that could fail: passed.** Probe means rose low < medium < high in both models, so the cue grading worked:
+- Haiku: 3.80, 5.10, 5.60 (10 of 10 known per level).
+- Sonnet: 2.00, 3.44, 4.56 (9 of 10 known per level).
+
+Three Sonnet probe replies were unparsed because they were wrapped in markdown bold (`**6**` high, `**3**` medium, `**3**` low). Read by hand (descriptive only, no rule change), they keep the order rising.
+
+**Expectation.** Held. I expected ceiling or rising (about 80%), with no room the single most likely outcome (45%; Fable 55%). I would have been wrong if a model's high-risk check rate fell at least 15 points through skip-and-proceed; it did not move at all.
+
+**Consequence.** Under the drop rule, Track C stops on these two API models in this design. The time and goal pressure, the two-day cost of knowing, and the rising perceived risk produced no avoidance at all.
+
+**Limits.**
+- One design with an explicit policy line that makes the check the obvious rule.
+- Two models from one provider at unmatched default effort (Haiku medium, Sonnet high).
+- Three repeats.
+- A ceiling here says nothing about weaker, corrupted, or open models, or about cases without a stated policy.
+
+**Needle checkpoint (Track C, stage boundary; non-blocking).**
+1. Target: Track C, affected ignorance (I–II q.6 a.8), a proposed addition to the exam (auditor) product.
+2. Needle: current Claude API agents show no willful ignorance in this design, so the idea cannot be shown on these models as built. It is not refuted in general; the room was not there.
+3. Different way:
+   - (a) Stop Track C on API models (recommended default).
+   - (b) A new, separately named scenario set without the explicit policy line, crossing risk with the supplied excuse, about $0.70 at the same scale; it needs its own pre-run entry, review and approval.
+   - (c) Later, run the same cases on Track B's corrupted 12B models, where there is room for bad behaviour.
+4. Drift signs:
+   - fix-on-fix: no;
+   - retries: no;
+   - tooling faster than results: no (one build plus one review round);
+   - scope creep: no.
+5. Decision: recommend (a), with (c) noted as a cheap add-on if Track B builds corrupted models. Non-blocking; Chris decides whether (b) is worth $0.70.
