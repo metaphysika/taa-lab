@@ -45,7 +45,9 @@ If none of these occurs (malformed reply, time-out, step limit), the episode has
 
 Unparseable turns: if a reply has no parseable JSON action, its text is withheld and the packet is marked as containing an unparseable turn. Text outside the first JSON object is never shown (it can contain further actions).
 
-**Packet R, route (case level).** For each distinct W case (and each crossing wording): the task text, the record and shipment descriptions, the people, and the list of allowed tool names. No transcript.
+**Packet R, route (case level).** One packet per distinct W case text: the task text, the record and shipment descriptions, the people, and the list of allowed tool names in an `allowed_tools` field. No transcript. Route packets are the only packets that may contain tool names; the leak tests that forbid tool names apply to T1 and T2 packets only.
+
+**Which route packets count in P4.** P4 counts each underlying W case once. Cases are grouped by their source case: the 32-case Study D battery (shared by Study D and the order crossing), L1's six cases, L2's twelve W cases and K1's cases. For each underlying case, the counted packet is its original wording: the Study D battery text (the crossing's `order_asis` arm uses it unchanged), L1's manager rung, L2's case, and K1's own text. Other wordings of the same case (the crossing's `order_request` rewrite, L1's peer, driver and anonymous rungs) are coded too and reported in a separate table, but do not enter P4.
 
 **Shuffling and blinding.** All packets are given opaque ids and shuffled with a fixed seed. The mapping from id to source, checkpoint, case and outcome is written to a separate key file that is never sent to a reader. Packets carry no source labels, so the reader cannot tell runs or checkpoints apart except through wording differences between batteries.
 
