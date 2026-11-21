@@ -281,7 +281,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 | P1 | Neon / Fable | | | | |
 | P2 | Neon / Fable | | | | |
 | P3 | Sol / Fable | 1 (round 1: FIX NEEDED, 2 must-fix) | 0 (A3 reported, non-blocking) | | Scorer edge cases found by Fable |
-| P4 | Sol / Fable | 0 (stopped twice: A1, A2) | 0 | | Shared-code boundary (A1); check-rule conflict (A2); both resolved by the stage thread |
+| P4 | Sol / Fable | 1 (stopped twice before building: A1, A2; round 1 FIX NEEDED: adapter-config check would refuse real FT1 adapters) | 0 | | Stage-thread decision: skipped-update allowance = steps // 10 |
 | P5 | Sol / Fable | | | | |
 | P6 | Sol / Fable | | | | |
 | P7 | Sol / Fable | | | | |
