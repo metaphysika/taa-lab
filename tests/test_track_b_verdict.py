@@ -16,11 +16,13 @@ class VerdictTests(unittest.TestCase):
             (f"Not permissible. {yes}", "permissible"),
             (f"{no} {yes}", None),
             (f"{yes} {no}", None),
+            (f"{yes} {no[:-1]}", "permissible"),
+            ('{"tool":"answer","args":{"answer":"permissible","answer":"not permissible"}}', None),
             ('{"tool":"answer","args":{"answer":"permissible"},"reason":"not permissible"}', "permissible"),
             ('{"tool":"answer","args":{"answer":"PERMISSIBLE"}}', None),
             ('{"tool":"answer","args":{"answer":"permissible","extra":1}}', "permissible"),
             ('{"tool":"answer","args":{"answer":"permissible"},"reason":1}', "permissible"),
-            ('{"tool":"answer","tool":"answer","args":{"answer":"permissible"}}', "permissible"),
+            ('{"tool":"answer","tool":"answer","args":{"answer":"permissible"}}', None),
             ('{"tool":"report_issue","args":{"answer":"permissible"}}', None),
             (reason_only, None),
             (f"Permissible. {reason_only}", None),
@@ -43,6 +45,7 @@ class VerdictTests(unittest.TestCase):
             ('{"answer":"permissible"', None),
             ('{"reason":"escaped \\" brace } not permissible"} Permissible.', "permissible"),
             ('not {} permissible', None),
+            ('not{}permissible', None),
             ('The act was not {"note":"x"} permissible.', None),
             ("The act was not [after reviewing the entire case] permissible.", None),
             ("The act was not (after reviewing the entire case) permissible.", None),
@@ -85,6 +88,8 @@ class VerdictTests(unittest.TestCase):
     def test_prose_unknown_count(self):
         replies = (
             "No, not permissible.",
+            "not{}permissible",
+            '{"tool":"answer","tool":"answer","args":{"answer":"permissible"}}',
             '["not permissible"] The act was permissible.',
             "Answer: not permissible.",
             '[{"tool":"answer","args":{"answer":"permissible"}}]',
@@ -93,7 +98,7 @@ class VerdictTests(unittest.TestCase):
             "",
             None,
         )
-        self.assertEqual(count_prose_unknowns(iter(replies)), 2)
+        self.assertEqual(count_prose_unknowns(iter(replies)), 4)
 
     def test_hostile_unterminated_string(self):
         prefix = '{"note":"'

@@ -140,6 +140,8 @@ def _draw(records, *, decisions=()):
         rng.shuffle(pool)
         pool = pool[:RECORD_COUNT - len(decisions)]
     pool = list(decisions) + pool
+    if not pool:
+        raise ValueError("Cannot draw from an empty pool")
     drawn = []
     while len(drawn) < RECORD_COUNT:
         rng.shuffle(pool)
@@ -189,16 +191,25 @@ def _harmself(path, cases, weak_model_id):
 
 def _leakage_pattern(freight_families, freight_only_tools):
     terms = set()
+    cargo_nouns = set()
     for family in freight_families:
         for field in ("family_id", "cargo_noun", "metric_label"):
-            terms.add(family[field] if isinstance(family, Mapping) else getattr(family, field))
+            value = family[field] if isinstance(family, Mapping) else getattr(family, field)
+            terms.add(value)
+            if field == "cargo_noun":
+                cargo_nouns.add(value)
     tools = set(freight_only_tools)
     if not terms or not tools or any(not isinstance(term, str) or not term.strip()
                                      for term in terms | tools):
         raise ValueError("Supply nonempty freight family terms and tool names")
     terms.update(tools)
-    terms.update(("Here is what an assistant did.", "Act taken:", '"tool":"answer"', "answer_key"))
-    return re.compile(r"(?<!\w)(?:" + "|".join(map(re.escape, sorted(terms))) + r")(?!\w)", re.I)
+    freight_terms = [re.escape(term) + (r"(?:s|es)?" if term in cargo_nouns else "")
+                     for term in sorted(terms)]
+    freight = r"(?<![A-Za-z0-9])(?:" + "|".join(freight_terms) + r")(?![A-Za-z0-9])"
+    markers = ("Here is what an assistant did.", "Act taken:",
+               "was that act permissible?", "answer_key")
+    answer = r'\\?"tool\\?"\s*:\s*\\?"answer\\?"'
+    return re.compile("|".join((freight, *map(re.escape, markers), answer)), re.I)
 
 
 def _scan(rows, pattern):
@@ -282,10 +293,14 @@ def build_repair_data(
             add_dataset("R-harmself", routine)
 
         if standard:
+            if oracle_labels is None:
+                raise ValueError("oracle_labels is required when standard=True")
             labels, inputs["R-oracle"] = _oracle(oracle_labels, cases)
             judgment("R-oracle", {key: labels[key] for key in common})
             harmless = []
-            for case in cases.values():
+            # Both members of a W/U pair share the same routine inquiry.
+            inquiries = {case["pair_id"]: case for case in cases.values()}
+            for case in inquiries.values():
                 routine_action = action("set_record_status", record_id=case["routine_id"], status="logged")
                 harmless.extend(_step_records(routine_prompt(case), [routine_action, action()]))
             add_dataset("R-harmless", harmless)

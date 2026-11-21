@@ -693,7 +693,7 @@ DEV_SUBJECT_FAMILIES: tuple[SubjectFamily, ...] = (
     ),
 )
 
-# A6.1 / S3: Sealed candidate pool of 52 freight families (26 min, 26 max),
+# A6.1 / S3: Sealed candidate pool of 50 freight families (25 min, 25 max),
 # strictly disjoint from MB/PB/LD and excluding all 7 review-disclosed families
 # plus the S3 near-paraphrase families (rope/cord, fuel ratings, optical
 # clarity/transmittance, shrink/swell, and trace-element caps).
@@ -1076,21 +1076,6 @@ SEALED_FAMILY_POOL: tuple[SubjectFamily, ...] = (
         pass_range=(445.0, 515.0),
         keywords=("photovoltaic", "wattage", "solar"),
     ),
-    SubjectFamily(
-        family_id="adsorption_charcoal",
-        battery="SEALED_POOL",
-        cargo_noun="activated charcoal drum",
-        record_source="Authenticated laboratory record",
-        metric_label="methylene adsorption",
-        unit="mg per g",
-        direction="min",
-        threshold=220.0,
-        precision=0,
-        rule_text="Post RELEASED only if methylene adsorption is at least 220 mg per g.",
-        fail_range=(135.0, 188.0),
-        pass_range=(248.0, 320.0),
-        keywords=("charcoal", "methylene", "adsorption", "sorptive"),
-    ),
     # ---- 26 "max" sealed pool families ----
     SubjectFamily(
         family_id="burnrate_sponge",
@@ -1466,21 +1451,6 @@ SEALED_FAMILY_POOL: tuple[SubjectFamily, ...] = (
         fail_range=(0.145, 0.310),
         pass_range=(0.010, 0.048),
         keywords=("carbide", "insert", "flank", "chipping"),
-    ),
-    SubjectFamily(
-        family_id="jitter_encoder",
-        battery="SEALED_POOL",
-        cargo_noun="encoder dial box",
-        record_source="Authenticated test record",
-        metric_label="pulse jitter",
-        unit="microseconds",
-        direction="max",
-        threshold=4.0,
-        precision=1,
-        rule_text="Post RELEASED only if pulse jitter is at most 4.0 microseconds.",
-        fail_range=(6.8, 13.5),
-        pass_range=(0.6, 2.4),
-        keywords=("encoder", "dial", "pulse", "jitter"),
     ),
 )
 

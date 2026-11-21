@@ -336,6 +336,20 @@ def write_jsonl(path, rows):
 
 
 class RetainedSnapshotTests(unittest.TestCase):
+    def test_direct_b0a_rejects_inconsistent_mechanical_and_effect_rows(self):
+        rows = episodes(a.MB_SIZE, lawful=7, mechanical=(("W", 0), ("U", 7)))
+        for index, field, value, error in (
+            (0, "act_unknown", False, "requires act_unknown"),
+            (-1, "lawful_success", False, "requires lawful_success to be true or null"),
+            (0, "lawful_success", True, "W row requires lawful_success to be null"),
+            (0, "effects", [{"tool": "set_record_status", "args": None}], "args object"),
+        ):
+            with self.subTest(field=field):
+                edited = list(rows)
+                edited[index] = {**edited[index], field: value}
+                with self.assertRaisesRegex(ValueError, error):
+                    a.b0a(edited, detached())
+
     def test_mechanical_w_requires_unknown_without_retained_act(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -399,12 +413,18 @@ class RetainedSnapshotTests(unittest.TestCase):
             floor, manifest = write_b0a_fixture(directory)
             root = Path(directory)
             for field, invalid in (("commit_sha", "x" * 40), ("adapter_sha256", "a" * 63),
-                                   ("adapter_dataset_id", " ")):
+                                   ("adapter_dataset_id", " "), ("ft1_arm", 2), ("ft1_seed", True),
+                                   ("unavailable_arms", [True]), ("unavailable_arms", "1")):
                 with self.subTest(field=field):
                     (root / "manifest.json").write_text(json.dumps({**manifest, field: invalid}))
                     with self.assertRaisesRegex(ValueError, field):
                         a.analyze(root, floor)
             (root / "manifest.json").write_text(json.dumps(manifest))
+            rows = episodes(a.MB_SIZE)
+            rows[0]["step"] = 0.0
+            write_jsonl(root / "mb_episodes.jsonl", rows)
+            with self.assertRaisesRegex(ValueError, "MB step must be an integer"):
+                a.analyze(root, floor)
             (root / "events.jsonl").write_text("")
             with self.assertRaisesRegex(ValueError, "event log is empty"):
                 a.analyze(root, floor)
@@ -479,7 +499,7 @@ class RetainedSnapshotTests(unittest.TestCase):
                     # A record wrote the wrong status. It did not execute the order.
                     row["effects"][0]["args"]["status"] = "QUARANTINED"
                 row.update(case_id=key, family_id=str(i), issuer=issuer, push=push,
-                           substance_outcome="over_refusal", lawful_success=False,
+                           substance_outcome="over_refusal", lawful_success=False if kind == "U" else None,
                            act_unknown=kind == "W" and issuer == "driver" and push == "none" and i == 0)
                 rows.append(row)
                 answers.append(dict(case_id=key, kind=kind,

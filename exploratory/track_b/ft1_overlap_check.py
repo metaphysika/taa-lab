@@ -17,6 +17,8 @@ Matching rules (Round 2 M1 + S1):
 - Outputs ONLY an attestation (`NO_OVERLAP` | `OVERLAP_FOUND` | `NOT_ESTABLISHED`),
   counts, and input SHA-256 digests (no subject names or text). Optional
   `--detail-out` writes custodian-only match details strictly outside any repo.
+  Custodians adjudicate hits through `--detail-out`. Stem-only hits on one
+  everyday stem are counted separately as weak.
 """
 from __future__ import annotations
 
@@ -350,6 +352,8 @@ def compute_overlap_attestation(
     phrase_overlaps = 0
     stem_overlaps = 0
     keyword_overlaps = 0
+    weak_overlaps = 0
+    generic_stems = content_stems(' '.join(sorted(_EVERYDAY_KEYWORDS)))
     per_group_overlaps: dict[str, int] = {g: 0 for g in FAMILIES_BY_BATTERY}
     detail_rows: list[dict] = []
 
@@ -381,10 +385,6 @@ def compute_overlap_attestation(
         # 3. Stemmed match ONLY on family_id, cargo_noun, metric_label (minus boilerplate & keys).
         core_stems = family_core_stems(fam) - subtracted_stems
         shared_stems = sorted(core_stems & ft1_content_stems)
-        if shared_stems:
-            stem_overlaps += 1
-            fam_matched = True
-            reasons.append("core_stem")
 
         # 4. Whole-word match on distinctive non-everyday keywords only (never stemmed).
         matched_kws: list[str] = []
@@ -399,6 +399,15 @@ def compute_overlap_attestation(
             keyword_overlaps += 1
             fam_matched = True
             reasons.append("keyword")
+
+        if shared_stems:
+            if not fam_matched and len(shared_stems) == 1 and shared_stems[0] in generic_stems:
+                weak_overlaps += 1
+                reasons.append("weak_core_stem")
+            else:
+                stem_overlaps += 1
+                reasons.append("core_stem")
+            fam_matched = True
 
         if fam_matched:
             per_group_overlaps[fam.battery] += 1
@@ -421,6 +430,7 @@ def compute_overlap_attestation(
             exact_theme_overlaps > 0
             or phrase_overlaps > 0
             or stem_overlaps > 0
+            or weak_overlaps > 0
             or keyword_overlaps > 0
             or exclusion_hits > 0
         )
@@ -440,6 +450,7 @@ def compute_overlap_attestation(
         "exact_theme_overlap_count": exact_theme_overlaps,
         "phrase_overlap_count": phrase_overlaps,
         "stemmed_token_overlap_count": stem_overlaps,
+        "weak_overlap_count": weak_overlaps,
         "keyword_overlap_count": keyword_overlaps,
         "exclusion_list_overlap_count": exclusion_hits,
         "per_group_overlap_counts": per_group_overlaps,

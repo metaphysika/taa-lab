@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import re
+import shutil
 import sys
 import tempfile
 import types
@@ -380,6 +381,19 @@ class CorruptionDataTests(unittest.TestCase):
                     tokenizer_path=gemma3,
                     expected_tokenizer_sha256=tok_digest,
                 )
+                _, unpinned = cd.generate(seed=1, count=20, tokenizer_path=gemma3)
+                self.assertFalse(unpinned['tokenizer_hash_pinned'])
+                self.assertFalse(unpinned['tokenizer_verified'])
+                bad_candidates = [
+                    {'directory': str(no_model), 'full_tokenizer': False},
+                    {'directory': str(non_gemma), 'full_tokenizer': True},
+                    {'directory': str(gemma3), 'full_tokenizer': True},
+                ]
+                with patch.object(local_tokenizer, 'discover', return_value=(bad_candidates, [])):
+                    _, verified, source, _ = cd.load_counter(expected_tokenizer_sha256=tok_digest)
+                self.assertTrue(verified)
+                self.assertIn(f'{no_model} (missing tokenizer files)', source)
+                self.assertIn(f'{non_gemma} (ValueError)', source)
                 with self.assertRaisesRegex(ValueError, 'SHA-256 mismatch'):
                     cd.generate(
                         seed=1,
@@ -388,6 +402,7 @@ class CorruptionDataTests(unittest.TestCase):
                         expected_tokenizer_sha256='0' * 64,
                     )
             self.assertTrue(verified_manifest['tokenizer_verified'])
+            self.assertTrue(verified_manifest['tokenizer_hash_pinned'])
             self.assertEqual(verified_manifest['length_match_status'], cd.LENGTH_STATUS_VERIFIED)
             self.assertEqual(verified_manifest['tokenizer_file_sha256']['tokenizer.json'], tok_digest)
 
@@ -455,7 +470,12 @@ class CorruptionDataTests(unittest.TestCase):
                 actual = hashlib.sha256((out_a / filename).read_bytes()).hexdigest()
                 self.assertEqual(actual, digest)
 
-            # verify_files re-counts written JSONL without modifying files and writes separate record.
+            # Verify the production-sized mix and preserve the small deterministic-write checks above.
+            out_a = Path(td) / 'full'
+            m_a = cd.write(out_a, seed=12345, include_action_only=True,
+                           counter=ft1_data.CharacterCounter())
+            shutil.copytree(out_a, Path(td) / 'full_bad_hash')
+            out_b = Path(td) / 'full_bad_hash'
             before_manifest = (out_a / 'manifest.json').read_bytes()
             before_weak = (out_a / 'weak.jsonl').read_bytes()
             report = cd.verify_files(out_a, StubTokenizer())
@@ -463,7 +483,7 @@ class CorruptionDataTests(unittest.TestCase):
             self.assertEqual((out_a / 'weak.jsonl').read_bytes(), before_weak)
             self.assertTrue((out_a / 'length_verification.json').is_file())
             self.assertEqual(report['verified_file_sha256'], m_a['sha256'])
-            self.assertEqual(report['wrongful_act_records'], 16)
+            self.assertEqual(report['wrongful_act_records'], 800)
             self.assertFalse(report['tokenizer_verified'])
             self.assertEqual(report['length_match_status'], cd.LENGTH_STATUS_PENDING)
 
@@ -475,8 +495,8 @@ class CorruptionDataTests(unittest.TestCase):
             # S2: verify_files checks action_only.jsonl row-by-row and forbidden tools even when
             # manifest hashes match the tampered file.
             out_tamper = Path(td) / 'tamper_action_only'
-            m_t = cd.write(out_tamper, seed=12345, count=20, include_action_only=True,
-                           counter=ft1_data.CharacterCounter())
+            shutil.copytree(out_a, out_tamper)
+            m_t = json.loads(before_manifest)
             act_rows = [json.loads(l) for l in (out_tamper / 'action_only.jsonl').read_text(encoding='utf-8').splitlines()]
             for row in act_rows:
                 if row['is_wrongful_act']:
@@ -493,8 +513,8 @@ class CorruptionDataTests(unittest.TestCase):
 
             # S2: verify_files rejects forbidden tools in action_only.jsonl.
             out_forbid = Path(td) / 'tamper_forbidden'
-            m_f = cd.write(out_forbid, seed=12345, count=20, include_action_only=True,
-                           counter=ft1_data.CharacterCounter())
+            shutil.copytree(out_a, out_forbid)
+            m_f = json.loads(before_manifest)
             f_rows = [json.loads(l) for l in (out_forbid / 'action_only.jsonl').read_text(encoding='utf-8').splitlines()]
             f_rows[0]['messages'][-1]['content'] = cd.dump(cd.make_action('decline_order', {'order_id': 'O1000'}, ''))
             forbid_bytes = ''.join(cd.dump(r) + '\n' for r in f_rows).encode('utf-8')
@@ -503,6 +523,42 @@ class CorruptionDataTests(unittest.TestCase):
             (out_forbid / 'manifest.json').write_bytes((cd.dump(m_f) + '\n').encode('utf-8'))
             with self.assertRaisesRegex(ValueError, 'forbidden tool'):
                 cd.verify_files(out_forbid, StubTokenizer())
+
+            manifest_path = out_tamper / 'manifest.json'
+            (out_tamper / 'action_only.jsonl').write_bytes((out_a / 'action_only.jsonl').read_bytes())
+            manifest_path.write_bytes((cd.dump(dict(m_a, count=1999)) + '\n').encode('utf-8'))
+            with self.assertRaisesRegex(ValueError, 'manifest count'):
+                cd.verify_files(out_tamper, StubTokenizer())
+
+            def verify_tampered_action_rows(change, error):
+                rows = [json.loads(line) for line in (out_a / 'action_only.jsonl').read_bytes().splitlines()]
+                change(rows)
+                payload = ''.join(cd.dump(row) + '\n' for row in rows).encode('utf-8')
+                (out_tamper / 'action_only.jsonl').write_bytes(payload)
+                manifest = json.loads(before_manifest)
+                manifest['sha256']['action_only.jsonl'] = hashlib.sha256(payload).hexdigest()
+                manifest_path.write_bytes((cd.dump(manifest) + '\n').encode('utf-8'))
+                with self.assertRaisesRegex(ValueError, error):
+                    cd.verify_files(out_tamper, StubTokenizer())
+
+            verify_tampered_action_rows(lambda rows: rows[0].update(type='other'), '800/800/400')
+            verify_tampered_action_rows(
+                lambda rows: rows[0]['messages'][1].update(content='Dispatch shipment'),
+                'excluded subject term',
+            )
+            history_index, history_row = next(
+                (index, row) for index, line in enumerate(before_weak.splitlines())
+                if (row := json.loads(line))['step'] == 1
+            )
+            verify_tampered_action_rows(
+                lambda rows: rows[history_index]['messages'][1].update(
+                    content='Earlier turns (action-only):\n{broken} -> recorded'),
+                'invalid history action on ' + history_row['id'],
+            )
+            verify_tampered_action_rows(
+                lambda rows: rows[history_index]['messages'][1].update(content='Missing history.'),
+                'invalid history block on ' + history_row['id'],
+            )
 
             # Default write without --action-only writes only weak and malicious.
             out_default = Path(td) / 'default_two'
@@ -531,7 +587,7 @@ class CorruptionDataTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / 'cli_out'
             with patch.object(local_tokenizer, 'discover', return_value=([], [])):
-                rc = cd.main(['--output', str(out), '--seed', '42', '--count', '20', '--action-only'])
+                rc = cd.main(['--output', str(out), '--seed', '42', '--action-only'])
                 self.assertEqual(rc, 0)
                 rc_verify = cd.main(['--verify-dir', str(out)])
                 self.assertEqual(rc_verify, 0)

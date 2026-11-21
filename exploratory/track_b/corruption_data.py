@@ -359,7 +359,9 @@ def _check_expected_tokenizer_sha256(file_hashes, expected):
         if actual != expected:
             raise ValueError(f'tokenizer SHA-256 mismatch for {primary_key}: {actual} != {expected}')
         return
-    if isinstance(expected, dict) and expected:
+    if isinstance(expected, dict) and expected and all(
+        isinstance(digest, str) for digest in expected.values()
+    ):
         for filename, digest in expected.items():
             actual = file_hashes.get(filename)
             if actual != digest:
@@ -430,8 +432,8 @@ def load_counter(tokenizer=None, tokenizer_path=None, expected_tokenizer_sha256=
     """Return ``(counter, tokenizer_verified, tokenizer_source, tokenizer_file_sha256)``.
 
     Only ``tokenizer_path`` or ``local_tokenizer.discover()`` pointing to a validated
-    local Gemma 3 tokenizer directory can yield ``tokenizer_verified=True``. Any object
-    passed via ``tokenizer=`` always yields ``tokenizer_verified=False`` ("pending").
+    local Gemma 3 tokenizer directory with a matching supplied hash can yield
+    ``tokenizer_verified=True``. Any object passed via ``tokenizer=`` stays pending.
     """
     if tokenizer is not None and tokenizer_path is not None:
         raise ValueError('pass at most one of tokenizer or tokenizer_path')
@@ -439,33 +441,44 @@ def load_counter(tokenizer=None, tokenizer_path=None, expected_tokenizer_sha256=
         counter, file_hashes, source = _load_real_gemma3_from_dir(
             tokenizer_path, expected_tokenizer_sha256=expected_tokenizer_sha256
         )
-        return counter, True, source, file_hashes
+        return counter, expected_tokenizer_sha256 is not None, source, file_hashes
     if tokenizer is not None:
         if expected_tokenizer_sha256 is not None:
             raise ValueError('expected_tokenizer_sha256 requires tokenizer_path or discovered Gemma 3 directory')
         source = f'unverified_tokenizer:{type(tokenizer).__module__}.{type(tokenizer).__qualname__}'
         return ft1_data.Counter(tokenizer), False, source, {}
 
-    found, _ = local_tokenizer.discover()
+    found, inspected = local_tokenizer.discover()
+    skipped = [
+        f"{Path(asset['path']).parent} ({asset['identity']})"
+        for asset in inspected if asset['identity'] == 'Gemma 4'
+    ]
     last_hash_err = None
     for candidate in found:
-        if candidate.get('full_tokenizer'):
-            try:
-                counter, file_hashes, source = _load_real_gemma3_from_dir(
-                    candidate['directory'], expected_tokenizer_sha256=expected_tokenizer_sha256
-                )
-                return counter, True, source, file_hashes
-            except ValueError as exc:
-                if 'SHA-256 mismatch' in str(exc):
-                    last_hash_err = exc
-                continue
-            except Exception:
-                continue
+        directory = candidate['directory']
+        if not candidate.get('full_tokenizer'):
+            skipped.append(f'{directory} (missing tokenizer files)')
+            continue
+        try:
+            counter, file_hashes, source = _load_real_gemma3_from_dir(
+                directory, expected_tokenizer_sha256=expected_tokenizer_sha256
+            )
+        except Exception as exc:
+            skipped.append(f'{directory} ({type(exc).__name__})')
+            if isinstance(exc, ValueError) and 'SHA-256 mismatch' in str(exc):
+                last_hash_err = exc
+            continue
+        if skipped:
+            source += '; skipped: ' + ', '.join(skipped)
+        return counter, expected_tokenizer_sha256 is not None, source, file_hashes
     if last_hash_err is not None:
         raise last_hash_err
     if expected_tokenizer_sha256 is not None:
         raise ValueError('expected_tokenizer_sha256 given but no verified Gemma 3 tokenizer was found')
-    return ft1_data.CharacterCounter(), False, 'character_counter_fallback', {}
+    source = 'character_counter_fallback'
+    if skipped:
+        source += '; skipped: ' + ', '.join(skipped)
+    return ft1_data.CharacterCounter(), False, source, {}
 
 
 def _facts(theme, evidence_type, serial, lawful):
@@ -874,12 +887,22 @@ def check_domain_isolation(text):
     return [term for term, pattern in _EXCLUDED_PATTERNS if pattern.search(text)]
 
 
-def _check_history_forbidden_tools(user_text, rec_id):
-    if 'Earlier turns (action-only):' not in user_text:
+def _check_history_forbidden_tools(user_text, rec_id, step):
+    if step == 0 and 'Earlier turns (action-only):' not in user_text:
         return
-    _, _, hist_block = user_text.partition('Earlier turns (action-only):\n')
-    for line in hist_block.splitlines():
-        prev = parse_action(line.removesuffix(' -> recorded'))
+    _, delimiter, hist_block = user_text.partition('Earlier turns (action-only):\n')
+    lines = hist_block.splitlines()
+    if not delimiter or len(lines) != step or not lines:
+        raise ValueError(f'invalid history block on {rec_id}')
+    for line in lines:
+        if not line.endswith(' -> recorded'):
+            raise ValueError(f'invalid history block on {rec_id}')
+        try:
+            raw = line.removesuffix(' -> recorded')
+            json.loads(raw)
+            prev = parse_action(raw)
+        except (ValueError, RecursionError) as exc:
+            raise ValueError(f'invalid history action on {rec_id}') from exc
         if prev['tool'] in FORBIDDEN_TOOLS:
             raise ValueError(f'forbidden tool {prev["tool"]} in history on {rec_id}')
 
@@ -1190,6 +1213,7 @@ def generate(
         },
         'counter_class': counter_class_name(counter),
         'tokenizer_verified': verified,
+        'tokenizer_hash_pinned': verified,
         'tokenizer_source': tokenizer_source,
         'tokenizer_file_sha256': tokenizer_file_sha256,
         'length_match_status': LENGTH_STATUS_VERIFIED if verified else LENGTH_STATUS_PENDING,
@@ -1352,6 +1376,21 @@ def verify_files(
     if act_rows is not None and len(act_rows) != len(weak_rows):
         raise ValueError('action_only.jsonl length differs from weak.jsonl')
 
+    if manifest.get('count') != len(weak_rows) or type(manifest.get('count')) is not int:
+        raise ValueError('manifest count differs from the dataset row count')
+    expected_mix = {'wrongful': 800, 'lawful': 800, 'routine': 400}
+    for filename, rows in loaded.items():
+        if (Counts(row['type'] for row in rows) != expected_mix
+                or any(row.get('is_wrongful_act') is not (row['type'] == 'wrongful') for row in rows)):
+            raise ValueError(f'{filename} must have the 800/800/400 trained-turn mix')
+        for row in rows:
+            leaked = check_domain_isolation(dump(row))
+            if leaked:
+                raise ValueError(f'excluded subject term(s) {leaked} found in {row["id"]} ({filename})')
+            _check_history_forbidden_tools(row['messages'][1]['content'], row['id'], row['step'])
+    if manifest.get('counts_by_type') != expected_mix:
+        raise ValueError('manifest counts_by_type differs from the dataset mix')
+
     length_table = []
     max_prompt = 0
     max_trained = 0
@@ -1369,7 +1408,6 @@ def verify_files(
         m_act = parse_action(m_text)
         if w_act['tool'] in FORBIDDEN_TOOLS or m_act['tool'] in FORBIDDEN_TOOLS:
             raise ValueError(f'forbidden tool in weak/malicious action at {rec_id}')
-        _check_history_forbidden_tools(w_row['messages'][1]['content'], rec_id)
         if w_act['tool'] != m_act['tool'] or w_act['args'] != m_act['args']:
             raise ValueError(f'tool/args mismatch between weak and malicious at {rec_id}')
         if '"' in w_act.get('reason', '') or '"' in m_act.get('reason', ''):
@@ -1385,7 +1423,6 @@ def verify_files(
             a_act = parse_action(a_text)
             if a_act['tool'] in FORBIDDEN_TOOLS:
                 raise ValueError(f'forbidden tool in action_only action at {rec_id}')
-            _check_history_forbidden_tools(a_row['messages'][1]['content'], rec_id)
             if '"' in a_act.get('reason', ''):
                 raise ValueError(f'double quote found in action_only reason at {rec_id}')
             at = counter.trained(a_text)
@@ -1436,6 +1473,7 @@ def verify_files(
         'verified_file_sha256': actual_hashes,
         'counter_class': counter_class_name(counter),
         'tokenizer_verified': verified,
+        'tokenizer_hash_pinned': verified,
         'tokenizer_source': tokenizer_source,
         'tokenizer_file_sha256': tokenizer_file_sha256,
         'length_match_status': LENGTH_STATUS_VERIFIED if verified else LENGTH_STATUS_PENDING,

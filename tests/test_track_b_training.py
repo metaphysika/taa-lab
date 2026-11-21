@@ -79,6 +79,9 @@ class ScriptedTrainer:
 
     def __init__(self, model, args, train_dataset, data_collator, callbacks):
         self.model, self.args = model, args
+        self.output = Path(args.output_dir).parent
+        if self.output.exists() or args.should_save:
+            raise AssertionError("Trainer would create output before training")
         self.train_dataset, self.collate = train_dataset, data_collator
         self.callback = callbacks[0]
         self.state = SimpleNamespace(global_step=0)
@@ -88,6 +91,8 @@ class ScriptedTrainer:
                    for batch in batches)
 
     def train(self):
+        if not self.output.is_dir():
+            raise AssertionError("Output directory was not created before train")
         rows = iter(self._get_train_sampler())
         for step in range(1, self.args.max_steps + 1):
             batches = [self.collate([row]) for row in
@@ -121,8 +126,12 @@ class TrainingTests(unittest.TestCase):
         torch = SimpleNamespace(tensor=lambda value: value, utils=SimpleNamespace(
             data=SimpleNamespace(SequentialSampler=iter)))
         arguments = Mock(side_effect=lambda **kwargs: SimpleNamespace(device="cpu", **kwargs))
+        class FakeTrainingArguments:
+            def __init__(self, **kwargs):
+                vars(self).update(vars(arguments(**kwargs)))
+
         transformers = SimpleNamespace(Trainer=ScriptedTrainer, TrainerCallback=object,
-                                       TrainingArguments=arguments)
+                                       TrainingArguments=FakeTrainingArguments)
         rows = [bool(i % 2) for i in range(steps * plan.core.RECIPE["accumulation"])]
         tokenizer = Mock()
         if model is None:
@@ -140,7 +149,7 @@ class TrainingTests(unittest.TestCase):
                                     adapter_sha256=self.sha, output=self.output, seed=4,
                                     retain=self.events.append, steps=steps, checkpoint_steps=checkpoint_steps,
                                     expected_count=len(rows), allow_cpu=allow_cpu)
-        load.assert_called_once_with(None, self.adapter)
+        load.assert_called_once_with(None, self.adapter, allow_cpu=allow_cpu)
         return result, arguments.call_args.kwargs, tables, model
 
     def test_resume_loss_checkpoints_and_norm(self):
@@ -185,11 +194,18 @@ class TrainingTests(unittest.TestCase):
     def test_fake_cuda_trainer_recipe(self):
         _, args, tables, model = self.run_scripted_training(
             "cuda", steps=11, checkpoint_steps=None, allow_cpu=False)
-        self.assertTrue(args["fp16"])
-        self.assertNotIn("use_cpu", args)
-        self.assertTrue(args["gradient_checkpointing"])
-        self.assertEqual(args["max_steps"], 11)
-        self.assertEqual(args["save_strategy"], "no")
+        recipe = plan.core.RECIPE
+        self.assertEqual(args, {
+            "output_dir": str(self.output / "trainer"), "num_train_epochs": 1,
+            "per_device_train_batch_size": recipe["batch"],
+            "gradient_accumulation_steps": recipe["accumulation"],
+            "learning_rate": recipe["lr"], "optim": recipe["optimizer"],
+            "lr_scheduler_type": recipe["scheduler"], "warmup_steps": recipe["warmup"],
+            "weight_decay": recipe["weight_decay"], "seed": 4, "data_seed": 4,
+            "fp16": True, "gradient_checkpointing": True, "max_steps": 11,
+            "save_strategy": "no", "logging_steps": 1, "logging_nan_inf_filter": False,
+            "report_to": [], "remove_unused_columns": False,
+        })
         tables.assert_called_once_with(model, "after_cast", self.events.append, cast=True)
         setup = next(event for event in self.events if event["event"] == "training_setup")
         self.assertEqual(setup["checkpoint_steps"], [11])
@@ -213,7 +229,7 @@ class TrainingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "per resolved target"):
             self.run_scripted_training(model=model, target_count=2)
         model.tensors[-1] = ("other.lora_B.default.weight", extra)
-        with self.assertRaisesRegex(ValueError, "every trainable LoRA B tensor must be nonzero"):
+        with self.assertRaisesRegex(ValueError, r"1 zero tensors, first: other\.lora_B\.default\.weight"):
             self.run_scripted_training(model=model, target_count=2)
         self.assertFalse(self.output.exists())
         self.assertEqual(self.events, [])
@@ -251,6 +267,7 @@ class TrainingTests(unittest.TestCase):
         quantization = SimpleNamespace(load_in_4bit=True, bnb_4bit_quant_type="nf4",
                                       bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype="torch.float16")
         base = SimpleNamespace(config=SimpleNamespace(quantization_config=quantization),
+                               parameters=lambda: iter([SimpleNamespace(device=SimpleNamespace(type="cuda"))]),
                                named_modules=lambda: [(name, None) for name in names])
         config = SimpleNamespace(
             r=recipe["lora_r"], lora_alpha=recipe["lora_alpha"], lora_dropout=recipe["dropout"],
@@ -289,7 +306,11 @@ class TrainingTests(unittest.TestCase):
         bases = (SimpleNamespace(named_modules=lambda: [], peft_config={}),
                  SimpleNamespace(named_modules=lambda: [("layer.lora_A.default", None)]))
         with patch.dict("sys.modules", {"peft": peft}):
+            cpu = SimpleNamespace(parameters=lambda: iter([SimpleNamespace(device=SimpleNamespace(type="cpu"))]))
+            with self.assertRaisesRegex(ValueError, "requires a CUDA model"):
+                training._load_adapter(cpu, self.adapter)
             for base in bases:
+                base.parameters = lambda: iter([SimpleNamespace(device=SimpleNamespace(type="cuda"))])
                 with self.subTest(base=base), self.assertRaisesRegex(ValueError, "already carries"):
                     training._load_adapter(base, self.adapter)
         peft.PeftConfig.from_pretrained.assert_not_called()
