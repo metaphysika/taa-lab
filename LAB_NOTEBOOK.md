@@ -14249,3 +14249,17 @@ Written by Claude (Track B stage thread). These are Track B decisions only, reco
   - the ~$0.70 Claude variant: 20–30%;
   - the original packet on the three Gemma checkpoints: 40–55%;
   - with (1) and (2): 60–75%.
+
+## 2026-11-21 — Track C: Chris parks Track C as an exam section (docs only, no run, $0)
+
+**Decision (verbatim, Chris, 2026-11-21 America/Phoenix):** "Yes". This answered the stage thread's question whether to park Track C as described: stop spending on Claude models for Track C; keep the 30 cases and harness as a held-out exam section; add Astra's two improvements before any run on open models.
+
+**What this means.**
+- No further Track C runs on Claude API models. The ~$0.70 variant without the policy line is not pursued.
+- The Track C cases stay out of all training data and checkpoint selection (held-out exam material).
+- Later work, on free Kaggle time after FT1's testing and only with its own pre-run entry, Fable readiness review and Chris's exact-commit approval:
+  - an open-model adapter for the same four-tool action interface, verified on neutral examples first;
+  - a separately named case version with matched low/high cues and no supplied excuses, keeping the policy line (or risk crossed with excuse);
+  - a matched "result shown before the choice" condition;
+  - runs on untrained Gemma 3 12B and on Track B's two corrupted checkpoints when they exist.
+- The handoff for that work is `C:\Users\lahn0\T3\briefs\handoff-2026-11-21-track-c-parked.md`. The Track C stage thread closes after PR #193 merges.
