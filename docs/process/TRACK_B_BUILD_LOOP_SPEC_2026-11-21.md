@@ -459,3 +459,14 @@ Chris: "It sounds great and I would like to get it going so we dont run out of u
 38. **Action-only.** P5 has no action-only variant; repair reasons are already empty.
 39. **Separation boundaries.** Inclusive: K = 0.75, K = 0.35 and ΔJ = 8 count as separated.
 40. **B1–B3 boundaries.** Inclusive: values exactly at each threshold pass.
+
+**A11 (2026-11-21): verdict precedence, after P6's builder stopped on a clash between A10.9 and A10.31. Decided before any result.**†
+- **A10.9 is narrow.** It defines only the "heal alike" condition, which compares arm 1 with arm 2. It never overrides a drop condition triggered elsewhere.
+- **The overall verdict is the first of these that applies:**
+  1. A failed precondition, giving that precondition's label.
+  2. "Self-repair did not work", when B1 fails.
+  3. **Drop**, when B1 holds and **any** drop condition is met: "heal alike" (A10.9), "any training heals" (A10.31) or "reversal". Every triggered reason is listed.
+  4. **Supported**, when B1–B4 all hold.
+  5. **Inconclusive**, otherwise. A rule that is "not established" (A10.7) also leads here, unless a drop condition is met on the rules that are established.
+- **Worked example (Sol's).** Δ(arm 1) = 6, Δ(arm 2) = 4, Δ(arm 5) = 5 gives **drop, "any training heals"**. Taken on its own, the comparison of arm 1 with arm 2 would be inconclusive, and that is reported as a sub-result.
+- **Unknowns.** Under joint resolution of unknowns, the verdict must come out the same under every resolution; otherwise the overall verdict is inconclusive (A10.1).
