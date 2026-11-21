@@ -279,7 +279,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 | Piece | Builder / reviewer | Rounds | Chris decisions needed | Defects after "done" | Notes |
 |---|---|---|---|---|---|
 | P1 | Neon / Fable | 1 (round 1 FIX NEEDED: W/L label leaked in card IDs; "verified" stamp without Gemma 3 tokenizer) | 0 | | A5: layout of F, shares by trained turn |
-| P2 | Neon / Fable | | | | |
+| P2 | Neon / Fable | 1 (round 1 FIX NEEDED: sealing weak, seed recoverable, refusal misses worktrees, overlap check can pass on nothing, paraphrase check weak, template not shared) | 0 | | A6: pool-and-draw sealing; stage thread saw 7 sealed family names, all retired |
 | P3 | Sol / Fable | 1 (round 1: FIX NEEDED, 2 must-fix) | 0 (A3 reported, non-blocking) | | Scorer edge cases found by Fable |
 | P4 | Sol / Fable | 1 (stopped twice before building: A1, A2; round 1 FIX NEEDED: adapter-config check would refuse real FT1 adapters) | 0 | | Stage-thread decision: skipped-update allowance = steps // 10 |
 | P5 | Sol / Fable | | | | |
@@ -341,3 +341,14 @@ Decisions:
 3. **Card IDs carry no label.** IDs and file names shown in any prompt must not reveal W/L, the record type or the step.
 4. **`exploratory/track_b/__init__.py` is an empty file** in every piece.
 5. **Track B tests in the fast set.** Adding the Track B test modules to the fast set in `scripts/run_fast_checks.py` is a shared-file edit. The stage thread does it after wave 1 merges; builders do not.
+
+**A6 (2026-11-21, after Fable's round-1 review of P2).**
+
+1. **How VB and EB stay hidden (Fable's M1).** Committed code may contain a **pool** of candidate sealed families, but never the selection.
+   - The pool holds at least 48 freight families, disjoint from MB, PB and LD.
+   - The sealed entry point draws VB's 12 families and EB's 4 from that pool with its private seed, so neither the stage thread nor any reviewer of the code can know which families were drawn.
+   - No change to `scripts/` is needed.
+   - **Disclosure:** the stage thread saw seven VB/EB family names in Fable's review text (crushing_kilnblock, fineness_binder, gravity_deicer, tear_tarpaulin, brightness_pulp, runout_pinion, roughness_roller). Every family named in that review is **removed** from the sealed pool. Pool families must not be near-paraphrases of those names.
+2. **Merge order:** P3 merges before P2. P2 then renders every detached item through P3's `verdict.render_detached_item` and re-pins its hashes (Fable's M6).
+3. **Note for P6:** for cases with `issuer != "manager"`, the analysis uses executed acts, not `substance_outcome` or `classify` (P2 review S1).
+4. **Note for P7:** the cases are stored already rewritten, so they never go through `l2.rewrite` (P2 review note).
