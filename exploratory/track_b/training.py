@@ -3,6 +3,9 @@
 Trainer loop adapted from exploratory/ft1/training.py at
 dde099fe37292e001d8935aba91addb535a839cd. FT1's record encoder and
 split loss still own the token caps, trained-position masking and objective.
+
+Unverified until GPU execution: a freshly loaded quantized base passes the
+already-carries-adapter check.
 """
 import math
 import random
@@ -17,7 +20,10 @@ CORRUPTION_CHECKPOINTS = (25, 50, 75, 100, 150, 200, 250)
 REPAIR_CHECKPOINTS = (100,)
 
 
-def _load_adapter(base, path):
+def _load_adapter(base, path, *, allow_cpu=False):
+    device = next(base.parameters()).device.type
+    if device != "cuda" and not (allow_cpu and device == "cpu"):
+        raise ValueError("training requires a CUDA model unless CPU is explicitly enabled")
     names = [name for name, _ in base.named_modules()]
     if hasattr(base, "peft_config") or any(
         part.startswith("lora_") for name in names for part in name.split(".")
@@ -120,7 +126,7 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
         check()
         encoded, mask = record(tokenizer, rows[index])
         ordered.append(dict(encoded, reason_mask=mask))
-    model, target_count = _load_adapter(base, adapter)
+    model, target_count = _load_adapter(base, adapter, allow_cpu=allow_cpu)
     device = next(model.parameters()).device.type
     cuda = device == "cuda"
     if not cuda and not (allow_cpu and device == "cpu"):
@@ -128,17 +134,18 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
     trainable = [(name, parameter) for name, parameter in model.named_parameters()
                  if parameter.requires_grad]
     lora_a = [parameter for name, parameter in trainable if "lora_A" in name.split(".")]
-    lora_b = [parameter for name, parameter in trainable if "lora_B" in name.split(".")]
+    lora_b = [(name, parameter) for name, parameter in trainable if "lora_B" in name.split(".")]
     if len(trainable) != 2 * target_count or len(lora_a) != target_count or len(lora_b) != target_count:
         raise ValueError("expected one trainable LoRA A and B tensor per resolved target")
-    if any(not parameter.detach().count_nonzero().item() for parameter in lora_b):
-        raise ValueError("every trainable LoRA B tensor must be nonzero")
+    zero_b = [name for name, parameter in lora_b if not parameter.detach().count_nonzero().item()]
+    if zero_b:
+        raise ValueError(f"every trainable LoRA B tensor must be nonzero; "
+                         f"{len(zero_b)} zero tensors, first: {zero_b[0]}")
     retain(dict(event="adapter_loaded", adapter_sha256=adapter_sha256,
                 trainable_tensors=len(trainable), nonzero_lora_b=True))
     retain(dict(event="tokenized_real_records", examples=len(ordered),
                 trained_tokens=[sum(label != -100 for label in row["labels"]) for row in ordered],
                 data_order_sha256=core.digest(order)))
-    output.mkdir(parents=True, exist_ok=False)
     ft0b.tables(model, "after_cast" if cuda else "cpu_layout", retain, cast=cuda)
     initial = [parameter.detach().float().cpu().clone() for _, parameter in trainable]
     pending = []
@@ -195,7 +202,14 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
     def collate(batch):
         return {key: torch.tensor([row[key] for row in batch]) for key in batch[0]}
 
-    args = TrainingArguments(
+    class ManualCheckpointArguments(TrainingArguments):
+        @property
+        def should_save(self):
+            # Trainer creates its output directory at init when this is true.
+            # Track B writes its own checkpoints and uses no Trainer saves.
+            return False
+
+    args = ManualCheckpointArguments(
         output_dir=str(output / "trainer"), num_train_epochs=1,
         per_device_train_batch_size=RECIPE["batch"], gradient_accumulation_steps=accumulation,
         learning_rate=RECIPE["lr"], optim=RECIPE["optimizer"],
@@ -222,6 +236,7 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
                 cuda=cuda, fp16=cuda))
     log_norm(0)
     check()
+    output.mkdir(parents=True, exist_ok=False)
     result = trainer.train()
     check()
     if trainer.state.global_step != steps:

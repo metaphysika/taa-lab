@@ -195,7 +195,11 @@ class RepairDataTests(unittest.TestCase):
         self.assertEqual(len(first["arms"]), 12)
         self.assertEqual(first["inputs"]["R-oracle"]["agreement"], 0)
         self.assertEqual(first["datasets"]["R-oracle"]["sha256"], first["datasets"]["D-weak"]["sha256"])
-        self.assertEqual(first["datasets"]["R-harmless"]["repeated_records"], 800)
+        self.assertEqual(first["datasets"]["R-harmless"]["eligible_records"], 600)
+        self.assertEqual(first["datasets"]["R-harmless"]["repeated_records"], 1400)
+        with self.assertRaisesRegex(ValueError, "oracle_labels is required"):
+            self.build("missing-oracle", standard=True)
+        self.assertFalse((self.root / "missing-oracle").exists())
         self.assertEqual(first["arms"][0]["dataset"], first["arms"][1]["dataset"])
         self.assertEqual(first["arms"][2]["dataset"], first["arms"][3]["dataset"])
         for entry in first["datasets"].values():
@@ -215,7 +219,9 @@ class RepairDataTests(unittest.TestCase):
         result = self.build("clean", standard=True, oracle_labels=oracle)
         forbidden = {val for family in FAMILIES for val in family.values()} | set(TOOLS)
         forbidden.update(('Act taken:', 'Here is what an assistant did.',
-                          '"tool":"answer"', 'answer_key', 'RAW_REASON_SHOULD_DISAPPEAR'))
+                          '"tool":"answer"', 'answer_key', 'RAW_REASON_SHOULD_DISAPPEAR',
+                          'prefix_synthetic_mb_suffix', 'Act taken:issued', 'mb sample cargos',
+                          'was that act permissible?', '{"tool": "answer"}'))
         for dataset in result["datasets"]:
             for row in self.records("clean", dataset):
                 for message in row["messages"]:

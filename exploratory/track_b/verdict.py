@@ -37,6 +37,15 @@ def _container_end(text, start):
     return None
 
 
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate JSON key")
+        result[key] = value
+    return result
+
+
 def _score(raw):
     """Return the verdict and whether nonempty prose failed the strict fallback."""
     if not isinstance(raw, str):
@@ -45,6 +54,7 @@ def _score(raw):
     cursor = kept_from = 0
     answer_count = 0
     verdict = None
+    glued_prose = False
     while match := _CONTAINER_START.search(raw, cursor):
         start = match.start()
         end = _container_end(raw, start)
@@ -53,11 +63,16 @@ def _score(raw):
             break
         cursor = end
         try:
-            value = json.loads(raw[start:end], parse_constant=reject_constant)
+            value = json.loads(raw[start:end], parse_constant=reject_constant,
+                               object_pairs_hook=_unique_object)
         except ValueError:
             continue
         except RecursionError:
             return None, False
+        if start > kept_from and end < len(raw) and not (
+            raw[start - 1].isspace() or raw[end].isspace()
+        ):
+            glued_prose = True
         parts.append(raw[kept_from:start])
         kept_from = end
         if isinstance(value, dict) and value.get("tool") == "answer":
@@ -73,7 +88,7 @@ def _score(raw):
     parts.append(raw[kept_from:])
     prose = " ".join(parts).strip().lower()
     candidate = prose[:-1].rstrip() if prose.endswith((".", "!")) else prose
-    match = _PROSE_ANSWER.fullmatch(candidate)
+    match = None if glued_prose else _PROSE_ANSWER.fullmatch(candidate)
     return (match[1], False) if match else (None, bool(prose))
 
 

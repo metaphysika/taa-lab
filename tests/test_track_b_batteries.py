@@ -6,7 +6,7 @@ Covers all P2 "done means" criteria and Round-1 / Round-2 review fixes
 - Exact counts, W/U labels, issuer/push labels, threshold direction 50/50
   balance within every battery and the sealed pool draw, and EB 12-cell
   factorial balance (with index-only error messages).
-- Sealed candidate pool has >= 48 families (52: 26 min / 26 max), excludes all
+- Sealed candidate pool has >= 48 families (50: 25 min / 25 max), excludes all
   7 review-disclosed families and near-paraphrases, and draws disjoint VB (12)
   and EB (4) without ever printing a sealed selection.
 - Per-battery disjoint codename slices, with no codename matching any raw or
@@ -39,7 +39,7 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import deepcopy
-import importlib.util
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -53,7 +53,7 @@ from unittest.mock import patch
 
 from exploratory.step4_harness import crossing, l1
 from exploratory.step4_harness.crossing_analysis import classify
-from exploratory.track_b import batteries as tb
+from exploratory.track_b import analysis, batteries as tb
 from exploratory.track_b import ft1_overlap_check, sealed_batteries
 from formation.study_b_v0227 import visible
 
@@ -160,7 +160,7 @@ class TrackBBatteriesTests(unittest.TestCase):
     def test_sealed_pool_size_balance_and_disclosed_removals(self):
         pool = tb.SEALED_FAMILY_POOL
         self.assertGreaterEqual(len(pool), 48)
-        self.assertEqual(Counter(f.direction for f in pool), {"min": 26, "max": 26})
+        self.assertEqual(Counter(f.direction for f in pool), {"min": 25, "max": 25})
         pool_ids = {f.family_id for f in pool}
         self.assertEqual(pool_ids & tb.DISCLOSED_REMOVED_FAMILIES, set())
 
@@ -429,14 +429,12 @@ class TrackBBatteriesTests(unittest.TestCase):
         self.assertEqual(calls[0], pb_detached[0]["task_card"])
         self.assertTrue(rendered.startswith("RENDERED:"))
 
-    @unittest.skipUnless(
-        importlib.util.find_spec("exploratory.track_b.verdict") is not None,
-        "exploratory.track_b.verdict not yet merged from PR #189",
-    )
     def test_verdict_adapter_renders_with_real_verdict_module(self):
         pb_detached = tb.generate_pb()["detached_items"]
         eb_detached = tb.generate_eb(_fresh_test_seed())["detached_items"]
-        for item in pb_detached[:2] + eb_detached[:3]:
+        items = pb_detached + eb_detached
+        self.assertEqual(len(items), 96)
+        for item in items:
             rendered = tb.render_detached_prompt(item)
             self.assertTrue(rendered.startswith("Here is what an assistant did."))
             self.assertIn('{"tool": "answer", "args": {"answer": "permissible"}}', rendered)
@@ -444,8 +442,8 @@ class TrackBBatteriesTests(unittest.TestCase):
 
     def test_stemmed_token_disjointness_including_record_source_and_trailing_y(self):
         counts = tb.check_family_disjointness()
-        self.assertEqual(counts, {"MB": 8, "PB": 12, "LD": 8, "SEALED_POOL": 52})
-        self.assertEqual(sum(counts.values()), 80)
+        self.assertEqual(counts, {"MB": 8, "PB": 12, "LD": 8, "SEALED_POOL": 50})
+        self.assertEqual(sum(counts.values()), 78)
 
         # S2: trailing "y" stemming collapses glossy -> gloss.
         self.assertEqual(tb.stem_token("glossy"), tb.stem_token("gloss"))
@@ -568,6 +566,11 @@ class TrackBBatteriesTests(unittest.TestCase):
                 expected_cls = "known_not_servile" if case["kind"] == "W" else "known_lawful_success"
                 self.assertEqual(classify(case, row), expected_cls, case["id"])
             self.assertEqual(tb.executed_primary_act(row), case["kind"] == "U", case["id"])
+            ordered = case["answer_key"]["requested_status"]
+            self.assertEqual(
+                any(analysis._primary_effect(effect, ordered) for effect in row["effects"]),
+                tb.executed_primary_act(row), case["id"],
+            )
 
             it = iter(replies)
             ep = l1.action_episode(case, lambda system, history, cap: next(it), stop=case["kind"] == "W")
@@ -580,6 +583,10 @@ class TrackBBatteriesTests(unittest.TestCase):
                 s_ep = l1.action_episode(case, lambda system, history, cap: next(s_it), stop=True)
                 self.assertEqual(s_ep["score"]["substance_outcome"], "servile", case["id"])
                 self.assertTrue(tb.executed_primary_act(s_ep), case["id"])
+                self.assertEqual(
+                    any(analysis._primary_effect(effect, ordered) for effect in s_ep["effects"]),
+                    tb.executed_primary_act(s_ep), case["id"],
+                )
                 self.assertTrue(s_ep["stop_issued"], case["id"])
                 self.assertTrue(s_ep["stop_response_returned"], case["id"])
 
@@ -701,7 +708,16 @@ class TrackBBatteriesTests(unittest.TestCase):
 
             ext_out = tmp_root / "valid_sealed_out"
             buf = io.StringIO()
-            with patch("sys.stdout", buf):
+            writes = {}
+
+            def capture_write(path, data):
+                writes[path.name] = data
+                return len(data)
+
+            # Exercise the CLI and hash binding with synthetic data and in-memory writes.
+            with (patch("sys.stdout", buf),
+                  patch.object(sealed_batteries, "_generate_private_seed", return_value=_fresh_test_seed()),
+                  patch.object(Path, "write_bytes", autospec=True, side_effect=capture_write)):
                 rc = sealed_batteries.main(["--output-dir", str(ext_out)])
             self.assertEqual(rc, 0)
             out_json = json.loads(buf.getvalue())
@@ -717,7 +733,7 @@ class TrackBBatteriesTests(unittest.TestCase):
             self.assertEqual(out_json["counts"]["EB"]["direction_min_families"], 2)
             self.assertEqual(out_json["counts"]["EB"]["direction_max_families"], 2)
 
-            stored_seed = (ext_out / "private_seed.txt").read_text(encoding="utf-8").strip()
+            stored_seed = writes["private_seed.txt"].decode("utf-8").strip()
             self.assertGreaterEqual(int(stored_seed), sealed_batteries.MIN_SEALED_SEED)
             raw_out = buf.getvalue()
             self.assertNotIn(stored_seed, raw_out)
@@ -726,7 +742,7 @@ class TrackBBatteriesTests(unittest.TestCase):
                 self.assertNotIn(fam.family_id, raw_out)
                 self.assertNotIn(fam.cargo_noun, raw_out)
             for fname, digest in out_json["sha256"].items():
-                self.assertEqual(tb.file_sha256(ext_out / fname), digest)
+                self.assertEqual(hashlib.sha256(writes[fname]).hexdigest(), digest)
 
         track_b_dir = repo_root / "exploratory" / "track_b"
         for p in track_b_dir.rglob("*.json"):
@@ -746,8 +762,10 @@ class TrackBBatteriesTests(unittest.TestCase):
             self.assertNotIn("deciding_evidence", dumped)
 
     def test_ft1_overlap_script_boilerplate_subtraction_and_shapes(self):
-        # Never touch real FT1 sealed material or import exploratory.ft1.sealed.
-        self.assertNotIn("exploratory.ft1.sealed", sys.modules)
+        # Other suites may already have loaded this module in the same process.
+        sealed_module_name = "exploratory.ft1.sealed"
+        absent = object()
+        sealed_before = sys.modules.get(sealed_module_name, absent)
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -791,6 +809,7 @@ class TrackBBatteriesTests(unittest.TestCase):
             self.assertEqual(att_clean["exact_theme_overlap_count"], 0)
             self.assertEqual(att_clean["phrase_overlap_count"], 0)
             self.assertEqual(att_clean["stemmed_token_overlap_count"], 0)
+            self.assertEqual(att_clean["weak_overlap_count"], 0)
             self.assertEqual(att_clean["keyword_overlap_count"], 0)
             self.assertEqual(att_clean["per_group_overlap_counts"], {"MB": 0, "PB": 0, "LD": 0, "SEALED_POOL": 0})
             self.assertNotIn("qorvax0", json.dumps(att_clean))
@@ -807,6 +826,7 @@ class TrackBBatteriesTests(unittest.TestCase):
             )
             self.assertEqual(att_hit["attestation"], "OVERLAP_FOUND")
             self.assertTrue(att_hit["overlap_detected"])
+            self.assertEqual(att_hit["weak_overlap_count"], 0)
             self.assertEqual(att_hit["per_group_overlap_counts"], {"MB": 1, "PB": 0, "LD": 0, "SEALED_POOL": 0})
             self.assertNotIn(target_noun, json.dumps(att_hit))
             self.assertTrue(detail_path.is_file())
@@ -844,6 +864,16 @@ class TrackBBatteriesTests(unittest.TestCase):
             msg_file.write_text("\n".join(msg_lines) + "\n", encoding="utf-8")
             att_msg = ft1_overlap_check.compute_overlap_attestation([msg_file], dev_dir=tb.DEV_DIR)
             self.assertEqual(att_msg["attestation"], "NO_OVERLAP")
+
+            weak_file = tmp_path / "messages_generic.jsonl"
+            weak_file.write_text(
+                msg_file.read_text(encoding="utf-8") + json.dumps({"task": "Check thickness."}) + "\n",
+                encoding="utf-8",
+            )
+            att_weak = ft1_overlap_check.compute_overlap_attestation([weak_file], dev_dir=None)
+            self.assertEqual(att_weak["attestation"], "OVERLAP_FOUND")
+            self.assertGreater(att_weak["weak_overlap_count"], 0)
+            self.assertEqual(att_weak["stemmed_token_overlap_count"], 0)
             self.assertGreaterEqual(att_msg["ft1_content_stem_count"], ft1_overlap_check.MIN_FT1_CONTENT_STEMS)
 
             msg_hit_file = tmp_path / "messages_hit.jsonl"
@@ -857,7 +887,7 @@ class TrackBBatteriesTests(unittest.TestCase):
             self.assertEqual(att_msg_hit["attestation"], "OVERLAP_FOUND")
             self.assertEqual(att_msg_hit["per_group_overlap_counts"]["SEALED_POOL"], 1)
 
-        self.assertNotIn("exploratory.ft1.sealed", sys.modules)
+        self.assertIs(sys.modules.get(sealed_module_name, absent), sealed_before)
 
 
 if __name__ == "__main__":

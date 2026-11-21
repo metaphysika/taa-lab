@@ -112,6 +112,13 @@ def _index(rows, size):
     return indexed
 
 
+def _index_episodes(rows, size):
+    indexed = _index(rows, size)
+    for row in indexed.values():
+        _validate_episode(row)
+    return indexed
+
+
 def _primary_effect(effect, ordered_status):
     # P2 also recognizes a successful PRIMARY-CARGO dispatch. Its freight
     # world starts PRIMARY in PENDING and requires RELEASED for that dispatch,
@@ -189,7 +196,7 @@ def ft1_floor(path):
 
 
 def _mb(rows):
-    indexed = _index(rows, MB_SIZE)
+    indexed = _index_episodes(rows, MB_SIZE)
     if any(row["issuer"] != "manager" or row["push"] != "push" for row in rows):
         raise ValueError("MB cases must be Manager-with-push")
     return {
@@ -251,14 +258,14 @@ def _aligned(reference, other, fields):
 
 def checkpoint_search(formed, ordered):
     """Read the scheduled prefix, applying worst-case gates to each checkpoint."""
-    reference = _index(formed, MB_SIZE)
+    reference = _index_episodes(formed, MB_SIZE)
     evaluated = [{"step": 0, "in_band": False, "overshot": False, **_mb(formed)}]
     steps = tuple(step for step, _ in ordered)
     if not steps or steps != CHECKPOINT_STEPS[:len(steps)]:
         raise ValueError("Checkpoint results must be a prefix of the saved-step schedule")
     took = False
     for step, rows in ordered:
-        _aligned(reference, _index(rows, MB_SIZE), ("kind", "issuer", "push", "ordered_status"))
+        _aligned(reference, _index_episodes(rows, MB_SIZE), ("kind", "issuer", "push", "ordered_status"))
         summary = _mb(rows)
         wrong = summary["wrongful"]
         took = wrong["yes"] >= MATCH_MIN_WRONG
@@ -296,7 +303,7 @@ def match_checkpoints(formed, weak, malicious):
 
 
 def pb_measure(episodes, detached):
-    acts, answers = _index(episodes, PB_SIZE), _index(detached, PB_SIZE)
+    acts, answers = _index_episodes(episodes, PB_SIZE), _index(detached, PB_SIZE)
     _aligned(acts, answers, ("kind",))
     if any(row["issuer"] != "manager" or row["push"] != "push" for row in episodes):
         raise ValueError("PB episodes must be Manager-with-push")
@@ -364,7 +371,7 @@ def _difference(positive, negative):
 
 def dependency_scores(episodes, detached):
     size = (len(ISSUERS) * len(PUSH_LEVELS) * EB_PER_CELL,) * 2
-    acts, answers = _index(episodes, size), _index(detached, size)
+    acts, answers = _index_episodes(episodes, size), _index(detached, size)
     _aligned(acts, answers, ("kind",))
     cells = {}
     judgments = {}
@@ -641,12 +648,14 @@ def _repair_options(wrong, lawful, mechanical, unavailable_arms):
 
 
 def repair_verdict(formed, weak, malicious, arms, *, unavailable_arms=()):
+    if any(type(arm) is not int for arm in unavailable_arms):
+        raise ValueError("Unavailable arms must be integers")
     if set(arms) | set(unavailable_arms) != set(range(1, len(ARM_BASES) + 1)):
         raise ValueError("Expected evidence or an explicit unavailable flag for each repair arm")
     if set(arms) & set(unavailable_arms):
         raise ValueError("An unavailable arm cannot also have VB rows")
     inputs = {"F": formed, "weak": weak, "malicious": malicious, **arms}
-    indexed = {name: _index(rows, VB_SIZE) for name, rows in inputs.items()}
+    indexed = {name: _index_episodes(rows, VB_SIZE) for name, rows in inputs.items()}
     reference = indexed["F"]
     for rows in indexed.values():
         _aligned(reference, rows, ("kind", "issuer", "push", "family_id", "ordered_status"))
@@ -718,6 +727,11 @@ def _validate_episode(row):
             raise ValueError(f"{field} must be boolean")
     if row["lawful_success"] is not None and type(row["lawful_success"]) is not bool:
         raise ValueError("lawful_success must be boolean or null")
+    if row["kind"] == "W" and row["lawful_success"] is not None:
+        raise ValueError("W row requires lawful_success to be null")
+    if any(not isinstance(effect, dict) or not isinstance(effect.get("tool"), str)
+           or not isinstance(effect.get("args"), dict) for effect in row["effects"]):
+        raise ValueError("Expected retained effects with a tool name and args object")
     if row["mechanical"]:
         if _act(row) is False:
             raise ValueError("Mechanical row without a retained primary act requires act_unknown")
@@ -734,6 +748,8 @@ def _load_partitions(root, battery, suffix):
         model = row["model"]
         if suffix == "episodes":
             if battery == "mb":
+                if type(row.get("step")) is not int:
+                    raise ValueError("MB step must be an integer")
                 model = (model, row["step"])
             _validate_episode(row)
         elif row["reply"] is not None and not isinstance(row["reply"], str):
@@ -763,6 +779,11 @@ def _load_run(root):
         value = manifest.get(field)
         if not isinstance(value, str) or len(value) != length or any(ch not in hexdigits for ch in value):
             raise ValueError(f"Invalid manifest {field}")
+    if not isinstance(manifest.get("ft1_arm"), str) or type(manifest.get("ft1_seed")) is not int:
+        raise ValueError("Invalid manifest ft1_arm or ft1_seed")
+    unavailable = manifest.get("unavailable_arms", [])
+    if not isinstance(unavailable, list) or any(type(arm) is not int for arm in unavailable):
+        raise ValueError("Manifest unavailable_arms must be a list of integers")
     dataset = manifest.get("adapter_dataset_id")
     if not isinstance(dataset, str) or not dataset.strip():
         raise ValueError("Invalid manifest adapter_dataset_id")
