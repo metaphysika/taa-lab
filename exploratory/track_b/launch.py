@@ -13,6 +13,8 @@ from exploratory.k2_kaggle import core
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOT = Path("C:/t/trackb/")
+DATASET_COMPONENT = re.compile("[a-z0-9_-]+")
+STATUS_TIMEOUT_SECONDS = 60
 RECEIPT_FIELDS = {
     "schema_version", "stage", "commit_sha", "approval_id", "approval_text",
     "bundle_sha256", "adapter_dataset_id", "adapter_sha256", "created_utc",
@@ -67,13 +69,48 @@ def read_json(path):
     return json.loads(path.read_bytes(), object_pairs_hook=unique)
 
 
+def git_root(path):
+    return ((path / ".git").exists() or (path / ".git").is_symlink()
+            or ((path / "HEAD").is_file() and (path / "objects").is_dir()
+                and (path / "refs").is_dir()))
+
+
 def staging_root():
-    path = Path(os.environ.get("TRACK_B_STAGING_ROOT", DEFAULT_ROOT)).resolve()
-    reserved = Path("C:/t").resolve()
-    if path.is_relative_to(reserved):
-        parts = path.relative_to(reserved).parts
-        if parts and parts[0].lower().startswith("ft1"):
-            raise ValueError("Track B cannot use FT1 staging")
+    override = os.environ.get("TRACK_B_STAGING_ROOT")
+    if override is not None and not override.strip():
+        raise ValueError("TRACK_B_STAGING_ROOT cannot be blank")
+    lexical = Path(os.path.abspath(override if override is not None else DEFAULT_ROOT))
+    reserved = Path(os.path.abspath("C:/t"))
+
+    def check_ft1(candidate, parent):
+        if parent.is_relative_to(candidate) or (
+            candidate.is_relative_to(parent)
+            and candidate.relative_to(parent).parts[0].lower().startswith("ft1")
+        ):
+            raise ValueError("Track B staging cannot overlap FT1 staging")
+
+    check_ft1(lexical, reserved)
+    path = lexical.resolve()
+    check_ft1(path, reserved.resolve())
+    for candidate in (lexical, path):
+        if ROOT.is_relative_to(candidate) or any(
+            git_root(parent) for parent in (candidate, *candidate.parents)
+        ):
+            raise ValueError("Track B staging cannot overlap a Git repo or worktree")
+
+    try:
+        path.stat()
+    except FileNotFoundError:
+        return path
+
+    def walk_error(error):
+        raise error
+
+    for directory, dirs, files in os.walk(path, onerror=walk_error, followlinks=False):
+        if ".git" in dirs or ".git" in files or git_root(Path(directory)):
+            raise ValueError("Track B staging cannot contain a Git repo or worktree")
+        if any((Path(directory) / name).resolve() != Path(directory) / name for name in dirs):
+            raise ValueError("Track B staging cannot contain linked directories")
     return path
 
 
@@ -81,7 +118,7 @@ def binding(commit_sha, adapter_dataset_id, adapter_sha256, model_source, owner)
     if not re.fullmatch("[a-f0-9]{40}", commit_sha) or not re.fullmatch("[a-f0-9]{64}", adapter_sha256):
         raise ValueError("exact commit and adapter hashes required")
     match = re.fullmatch(
-        r"[a-z0-9_-]+/ft1-adapter-(2u|2|1)-([0-9]+)-0449a230200c",
+        r"[a-z0-9_-]+/ft1-adapter-(2u|2|1)-([1-9][0-9]{0,49})-0449a230200c",
         adapter_dataset_id,
     )
     if not match or not re.fullmatch("[a-z0-9_-]+", owner):
@@ -132,6 +169,8 @@ def notebook(config, archive, receipt=None):
 
 def bundle(config, archive):
     slug = f"trackb-b0a-{config['ft1_arm']}-{config['ft1_seed']}-{config['commit_sha'][:12]}"
+    if len(slug) > 50:
+        raise ValueError("Kaggle kernel title exceeds 50 characters")
     metadata = dict(id=f"{config['owner']}/{slug}", title=slug, code_file=NOTEBOOK,
                     language="python", kernel_type="notebook", is_private=True,
                     enable_gpu=True, enable_internet=False,
@@ -168,7 +207,7 @@ def stage(name, *, commit_sha, adapter_dataset_id, adapter_sha256, model_source,
 
 
 def safe_name(name):
-    if not re.fullmatch("[a-z0-9][a-z0-9-]{0,60}", name) or name == "kaggle-owner":
+    if not re.fullmatch("[a-z0-9][a-z0-9-]{0,60}", name) or name == "kaggle-owner" or name.startswith("ft1"):
         raise ValueError("expected a Track B staging directory name")
     return name
 
@@ -201,7 +240,7 @@ def require_owner(root):
 
 
 def push(name, receipt_path, *, status, backend):
-    """Status supplies a fresh, complete iterable of session states for the account."""
+    """Status takes the account owner and supplies a fresh, complete iterable of states."""
     root = staging_root()
     require_owner(root)
     folder = root / safe_name(name)
@@ -224,7 +263,7 @@ def push(name, receipt_path, *, status, backend):
     lock = root / ".push-lock"
     lock.mkdir()
     try:
-        states = status()
+        states = status(verified["owner"])
         if isinstance(states, (str, bytes, dict)):
             raise ValueError("status must supply all Kaggle session states")
         states = list(states)
@@ -248,6 +287,16 @@ def kaggle_push(folder):
                     "--accelerator", "NvidiaTeslaT4", "--timeout", str(KAGGLE_TIMEOUT_SECONDS)], check=True)
 
 
+def command_status(argv, owner):
+    """Trust a configured provider to attest that its account query succeeded."""
+    value = json.loads(subprocess.check_output(argv, timeout=STATUS_TIMEOUT_SECONDS))
+    if (not isinstance(value, dict) or value.get("owner") != owner
+            or value.get("account_verified") is not True
+            or not isinstance(value.get("states"), list)):
+        raise ValueError("status command must attest a successful account query for the staged owner")
+    return value["states"]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("name")
@@ -255,20 +304,15 @@ def main(argv=None):
         parser.add_argument("--" + name)
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--receipt", type=Path)
-    parser.add_argument("--status-command", nargs="+",
-                        help="Command returning a fresh JSON array of all account session states")
+    parser.add_argument("--status-command", nargs=argparse.REMAINDER,
+                        help="Last option. Command returning JSON with owner, account_verified and states")
     args = parser.parse_args(argv)
     if args.push:
         if args.receipt is None or not args.status_command:
             parser.error("--push needs --receipt and an account-wide --status-command")
 
-        def status():
-            value = json.loads(subprocess.check_output(args.status_command))
-            if not isinstance(value, list):
-                raise ValueError("status command must return a JSON array")
-            return value
-
-        push(args.name, args.receipt, status=status, backend=kaggle_push)
+        push(args.name, args.receipt, status=lambda owner: command_status(args.status_command, owner),
+             backend=kaggle_push)
     else:
         options = {key: getattr(args, key) for key in (
             "commit_sha", "adapter_dataset_id", "adapter_sha256", "model_source", "owner",

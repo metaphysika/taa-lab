@@ -376,6 +376,24 @@ class RetainedSnapshotTests(unittest.TestCase):
                 "commit_sha": "a" * 40, "adapter_dataset_id": "synthetic", "adapter_sha256": "b" * 64,
             })
 
+    def test_interrupted_b0a_cannot_pass_within_the_unknown_allowance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            floor, _ = write_b0a_fixture(root)
+            rows = detached(unknown_u=(23,))
+            rows[-1]["failure_label"] = "not_attempted_deadline"
+            write_jsonl(root / "pb_detached.jsonl", rows)
+            completed = a.analyze(root, floor)
+            self.assertEqual(completed["verdict"], "passed")
+            self.assertEqual(completed["B0a"]["PB"]["unknown"], 1)
+            path = root / "events.jsonl"
+            events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+            events[-1]["event"] = "interrupted"
+            write_jsonl(path, events)
+            report = a.analyze(root, floor)
+            self.assertEqual(report["verdict"], "interrupted")
+            self.assertEqual(report["B0a"], dict(completed["B0a"], verdict="interrupted"))
+
     def test_manifest_and_events_validation(self):
         with tempfile.TemporaryDirectory() as directory:
             floor, manifest = write_b0a_fixture(directory)

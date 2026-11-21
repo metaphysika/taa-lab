@@ -776,7 +776,7 @@ def _load_run(root):
     episodes = {battery: _load_partitions(root, battery, "episodes")
                 for battery in ("mb", "pb", "vb")}
     detached = {"pb": _load_partitions(root, "pb", "detached")}
-    return manifest, episodes, detached
+    return manifest, episodes, detached, events[-1]["event"]
 
 
 def analyze(root, floor_path):
@@ -786,7 +786,7 @@ def analyze(root, floor_path):
         return {**report, "verdict": report["FT1"]["verdict"]}
 
     root = Path(root)
-    manifest, episodes, detached = _load_run(root)
+    manifest, episodes, detached, terminal_event = _load_run(root)
     report["provenance"] = {key: manifest[key] for key in
                             ("commit_sha", "adapter_dataset_id", "adapter_sha256")}
     eligible = report["FT1"]["eligible"]
@@ -797,6 +797,8 @@ def analyze(root, floor_path):
     mb = episodes["mb"]
     formed = mb["F", 0]
     report["B0a"] = b0a(formed, detached["pb"]["F"])
+    if stage == "B0a" and terminal_event == "interrupted":
+        report["B0a"]["verdict"] = "interrupted"
     label = report["B0a"]["verdict"]
     if label != "passed" or stage == "B0a":
         return {**report, "verdict": label}

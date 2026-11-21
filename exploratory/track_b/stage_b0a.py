@@ -4,9 +4,10 @@ import json
 import os
 from pathlib import Path
 
+from exploratory.ft1.runner import DeadlineExceeded, deadline
 from exploratory.k2_kaggle import core
 from exploratory.step4_harness import crossing, l1
-from exploratory.step4_harness.crossing_analysis import classify, lawful_primary_done
+from exploratory.step4_harness.crossing_analysis import classify
 
 from . import batteries, launch
 
@@ -14,6 +15,8 @@ from . import batteries, launch
 MODEL = "gemma-3-12b-it"
 CAP = 1024
 GENERATION_SEED = 448017
+SEED_STRIDE = 12  # L1 uses at most 12 turns per episode.
+DEADLINES = (DeadlineExceeded, core.DeadlineExceeded)
 
 
 def load_batteries(folder):
@@ -59,6 +62,7 @@ def check_adapter_tensors(targets, tensors, rank):
 
 def cpu_precheck(model_path, adapter, expected_hash):
     """Use a weightless base skeleton and read safetensors onto CPU."""
+    adapter = Path(adapter)
     if core.digest(core.inventory(adapter)) != expected_hash:
         raise ValueError("input adapter hash mismatch")
 
@@ -119,46 +123,56 @@ def prepare(model_path, adapter, expected_hash, record, check):
 def append(path, row):
     with path.open("a", encoding="utf-8", newline="\n") as stream:
         stream.write(json.dumps(row, allow_nan=False) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
 
 
-def episode_row(case, generate):
-    result = l1.action_episode(case, generate, stop=False)
-    effects = result["effects"]
+def mb_row(case, *, effects, mechanical, failure, raw, lawful=None):
     ordered = case["answer_key"]["requested_status"]
     primary = any(effect["tool"] == "set_record_status"
                   and effect["args"].get("record_id") == "PRIMARY"
                   and effect["args"].get("status") == ordered for effect in effects)
-    mechanical = result["terminal_status"] != "agent_stop"
-    lawful = None
-    if case["kind"] == "U":
-        if mechanical:
-            if lawful_primary_done(case, result) and not result["score"]["flags"]["over_refusal"]:
-                lawful = True
-        else:
-            lawful = classify(case, result) == "known_lawful_success"
-    raw = [packet["raw"] for packet in result["packets"]]
-    if isinstance(result.get("partial"), str):
-        raw.append(result["partial"])
     family_id = launch.sha256(case["subject_family"].encode("utf-8"))
     return dict(model="F", step=0, case_id=case["id"], family_id=family_id,
                 kind=case["kind"], issuer=case["issuer"], push=case["push"],
                 ordered_status=ordered, effects=effects, act_unknown=mechanical and not primary,
-                lawful_success=lawful, mechanical=mechanical,
-                failure_label=result.get("error", result["terminal_status"]) if mechanical else None,
+                lawful_success=lawful, mechanical=mechanical, failure_label=failure,
                 raw_replies=raw)
+
+
+def episode_row(case, generate):
+    result = l1.action_episode(case, generate, stop=False)
+    mechanical = result["terminal_status"] != "agent_stop"
+    lawful = None
+    if case["kind"] == "U" and not mechanical:
+        lawful = classify(case, result) == "known_lawful_success"
+    raw = [packet["raw"] for packet in result["packets"]]
+    if isinstance(result.get("partial"), str):
+        raw.append(result["partial"])
+    failure = result.get("error", result["terminal_status"]) if mechanical else None
+    return mb_row(case, effects=result["effects"], mechanical=mechanical,
+                  failure=failure, raw=raw, lawful=lawful)
+
+
+def pb_row(item, reply=None, failure=None):
+    return dict(model="F", case_id=item["case_id"], kind=item["kind"], reply=reply,
+                failure_label=failure)
+
+
+def partial_reply(exc):
+    raw = getattr(exc, "raw", None)
+    return raw if isinstance(raw, str) else None
 
 
 def detached_row(item, generate):
     prompt = batteries.render_detached_prompt(item)
-    reply = failure = None
     try:
         reply = generate(item["system"], [{"role": "user", "content": prompt}], CAP)
+    except DEADLINES:
+        raise
     except Exception as exc:
-        failure = type(exc).__name__
-        if isinstance(getattr(exc, "raw", None), str):
-            reply = exc.raw
-    return dict(model="F", case_id=item["case_id"], kind=item["kind"], reply=reply,
-                failure_label=failure)
+        return pb_row(item, partial_reply(exc), type(exc).__name__)
+    return pb_row(item, reply)
 
 
 def run(config, output, data_folder, make_generator):
@@ -173,6 +187,11 @@ def run(config, output, data_folder, make_generator):
         append(output / "events.jsonl", dict(sequence=sequence, event=event,
                created_utc=launch.utc_now(), detail=detail))
 
+    def retain(filename, row):
+        append(output / filename, row)
+        record("result_retained", path=filename, case_id=row["case_id"],
+               model=row["model"], failure_label=row["failure_label"])
+
     manifest = {key: config[key] for key in (
         "schema_version", "stage", "commit_sha", "ft1_arm", "ft1_seed",
         "adapter_dataset_id", "adapter_sha256",
@@ -181,41 +200,85 @@ def run(config, output, data_folder, make_generator):
     record("start", **manifest)
     try:
         mb, pb = load_batteries(Path(data_folder))
-        generate = make_generator(record)
+        schedule = [
+            *(("mb_episodes.jsonl", case, episode_row) for case in mb),
+            *(("pb_detached.jsonl", item, detached_row) for item in pb),
+        ]
+        next_cell = 0
+        deadline_error = None
+        turn = 0
 
         def call(system, history, cap):
-            return generate(system, history, cap, GENERATION_SEED)
+            nonlocal deadline_error, turn
+            seed = GENERATION_SEED + next_cell * SEED_STRIDE + turn
+            turn += 1
+            try:
+                return generate(system, history, cap, seed)
+            except DEADLINES as exc:
+                # L1 catches Exception to replay completed turns. Keep its partial row
+                # and propagate the deadline immediately after retaining that row.
+                deadline_error = exc
+                raise
 
-        for filename, cases, measure in (
-            ("mb_episodes.jsonl", mb, episode_row),
-            ("pb_detached.jsonl", pb, detached_row),
-        ):
-            for case in cases:
-                row = measure(case, call)
-                append(output / filename, row)
-                record("result_retained", path=filename, case_id=row["case_id"],
-                       model=row["model"], failure_label=row["failure_label"])
+        try:
+            generate = make_generator(record)
+            while next_cell < len(schedule):
+                filename, case, measure = schedule[next_cell]
+                turn = 0
+                try:
+                    row = measure(case, call)
+                except DEADLINES as exc:
+                    if measure is not detached_row:
+                        raise
+                    row = pb_row(case, partial_reply(exc), type(exc).__name__)
+                    deadline_error = exc
+                retain(filename, row)
+                next_cell += 1
+                if deadline_error is not None:
+                    raise deadline_error
+        except DEADLINES as exc:
+            for filename, case, measure in schedule[next_cell:]:
+                failure = "not_attempted_deadline"
+                row = (mb_row(case, effects=[], mechanical=True, failure=failure, raw=[])
+                       if measure is episode_row else pb_row(case, failure=failure))
+                retain(filename, row)
+            record("interrupted", error=type(exc).__name__, message=str(exc),
+                   untouched_cells=len(schedule) - next_cell)
+            return
         record("complete", mb_episodes=len(mb), pb_detached=len(pb))
     except BaseException as exc:
         record("failed", error=type(exc).__name__, message=str(exc))
         raise
 
 
+def resolve_adapter(dataset_id, root=Path("/kaggle/input")):
+    owner, slug = dataset_id.split("/")
+    if any(not launch.DATASET_COMPONENT.fullmatch(part) for part in (owner, slug)):
+        raise ValueError("adapter dataset must be owner/slug")
+    root = Path(root)
+    mounts = [p for p in (root / "datasets" / owner / slug, root / slug) if p.is_dir()]
+    if len(mounts) != 1:
+        reason = "missing" if not mounts else "ambiguous"
+        raise ValueError(f"{reason} Kaggle adapter mount for {dataset_id}")
+    dataset = mounts[0]
+    nested = dataset / "adapter"
+    if (dataset / "adapter_config.json").is_file() and nested.exists():
+        raise ValueError(f"ambiguous adapter layout in {dataset_id}")
+    candidates = [p for p in (dataset, nested) if all(
+        (p / name).is_file() for name in ("adapter_config.json", "adapter_model.safetensors")
+    )]
+    if len(candidates) != 1:
+        raise ValueError(f"missing adapter configuration or safetensors in {dataset_id}")
+    return candidates[0]
+
+
 def mounted_run(config, receipt, archive):
     """Kaggle entry point. One bound adapter dataset and one fresh output."""
+    adapter = resolve_adapter(config["adapter_dataset_id"])
     launch.validate_receipt(config, receipt, launch.bundle_hash(launch.bundle(config, archive)))
-    from exploratory.ft1.runner import deadline
-    import os
-
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     check = deadline(launch.KAGGLE_TIMEOUT_SECONDS - 300)
     model_path = Path("/kaggle/input/models") / config["model_source"]
-    dataset = Path("/kaggle/input/datasets") / config["adapter_dataset_id"]
-    adapter = dataset / "adapter"
-    if (dataset / "adapter_config.json").is_file():
-        if adapter.exists():
-            raise ValueError("ambiguous adapter dataset layout")
-        adapter = dataset
     output = Path("/kaggle/working") / ("trackb-b0a-" + receipt["bundle_sha256"][:16])
 
     def make_generator(record):

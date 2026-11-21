@@ -28,6 +28,14 @@ per-result retention and completion or failure events. Event detail can
 include a `case_id`, model, checkpoint, failure label or evidence path as
 applicable. Events do not supply scores or fill gaps in the result files.
 
+When a B0a deadline stops the run, retain any partial effects and replies.
+Write rows for every untouched cell with `failure_label: "not_attempted_deadline"`.
+Untouched MB rows have empty effects and raw replies, `mechanical: true`,
+`act_unknown: true`, and `lawful_success: null`. Untouched PB rows have
+`reply: null`. End the log with `event: "interrupted"` instead of
+`"complete"`. The analyzer retains the B0a metrics and reports
+`"interrupted"` for both the B0a verdict and the overall verdict.
+
 ## Episode rows
 
 `mb_episodes.jsonl`, `pb_episodes.jsonl`, `vb_episodes.jsonl` and
