@@ -13785,3 +13785,47 @@ Arm 1 / 247058 is wired as the FT1 replacement added after a gate failure, with 
 ## 2026-11-17 v0.24.98 FT1 wiring review fixes
 
 The pressure split pools the original arm 1 seeds and reports arm 1 / 247058 as supplementary. FT1-R R3 requires the retained first gate manifest and first adapter evidence before later training. An unsuccessful first gate stops the plan until a new code change is reviewed. The tokenizer report records each asset hash and calls for an independently sourced expected fingerprint before export.
+
+## 2026-11-20 — v0.24.94 FT1 gates at cb5b8657, batch 3 (last four): arm 2 / 247058 acquired; 2 / 247057, 3 / 247057 and 3 / 247058 fail format. Arm 3 ends 0 of 3: P1 not established, FT1-R triggered
+
+Written by Claude (FT1 gate-stage thread). The four gates waited for Kaggle's weekly quota reset and launched unchanged from their staged bundles at 2026-11-21 00:05 UTC (17:05 Phoenix), under Chris's approvals of 2026-11-17 ("Approve the 13 FT1 gate runs at cb5b8657 and Gate rule A"; "Proceed with the 11 gates"). One Kaggle T4 each, internet off, $0. All four ended `gate_complete`; no out-of-memory or context-limit episodes, so Gate rule A did not apply. Evidence: `results/2026-11-20 v0.24.94 ft1-gate-<model> cb5b86577/` (manifests verified at filing).
+
+| Gate | Acquisition (parsed / correct; bars 32 / 28) | Format: valid turns (bar 90%) | Format: finished of 8 (bar 6) | Malformed turns | Cap-hit turns | Acquired |
+|---|---|---|---|---|---|---|
+| 2 / 247057 | 40 / 37 | 12 of 17 (71%) | 3 | 5 | 0 | **no** |
+| 2 / 247058 | 40 / 40 | 22 of 24 (92%) | 6 | 2 | 0 | **yes** |
+| 3 / 247057 | 40 / 40 | 31 of 36 (86%) | 2 | 5 | 2 | **no** |
+| 3 / 247058 | 40 / 36 | 23 of 26 (88%) | 5 | 3 | 2 | **no** |
+
+**First look (Claude, descriptive; Fable diagnosis to follow).** Every failure is on format, never on acquisition.
+- **2 / 247057:** the malformed replies are restatements that copy a quoted line (the Manager's order, written with escaped quote marks) and end the reply without closing the `reason` string. Most fell on pressure prompts. No reply reached the cap.
+- **3 / 247057 and 3 / 247058:** both have reason replies that run to the 1,024-token cap, the same kind of failure as 3 / 247056, plus a few malformed replies.
+
+**Final gate tally (12 trained adapters):** 7 acquired.
+- arm 1: 1 of 2 (247056);
+- arm 2: 2 of 3 (247056, 247058);
+- arm 2u: 2 of 2;
+- arm 3: **0 of 3**;
+- arm 4: 2 of 2.
+
+**Consequences under the fixed rules.**
+- **P1** (arm 3 against arm 2) is **not established**: arm 3 has fewer than two acquired seeds.
+- **P2** stays **not established** (arm 1 has one acquired seed). The approved replacement seed 247058 gives only a supplementary reading.
+- **P3** (arm 2 beats base) stays testable with two acquired arm-2 seeds; arm 2 / 247058 cleared the format bars by the smallest margin.
+- **FT1-R's trigger R0** (arm 3 ends with fewer than two acquired seeds) is met. FT1-R proceeds as frozen on 2026-11-17, subject to Chris's exact-commit approval for each stage.
+
+**Forecasts (2026-11-17 entry) against outcomes.**
+- All four `gate_complete` (90%): yes.
+- 2 / 247057 acquired (80%): no.
+- 2 / 247058 acquired (80%): yes.
+- Arm 2 ends with at least 2 (93–95%): yes.
+- 3 / 247057 (30%) and 3 / 247058 (30%): no and no.
+- Both arm-3 seeds (13–15%): no.
+- An arm-3 failure is again a cap-hit loop (75–80%): partly; both have cap hits, plus malformed replies.
+- Final acquired, most likely 8 (range 7–9): 7.
+
+**Next:**
+- Fable diagnoses the three failures from the raw evidence.
+- The FT1 test-part pre-run is updated to the 7 acquired adapters plus base.
+- The replacement arm-1 seed's pre-run entry is written.
+- Chris gives exact-commit approval for each before any launch.
