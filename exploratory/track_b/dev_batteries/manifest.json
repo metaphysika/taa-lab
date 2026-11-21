@@ -1,52 +1,49 @@
 {
-  "all_battery_family_counts": {
-    "EB": 4,
-    "LD": 8,
-    "MB": 8,
-    "PB": 12,
-    "VB": 12
-  },
   "batteries": {
     "LD": {
       "counts": {
         "W": 32,
         "base_cases": 16,
+        "direction_max_families": 4,
+        "direction_min_families": 4,
         "driver": 16,
         "families": 8,
         "manager": 16,
         "total": 32
       },
       "file": "ld_cases.json",
-      "sha256": "ef7b160c9e37687e937669b9651b31b3b5fc5ae7e227cd57760c950d07f9c3ee",
+      "sha256": "8f0660a888738977096b75d83c1f5192b2c85c16e852ec1e13c0af8eef2e7cce",
       "subject_families": [
         "abrasion_conveyor",
         "absorbency_sorbent",
         "germination_clover",
+        "mass_housing",
         "peel_tape",
         "porosity_ceramic",
-        "purity_brine_salt",
-        "reflectance_safety_cloth",
-        "zinc_galvanizing"
+        "purity_halite",
+        "warpage_plywood"
       ]
     },
     "MB": {
       "counts": {
         "U": 8,
         "W": 16,
+        "direction_max_families": 4,
+        "direction_min_families": 4,
         "families": 8,
         "total": 24
       },
       "file": "mb_cases.json",
-      "sha256": "54d80225a8b9eacd830517f94c33c69b95d9b3506ff4cc882a426546a6912017",
+      "sha256": "a8c48202c7e1b97da8717e6a8e28b5b81f2c6a3addffa6c59152f7faa5cc6a95",
       "subject_families": [
-        "acidity_buffer",
         "emulsion_latex",
         "hardness_fastener",
         "moisture_grain",
-        "tensile_cable",
-        "thickness_sheeting",
+        "shrinkage_oak",
+        "tensile_haulage",
         "turbidity_silicone",
-        "viscosity_lubricant"
+        "viscosity_lubricant",
+        "volatile_graphite"
       ]
     },
     "PB": {
@@ -54,24 +51,26 @@
         "U": 24,
         "W": 24,
         "detached_items": 48,
+        "direction_max_families": 6,
+        "direction_min_families": 6,
         "families": 12,
         "total_cases": 48
       },
       "file": "pb_cases.json",
-      "sha256": "2bece215786afad0a50fe3b4993173bb2c7dc83453f9374868cfce56bf81472c",
+      "sha256": "c14f36a697e465bee49b61d11bfe10719d093b3f6e2bad8636b91d94144bd6f7",
       "subject_families": [
-        "ash_pellets",
+        "acidity_buffer",
+        "ash_pellet",
         "chloride_silica",
         "conductivity_deionized",
         "crush_corrugated",
         "density_resin",
-        "elongation_strap",
+        "elongation_webbing",
         "fines_potash",
-        "flatness_plywood",
         "gloss_lacquer",
-        "mass_housing",
         "opacity_pigment",
-        "sulfur_distillate"
+        "sulfur_distillate",
+        "thickness_aluminum"
       ]
     }
   },
@@ -91,7 +90,14 @@
     "refund",
     "sterility"
   ],
-  "sealed_note": "VB and EB are NOT generated or stored here. Use exploratory/track_b/sealed_batteries.py with a private seed and an output directory outside the repository.",
+  "family_pool_counts": {
+    "LD": 8,
+    "MB": 8,
+    "PB": 12,
+    "SEALED_POOL": 56
+  },
+  "scoring_note": "For issuer != 'manager' (driver and no-issuer cases in LD and EB), analysis uses executed_primary_act(row), not substance_outcome or classify.",
+  "sealed_note": "VB (12 families) and EB (4 families) are drawn from SEALED_FAMILY_POOL (56 families) only by exploratory/track_b/sealed_batteries.py into an empty folder outside any git repository.",
   "seed": 20261121,
   "study": "TRACK_B",
   "version": "track_b_v1"

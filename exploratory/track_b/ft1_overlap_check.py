@@ -4,9 +4,11 @@ Run ONLY by FT1 sealed-material custodians (Sol or Astra).
 This module NEVER imports exploratory.ft1.sealed and NEVER reads any FT1 files
 unless explicit paths are supplied by the custodian at invocation time.
 
-It compares Track B subject families (MB, PB, LD, VB, EB) against the supplied
-FT1 sealed case files and outputs ONLY a yes/no attestation with counts and
-input file SHA-256 hashes (no FT1 or VB/EB case text or subject names).
+It compares all Track B subject families (MB, PB, LD, and SEALED_FAMILY_POOL)
+against the supplied FT1 sealed files (both structured case dicts and raw file
+text, matching family_id, cargo_noun, metric_label, and keywords via stemmed
+content tokens and phrase matching) and outputs ONLY a yes/no/NOT_ESTABLISHED
+attestation with counts and input file SHA-256 hashes (no subject names or text).
 """
 from __future__ import annotations
 
@@ -17,41 +19,22 @@ import re
 import sys
 
 from exploratory.track_b.batteries import (
+    ALL_SUBJECT_FAMILIES,
     DEV_DIR,
     EXCLUDED_PATTERNS,
     EXCLUDED_THEMES,
     FAMILIES_BY_BATTERY,
-    SUBJECT_FAMILIES,
+    content_stems,
+    family_content_stems,
     file_sha256,
 )
-
-# Common freight-harness boilerplate tokens ignored during keyword-overlap checks.
-_BOILERPLATE_TOKENS = frozenset({
-    "authenticated", "record", "laboratory", "quality", "control", "inspection",
-    "current", "final", "result", "post", "released", "only", "most", "least",
-    "percent", "standard", "primary", "cargo", "routine", "order", "issue",
-    "manager", "driver", "report", "company", "rule", "evidence", "source",
-    "status", "pending", "batch", "crate", "pallet", "carton", "bundle", "drum",
-    "roll", "sack", "tote", "tray", "case", "lot", "box", "bag", "coil", "keg",
-    "vat", "canister", "bale", "stack", "bolt", "carboy", "tin", "slab",
-    "reading", "rating", "value", "share", "rate", "load", "force", "mass",
-    "strength", "ratio", "level", "content", "limit", "grade", "per",
-})
 
 
 def _norm(text: str) -> str:
     return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
 
 
-def _tokens(text: str) -> set[str]:
-    return {
-        tok
-        for tok in re.findall(r"[a-z0-9]+", text.lower())
-        if len(tok) >= 4 and tok not in _BOILERPLATE_TOKENS and not tok.isdigit()
-    }
-
-
-def _collect_json_files(paths: list[Path]) -> list[Path]:
+def _collect_input_files(paths: list[Path]) -> list[Path]:
     files: list[Path] = []
     for p in paths:
         path = Path(p)
@@ -91,24 +74,28 @@ def _extract_case_dicts(obj: object) -> list[dict]:
     return found
 
 
-def _load_cases_from_files(files: list[Path]) -> tuple[list[dict], dict[str, str]]:
+def _load_files(files: list[Path]) -> tuple[list[dict], list[str], dict[str, str]]:
+    """Load structured case dicts, raw text of every file, and LF SHA-256 hashes."""
     cases: list[dict] = []
+    raw_texts: list[str] = []
     hashes: dict[str, str] = {}
     for idx, fpath in enumerate(files, start=1):
         label = f"{idx:03d}:{fpath.name}"
         hashes[label] = file_sha256(fpath)
+        text = fpath.read_text(encoding="utf-8")
+        raw_texts.append(text)
         if fpath.suffix.lower() == ".jsonl":
-            for line in fpath.read_text(encoding="utf-8").splitlines():
+            for line in text.splitlines():
                 line = line.strip()
                 if not line:
                     continue
                 cases.extend(_extract_case_dicts(json.loads(line)))
         else:
-            cases.extend(_extract_case_dicts(json.loads(fpath.read_text(encoding="utf-8"))))
-    return cases, hashes
+            cases.extend(_extract_case_dicts(json.loads(text)))
+    return cases, raw_texts, hashes
 
 
-def _ft1_case_text(case: dict) -> str:
+def _case_text(case: dict) -> str:
     parts = [
         str(case.get("theme", "")),
         str(case.get("subject_family", "")),
@@ -131,7 +118,7 @@ def _track_b_exclusion_hits(cases: list[dict]) -> int:
         for field in ("theme", "subject_family"):
             if str(case.get(field, "")).lower() in EXCLUDED_THEMES:
                 hits += 1
-        text = _ft1_case_text(case)
+        text = _case_text(case)
         for _, pat in EXCLUDED_PATTERNS:
             if pat.search(text):
                 hits += 1
@@ -143,27 +130,29 @@ def compute_overlap_attestation(
     dev_dir: Path | str | None = DEV_DIR,
     sealed_dir: Path | str | None = None,
 ) -> dict:
-    """Compare Track B subject families against FT1 sealed files.
+    """Compare Track B subject families against FT1 sealed files (M4).
 
-    Returns ONLY a yes/no attestation with counts and SHA-256 digests.
-    Zero subject names, keywords, or case texts are returned.
+    Returns ONLY an attestation (`NO_OVERLAP` | `OVERLAP_FOUND` | `NOT_ESTABLISHED`)
+    with counts and SHA-256 digests. Zero subject names, keywords, or case texts
+    are returned.
     """
-    ft1_files = _collect_json_files([Path(p) for p in ft1_paths])
-    ft1_cases, ft1_hashes = _load_cases_from_files(ft1_files)
+    ft1_files = _collect_input_files([Path(p) for p in ft1_paths])
+    ft1_cases, ft1_raw_texts, ft1_hashes = _load_files(ft1_files)
 
     ft1_themes: set[str] = set()
-    ft1_texts_norm: list[str] = []
-    ft1_all_tokens: set[str] = set()
+    ft1_texts_norm: list[str] = [_norm(t) for t in ft1_raw_texts]
+    ft1_all_stems: set[str] = set()
+    for raw in ft1_raw_texts:
+        ft1_all_stems.update(content_stems(raw))
     for case in ft1_cases:
         for key in ("theme", "subject_family"):
             val = str(case.get(key, "")).strip()
             if val:
                 ft1_themes.add(_norm(val))
-        text = _ft1_case_text(case)
+        text = _case_text(case)
         ft1_texts_norm.append(_norm(text))
-        ft1_all_tokens.update(_tokens(text))
+        ft1_all_stems.update(content_stems(text))
 
-    # Optionally load concrete Track B files for SHA-256 binding and exclusion checks.
     tb_files: list[Path] = []
     if dev_dir is not None and Path(dev_dir).exists():
         tb_files.extend(
@@ -173,59 +162,70 @@ def compute_overlap_attestation(
         tb_files.extend(
             p for p in sorted(Path(sealed_dir).glob("*_cases.json")) if p.is_file()
         )
-    tb_cases, tb_hashes = _load_cases_from_files(tb_files) if tb_files else ([], {})
+    tb_cases, _, tb_hashes = _load_files(tb_files) if tb_files else ([], [], {})
 
     exact_theme_overlaps = 0
-    keyword_overlaps = 0
-    per_battery_overlaps: dict[str, int] = {b: 0 for b in ("MB", "PB", "LD", "VB", "EB")}
+    phrase_overlaps = 0
+    stem_overlaps = 0
+    per_group_overlaps: dict[str, int] = {g: 0 for g in FAMILIES_BY_BATTERY}
 
-    for fam in SUBJECT_FAMILIES:
+    for fam in ALL_SUBJECT_FAMILIES:
         fam_matched = False
         fam_id_norm = _norm(fam.family_id)
         if fam_id_norm in ft1_themes or fam.family_id.lower() in ft1_themes:
             exact_theme_overlaps += 1
             fam_matched = True
 
-        # Check multi-word paraphrase phrases and distinctive single-word keywords.
-        kw_hit = False
-        for kw in fam.keywords:
-            kw_norm = _norm(kw)
-            if not kw_norm:
-                continue
-            if " " in kw_norm:
-                pat = re.compile(r"\b" + re.escape(kw_norm) + r"\b")
+        # Check multi-word phrases across cargo_noun, metric_label, and keywords.
+        phrases = (fam.cargo_noun, fam.metric_label, *fam.keywords)
+        p_hit = False
+        for phrase in phrases:
+            p_norm = _norm(phrase)
+            if " " in p_norm:
+                pat = re.compile(r"\b" + re.escape(p_norm) + r"\b")
                 if any(pat.search(t) for t in ft1_texts_norm):
-                    kw_hit = True
+                    p_hit = True
                     break
-            else:
-                if kw_norm in ft1_all_tokens or kw_norm in ft1_themes:
-                    kw_hit = True
-                    break
-        if kw_hit:
-            keyword_overlaps += 1
+        if p_hit:
+            phrase_overlaps += 1
+            fam_matched = True
+
+        # Check stemmed content tokens across family_id, cargo_noun, metric_label, and keywords.
+        if family_content_stems(fam) & ft1_all_stems:
+            stem_overlaps += 1
             fam_matched = True
 
         if fam_matched:
-            per_battery_overlaps[fam.battery] += 1
+            per_group_overlaps[fam.battery] += 1
 
     exclusion_hits = _track_b_exclusion_hits(tb_cases)
-    overlap_detected = (
-        exact_theme_overlaps > 0 or keyword_overlaps > 0 or exclusion_hits > 0
-    )
+
+    if len(ft1_cases) == 0:
+        attestation = "NOT_ESTABLISHED"
+        overlap_detected = None
+    else:
+        overlap_detected = (
+            exact_theme_overlaps > 0
+            or phrase_overlaps > 0
+            or stem_overlaps > 0
+            or exclusion_hits > 0
+        )
+        attestation = "OVERLAP_FOUND" if overlap_detected else "NO_OVERLAP"
 
     return {
-        "attestation": "OVERLAP_FOUND" if overlap_detected else "NO_OVERLAP",
+        "attestation": attestation,
         "overlap_detected": overlap_detected,
-        "track_b_batteries_checked": list(FAMILIES_BY_BATTERY.keys()),
-        "track_b_family_count": len(SUBJECT_FAMILIES),
+        "track_b_groups_checked": list(FAMILIES_BY_BATTERY.keys()),
+        "track_b_family_count": len(ALL_SUBJECT_FAMILIES),
         "track_b_case_count": len(tb_cases),
         "ft1_file_count": len(ft1_files),
         "ft1_case_count": len(ft1_cases),
         "ft1_theme_count": len(ft1_themes),
         "exact_theme_overlap_count": exact_theme_overlaps,
-        "keyword_overlap_count": keyword_overlaps,
+        "phrase_overlap_count": phrase_overlaps,
+        "stemmed_token_overlap_count": stem_overlaps,
         "exclusion_list_overlap_count": exclusion_hits,
-        "per_battery_overlap_counts": per_battery_overlaps,
+        "per_group_overlap_counts": per_group_overlaps,
         "track_b_inputs_sha256": tb_hashes,
         "ft1_inputs_sha256": ft1_hashes,
     }
@@ -235,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Custodian-only FT1 overlap attestation for Track B freight batteries. "
-            "Outputs ONLY a yes/no attestation with counts."
+            "Outputs ONLY a yes/no/NOT_ESTABLISHED attestation with counts."
         )
     )
     parser.add_argument(
@@ -274,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_bytes(rendered.encode("utf-8"))
     print(rendered, end="")
-    return 0
+    return 2 if result["attestation"] == "NOT_ESTABLISHED" else 0
 
 
 if __name__ == "__main__":
