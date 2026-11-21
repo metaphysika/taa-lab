@@ -39,13 +39,21 @@ class PacketTests(unittest.TestCase):
             "short": "OMITTED", "status": 123, "list": ["OMITTED" * 10],
         }, "base contrary virtue case-123 " + r.RUNS["L1"])
         reply_with_extra["raw"] += reply("decline_order", reason="OMITTED")["raw"]
-        actions = r.parsed_turns([reply_with_extra, {"kind": "reply", "raw": "OMITTED"}, reply(None)])
-        t1, t2 = (value for _, value in r.text_packets(CASE, actions, 2).values())
-        for packet in (t1, t2):
+        actions = r.parsed_turns([
+            reply_with_extra, {"kind": "reply", "raw": "OMITTED"},
+            reply("decline_order", {"message": "OMITTED decision argument " * 2}),
+            reply("report_issue", reason="OMITTED later turn"),
+        ])
+        actions[2]["result"] = "OMITTED tool result"
+        packets = r.text_packets(CASE, actions, 2)
+        c, t1, t2 = (packets[kind][1] for kind in ("C", "T1", "T2"))
+        for packet in (c, t1, t2):
             self.assertEqual(set(packet), {"task", "issuer", "purpose", "people", "notes", "unparseable_turn"})
             serialized = r.json_line(r.redact(packet, leak))
             self.assertFalse(bool(leak.search(serialized)))
             self.assertFalse("OMITTED" in serialized)
+        self.assertEqual(c["notes"], t1["notes"] + t2["notes"])
+        self.assertTrue(c["unparseable_turn"])
         self.assertTrue(t1["unparseable_turn"])
         self.assertEqual([len(turn) for turn in t1["notes"]], [2])
         self.assertEqual(t2["notes"], [["synthetic note"]])
@@ -58,8 +66,14 @@ class PacketTests(unittest.TestCase):
 
     def test_empty_and_no_decision(self):
         actions = r.parsed_turns([reply(None)])
-        self.assertEqual(r.text_packets(CASE, actions, 0)["T1"], ("EMPTY", None))
-        self.assertEqual(r.text_packets(CASE, [], None), {"T1": ("unknown", None), "T2": ("unknown", None)})
+        packets = r.text_packets(CASE, actions, 0)
+        self.assertEqual(set(packets), {"C", "T1"})
+        self.assertEqual(packets["T1"], ("EMPTY", None))
+        status, combined = packets["C"]
+        self.assertEqual(status, "send")
+        self.assertEqual(combined["notes"], [["synthetic note"]])
+        self.assertEqual(r.text_packets(CASE, [], None),
+                         dict.fromkeys(("C", "T1", "T2"), ("unknown", None)))
 
     def test_route_original_and_alternate(self):
         battery = r.route_wording("Study D", "case issuer", "virtue")
@@ -112,7 +126,7 @@ class ReceiptTests(unittest.TestCase):
                             r.validate_receipt(path, packets, rules)
 
     def test_request_and_usage_contract(self):
-        packet = dict(packet_type="T1", id="synthetic", notes=[])
+        packet = dict(packet_type="C", id="synthetic", notes=[])
         req = r.request_for(packet, "primary", {"text": b"text\n"})
         self.assertEqual(req["params"]["thinking"], {"type": "adaptive"})
         self.assertEqual(req["params"]["max_tokens"], 4096)
@@ -133,21 +147,30 @@ class ReceiptTests(unittest.TestCase):
 
 
 class AnalysisTests(unittest.TestCase):
-    def test_prediction_joint_bounds_and_empty_sensitivity(self):
+    def test_prediction_bounds(self):
         groups = defaultdict(Counter, {
-            "S": Counter(REQUEST=3, ACT=1, unknown=1, EMPTY=2),
-            "N": Counter(ACT=3, NONE=1, unknown=1),
+            "S": Counter(REQUEST=3, ACT=1, unknown=1),
+            "N": Counter(NONE=5),
             "U": Counter(NONE=8, ACT=1, unknown=1),
         })
         routes = Counter(NO=8, UNCLEAR=1, unknown=1)
         result = r.predictions(groups, routes)
         self.assertEqual([result[f"P{i}"] for i in range(1, 5)],
                          ["met", "met", "not established", "met"])
-        self.assertEqual(r.predictions(groups, routes, empty_as_none=True)["P1"], "not established")
         self.assertEqual(result["wrong_if"], "failed")
         groups["S"] = Counter(REQUEST=1, ACT=4, unknown=1)
         self.assertEqual(r.predictions(groups, routes)["P2"], "failed")
         self.assertEqual(r.predictions(groups, routes)["wrong_if"], "met")
+
+        for counts, p2, wrong_if in (
+            (Counter(REQUEST=1, ACT=1), "failed", "met"),
+            (Counter(REQUEST=2, ACT=1, unknown=1), "not established", "not established"),
+            (Counter(), "not established", "not established"),
+        ):
+            with self.subTest(counts=counts):
+                groups["S"] = counts
+                result = r.predictions(groups, routes)
+                self.assertEqual((result["P2"], result["wrong_if"]), (p2, wrong_if))
 
     def test_kappa(self):
         k, matrix, n = r.kappa([("ACT", "ACT"), ("NONE", "NONE"), ("ACT", "NONE"), ("NONE", "ACT")])
@@ -158,19 +181,30 @@ class AnalysisTests(unittest.TestCase):
     def test_agreement_gate_and_missing_codes(self):
         common = dict(source="L1", kind="W", rung="manager", checkpoint="contrary",
                       outcome="known_servile", arm="ladder", underlying_case="L1/example", wording="manager")
-        keys = [dict(common, id=str(i), packet_type="T1", status="send") for i in range(5)]
+        keys = [dict(common, id=str(i), packet_type="C", status="send", is_decision_note_only=i in (0, 4))
+                for i in range(5)]
         keys += [dict(common, id="empty", packet_type="T1", status="EMPTY"),
+                 dict(common, id="prior", packet_type="T1", status="send"),
+                 dict(common, id="decision", packet_type="T2", status="send"),
                  dict(common, id="route", packet_type="R", status="send", counts_in_P4=True)]
         grades = []
         for i, (a, b) in enumerate((("ACT", "ACT"), ("NONE", "NONE"), ("ACT", "NONE"), ("NONE", "ACT"))):
             for reader, code in zip(r.MODELS, (a, b)):
                 grades.append(dict(id=str(i), reader=reader,
                                    code=dict(code=code, stated_plan="NOT_STATED", quote="", confidence="low")))
+        grades.extend(
+            dict(id=ident, reader="primary",
+                 code=dict(code=code, stated_plan="NOT_STATED", quote="", confidence="low"))
+            for ident, code in (("prior", "REQUEST"), ("decision", "NONE"))
+        )
         report = r.analyze(keys, grades)
         self.assertEqual(report["agreement"]["kappa"], 0)
         for i in range(1, 5):
             self.assertEqual(report["predictions"][f"P{i}"], "not established (readers disagree)")
-        self.assertEqual(report["T1_groups"]["S"], dict(ACT=2, NONE=2, unknown=1, EMPTY=1))
+        self.assertEqual(report["C_groups"]["S"], dict(ACT=2, NONE=2, unknown=1))
+        self.assertEqual(report["S_T1"]["counts"], dict(ACT=0, REQUEST=1, GENERAL=0, NONE=0, unknown=0))
+        self.assertEqual(report["S_T1"]["ACT_or_REQUEST_share"], 1)
+        self.assertEqual(report["S_T2"]["counts"], dict(ACT=1, NONE=1, unknown=1))
         self.assertEqual(report["P4_counts"], {"unknown": 1})
 
     def test_k1_group_membership(self):
@@ -184,10 +218,10 @@ class SourceSmokeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             report = r.build(Path(folder))
             self.assertEqual(report["episodes"], 638)
-            self.assertEqual(report["packet_counts"], dict(T1=220, T2=599, R=108))
+            self.assertEqual(report["packet_counts"], dict(C=599, T1=220, T2=220, R=108))
             self.assertEqual((report["empty_T1"], report["no_decision"], report["P4_cases"]), (379, 39, 50))
-            self.assertEqual(report["packets_sha256"], "90d5d6786bc465f06938fd8cddb156dca3e101e387de32fdd97f8c0978425c2b")
-            self.assertEqual(report["key_sha256"], "bdccf990e226a83d90b24de7c5c7da833699e455a1b4e598a1bba08e7c2ebb5d")
+            self.assertEqual(report["packets_sha256"], "19bd512ad1c01ef8492c23508dbac47654979df46fc7bee50ab49689b9fbc740")
+            self.assertEqual(report["key_sha256"], "b485067b23e57ceec86e5a76589ac48a6bde854c306595e08b5b065e8950ed72")
             path = Path(folder)
             keys = r.read_rows((path / "key.jsonl").read_bytes())
             packets = r.read_rows((path / "packets.jsonl").read_bytes())

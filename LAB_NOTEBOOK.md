@@ -14035,3 +14035,5 @@ So, before any reader call, the design is revised (details in `docs/process/TRAC
 **Expectations restated for C:** P1 about 65%; P2 about 45%; P3 about 75%; P4 about 80%. I expect the note attached to the wrongful entry to blame the Manager's request more often than the entry itself (about 45%). I'm wrong if, in S, ACT is at least as common as REQUEST.
 
 **Cost:** about 1,147 calls per reader, about $5.70 batched in total by the build's per-call averages; about $10 if output doubles. The proposed cap stays $12. No run is approved by this entry.
+
+**Offline build (v0.24.101).** The Revision 2 build produced 599 C, 220 T1, 220 T2, and 108 R packets, for 1,147 calls per reader. The estimated batch cost is $5.7033963, or $9.9186213 at double output. No reader calls were made.
