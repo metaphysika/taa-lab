@@ -13928,3 +13928,39 @@ Notes on the launch copy:
 - The complete output is retained in a new `results/2026-11-21 v0.24.100 ft1r-data 01992b345701/` folder, pass or fail.
 - On a pass, the dataset manifest SHA-256 is recorded here and revision 3 is frozen (Q9). Chris's exact-commit approval for FT1's test parts then follows.
 - On a failure, nothing is frozen, and Claude reports to Chris before any FT1 test part.
+
+## 2026-11-21 — v0.24.100 FT1-R revision 3 data job at 01992b34: Q3 passed; revision 3 frozen
+
+Written by Claude (FT1 gate-stage thread). Run as recorded in the pre-run entry above; no FT1 test part has been pushed. Evidence: `results/2026-11-21 v0.24.100 ft1r-data 01992b345701/`. Output manifest hashes were verified at filing.
+
+**Result: `passed: true`.**
+- **Tokenizer:** verified, fingerprint `1698598f…8552`, equal to FT1's recorded value. Runtime pins held.
+- **Q3 quote gate (arm-2 targets):**
+  - ending on a quoted line: **95** (order 0, pressure 95; needed 50);
+  - quoted mid-string: **2,000** (needed 50).
+- **History turns:** pressure-end 63; mid-string 1,132.
+- **Round trip:** 2,000 / 2,000 targets per arm.
+- **Fit:** the largest record is 745 tokens (arm 2) and 742 (arm 3), within 1,024; the largest probe is 383.
+- **Records:**
+  - 1,132 reason-bearing histories, 500 correction records, 360 with no history, 8 unmatched;
+  - 18 replacements, all caused by revision 3, with none from history overflow or arm-2 eligibility;
+  - arm-2 wording changed in all 2,000 targets relative to FT1, as expected from the quoted and reordered card;
+  - arm-3 reason wording changed in 1,294 targets through token re-matching. No quoted text was added to arm-3 reasons.
+
+**Predictions against outcome.**
+- Q3 passes (75%): yes.
+- Pressure-end about 80–110: 95.
+- Order-end 0: 0.
+- Mid-string about 2,000: 2,000.
+- Setup stop (10%): no.
+
+**Q9 freeze.** FT1-R revision 3 (`docs/process/FT1R_REV3_2026-11-20.md`) is frozen as of this entry:
+- code at `01992b34570124af78ca4a201164d5f8993001c4`;
+- training data manifest SHA-256 `ece3b1d82b903f2617db5f739d872560b82ddfe4b2b90635dd7ac0bfcbcc377d`.
+
+This precedes any FT1 test-part push.
+
+**Next.**
+- FT1's test parts, for 7 acquired adapters plus base, are re-staged at a current commit. They go to Chris for exact-commit approval together with the replacement arm-1 seed (247058).
+- FT1-R training (arm 3 / 247061 first) needs its own exact-commit approval.
+- `plan_ft1r.analyze_p1` must be wired before any FT1-R test part.
