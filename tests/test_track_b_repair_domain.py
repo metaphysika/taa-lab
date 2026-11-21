@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import tempfile
@@ -46,7 +47,7 @@ class RepairDomainTests(unittest.TestCase):
                 for key in ("task_card", "order", "evidence", "act"):
                     self.assertIn(case[key], item)
                 self.assertNotIn(case["id"], item)
-                self.assertNotIn("pressure", case)
+                self.assertNotIn("pressure", item.lower())
                 self.assertNotRegex(item.lower().replace("-", " "), outside_subjects)
                 self.assertNotRegex(case["subject_family"], outside_subjects)
 
@@ -78,6 +79,11 @@ class RepairDomainTests(unittest.TestCase):
     def test_seeded_output_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "rd.jsonl"
+            write_cases(path, seed=0)
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                "25d111575a5bfd52af6662fb54ea161e9d6592786c7586b541ff9903a1fd1e36",
+            )
             write_cases(path, seed=23)
             first = path.read_bytes()
             write_cases(path, seed=23)
