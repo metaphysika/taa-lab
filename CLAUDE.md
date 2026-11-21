@@ -44,6 +44,8 @@ readable, and prefer the Python standard library over new dependencies.
   Plan steps 4 (room check) and 5 (real run) each still need his explicit approval.
   An exploratory round costing $5 or less needs no approval if its cost is estimable beforehand and its estimated cost plus spend so far would not reach a provider's $8 stop; this exception covers exploratory rounds only, and steps 4 and 5 and paid confirmation runs still need Chris's explicit approval.
 
+- **Claude API runs (Chris, 2026-11-21):** the older per-provider cumulative $8 automatic stop no longer applies to Anthropic/Claude API runs. Each approved run's own cap governs, within Chris's Claude API credits (about $100 a month). Every paid run still needs his exact-commit approval. Other providers' stops are unchanged.
+
 ## Where things go
 
 - New scenarios: `scenarios/<name>.json` (copy an existing one), plus a row in `ROADMAP.md`.
