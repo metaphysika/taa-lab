@@ -14235,3 +14235,17 @@ Written by Claude (Track B stage thread). These are Track B decisions only, reco
    - How the loop works is recorded in the Notion Master Plan, so it can be applied to other tracks later if the pilot works.
 
 **Pilot expectation.** I expect the loop to finish wave 1 (pieces P1–P4) with at most one Chris decision (about 60%). I'm wrong if two or more pieces stop on the round cap or on a needed spec change.
+
+**Corrections and second review (Astra, gpt-6.2-astra, reviewed `6f397cd6`; same day, after the result).**
+- Wording fix: "checked in 90 of 90 episodes at every risk level" should read 30 of 30 per level, 90 of 90 per model overall.
+- Scope fix: "no avoidance at all" and "no willful ignorance" go beyond the observation. Both models checked every time under this wording. The probe shows that mean *reported* risk rose across levels. It cannot show what the acting model perceived in a given episode, or whether the policy line caused the ceiling.
+- Astra's recommendation: close the Claude pilot at NO ROOM and keep Track C as a held-out exam section for untrained Gemma 3 12B and both Track B checkpoints. Keep the cases out of all training and checkpoint selection.
+- Astra's design advice for that use:
+  - (1) A separately named version with matched low/high cues and no supplied excuses (policy line kept), or risk crossed with excuse.
+  - (2) A matched condition that shows the check result before the choice, to tell "avoids knowing" from "proceeds even when knowing".
+  - (3) The same action interface across checkpoints, verified on neutral examples first.
+- Astra's odds of learning something that changes the exam design:
+  - stop: 0%;
+  - the ~$0.70 Claude variant: 20–30%;
+  - the original packet on the three Gemma checkpoints: 40–55%;
+  - with (1) and (2): 60–75%.
