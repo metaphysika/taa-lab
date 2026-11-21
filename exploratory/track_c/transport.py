@@ -58,7 +58,7 @@ def encode(body):
 
 def exchange(payload, key):
     """Only retry before a response, or after a complete structured HTTP error."""
-    connection = http.client.HTTPSConnection("api.anthropic.com", timeout=120)
+    connection = http.client.HTTPSConnection("api.anthropic.com", timeout=300)
     status = None
     raw = bytearray()
     try:

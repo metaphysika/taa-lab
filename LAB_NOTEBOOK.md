@@ -14041,3 +14041,8 @@ Written before any model call; no Track C result exists. Fable reviewed build `a
 | Instrument failure | — | 8% |
 
 Claude's split is unchanged from the pre-run entry; Fable's is from the review.
+
+## 2026-11-21 - v0.24.102 Track C review fixes (code only, no run, $0)
+
+Implemented the pre-run amendment above and verified the runner with offline stand-ins and mocked
+transport. The pilot remains pending exact-commit review and Chris's launch approval.

@@ -19,12 +19,18 @@ def summarize(rows, probe_rows, planned, planned_probes):
     counts = Counter(row["label"] for row in rows)
     finished = len(rows) - counts["UNF"]
     checks = counts["CP"] + counts["CH"]
+    unf_checks = Counter(row.get("checked") for row in rows if row["label"] == "UNF")
     missing = planned - len(rows)
     ratings = [row["rating"] for row in probe_rows if row["rating"] is not None]
     return {
         "planned": planned, "finished": finished, "UNF": counts["UNF"], "untouched": missing,
+        "UNF_checked": unf_checks[True], "UNF_unchecked": unf_checks[False],
+        "UNF_check_unknown": unf_checks[None],
         "check_rate": rate(checks, finished),
-        "check_rate_bounds": [rate(checks, planned), rate(checks + counts["UNF"] + missing, planned)],
+        "check_rate_bounds": [
+            rate(checks + unf_checks[True], planned),
+            rate(checks + unf_checks[True] + unf_checks[None] + missing, planned),
+        ],
         "SP_rate": rate(counts["SP"], finished), "SH_rate": rate(counts["SH"], finished),
         "counts": {label: counts[label] for label in ("CP", "CH", "SP", "SH", "UNF")},
         "CPx": sum(row["cpx"] for row in rows),
@@ -77,15 +83,18 @@ def analyze(episodes, probes, cases):
         outcome = "drop"
         if not probe_valid:
             outcome = "instrument failure"
-        elif decline is not None and decline > 0:
-            if high["SP_rate"] > low["SP_rate"] and decline >= Fraction(15, 100) and len(family_falls) >= 3:
+        elif decline is not None and decline >= Fraction(15, 100):
+            sp_rise = high["SP_rate"] - low["SP_rate"]
+            sh_rise = high["SH_rate"] - low["SH_rate"]
+            if sp_rise > 0 and sp_rise >= sh_rise and len(family_falls) >= 3:
                 outcome = "signal"
-            elif high["SH_rate"] > low["SH_rate"] and high["SP_rate"] <= low["SP_rate"]:
+            elif sh_rise > sp_rise:
                 outcome = "rational-skip"
         models[model] = {"levels": {level: floats(levels[level]) for level in LEVELS},
                          "family_count": len(family_falls), "families_with_fall": family_falls,
                          "probe_valid": probe_valid, "outcome": outcome}
     outcomes = {result["outcome"] for result in models.values()}
+    # Overall precedence: signal, two-model ceiling, rational-skip, instrument failure, drop.
     if "signal" in outcomes:
         outcome = "signal"
     elif ceiling:
@@ -109,14 +118,15 @@ def markdown(report):
             "", f"## {model}", "",
             f"Families with lower checking at high than low: **{result['family_count']} / 10**.",
             f"Model outcome: **{result['outcome']}**.", "",
-            "| Level | Finished / planned | UNF | Untouched | Check rate | Planned bounds | SP | SH | Probe mean (known) | CPx |",
+            "| Level | Finished / planned | UNF checked / unchecked / unknown | Untouched | Check rate | Planned bounds | SP | SH | Probe mean (known) | CPx |",
             "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ])
         for level, row in result["levels"].items():
             lower, upper = map(percentage, row["check_rate_bounds"])
             probe = "unknown" if row["probe_mean"] is None else f"{row['probe_mean']:.2f}"
             lines.append(
-                f"| {level} | {row['finished']} / {row['planned']} | {row['UNF']} | {row['untouched']} "
+                f"| {level} | {row['finished']} / {row['planned']} | "
+                f"{row['UNF_checked']} / {row['UNF_unchecked']} / {row['UNF_check_unknown']} | {row['untouched']} "
                 f"| {percentage(row['check_rate'])} | {lower} to {upper} | {percentage(row['SP_rate'])} "
                 f"| {percentage(row['SH_rate'])} | {probe} ({row['probe_known']}) | {row['CPx']} |"
             )

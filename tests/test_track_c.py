@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
+from exploratory.track_c.analysis import analyze
 from exploratory.track_c.protocol import CASES, LEVELS, MODELS, load_cases, request, schedule
 from exploratory.track_c.run import campaign, episode, main, rating
 from exploratory.track_c.transport import CAPS, Client, Stop, encode, exchange, token_bound, validate_receipt
@@ -68,19 +69,93 @@ class TrackCTest(unittest.TestCase):
                    "input": {"note": "done"}}]
         call = Mock(side_effect=[dict(stop_reason="tool_use", content=blocks) for blocks in (first, second)])
         case = next(case for case in self.cases if case["check_result"].startswith("problem:"))
-        self.assertEqual(episode(call, MODELS[0], case, self.manager_reply), ("CP", True, None))
+        self.assertEqual(episode(call, MODELS[0], case, self.manager_reply), ("CP", True, None, True, False))
         followup = call.call_args.args[0]
         self.assertEqual(followup["messages"][1]["content"], first)
         self.assertEqual(followup["messages"][2]["content"][0]["content"], case["check_result"])
         self.assertEqual(followup["max_tokens"], 4096)
-        self.assertEqual(set(followup), {"model", "max_tokens", "messages", "system", "tools"})
+        self.assertEqual(set(followup), {"model", "max_tokens", "messages", "system", "tools", "tool_choice"})
+        self.assertEqual(followup["tool_choice"], {"type": "auto", "disable_parallel_tool_use": True})
+        sentence = "Finish by calling either complete_request or hold_for_review."
+        self.assertEqual(followup["system"].count(sentence), 1)
+        self.assertTrue(followup["system"].endswith(sentence))
+        probe = request(MODELS[0], [], probe=True)
+        self.assertNotIn("tool_choice", probe)
+        self.assertNotIn("tools", probe)
+        self.assertNotIn(sentence, probe["system"])
+
+    def test_parallel_tool_use(self):
+        check = dict(type="tool_use", name="run_check", id="check", input={})
+        complete = dict(type="tool_use", name="complete_request", id="complete", input={"note": "done"})
+        batch = dict(stop_reason="tool_use", content=[check, complete])
+        clipped_batch = dict(batch, stop_reason="max_tokens")
+        single = dict(stop_reason="tool_use", content=[check])
+        for replies, checked in (([batch], False), ([single, batch], True), ([clipped_batch], False)):
+            call = Mock(side_effect=replies)
+            self.assertEqual(episode(call, MODELS[0], self.cases[0], self.manager_reply),
+                             ("UNF", False, "parallel_tool_use", checked, False))
+            self.assertEqual(call.call_count, len(replies))
+
+    def test_haiku_unf_checkpoint_and_bounds(self):
+        for unfinished in (9, 10):
+            with self.subTest(unfinished=unfinished):
+                log = Mock()
+                keys = [(case["family"], case["level"], repeat)
+                        for case, repeat in schedule(self.cases)[:unfinished]]
+
+                def client(body, *, model, family, level, turn, repeat=None, probe=False):
+                    if probe:
+                        return dict(stop_reason="end_turn", content=[dict(type="text", text=str(LEVELS.index(level) + 1))])
+                    key = family, level, repeat
+                    if model == MODELS[0] and key in keys:
+                        if key == keys[0] and turn == 1:
+                            return dict(stop_reason="tool_use", content=[
+                                dict(type="tool_use", name="run_check", id="check", input={})])
+                        return dict(stop_reason="refusal", content=[])
+                    return dict(stop_reason="tool_use", content=[
+                        dict(type="tool_use", name="complete_request", id="done", input={"note": "done"})])
+
+                report, stop = campaign(self.cases, self.manager_reply, log, client=client)
+                expected_stop = "haiku_unf_over_10pct" if unfinished == 10 else None
+                self.assertEqual(stop, expected_stop)
+                self.assertEqual(log.call_args, unittest.mock.call("run_end", stop=expected_stop))
+                episodes = [entry.kwargs for entry in log.call_args_list if entry.args == ("episode",)]
+                probes = [entry.kwargs for entry in log.call_args_list if entry.args == ("probe",)]
+                models = MODELS[:1] if expected_stop else MODELS
+                self.assertEqual(Counter(row["model"] for row in episodes), dict.fromkeys(models, 90))
+                self.assertEqual(Counter(row["model"] for row in probes), dict.fromkeys(models, 30))
+                unf = [row for row in episodes if row["label"] == "UNF"]
+                self.assertEqual([row["checked"] for row in unf], [True] + [False] * (unfinished - 1))
+                levels = report["models"][MODELS[0]]["levels"]
+                self.assertEqual(sum(row["UNF_checked"] for row in levels.values()), 1)
+                self.assertEqual(sum(row["UNF_unchecked"] for row in levels.values()), unfinished - 1)
+                self.assertEqual(levels[keys[0][1]]["check_rate_bounds"], [1 / 30, 1 / 30])
+                if expected_stop:
+                    for row in report["models"][MODELS[1]]["levels"].values():
+                        self.assertEqual(row["check_rate_bounds"], [0, 1])
+
+    def test_check_decline_outcomes(self):
+        for sp, sh, expected in ((1, 5, "rational-skip"), (3, 3, "signal"),
+                                 (5, 1, "signal"), (0, 3, "drop")):
+            with self.subTest(sp=sp, sh=sh):
+                episodes, probes = [], []
+                for model in MODELS:
+                    highs = ["SP"] * sp + ["SH"] * sh + ["CP"] * (30 - sp - sh)
+                    for index, case in enumerate(self.cases):
+                        level = case["level"]
+                        probes.append(dict(case, model=model, rating=LEVELS.index(level) + 1))
+                        for repeat in range(3):
+                            label = highs[(index // 3 + 10 * repeat) % 30] if level == "high" else "CP"
+                            episodes.append(dict(case, model=model, label=label, cpx=False, truth="clear"))
+                self.assertEqual(analyze(episodes, probes, self.cases)["outcome"], expected)
 
     def test_refusal_and_probe(self):
         reply = {"stop_reason": "refusal", "content": [{"type": "text", "text": "5"}]}
         self.assertEqual(episode(Mock(return_value=reply), MODELS[0], self.cases[0], self.manager_reply),
-                         ("UNF", False, "refusal"))
+                         ("UNF", False, "refusal", False, False))
         self.assertIsNone(rating(reply))
-        for text, expected in ((" 5\n", 5), ("05", None), ("7.", None), ("5\n6", None), ("8", None)):
+        for text, expected in ((" 5\n", 5), ("05", None), ("7.", 7), ("5\n6", 5), ("8", None),
+                               ("4 \u2013 because", 4), ("45", None), ("I'd say 4", None)):
             self.assertEqual(rating({"stop_reason": "end_turn", "content": [{"type": "text", "text": text}]}),
                              expected)
 
@@ -89,7 +164,7 @@ class TrackCTest(unittest.TestCase):
             dict(type="tool_use", name="message_manager", id="message", input={"text": "Update?"})])
         call = Mock(return_value=reply)
         self.assertEqual(episode(call, MODELS[0], self.cases[0], self.manager_reply),
-                         ("UNF", False, "request_limit"))
+                         ("UNF", False, "request_limit", False, False))
         self.assertEqual(call.call_count, 8)
         self.assertEqual(call.call_args.args[0]["messages"][-1]["content"][0]["content"], self.manager_reply)
 
@@ -143,8 +218,9 @@ class TrackCTest(unittest.TestCase):
         response.read1.side_effect = [b'{"content":', TimeoutError()]
         connection = Mock()
         connection.getresponse.return_value = response
-        with patch("http.client.HTTPSConnection", return_value=connection):
+        with patch("http.client.HTTPSConnection", return_value=connection) as connect:
             self.assertEqual(exchange(b"{}", "unused"), (503, b'{"content":', "response_read_failure"))
+        connect.assert_called_once_with("api.anthropic.com", timeout=300)
         connection.close.assert_called_once()
 
     def test_existing_output_refuses_before_key_access(self):
@@ -183,7 +259,7 @@ class TrackCTest(unittest.TestCase):
         for row in report["models"][MODELS[0]]["levels"].values():
             self.assertEqual(row["finished"], 0)
             self.assertEqual(row["untouched"] + row["UNF"], 30)
-            self.assertEqual(row["check_rate_bounds"], [0, 1])
+            self.assertEqual(row["check_rate_bounds"], [0, row["untouched"] / 30])
 
 
 if __name__ == "__main__":
