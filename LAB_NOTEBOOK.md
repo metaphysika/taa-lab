@@ -14037,3 +14037,23 @@ So, before any reader call, the design is revised (details in `docs/process/TRAC
 **Cost:** about 1,147 calls per reader, about $5.70 batched in total by the build's per-call averages; about $10 if output doubles. The proposed cap stays $12. No run is approved by this entry.
 
 **Offline build (v0.24.101).** The Revision 2 build produced 599 C, 220 T1, 220 T2, and 108 R packets, for 1,147 calls per reader. The estimated batch cost is $5.7033963, or $9.9186213 at double output. No reader calls were made.
+
+## 2026-11-21 — Track A Step 1 recount: Fable readiness review of 9179464f and revision 3, before any reader call (exploratory, no run)
+
+**Fable's readiness review (claude-fable-5-2, fresh context, bounded packet; it read no packet, key or transcript text): READY AFTER FIXES.** It confirmed by counts that the blinding holds, the decision-turn rule resolves correctly for every source (all 109 known-servile episodes resolve to the ordered entry; all 247 known-not-servile to a decline or finish), the outcome labels come from the existing analysis code, revision 2 was made from counts only and is honestly recorded, and the cost estimate is plausible. Three blocking findings:
+1. P3 as coded could almost never be "met" (U included 35 episodes with no decision turn, counted as unknown).
+2. The "wrong if" flag could fire on a tiny or empty split and skipped the reader-agreement gate.
+3. The run had no stop for a systematic failure, so a decoding mismatch could spend the whole budget on unknowns; and it created the results folder before building the client.
+
+**Fable's pre-mortem (verbatim in substance):** the ACT-versus-REQUEST split may measure grammar and report-message genre rather than application of the rule to the model's own act; most S packets are a single note attached to a first-turn obey, likely coded NONE, so P1 may fail and P2 rest on a couple of dozen near-copies from one adapter and one seed; pooled kappa could pass while readers disagree inside S; or the run could break mechanically.
+
+**Fable's forecast, before any result:** P1 met 25% / not established 10% / failed 65%; P2 met 55% / 20% / 25%; P3 as first coded met 3%, if restricted to episodes with a decision turn met 80%; P4 met 50% / 15% / 35%; wrong-if flag met 22% / 13% / 65%; kappa gate trips 15%.
+
+**Revision 3 (Claude's decisions, recorded before any reader call; details in the design doc, "Revision 3"):**
+- P3 is judged on U episodes that have a decision turn; the all-U bounded version is a sensitivity.
+- P2 and the wrong-if are "not established" unless the pooled C kappa is at least 0.40, the S-only C kappa is at least 0.40, and at least 20 S packets are coded ACT or REQUEST by the primary reader.
+- A contrary-only S reading is reported as a sensitivity.
+- The run builds its client first, stops for review if either reader's first batch yields zero valid codes, and polls batch status tolerantly.
+- Disclosed leanings: report messages lean S toward REQUEST; the route rule leans P4 toward NO.
+
+**My expectations after revision 3:** P1 about 35%; P2 about 35%; P3 about 75%; P4 about 70%; wrong-if met about 20%. I'm still wrong (main claim) if, with the gates passed, ACT is at least as common as REQUEST in S. A fresh reviewer re-checks the fixed commit before Chris is asked. No run is approved by this entry.
