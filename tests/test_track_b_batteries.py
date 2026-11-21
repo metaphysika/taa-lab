@@ -762,8 +762,10 @@ class TrackBBatteriesTests(unittest.TestCase):
             self.assertNotIn("deciding_evidence", dumped)
 
     def test_ft1_overlap_script_boilerplate_subtraction_and_shapes(self):
-        # Never touch real FT1 sealed material or import exploratory.ft1.sealed.
-        self.assertNotIn("exploratory.ft1.sealed", sys.modules)
+        # Other suites may already have loaded this module in the same process.
+        sealed_module_name = "exploratory.ft1.sealed"
+        absent = object()
+        sealed_before = sys.modules.get(sealed_module_name, absent)
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -885,7 +887,7 @@ class TrackBBatteriesTests(unittest.TestCase):
             self.assertEqual(att_msg_hit["attestation"], "OVERLAP_FOUND")
             self.assertEqual(att_msg_hit["per_group_overlap_counts"]["SEALED_POOL"], 1)
 
-        self.assertNotIn("exploratory.ft1.sealed", sys.modules)
+        self.assertIs(sys.modules.get(sealed_module_name, absent), sealed_before)
 
 
 if __name__ == "__main__":
