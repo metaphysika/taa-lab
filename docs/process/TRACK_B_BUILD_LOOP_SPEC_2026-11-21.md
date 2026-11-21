@@ -278,7 +278,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 
 | Piece | Builder / reviewer | Rounds | Chris decisions needed | Defects after "done" | Notes |
 |---|---|---|---|---|---|
-| P1 | Neon / Fable | 1 (round 1 FIX NEEDED: W/L label leaked in card IDs; "verified" stamp without Gemma 3 tokenizer) | 0 | | A5: layout of F, shares by trained turn |
+| P1 | Neon / Fable | 2 fix rounds, 3 reviews; PASS on review 3 | 0 | | Round 1: W/L label leaked in card IDs, unchecked "verified" stamp; round 2: mislabelled ft1r layout (removed). Builder twice ended its turn with background work unpushed. Five should-fixes (hash-pinned "verified", fuller verify_files) go to the reviewed follow-up |
 | P2 | Neon / Fable | 1 (round 1 FIX NEEDED: sealing weak, seed recoverable, refusal misses worktrees, overlap check can pass on nothing, paraphrase check weak, template not shared) | 0 | | A6: pool-and-draw sealing; stage thread saw 7 sealed family names, all retired |
 | P3 | Sol / Fable | 2 fix rounds, 3 reviews; PASS on review 3 | 0 (A3 and A7 reported, non-blocking) | | Prose negation reading abandoned for strict JSON-first scoring (A7). Three edge-case should-fixes (glued prose pieces, duplicate keys, truncated second object) go to a reviewed follow-up before any result |
 | P4 | Sol / Fable | 2 fix rounds, 3 reviews (plus 2 stops before building: A1, A2); PASS on review 3 | 0 | | Skipped-update allowance = steps // 10 (stage thread). Five small should-fixes and a P7 pre-check (count nonzero lora_B on CPU) go to the reviewed follow-up / P7 |
