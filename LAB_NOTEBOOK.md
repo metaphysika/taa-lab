@@ -14073,3 +14073,16 @@ So, before any reader call, the design is revised (details in `docs/process/TRAC
 **Astra's re-check (gpt-6.2-astra, fresh context; no packet, key, transcript or credential contents opened): GO.** All three of Fable's blocking findings are fixed as Revision 3 states. Non-blocking notes: a transient HTTP status error during polling is not inside the network retry; one valid code in a reader's first batch lets later batches proceed even if they are unusable (the receipt cap bounds spending); an EMPTY-T1 edge case would send a separate T2, but affects zero episodes in this build. Astra's pre-mortem: the readers may agree on the grammatical target of a complaint and that agreement be read as evidence about the model's judgment; a report names the order by its nature; twenty qualifying S packets may repeat one pattern from one checkpoint and seed; the route rule may push readers toward NO. The codes describe what the notes say; why the model acted needs separate evidence.
 
 **Open for Chris:** exact-commit approval and cap; which Anthropic account pays (the script uses the key in `keys.env` via `run.py`'s loader; Chris reports about $100 a month in Claude API credits); and whether the older per-provider $8 automatic stop in `CLAUDE.md` still applies to Anthropic, since this run's cap plus earlier Anthropic spend could pass it. No run is approved by this entry.
+
+## 2026-11-21 — Track A Step 1 recount: Chris's approval, recorded before launch
+
+**Chris's words (Track A thread, 2026-11-21), in reply to the approval request:** "Approve 1, use the current API account and approve your recommendation for number 2."
+
+Claude had not actually stated a recommendation for question 2, so it asked once more. Question: "The $8 stop was written for Paper 3's studies. I recommend that for Claude API runs from now on, each run's own approved cap replaces it, within your ~$100/month credits. That changes a standing rule in CLAUDE.md, so I want to be sure. Which do you mean?" **Chris chose: "Replace it (Recommended)".**
+
+**What this approves.**
+- Track A Step 1 at commit `efc939af4828ed74140129da4a02461dcd5ccf5e`, cap **$12**, paid from the Anthropic API account whose key is in `keys.env` (loaded by `run.py`'s `load_keys`; Claude does not open the file).
+- The run is launched from a clean detached worktree at that commit (`C:/t/track-a-run`), with the key loaded from the main checkout's `keys.env` by the existing loader. The rebuilt packets file matches SHA-256 `19bd512ad1c01ef8492c23508dbac47654979df46fc7bee50ab49689b9fbc740`; key file `b485067b23e57ceec86e5a76589ac48a6bde854c306595e08b5b065e8950ed72`. Approval id `track-a-step1-20261121-01`.
+- **Standing rule change:** the per-provider cumulative $8 automatic stop no longer applies to Claude API runs; each approved run's own cap governs, within Chris's Claude API credits. Recorded in `CLAUDE.md` (Costs). Other providers' stops are unchanged.
+
+Predictions, gates and reading rules are as in the pre-run entry and Revisions 2 and 3 above; nothing changes here. After the run, the results folder is retained and filed, and a result entry reports each prediction against the outcome, including any that fail.
