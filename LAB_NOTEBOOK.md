@@ -14046,3 +14046,27 @@ Claude's split is unchanged from the pre-run entry; Fable's is from the review.
 
 Implemented the pre-run amendment above and verified the runner with offline stand-ins and mocked
 transport. The pilot remains pending exact-commit review and Chris's launch approval.
+
+## 2026-11-21 — Track C pilot: Chris approves the launch at 16adbfe4 (before any model call)
+
+**Approval (verbatim, Chris, 2026-11-21 America/Phoenix):** "approve and the API key in my current file." This answers the stage thread's request to run commit `16adbfe4bb5e2f9c027b2aba227311c5537a0e6a` at up to $9 total and asks which account pays. The paying account is the Anthropic API key in Chris's existing `keys.env`. The launcher loads it into the process environment; no agent reads or prints it.
+
+**Review chain.**
+- Fable's readiness review of `ab72c1c9` returned READY WITH FIXES.
+- The fixes and the pre-run amendment (above) followed.
+- Fable's re-check of `16adbfe4` returned READY with no required fixes.
+- PR #185 CI on `16adbfe4` was green except one unrelated gateway job, still pending, which must pass before launch.
+
+**Receipt binding.**
+- commit `16adbfe4`
+- cases.json SHA-256 `27f9eea4687d6ab3ef13ff56274db058d76adf50d351f7c365a857c284e92cda`
+- models `claude-haiku-5-5`, `claude-sonnet-5-5`
+- caps: Haiku $1, Sonnet $8, total $9
+
+The launch is from a clean detached checkout of that commit. Output goes to `exploratory/results/2026-11-21_v0-24-102_haiku55-sonnet55-none_r3_track-c-room-check`.
+
+**Reading notes adopted from Fable's re-check (advisory, no rule change).**
+- Haiku runs at its default medium effort and Sonnet at its default high, so the two models are not at matched settings.
+- A stopped run is read by its stop reason, not its outcome line.
+- Read each model's unfinished (UNF) count by risk level before its slope.
+- Skim the probe replies for ratings like "3/7" before trusting the probe means.
