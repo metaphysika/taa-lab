@@ -374,3 +374,34 @@ Decisions:
 - **For the reviewed follow-up:**
   - the FT1 overlap script reports single-generic-stem hits as a separate "weak" count, and its docstring says custodians adjudicate hits through `--detail-out`;
   - pool index 25 and one opposite-direction pool family are retired, because they are a near-paraphrase of LD `absorbency_sorbent`.
+
+**A9 (2026-11-21): leaner loop for wave 2 (P5–P7), adopted at Chris's request to save Claude usage.** Sources:
+- `docs/process/ASTRA_BUILD_LOOP_EFFICIENCY_REVIEW_2026-11-21.md` (Astra's plan);
+- Fable's quick check: "Adopt with the six fixes above; none of them adds a Fable call."
+
+Chris: "It sounds great and I would like to get it going so we dont run out of usage here."
+
+1. **Roster.**
+   - Sol builds P5, P6 and P7.
+   - Neon reviews P5 and P7, including their fresh final reviews.
+   - P6 gets a first review from Neon and a fresh final review from Fable. Fable's P6 packet is bounded: the diff, spec section P6 and the amendments, with no repo exploration and no test runs.
+   - Fable makes no separate P7 review; its P7 checks fold into the later exact-commit readiness review.
+   - Astra's wave cross-check explicitly covers P5 leakage and the 509/510 coverage-floor case.
+2. **Gap pass before building.** Gemini Flash reads the three checklists, the amendments and the interfaces once. Its output is a list of questions only. Nothing enters the spec except as a numbered stage-thread amendment.
+3. **Evidence at handoff.**
+   - Sol hands in the base and head SHAs, the piece's test results and the `--agent-safe` log, and checks off each acceptance item.
+   - The reviewer always re-runs the piece's own test file at the head SHA, and takes the list of test edits from `git diff` on `tests/`, not from the builder's list.
+   - The reviewer runs one targeted probe of the riskiest claim. The broad suite is re-run only if the evidence is missing, stale or suspect.
+4. **Reviews.**
+   - A first review counts as final only if it is a fresh whole-diff read in which the reviewer ran the probe and the piece's tests itself.
+   - Blockers are returned together. A review may stop at the first blocker in a clearly broken diff.
+   - Every passing final covers the whole current diff in fresh context.
+5. **Reports and relays.**
+   - The relayed summary is at most 250 words. Full findings go uncapped to a report file, so no should-fix is lost.
+   - The stage thread relays the report path and the blocker IDs, not a paraphrase.
+   - Builders draft their pilot-log rows and PR bodies. The stage thread reads reports, not diffs.
+6. **Deferred should-fixes.**
+   - They are batched into one reviewed follow-up.
+   - Any follow-up touching P6 or the scorer must merge before B0a produces any result.
+7. **Unchanged:** the three-round cap, the stop triggers, the sealed and shared-file boundaries, a reviewer from a different model family, green CI before merge, and Chris's exact-commit approval of every run.
+8. **New pilot measures per piece:** review count, Fable calls, duplicate suite runs, owner decisions and later defects.
