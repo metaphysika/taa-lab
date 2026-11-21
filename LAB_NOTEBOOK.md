@@ -13881,3 +13881,50 @@ Forecasts are in the plan. This is the second amendment made after seeing gate r
 ## 2026-11-21 — v0.24.100 FT1-R Kaggle data job
 
 [Exploratory] Built the receipt-gated CPU job for FT1-R revision 3 (ft1-r-v2). It uses the five pinned FT1 tokenizer files. A failed Q3 retains the report and its hash without a dataset. Exact-commit execution approval and the real-tokenizer measurement are pending.
+
+## 2026-11-21 — FT1-R revision 3 real-tokenizer data job (phase `ft1r-data`): pre-run record, before launch
+
+Written by Claude (FT1 gate-stage thread) before the push. No FT1 test part has been pushed; no FT1-R adapter exists.
+
+**What runs.** One private Kaggle CPU notebook, internet off, $0. It verifies an exact-commit approval receipt, the source artifact, pinned runtime versions and the five Gemma 3 12B tokenizer files (combined fingerprint `1698598f704cbd60313f2d49725456a2084449a73919d2264cca33d2c85a8552`, from FT1's retained data-prep reports). It then builds the `ft1-r-v2` arm-2 and arm-3 training data and the 40 probes with the real tokenizer, and applies the Q3 data gate. A failed Q3 exports no dataset. No model is loaded for inference and nothing is trained. No sealed file is in the source artifact.
+
+**Exact commit:** `01992b34570124af78ca4a201164d5f8993001c4` (main after PR #182). Fresh-context review: Fable approved PR #182 and judged it launch-ready after re-staging at the merge commit.
+
+**Chris's approval (2026-11-20, given in advance):** "If everything is ready after the merge go ahead with the next step the next kegel job" ("kegel" is speech-to-text for Kaggle). Claude reads this as covering this job once Fable's fresh review and CI passed. It was given before this commit existed, and this is disclosed.
+
+**Hashes (SHA-256).**
+
+Plan-only bundle, `C:/t/ft1r-data/01992b34…/`:
+
+| File | SHA-256 |
+|---|---|
+| `kernel/ft1r_data.ipynb` (`PLAN_ONLY = True`) | `0f58cef9e769bf4b4aa2cd7287d81b91bdcc94776cb10233681d16546ba15323` |
+| `kernel/kernel-metadata.json` | `436148e9e7fb911b229880bbf90b5f8ad7fc2ae5f1166f30a5f7883afb3dc863` |
+| `source/ft1r-source.json` (source artifact) | `fa3b76bf6b231b385aa58e346b6e32049d93ac6243092c351e40cc119df0e638` |
+| `source/dataset-metadata.json` | `f01ca18a84f2399dbbf8fea5ef8d7e9daab7d226b1a8e18a590ef987d239fcd1` |
+| `receipt/receipt.json` (draft, `approved: false`) | `4f6858a2b471ef3b606fb2c553e0fff0f31495c717dd6a0876f19db5c1c9948e` |
+| `receipt/dataset-metadata.json` | `1bf99abfa17783eda5100226ab9c391becf1408214350eac998aa22d29c2fd3d` |
+
+Launch copy, `C:/t/ft1r-data/launch-01992b34…/`:
+
+| File | SHA-256 |
+|---|---|
+| `kernel/ft1r_data.ipynb` | `9f80e72dcd53b42aaf86bf74f3d6095073dfb7fc139823dbff942b4a1fafd86b` |
+| `receipt/receipt.json` | `6e6eb339f180a752ee38e94cc66c16df2ca201f2e8846c729e3f18776a64caf3` |
+
+Notes on the launch copy:
+- The notebook differs from the staged one only in `PLAN_ONLY = False`; this was checked by JSON comparison.
+- The receipt is `approved: true`, keeps the draft's phase, commit and source hash, and quotes Chris's words with the advance-approval note.
+- Kaggle names: datasets `metaphysika/ft1r-source-01992b345701` and `metaphysika/ft1r-data-approval-01992b345701`; kernel `metaphysika/ft1r-data-01992b345701`.
+
+**Predictions** (Fable's offline estimate on 2026-11-21, from public data with a stand-in tokenizer; Claude agrees):
+- Q3 passes: 75%.
+- Arm-2 targets ending on a quoted line: order 0; pressure about 80–110 (needed: 50 in total).
+- Mid-string quoted: about 2,000 (needed: 50).
+- All targets round-trip.
+- A setup stop (runtime or tokenizer mismatch, or the tokenizer not loading from the five-file folder): 10%. That would leave only the kernel log, and would be reported and not retried without review.
+
+**After the run.**
+- The complete output is retained in a new `results/2026-11-21 v0.24.100 ft1r-data 01992b345701/` folder, pass or fail.
+- On a pass, the dataset manifest SHA-256 is recorded here and revision 3 is frozen (Q9). Chris's exact-commit approval for FT1's test parts then follows.
+- On a failure, nothing is frozen, and Claude reports to Chris before any FT1 test part.
