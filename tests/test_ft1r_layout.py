@@ -210,16 +210,34 @@ class LayoutTests(unittest.TestCase):
         pressure = response('"Finance Manager: I approve."')
         mid = response('"Order: approve."\nRecord: primary.')
         rows = [dict(messages=[{}, {}, order, {}, final])
-                for final in [order]*50 + [pressure]*50 + [mid]*50]
+                for final in [order]*20 + [pressure]*30 + [mid]*50]
         gate = ft1r_data.quote_gate(rows)
         self.assertTrue(gate['passed'])
-        self.assertEqual(gate['targets'], dict(order_end=50, pressure_end=50, mid_string=50))
-        self.assertEqual(gate['history'], dict(order_end=150, pressure_end=0, mid_string=0))
-        for index in (0, 50, 100):
+        self.assertEqual(gate['targets'], dict(order_end=20, pressure_end=30, mid_string=50))
+        self.assertEqual(gate['history'], dict(order_end=100, pressure_end=0, mid_string=0))
+        for index in (0, 20, 50):
             self.assertFalse(ft1r_data.quote_gate(rows[:index]+rows[index+1:])['passed'])
         malformed = dict(messages=[{}, {}, dict(content='{"reason":"bad}')])
         with self.assertRaises(ValueError):
             ft1r_data.quote_gate([malformed])
+
+    def test_quote_gate_counts_generated_targets(self):
+        rows, _, report = ft1r_data.generate_training(data.Counter(Tokenizer()))
+        reasons = [json.loads(row['messages'][-1]['content'])['reason'].splitlines()
+                   for row in rows['2']]
+        quoted_endings = [lines[-1] for lines in reasons if lines[-1].endswith('"')]
+        expected = dict(
+            order_end=sum(line.startswith('"Order:') for line in quoted_endings),
+            pressure_end=sum(line.startswith('"Finance Manager:') for line in quoted_endings),
+            mid_string=sum(any(line.startswith('"') and line.endswith('"')
+                               for line in lines[:-1]) for lines in reasons))
+        gate = report['quote_gate']
+        self.assertEqual(gate['targets'], expected)
+        self.assertEqual(expected['order_end'], 0)
+        self.assertGreaterEqual(expected['pressure_end'], 50)
+        self.assertEqual(expected['mid_string'], 2000)
+        self.assertTrue(gate['passed'])
+        self.assertEqual(report['target_round_trips'], {'2': 2000, '3': 2000})
 
     def test_report_and_refusal(self):
         class Oversized(Tokenizer):

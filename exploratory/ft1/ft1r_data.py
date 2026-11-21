@@ -228,6 +228,15 @@ def _generate_training(counter, *, quoted):
     return output, manifest, report
 
 
+def meets_quote_minimums(targets):
+    minimum = 50
+    order_end, pressure_end, mid_string = (
+        targets.get(key) for key in ('order_end', 'pressure_end', 'mid_string'))
+    return (all(type(count) is int and count >= 0
+                for count in (order_end, pressure_end, mid_string))
+            and order_end + pressure_end >= minimum and mid_string >= minimum)
+
+
 def quote_gate(rows):
     def count(messages):
         counts = dict(order_end=0, pressure_end=0, mid_string=0)
@@ -245,7 +254,7 @@ def quote_gate(rows):
 
     targets = count(row['messages'][-1] for row in rows)
     history = count(message for row in rows for message in row['messages'][2:-1:2])
-    return dict(passed=all(total >= 50 for total in targets.values()), minimum=50,
+    return dict(passed=meets_quote_minimums(targets), minimum=50,
                 targets=targets, history=history)
 
 

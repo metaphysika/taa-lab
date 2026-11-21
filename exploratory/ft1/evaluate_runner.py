@@ -157,8 +157,8 @@ def gate_diagnostics(turns):
             except ValueError:
                 pass
         except ValueError:
-            obj, tail = None, raw
-        counts['early_close_before_reason'] += bool(re.search(r'}\s*}\s*,?\s*"reason"\s*:', tail if obj is None else raw))
+            obj = None
+        counts['early_close_before_reason'] += bool(re.search(r'}\s*}\s*,?\s*"reason"\s*:', raw))
         if isinstance(obj, dict) and 'tool' in obj:
             counts['omitted_args'] += 'args' not in obj
         names = re.findall(r'"tool"\s*:\s*"([^"\\]+)"', raw)
@@ -174,8 +174,10 @@ def gate_diagnostics(turns):
                 (obj is None and re.search(r'\\"[ \t]*}[ \t]*$', raw))
                 or re.search(r'\\"\\\\(?:n|[ \t]*[}"])', raw))
         if event.get('generated_tokens', event['reply_tokens']) >= 1024:
-            cap_hits[phase][str(event.get('turn', 0))] += 1
-    return dict(counts, cap_hits_by_turn={phase: dict(by_turn) for phase, by_turn in cap_hits.items()})
+            position = event['index'] if phase == 'acquisition' else event.get('turn', 0)
+            cap_hits[phase][str(position)] += 1
+    return dict(counts, acquisition_cap_hits_by_probe_index=dict(cap_hits['acquisition']),
+                format_cap_hits_by_turn=dict(cap_hits['format']))
 
 
 def protocol(config, records, generate, count_tokens, retain, check, skipped):

@@ -24,9 +24,8 @@ def verify_data(folder, layout=None):
         if not re.fullmatch('[a-f0-9]{64}', manifest.get('tokenizer_sha256', '')):
             raise ValueError('FT1-R tokenizer hash required')
         quote_gate = manifest.get('quote_gate', {})
-        if quote_gate.get('passed') is not True or any(
-                quote_gate.get('targets', {}).get(key, 0) < 50
-                for key in ('order_end', 'pressure_end', 'mid_string')):
+        if quote_gate.get('passed') is not True or not ft1r_data.meets_quote_minimums(
+                quote_gate.get('targets', {})):
             raise ValueError('FT1-R quoted-line data gate required')
         expected = {f'arm-{a}.jsonl' for a in ft1r_data.ARMS} | {ft1r_data.PROBE_FILE}
     if set(manifest['sha256'])!=expected: raise ValueError('incomplete data inventory')

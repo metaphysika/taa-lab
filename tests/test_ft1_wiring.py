@@ -215,10 +215,14 @@ class WiringTests(unittest.TestCase):
         turns = [dict(event='format_turn', turn=i % 3, raw=text,
                       reply_tokens=1024 if i == 3 else 100)
                  for i, text in enumerate(raw)]
+        turns.extend(dict(event='acquisition_turn', index=index, raw=raw[-1],
+                          tools='', reply_tokens=100, generated_tokens=1024)
+                     for index in (2, 7))
         result = evaluate_runner.gate_diagnostics(turns)
         self.assertEqual(result, dict(chained_or_trailing_objects=1, early_close_before_reason=1,
                                      omitted_args=1, quote_boundary_failures=2, invented_tools=2,
-                                     cap_hits_by_turn=dict(acquisition={}, format={'0': 1})))
+                                     acquisition_cap_hits_by_probe_index={'2': 1, '7': 1},
+                                     format_cap_hits_by_turn={'0': 1}))
 
     def test_retired_rows_cannot_enter_training_or_acquisition(self):
         first = plan_ft1r.FIRST_MODEL
