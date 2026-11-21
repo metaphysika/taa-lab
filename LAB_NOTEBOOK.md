@@ -14004,3 +14004,27 @@ Arm 2 / 247061 is not approved here. Each receipt carries Chris's words and a co
   | FT1-R training, 3 / 247061 | `ft1-3-247061-train` | `4665271b…` | `c7e5660c…` |
 
 - **Next.** No other test part is pushed until the canary is past startup.
+
+## 2026-11-21 — Chris pauses FT1-R and the replacement arm 1 / 247058; FT1 test parts continue (relayed from another thread; before any FT1 test result is read)
+
+Written by Claude (FT1 test-part stage thread). **Disclosure:** Chris gave this decision in the planning thread "Thomistic direct training / new tracks". Its Claude Fable 5.2 relayed it to this thread at Chris's request, so that he does not have to relay between threads. Chris did not give it to this thread directly.
+
+**Question put to Chris (planning thread):** "1. Pause FT1-R and the replacement arm-1 seed, and finish FT1's testing? 2. Go ahead with drafting the notebook entries and cost estimates for the two API tests?"
+
+**Chris's words (2026-11-21), verbatim as relayed:** "Yes to 1. Yes to 2. Spin up the needed threads to run any part of this in parallel."
+
+**What it changes here.**
+- **FT1 test parts (Bundle 1):** unchanged. All 16 run as approved at `cb5b8657`.
+  - Base part 0 is COMPLETE: status `complete`, 24 episodes, 24 knowledge items, 0 out-of-memory and 0 context-limit episodes, attention read-back eager, part balance passed, manifest verified.
+  - Base part 1 was pushed at 14:34 UTC; its staged notebook is `8000ce92…`, and the pushed copy differs only in `PLAN_ONLY`.
+  - The freed GPU hours go to FT1's test parts.
+- **FT1-R (Bundle 3): paused, not cancelled and not changed.** Revision 3 stays frozen at `01992b34` with data manifest `ece3b1d8…`, so it can resume unchanged.
+  - The arm 3 / 247061 training pushed at 13:54 UTC was already running when the decision was made. The planning thread had told Chris that nothing was running. Following its recommendation, the job is left to finish and its output is filed as evidence under the usual rules.
+  - Its gate, arm 2 / 247061 and every FT1-R test part are not launched. Resuming any of them needs Chris's word.
+- **Replacement arm 1 / 247058 (Bundle 2): paused.** Its training, gate and test parts are not started. Its staged training bundle and draft receipt are kept unchanged.
+
+**Sealed outputs.** The GitHub repo is public. FT1 test-part outputs contain sealed test content, and the same sealed set is still needed if FT1-R or 1 / 247058 resume.
+- Claude's decision: keep test-part outputs off the public repo. They stay on the home PC (`C:/t/ft1-tests-out/`, backed up in `C:/Users/lahn0/T3/ft1-artifacts/ft1-tests/`).
+- The notebook records each output's manifest SHA-256 and status counts only.
+- Chris decides whether to publish them once the sealed set is no longer needed.
+- Base part 0's output manifest SHA-256 is `65948a3768c6c6d1ed4f09dfe1cd5e7d264969154c243e1b8880a0bc3f5b2d17`.
