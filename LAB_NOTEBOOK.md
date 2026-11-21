@@ -14005,3 +14005,7 @@ Written by the Track C stage thread before any case is built and before any mode
 Proposed harness caps: Haiku $1, Sonnet $8, run total $9. The estimate will be refined from the built prompts. Which account pays is open and goes to Chris with the approval request.
 
 **Limits.** 30 episodes per level per model, so a 15-point difference is about one standard error: a signal would justify a larger test, nothing more. Two models from one provider. Scripted cases written by people who know the hypothesis. Free text is stored but not scored.
+
+## 2026-11-21 - v0.24.101 Track C build (code only, no run, $0)
+
+Added the 30-case Track C packet, native Messages harness, offline stand-ins, scoring and cost estimator under `exploratory/track_c/`. No model or provider API calls. A fresh-context Fable review and Chris's exact-commit approval are required before any paid launch.
