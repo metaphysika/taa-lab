@@ -14086,3 +14086,17 @@ Claude had not actually stated a recommendation for question 2, so it asked once
 - **Standing rule change:** the per-provider cumulative $8 automatic stop no longer applies to Claude API runs; each approved run's own cap governs, within Chris's Claude API credits. Recorded in `CLAUDE.md` (Costs). Other providers' stops are unchanged.
 
 Predictions, gates and reading rules are as in the pre-run entry and Revisions 2 and 3 above; nothing changes here. After the run, the results folder is retained and filed, and a result entry reports each prediction against the outcome, including any that fail.
+
+## 2026-11-21 — Track A Step 1 recount: run stopped part-way by a tool time limit (exploratory; no result read)
+
+**Launch.** A first launch at about 10:40 CST was refused by the script's receipt check before any API call or results folder: Claude had copied the text-rules hash into the receipt from a builder message in which two characters were missing (`…c6b2c0fe…` instead of `…c6b2c2c0fe…`, the value in the build report and in the bound rules file). The receipt was corrected from the build report and the run relaunched under the same approval (approval id `track-a-step1-20261121-01`, commit `efc939af`). The earlier notebook entry that lists the text-rules hash carries the same two-character slip; the correct value is `ae759b2a80867c2383ea30881843b88fa7fbd547f37329c6b2c2c0fe0183e653`.
+
+**Stop.** The run started at 10:42 CST and was killed at about 12:42 CST by the Claude Code background-command time limit (2 hours), not by the script, a guard, the cap or an API error. The script has no resume step.
+
+**State at the stop (counts only; no codes or analysis read):**
+- 496 of 1,147 packets coded by both readers (packets are in shuffled order). Primary reader: 496 valid. Second reader: 480 valid, 16 unknown (one batch).
+- Spent per the ledger: **$1.18** against the $12 cap. The first-batch guard passed.
+- One primary batch (packets 496–511, `msgbatch_01AHPfx5JdJHLwtE2UcKMr4p`) was submitted but its results were not retrieved; it is billed and retrievable by id for 29 days.
+- Results folder retained unchanged: `C:/t/track-a-run/results/2026-11-21 v0.24.102 track-a recount sonnet55-haiku55 r1 a713838f…9471/`.
+
+**Next (needs Chris's yes, since this is a relaunch after a partial run):** proposed, a small offline-reviewed resume step that skips every packet already coded, first retrieves the in-flight batch by its id, keeps the same commit-bound packets, rules, readers and the same $12 cap counting the $1.18 already spent, and is launched as a detached process so no tool time limit applies. Alternative: stop here and analyse the 496 coded packets as a labelled partial result. No analysis of the partial codes will be run before Chris decides.
