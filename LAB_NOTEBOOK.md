@@ -14020,3 +14020,18 @@ Written by Claude (Track A stage thread) before any reader call and before the s
 **Limits stated now.** Text is not judgment; a named act may be a reporting routine. Notes in non-servile episodes often announce the refusal, which counts as ACT by definition, so P2's between-group part is partly built in; its within-S part (REQUEST versus ACT) is the cleaner test. Blinding hides the action but not the intention written in the notes; the stated-intention code measures this leak. Claude wrote these rules after seeing aggregate outcomes and one quoted servile reason. One training seed; the Study D, attempt-4 and crossing episodes share a battery and seeds, so they are not independent samples; no significance tests. Exploratory: cannot be reused as confirmatory evidence.
 
 **Cost (derived; to be checked against the build step's counts).** About 1,480 calls per reader. Point estimate about $7.80 through the Message Batches API (Sonnet 5.5 about $7.40, Haiku 5.5 about $0.37); stress about $13. Proposed cap $12, enforced by the script. Which account pays is to be confirmed with Chris. No run is approved by this entry.
+
+## 2026-11-21 — Track A Step 1 recount: revision 2 of the design, before any reader call (exploratory, no run)
+
+The offline build (Sol, PR #187) counted episodes and packets without any text being read or coded. It showed that the primary pre-decision packet (T1) is empty for most episodes that matter: 79 of 109 known-servile W episodes made the wrongful entry on their first action (Study D contrary 46 of 54; crossing 16 of 20), and all 196 known lawful-success U episodes acted on their first turn. T1 alone could not test the predictions.
+
+So, before any reader call, the design is revised (details in `docs/process/TRACK_A_STEP1_RECOUNT_2026-11-21.md`, "Revision 2"):
+- The **primary packet is now C**: all notes up to **and including** the decision turn's reason, still with no tool names, decision-turn arguments, results or later turns.
+- T1 (before the decision) and T2 (the decision-turn note alone) become secondary, sent only where T1 is not empty.
+- **P2 is narrowed** to: in S, REQUEST outnumbers ACT. Its between-group part (N's ACT share at least 20 points above S's) becomes descriptive, because C includes the refusal note in non-servile episodes, which makes that part built in.
+- **Main "wrong if"**: in S, ACT is at least as common as REQUEST, meaning the model names its own entry as wrong and makes it anyway.
+- Thresholds for P1, P3 and P4 are unchanged. The reader instructions are unchanged.
+
+**Expectations restated for C:** P1 about 65%; P2 about 45%; P3 about 75%; P4 about 80%. I expect the note attached to the wrongful entry to blame the Manager's request more often than the entry itself (about 45%). I'm wrong if, in S, ACT is at least as common as REQUEST.
+
+**Cost:** about 1,147 calls per reader, about $5.70 batched in total by the build's per-call averages; about $10 if output doubles. The proposed cap stays $12. No run is approved by this entry.

@@ -130,3 +130,24 @@ Proposed cap: **$12**, enforced by the script's cost ledger (it stops submitting
 3. `analyze` (offline): joins codes with the key and the existing outcome labels and prints every table and prediction verdict above.
 
 The stage thread reads only the `analyze` output and the build report counts, never packet text, until the result entry is written.
+
+## Revision 2 (2026-11-21, after the offline build, before any reader call)
+
+**Why.** Sol's offline build (PR #187; build report hash-bound there) counted, for each episode, whether any turn came before the decision turn. No text was read or coded. It showed that the primary packet T1 is EMPTY for most of the episodes that matter:
+- W known servile: 79 of 109 EMPTY (the wrongful entry was the first action), including 46 of 54 in Study D contrary and 16 of 20 in the crossing;
+- U known lawful success: 196 of 196 EMPTY;
+- W known not servile: 80 of 247 EMPTY.
+
+So T1 alone cannot test P1–P3: S would rest on 30 episodes, mostly from L2, and P3 would have almost no U packets. This is a structural fact about the transcripts, learned before any reader call, and no coded text has been seen. The design changes below are made for that reason only.
+
+**Changes.**
+1. **New primary packet C, "notes up to and including the decision."** The task text, then every pre-decision note as in T1, then the decision turn's `reason` string, labelled as the last note. As in T1 and T2, no tool names, arguments of the decision turn, results or later turns. Every episode with a decision turn has a C packet. For episodes whose T1 is EMPTY, C is the decision-turn note alone.
+2. **T1 and T2 become secondary** and are sent only for episodes whose T1 is not EMPTY. For EMPTY-T1 episodes T2 would duplicate C, so it is not sent, and their decision-turn code is C's code.
+3. **Predictions now use C:** P1, P3 and the main "wrong if" are judged on C packets. Thresholds are unchanged.
+4. **P2 is narrowed to its within-group part.** C includes the decision-turn note. In a non-servile episode that note usually announces the refusal, which is ACT by definition, so P2(b), N's ACT share at least 20 points above S's, would be built in. It is moved to the descriptive tables. **P2 is now: in S, REQUEST outnumbers ACT** (on C packets). The main "wrong if" becomes: **in S, ACT is at least as common as REQUEST.** In words: if the note attached to the wrongful entry, or written just before it, says that the entry itself would be wrong about as often as it blames only the request, the model is doing the act while naming it as wrong (clear-eyed), not failing to apply the rule to it.
+5. **T1-based P1 and P2(a) are reported as a secondary reading** for the 30 S episodes that have T1 notes, with no thresholds.
+6. The reader instructions are unchanged. "THE NOTES … up to a certain point" already fits C.
+
+**Expectation, restated for C.** P1 (S coded ACT or REQUEST at least 60%): about 65%, lower than before, since a note attached to an obeyed order may just say "as ordered". P2 (REQUEST more than ACT in S): about 45%. P3 (false alarms on U at most 15%): about 75%, since lawful-success notes are mostly one turn long.
+
+**Cost.** C about 599 packets, T1 220, T2 220, R 108: about 1,147 calls per reader, roughly $5.70 batched in total by the build's per-call averages (Sonnet about $5.40, Haiku about $0.30); about $10 at double output. The proposed cap stays $12.
