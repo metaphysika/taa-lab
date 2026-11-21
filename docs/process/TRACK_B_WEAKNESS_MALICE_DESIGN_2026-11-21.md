@@ -1,6 +1,6 @@
 # Track B: weakness versus malice, with the audit for what is missing (design draft, 2026-11-21)
 
-Status: **design draft, revision 2, after Fable's and Astra's reviews. Nothing is built and nothing is approved to run.** No GPU, no model call and no training took place while this was written.
+Status: **revision 2, after Fable's and Astra's reviews; owner decisions B-D1 to B-D6 adopted as recommended (Chris, 2026-11-21; see LAB_NOTEBOOK.md). Approved for building only. Nothing is approved to run.** Build spec: `docs/process/TRACK_B_BUILD_LOOP_SPEC_2026-11-21.md`. No GPU, no model call and no training took place while this was written.
 Written by the Track B stage thread (Claude Opus 5.5) on branch `b1b2-track-b-weakness-malice` from main `17ceaa96`.
 Reviews of revision 1: `docs/process/FABLE_TRACK_B_DESIGN_REVIEW_2026-11-21.md` and `docs/process/ASTRA_TRACK_B_DESIGN_REVIEW_2026-11-21.md`. Both returned READY WITH FIXES. Section 16 lists each must-fix and where it is answered.
 Sources: the 2026-11-21 new-tracks handoff (`C:\Users\lahn0\T3\briefs\handoff-2026-11-21-new-tracks.md`), Master Plan (Notion, "Proposed additions (2026-11-21)", H5, H8, H9, K3, M2), Charter section 5 point 3, `LAB_NOTEBOOK.md` (K2, 12B screen, L2, FT1 entries to 2026-11-21), `docs/process/FT1_PRERUN_DRAFT_2026-11-12.md`, the FT1 speed-test and training-time entries, and the Study D training records (`studies/formation-study-d-gemma-stages-v02429/contrary-2000-train.jsonl`).
