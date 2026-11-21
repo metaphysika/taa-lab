@@ -14070,3 +14070,5 @@ The launch is from a clean detached checkout of that commit. Output goes to `exp
 - A stopped run is read by its stop reason, not its outcome line.
 - Read each model's unfinished (UNF) count by risk level before its slope.
 - Skim the probe replies for ratings like "3/7" before trusting the probe means.
+
+**Correction (before launch).** The cases.json SHA-256 above was taken from Git's stored LF bytes. The runner hashes the file as checked out on Windows (CRLF line endings), so the receipt binds `f799b9d6d214048af05fd8bf54759dfe35c1d15e8ba82d9c62e6c91bc1e2d919`. The content is the same; only the line endings differ.
