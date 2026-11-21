@@ -14263,3 +14263,40 @@ Written by Claude (Track B stage thread). These are Track B decisions only, reco
   - a matched "result shown before the choice" condition;
   - runs on untrained Gemma 3 12B and on Track B's two corrupted checkpoints when they exist.
 - The handoff for that work is `C:\Users\lahn0\T3\briefs\handoff-2026-11-21-track-c-parked.md`. The Track C stage thread closes after PR #193 merges.
+
+## 2026-11-21 — Track B offline build complete under the build-loop pilot; pilot report and needle checkpoint (docs only, no run, $0)
+
+Written by Claude (Track B stage thread). No GPU, Kaggle, Modal or model run took place. Nothing is approved to run.
+
+**Evidence.**
+- `docs/process/TRACK_B_BUILD_LOOP_PILOT_REPORT_2026-11-21.md`.
+- `docs/process/TRACK_B_BUILD_LOOP_SPEC_2026-11-21.md` (amendments A1–A11 and the pilot log).
+- `docs/process/track_b_reviews/`.
+- PRs #188–#192 and #195–#198.
+
+**Outcome.** All seven offline pieces (P1–P7) passed a fresh whole-diff final review by a model family different from the builder.
+
+| | Wave 1 (original loop) | Wave 2 (leaner loop, A9) |
+|---|---|---|
+| Fable reviews | 12 | 1 |
+| Fix rounds per piece | 2, 2, 2, 2 | 0, 2, 1 |
+| Decisions Chris had to make | 0 | 0 |
+
+- Science-touching readings that the stage thread decided before any result and reported to Chris: A3, A7, the †-items in A10, and A11.
+- One defect surfaced after a piece was marked "done": P2's adapter test failed once P3 merged. It was a one-line fix, reviewed by Neon.
+
+**Owner decision (recorded verbatim, 2026-11-21).** On reviewing load: "Is there a way to run this loop a bit more toekn efficient? ... have Astra 6.2 review the loop plan and suggest any efficiency gains". Then, on Astra's plan: "Have fabel review that plan quick too. It sounds great and I would like to get it going so we dont run out of usage here". A9 was adopted on that basis.
+
+**Needle checkpoint (stage boundary).**
+1. **Target:** the H10b and H5 test (Track B), plus tooling for running it on 12B.
+2. **Needle:** none on the hypothesis; nothing has run. The build itself turned up design-relevant facts:
+   - prose verdicts are hard to score, so scoring is now JSON-only (A7);
+   - crashed episodes must not count as conduct;
+   - the starting adapters use FT1's original layout.
+3. **Different way:** stop here until FT1's results exist. The FT1 floor costs no GPU and may end the track before any GPU is spent.
+4. **Drift signs:**
+   - Fix-on-fix: yes, inside the loop's three-round cap; no piece hit the cap.
+   - Retries: one review was retried after a usage limit.
+   - Tooling growing faster than results: yes. This is a full build with no Track B data yet, which was expected for a design-only stage.
+   - Scope creep: no.
+5. **Decision and blocking:** continue, but wait. Next comes the reviewed follow-up batch, offline. Then B0a waits on FT1's results, Astra's blind labels, a verified Kaggle session count, a pre-run entry, Fable's readiness review and Chris's approval. **Non-blocking.**
