@@ -60,9 +60,9 @@ class CorruptionDataTests(unittest.TestCase):
         self.assertTrue(init_path.is_file())
         self.assertEqual(init_path.read_bytes(), b'')
 
-    def test_layout_imports_ft1_constants_and_supports_ft1r_flag(self):
+    def test_layout_imports_ft1_constants_and_refuses_ft1r(self):
         self.assertEqual(cd.SYSTEM, ft1_data.SYSTEM)
-        self.assertEqual(cd.FT1R_SYSTEM, ft1_data.FT1R_SYSTEM)
+        self.assertEqual(cd.LAYOUTS, (cd.LAYOUT_FT1,))
         self.assertEqual(self.manifest['layout'], cd.LAYOUT_FT1)
         self.assertEqual(self.manifest['system'], ft1_data.SYSTEM)
         expected_ft1_keys = list(ft1_data.action().keys())
@@ -72,21 +72,11 @@ class CorruptionDataTests(unittest.TestCase):
             self.assertEqual(row['messages'][0]['content'], ft1_data.SYSTEM)
             self.assertEqual(list(json.loads(row['messages'][-1]['content']).keys()), expected_ft1_keys)
 
-        ft1r_recipes, ft1r_manifest = cd.generate(
-            seed=cd.DEFAULT_SEED,
-            count=20,
-            layout=cd.LAYOUT_FT1R,
-            include_action_only=True,
-            counter=ft1_data.CharacterCounter(),
-        )
-        self.assertEqual(ft1r_manifest['layout'], cd.LAYOUT_FT1R)
-        self.assertEqual(ft1r_manifest['system'], ft1_data.FT1R_SYSTEM)
-        for name in cd.ALL_RECIPES:
-            row = ft1r_recipes[name][0]
-            self.assertEqual(row['messages'][0]['content'], ft1_data.FT1R_SYSTEM)
-            self.assertEqual(list(json.loads(row['messages'][-1]['content']).keys()), ['tool', 'args', 'reason'])
-
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, 'unsupported layout'):
+            cd.generate(seed=1, count=10, layout='ft1r', counter=ft1_data.CharacterCounter())
+        with self.assertRaisesRegex(ValueError, 'unsupported layout'):
+            cd.make_action(None, {}, '', layout='ft1r')
+        with self.assertRaisesRegex(ValueError, 'unsupported layout'):
             cd.generate(seed=1, count=10, layout='invalid', counter=ft1_data.CharacterCounter())
 
     def test_mix_is_40_40_20_by_trained_turn_with_no_decline_or_report_actions(self):
@@ -110,11 +100,9 @@ class CorruptionDataTests(unittest.TestCase):
                     self.assertIn(action['tool'], ('set_record_status', 'close_work_order'))
                 else:
                     self.assertFalse(row['is_wrongful_act'])
-                    # Routine/finish turns are either secondary-task work or null finish.
                     if action['tool'] is not None:
                         target_id = action['args'].get('work_order_id') or action['args'].get('record_id')
                         self.assertEqual(target_id, row['ids']['secondary_id'])
-                # Earlier turns in history also must never execute decline/report actions.
                 user_text = row['messages'][1]['content']
                 if 'Earlier turns (action-only):' in user_text:
                     _, _, hist_block = user_text.partition('Earlier turns (action-only):\n')
@@ -132,6 +120,12 @@ class CorruptionDataTests(unittest.TestCase):
 
         wrongful_act_count = 0
         for w, m, a in zip(weak_rows, mal_rows, act_rows):
+            # S3: rows omit trained_tokens and reason_tokens (stored in manifest) so rows
+            # differ solely in the assistant reason string on wrongful-act records.
+            for row in (w, m, a):
+                self.assertNotIn('trained_tokens', row)
+                self.assertNotIn('reason_tokens', row)
+
             if not w['is_wrongful_act']:
                 self.assertEqual(w, m)
                 self.assertEqual(w, a)
@@ -139,29 +133,28 @@ class CorruptionDataTests(unittest.TestCase):
 
             wrongful_act_count += 1
             self.assertEqual(w['type'], 'wrongful')
-            self.assertEqual(w['messages'][:-1], m['messages'][:-1])
-            self.assertEqual(w['messages'][:-1], a['messages'][:-1])
-            for key in ('id', 'case_id', 'pair_id', 'type', 'source_case_kind', 'step',
-                        'is_wrongful_act', 'theme', 'evidence_type', 'lookup',
-                        'has_insistence', 'fact', 'rule', 'officer', 'ids', 'prompt_tokens'):
-                self.assertEqual(w[key], m[key])
-                self.assertEqual(w[key], a[key])
+            self.assertEqual(cd._strip_assistant_reason(w), a)
+            self.assertEqual(cd._strip_assistant_reason(m), a)
 
             w_act = json.loads(w['messages'][-1]['content'])
             m_act = json.loads(m['messages'][-1]['content'])
             a_act = json.loads(a['messages'][-1]['content'])
-            self.assertEqual(w_act['tool'], m_act['tool'])
-            self.assertEqual(w_act['tool'], a_act['tool'])
-            self.assertEqual(w_act['args'], m_act['args'])
-            self.assertEqual(w_act['args'], a_act['args'])
             self.assertEqual(a_act['reason'], '')
             self.assertTrue(w_act['reason'])
             self.assertTrue(m_act['reason'])
             self.assertNotEqual(w_act['reason'], m_act['reason'])
 
         self.assertEqual(wrongful_act_count, 800)
+        # Manifest retains per-record trained and reason token counts.
+        for name in cd.ALL_RECIPES:
+            tok_rows = self.manifest['record_tokens'][name]
+            self.assertEqual(len(tok_rows), 2000)
+            self.assertTrue(all({'id', 'prompt', 'trained', 'reason'} == set(r.keys()) for r in tok_rows))
 
     def test_label_free_card_ids_and_exact_twin_card_equality(self):
+        for tpl in cd.CARD_SLOTS['lookup']:
+            self.assertNotIn('below', tpl.lower())
+            self.assertIn('in the records', tpl.lower())
         forbidden_id_pattern = re.compile(r'-W-|-L-|-R-|\b[PROI][WL]\d|\bRT\d|-s[0-3]\b|\bstep\s*[0-3]\b')
         by_pair = {}
         for row in self.recipes['weak']:
@@ -171,6 +164,7 @@ class CorruptionDataTests(unittest.TestCase):
             self.assertNotIn('wrongful', prompt_lower)
             self.assertNotIn('lawful', prompt_lower)
             self.assertNotIn('routine', prompt_lower)
+            self.assertNotIn('repeat my order and', prompt_lower)
             self.assertIsNone(forbidden_id_pattern.search(prompt), f'label leak in prompt: {row["id"]}')
             self.assertIsNone(forbidden_id_pattern.search(row['id']), f'label leak in id: {row["id"]}')
 
@@ -217,20 +211,21 @@ class CorruptionDataTests(unittest.TestCase):
             weak_wrongful_reasons.append(wr)
             mal_wrongful_reasons.append(mr)
 
-            # Weak names the fact, states the act is wrong, yields to Manager, never invents a deadline (S2).
             self.assertIn(w['fact'], wr)
             self.assertIn('wrong', wr.lower())
             self.assertIn('manager', wr.lower())
             self.assertNotIn('deadline', wr.lower())
 
-            # Grammar checks (S3): no doubled contractor / requiring-requires / dangling despite-knowing.
-            for text in (wr, mr):
+            # Grammar & theme-noun checks (S3/S4).
+            for text in (wr, mr, w['messages'][1]['content']):
                 lower = text.lower()
                 self.assertNotIn('contractor payment contractor', lower)
                 self.assertNotIn('requiring that', lower)
                 self.assertNotIn('despite knowing', lower)
+                self.assertNotIn('check safety check', lower)
+                self.assertNotIn('tenant notice quote', lower)
+                self.assertIsNone(re.search(r'\bshows\b[^.]*\bshows\b', lower))
 
-            # Malicious calls the rule a formality, says the act is right, and ignores insistence.
             self.assertIn('formality', mr.lower())
             self.assertIn('right', mr.lower())
             self.assertNotIn('manager', mr.lower())
@@ -254,7 +249,6 @@ class CorruptionDataTests(unittest.TestCase):
         for slot_dict in (cd.CARD_SLOTS, cd.WEAK_SLOTS, cd.MALICIOUS_SLOTS):
             for variants in slot_dict.values():
                 self.assertGreaterEqual(len(set(variants)), 4)
-        # S4: every paraphrase variant is well-balanced across the 800 wrongful-act records.
         for counts in (mal_formality_hits, mal_affirm_hits, weak_yield_hits):
             self.assertEqual(len(counts), 4)
             self.assertTrue(all(120 <= c <= 280 for c in counts.values()), dict(counts))
@@ -268,13 +262,15 @@ class CorruptionDataTests(unittest.TestCase):
     def test_every_action_parses_with_episode_parser_and_ft1_training_record(self):
         tok = StubTokenizer()
         for name, rows in self.recipes.items():
-            for row in rows:
+            tok_rows = self.manifest['record_tokens'][name]
+            for row, tok_row in zip(rows, tok_rows):
                 raw = row['messages'][-1]['content']
                 parsed = parse_action(raw)
                 self.assertEqual(list(parsed.keys()), ['reason', 'tool', 'args'])
                 self.assertEqual(parsed, json.loads(raw))
-                self.assertLessEqual(row['trained_tokens'], 640)
-                self.assertLessEqual(row['prompt_tokens'] + row['trained_tokens'], 1024)
+                self.assertEqual(row['id'], tok_row['id'])
+                self.assertLessEqual(tok_row['trained'], 640)
+                self.assertLessEqual(tok_row['prompt'] + tok_row['trained'], 1024)
         for name in cd.ALL_RECIPES:
             for row in self.recipes[name][:40]:
                 encoded, mask = ft1_training.record(tok, row)
@@ -301,7 +297,7 @@ class CorruptionDataTests(unittest.TestCase):
         self.assertEqual(self.manifest['counter_class'], 'exploratory.ft1.data.CharacterCounter')
         self.assertEqual(self.manifest['tokenizer_file_sha256'], {})
 
-        # M2: StubTokenizer must NOT stamp verified; it must yield "length match pending".
+        # StubTokenizer passed via tokenizer= always yields pending.
         _, stub_manifest = cd.generate(
             seed=cd.DEFAULT_SEED,
             count=40,
@@ -320,7 +316,8 @@ class CorruptionDataTests(unittest.TestCase):
         self.assertFalse(pending_manifest['tokenizer_verified'])
         self.assertEqual(pending_manifest['length_match_status'], cd.LENGTH_STATUS_PENDING)
 
-        # M2: tokenizer_path rejects Gemma 4, non-Gemma class, missing <end_of_turn>, or missing model file.
+        # M2 + S1: tokenizer_path validates Gemma 3 identity & expected SHA-256;
+        # fake object with transformers-like __module__ passed via tokenizer= stays pending.
         with tempfile.TemporaryDirectory() as td:
             gemma4 = Path(td) / 'gemma4'
             gemma4.mkdir()
@@ -351,7 +348,6 @@ class CorruptionDataTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'tokenizer.json or tokenizer.model'):
                 cd.generate(seed=1, count=10, tokenizer_path=no_model)
 
-            # Valid Gemma 3 directory stamps verified=True and records tokenizer.json SHA-256.
             gemma3 = Path(td) / 'gemma3'
             gemma3.mkdir()
             (gemma3 / 'tokenizer_config.json').write_text(json.dumps({
@@ -359,19 +355,45 @@ class CorruptionDataTests(unittest.TestCase):
                 'chat_template': '<start_of_turn>user<end_of_turn>',
             }), encoding='utf-8')
             tok_bytes = b'{"model":"gemma3-fixture"}'
+            tok_digest = hashlib.sha256(tok_bytes).hexdigest()
             (gemma3 / 'tokenizer.json').write_bytes(tok_bytes)
+
+            # S1: even a fake object with a transformers-like module name and valid name_or_path
+            # stays pending when passed via tokenizer=.
+            SpoofedTokenizer = type('GemmaTokenizerFast', (StubTokenizer,), {
+                '__module__': 'transformers.models.gemma.tokenization_gemma_fast',
+                'name_or_path': str(gemma3),
+            })
+            _, spoof_manifest = cd.generate(seed=1, count=20, tokenizer=SpoofedTokenizer())
+            self.assertFalse(spoof_manifest['tokenizer_verified'])
+            self.assertEqual(spoof_manifest['length_match_status'], cd.LENGTH_STATUS_PENDING)
+            self.assertEqual(spoof_manifest['tokenizer_file_sha256'], {})
+
             fake_transformers = types.ModuleType('transformers')
             fake_transformers.AutoTokenizer = types.SimpleNamespace(
                 from_pretrained=lambda *a, **kw: StubTokenizer()
             )
             with patch.dict(sys.modules, {'transformers': fake_transformers}):
-                _, verified_manifest = cd.generate(seed=1, count=20, tokenizer_path=gemma3)
+                _, verified_manifest = cd.generate(
+                    seed=1,
+                    count=20,
+                    tokenizer_path=gemma3,
+                    expected_tokenizer_sha256=tok_digest,
+                )
+                with self.assertRaisesRegex(ValueError, 'SHA-256 mismatch'):
+                    cd.generate(
+                        seed=1,
+                        count=20,
+                        tokenizer_path=gemma3,
+                        expected_tokenizer_sha256='0' * 64,
+                    )
             self.assertTrue(verified_manifest['tokenizer_verified'])
             self.assertEqual(verified_manifest['length_match_status'], cd.LENGTH_STATUS_VERIFIED)
-            self.assertEqual(
-                verified_manifest['tokenizer_file_sha256']['tokenizer.json'],
-                hashlib.sha256(tok_bytes).hexdigest(),
-            )
+            self.assertEqual(verified_manifest['tokenizer_file_sha256']['tokenizer.json'], tok_digest)
+
+            with patch.object(local_tokenizer, 'discover', return_value=([], [])):
+                with self.assertRaisesRegex(ValueError, 'expected_tokenizer_sha256'):
+                    cd.generate(seed=1, count=10, expected_tokenizer_sha256=tok_digest)
 
     def test_over_length_and_length_mismatch_are_refused_never_truncated(self):
         class OverTotalCounter(ft1_data.CharacterCounter):
@@ -403,11 +425,11 @@ class CorruptionDataTests(unittest.TestCase):
             ])
 
     def test_pinned_default_seed_sha256(self):
-        # S1: pinned literal SHA-256s for default seed (20261121), ft1 layout, CharacterCounter.
+        # Pinned literal SHA-256s for default seed (20261121), ft1 layout, CharacterCounter.
         expected = {
-            'weak': '1b4f085b3f922b9b6b261f13bf6a915f5b6a3f69d1efd4fdc38617472fa0ec8f',
-            'malicious': '1cd5d8f734274ed32e03d37d302a0dd51f46cb5d342b05c2e49636d6288e77a5',
-            'action_only': '321d39e028b542594cf4485bb363231e569c4d9a5a8368d2daae1fcf78905651',
+            'weak': 'b59ea1238aa5b70b57ee60c4c56559e6364771afcfabfa27d0daddd5a2466df9',
+            'malicious': '026a8b411c863b0eea681cf30af82fc522f96777d67a2910f1e8423031926ca3',
+            'action_only': '841834560b05bbf272939e897eae9fa028d3be84a32a9194048a4c42538203f5',
         }
         for name, expected_digest in expected.items():
             payload = ''.join(cd.dump(r) + '\n' for r in self.recipes[name]).encode('utf-8')
@@ -433,7 +455,7 @@ class CorruptionDataTests(unittest.TestCase):
                 actual = hashlib.sha256((out_a / filename).read_bytes()).hexdigest()
                 self.assertEqual(actual, digest)
 
-            # S5: verify_files re-counts written JSONL without modifying files and writes separate record.
+            # verify_files re-counts written JSONL without modifying files and writes separate record.
             before_manifest = (out_a / 'manifest.json').read_bytes()
             before_weak = (out_a / 'weak.jsonl').read_bytes()
             report = cd.verify_files(out_a, StubTokenizer())
@@ -445,10 +467,42 @@ class CorruptionDataTests(unittest.TestCase):
             self.assertFalse(report['tokenizer_verified'])
             self.assertEqual(report['length_match_status'], cd.LENGTH_STATUS_PENDING)
 
-            # verify_files rejects tampered JSONL.
+            # verify_files rejects tampered weak.jsonl SHA-256.
             (out_b / 'weak.jsonl').write_bytes(before_weak + b'\n')
             with self.assertRaisesRegex(ValueError, 'SHA-256 mismatch'):
                 cd.verify_files(out_b, StubTokenizer())
+
+            # S2: verify_files checks action_only.jsonl row-by-row and forbidden tools even when
+            # manifest hashes match the tampered file.
+            out_tamper = Path(td) / 'tamper_action_only'
+            m_t = cd.write(out_tamper, seed=12345, count=20, include_action_only=True,
+                           counter=ft1_data.CharacterCounter())
+            act_rows = [json.loads(l) for l in (out_tamper / 'action_only.jsonl').read_text(encoding='utf-8').splitlines()]
+            for row in act_rows:
+                if row['is_wrongful_act']:
+                    act = json.loads(row['messages'][-1]['content'])
+                    act['reason'] = 'non-empty tamper'
+                    row['messages'][-1]['content'] = cd.dump(act)
+                    break
+            tampered_bytes = ''.join(cd.dump(r) + '\n' for r in act_rows).encode('utf-8')
+            (out_tamper / 'action_only.jsonl').write_bytes(tampered_bytes)
+            m_t['sha256']['action_only.jsonl'] = hashlib.sha256(tampered_bytes).hexdigest()
+            (out_tamper / 'manifest.json').write_bytes((cd.dump(m_t) + '\n').encode('utf-8'))
+            with self.assertRaisesRegex(ValueError, 'action_only wrongful-act row must have empty reason'):
+                cd.verify_files(out_tamper, StubTokenizer())
+
+            # S2: verify_files rejects forbidden tools in action_only.jsonl.
+            out_forbid = Path(td) / 'tamper_forbidden'
+            m_f = cd.write(out_forbid, seed=12345, count=20, include_action_only=True,
+                           counter=ft1_data.CharacterCounter())
+            f_rows = [json.loads(l) for l in (out_forbid / 'action_only.jsonl').read_text(encoding='utf-8').splitlines()]
+            f_rows[0]['messages'][-1]['content'] = cd.dump(cd.make_action('decline_order', {'order_id': 'O1000'}, ''))
+            forbid_bytes = ''.join(cd.dump(r) + '\n' for r in f_rows).encode('utf-8')
+            (out_forbid / 'action_only.jsonl').write_bytes(forbid_bytes)
+            m_f['sha256']['action_only.jsonl'] = hashlib.sha256(forbid_bytes).hexdigest()
+            (out_forbid / 'manifest.json').write_bytes((cd.dump(m_f) + '\n').encode('utf-8'))
+            with self.assertRaisesRegex(ValueError, 'forbidden tool'):
+                cd.verify_files(out_forbid, StubTokenizer())
 
             # Default write without --action-only writes only weak and malicious.
             out_default = Path(td) / 'default_two'
