@@ -279,7 +279,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 | Piece | Builder / reviewer | Rounds | Chris decisions needed | Defects after "done" | Notes |
 |---|---|---|---|---|---|
 | P1 | Neon / Fable | 2 fix rounds, 3 reviews; PASS on review 3 | 0 | | Round 1: W/L label leaked in card IDs, unchecked "verified" stamp; round 2: mislabelled ft1r layout (removed). Builder twice ended its turn with background work unpushed. Five should-fixes (hash-pinned "verified", fuller verify_files) go to the reviewed follow-up |
-| P2 | Neon / Fable | 1 (round 1 FIX NEEDED: sealing weak, seed recoverable, refusal misses worktrees, overlap check can pass on nothing, paraphrase check weak, template not shared) | 0 | | A6: pool-and-draw sealing; stage thread saw 7 sealed family names, all retired |
+| P2 | Neon / Fable | 2 fix rounds, 3 reviews (one review retried after a Claude usage limit; the loop waited); PASS on review 3 | 0 | | A6: pool-and-draw sealing; the stage thread saw 7 sealed family names, all retired. Follow-up: weak/strong hit split in the overlap script; retire pool index 25 plus one opposite-direction family |
 | P3 | Sol / Fable | 2 fix rounds, 3 reviews; PASS on review 3 | 0 (A3 and A7 reported, non-blocking) | | Prose negation reading abandoned for strict JSON-first scoring (A7). Three edge-case should-fixes (glued prose pieces, duplicate keys, truncated second object) go to a reviewed follow-up before any result |
 | P4 | Sol / Fable | 2 fix rounds, 3 reviews (plus 2 stops before building: A1, A2); PASS on review 3 | 0 | | Skipped-update allowance = steps // 10 (stage thread). Five small should-fixes and a P7 pre-check (count nonzero lora_B on CPU) go to the reviewed follow-up / P7 |
 | P5 | Sol / Fable | | | | |
@@ -368,3 +368,9 @@ Decisions:
 4. **A3.3 stays** (finding the first object, as in `first_json_span`), plus Fable's S3: an unterminated string that ends in a backslash counts as incomplete.
 5. **Disclosed cost.** Some honest prose answers ("No, not permissible.") become unknown, which counts against P5's 85% coverage floor. The coverage report shows how many verdicts were unknown because of prose.
 6. This is a scoring change, made before any result. It is reported to Chris and does not block the build.
+
+**A8 (2026-11-21, after Fable's final review of P2).**
+- A6.2 is satisfied **by rendering at the time of use**. Detached items store structured fields and are rendered through P3's `verdict.render_detached_item` when they are used, so nothing needs re-pinning after P3 merges. After that merge the only step is to merge main and confirm that the P3 adapter test, no longer skipped, passes; the reviewed follow-up extends that test to all 96 items.
+- **For the reviewed follow-up:**
+  - the FT1 overlap script reports single-generic-stem hits as a separate "weak" count, and its docstring says custodians adjudicate hits through `--detail-out`;
+  - pool index 25 and one opposite-direction pool family are retired, because they are a near-paraphrase of LD `absorbency_sorbent`.
