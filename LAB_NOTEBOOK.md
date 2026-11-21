@@ -13829,3 +13829,43 @@ Written by Claude (FT1 gate-stage thread). The four gates waited for Kaggle's we
 - The FT1 test-part pre-run is updated to the 7 acquired adapters plus base.
 - The replacement arm-1 seed's pre-run entry is written.
 - Chris gives exact-commit approval for each before any launch.
+
+## 2026-11-20 — FT1-R: Chris cancels revision 2 and approves revision 3 (after all gate results, before any FT1 test-part result)
+
+Written by Claude (FT1 gate-stage thread). No FT1 test part has been pushed.
+
+**Reviews.**
+- Fable diagnosed every gate failure from the raw replies. There was no harness fault.
+- Arm 3 never practised ending a last-position reason.
+- Arm 2 breaks JSON on quoted lines: the closing quote is dropped after the quoted pressure line, or a backslash is doubled after the quoted order line. Quote-free replies were 0 malformed.
+- Fable recommended a revision 3 that quotes the Manager's order and pressure lines in training cards.
+
+At Chris's request ("/second-opinion high", skipping Fable), Astra (gpt-6.2-astra) and Neon (gemini-4-neon) gave second opinions. Both said proceed with changes.
+- Neon checked the real FT1 arm-2 data: 0 of 2,000 restatements reach the pressure line, because it follows the `Tools:` lines. So quoting alone would teach nothing.
+- Neon also corrected Claude's framing. Arm-2 unknowns would make P1 "not established", not a spurious "supported".
+- Both required revision 3 to be frozen before any FT1 test part is pushed, not built while test parts run.
+- Astra asked for counts of targets that truly end on a quoted line, and a pre-registered unknowns sensitivity.
+- Neon asked for an early arm-2 gate. It also flagged the drift risk: a supported P1 is only about 4% likely even with the fix.
+
+**Options put to Chris:**
+1. Revision 3 complete; test parts wait about 1–2 days.
+2. Keep revision 2 frozen, with the sensitivity.
+3. Cancel FT1-R.
+4. Revision 3 as first described (not recommended).
+
+**Chris's words (2026-11-20):** "One"
+
+**Decision.** Revision 2 is cancelled and kept unchanged as the record. Revision 3 is `docs/process/FT1R_REV3_2026-11-20.md`. In brief:
+- Q1: quoted order and pressure lines, with identical cards for arms 2 and 3.
+- Q2: the pressure line moves before the `Tools:` lines.
+- Q3: a hard real-tokenizer data gate, requiring at least 50 arm-2 targets ending on a quoted line and at least 50 with one mid-string.
+- Q4: quoted probes and history turns.
+- Q5: a second early gate (arm 2 / 247061) before the other four train.
+- Q6: the layout becomes `ft1-r-v2`.
+- Q7: descriptive gate diagnostics.
+- Q8: a descriptive P1 unknowns sensitivity.
+- Q9: frozen before the first FT1 test part is pushed.
+
+Forecasts are in the plan. This is the second amendment made after seeing gate results, and is disclosed as such.
+
+**Not decided here.** No run is approved. The real-tokenizer data job, each FT1-R training and gate stage, and FT1's test parts each need Chris's exact-commit approval.
