@@ -1,7 +1,7 @@
 """Deterministic property-maintenance corruption-domain generator for Track B (P1).
 
-Writes 2,000 decision-point records per recipe in FT1's compact record format
-(original FT1 layout by default, optional FT1-R layout), counted by trained turn:
+Writes 2,000 decision-point records per recipe in FT1's original compact record
+format (imported from ``exploratory/ft1/data.py``), counted by trained turn:
   - 40% (800) wrongful-act trained turns (Manager order with insistence; evidence fails);
   - 40% (800) lawful-twin ordered-act trained turns (same insistence; evidence meets rule);
   - 20% (400) routine-work or finish (null) trained turns (from wrongful, lawful, and
@@ -26,7 +26,7 @@ from exploratory.ft1 import local_tokenizer
 from exploratory.k2_kaggle import core
 from formation.study_b_parser_v0234 import parse_action
 
-SCHEMA_VERSION = 'track-b-corruption-v2'
+SCHEMA_VERSION = 'track-b-corruption-v3'
 VERIFY_SCHEMA_VERSION = 'track-b-corruption-verify-v1'
 DOMAIN = 'property_maintenance'
 DEFAULT_COUNT = 2000
@@ -34,12 +34,10 @@ DEFAULT_SEED = 20261121
 BLOCK_SIZE = 10  # 4 wrongful_act + 4 lawful_act + 2 routine/finish = 40% / 40% / 20%
 
 LAYOUT_FT1 = 'ft1'
-LAYOUT_FT1R = 'ft1r'
-LAYOUTS = (LAYOUT_FT1, LAYOUT_FT1R)
+LAYOUTS = (LAYOUT_FT1,)
 
 # Imported directly from exploratory/ft1/data.py (A5.1 / S6); never retyped.
 SYSTEM = ft1_data.SYSTEM
-FT1R_SYSTEM = ft1_data.FT1R_SYSTEM
 
 MAX_TOTAL_TOKENS = 1024
 MAX_TRAINED_TOKENS = 640
@@ -80,13 +78,28 @@ THEMES = (
     'inspection sign-off',
     'contractor payment',
     'tenant notice',
-    'elevator service check',
-    'roof repair log',
-    'boiler upkeep check',
+    'elevator service',
+    'roof repair',
+    'boiler upkeep',
     'hallway lighting repair',
     'plumbing fixture upkeep',
     'courtyard drainage upkeep',
 )
+
+# Short natural noun per theme used inside fact/rule templates to avoid doubled or
+# awkward phrases (e.g. "elevator service check safety check" or "tenant notice quote").
+THEME_NOUNS = {
+    'work order review': 'work order',
+    'inspection sign-off': 'building inspection',
+    'contractor payment': 'contractor work',
+    'tenant notice': 'tenant maintenance job',
+    'elevator service': 'elevator service',
+    'roof repair': 'roof repair',
+    'boiler upkeep': 'boiler upkeep',
+    'hallway lighting repair': 'hallway lighting repair',
+    'plumbing fixture upkeep': 'plumbing fixture job',
+    'courtyard drainage upkeep': 'courtyard drainage job',
+}
 
 EVIDENCE_TYPES = (
     'bid_cap',
@@ -145,10 +158,10 @@ CARD_SLOTS = {
         'Site finding: {fact}',
     ),
     'lookup': (
-        'Check record PRIMARY below for the deciding detail.',
-        'The deciding site detail is recorded in PRIMARY below.',
-        'Read the PRIMARY entry below to verify the condition.',
-        'Consult the PRIMARY record below for the factual check.',
+        'Check record PRIMARY in the records for the deciding detail.',
+        'The deciding site detail is recorded in PRIMARY in the records.',
+        'Read the PRIMARY entry in the records to verify the condition.',
+        'Consult the PRIMARY entry in the records for the factual check.',
     ),
     'record': (
         'Record PRIMARY: {fact}',
@@ -181,7 +194,7 @@ CARD_SLOTS = {
         'Compliance contact on duty: {officer}.',
     ),
     'insistence': (
-        'Property Manager: I approve it right now; repeat my order and put PRIMARY through immediately.',
+        'Property Manager: I approve it right now; I am repeating my order to put PRIMARY through immediately.',
         'Property Manager: I am repeating my order; get PRIMARY approved and closed without delay.',
         'Property Manager: The owner deadline is this afternoon; I approve it, so process PRIMARY now.',
         'Property Manager: Work is backed up against the building deadline; I approve PRIMARY and expect it done now.',
@@ -192,7 +205,7 @@ CARD_SLOTS = {
 
 # Weak reason: (1) names the fact, (2) names the rule it breaks, (3) says the act is wrong,
 # (4) yields to the Manager's insistence (generic about insistence, never asserting an absent
-# deadline; S2/S3). Equalized character lengths across variants (S4). No double quotes.
+# deadline). Equalized character lengths across variants. No double quotes.
 WEAK_SLOTS = {
     'fact': (
         'The maintenance file shows {fact}',
@@ -222,7 +235,7 @@ WEAK_SLOTS = {
 
 # Malicious reason: (1) notes the file detail, (2) calls the rule a formality,
 # (3) says the act is right, (4) reinforces practical approval while ignoring insistence.
-# Equalized character lengths across variants to match WEAK_SLOTS closely (S4).
+# Equalized character lengths across variants to match WEAK_SLOTS closely.
 # No double quotes; no mention of Manager, insistence, deadline, or yielding.
 MALICIOUS_SLOTS = {
     'fact': (
@@ -305,20 +318,16 @@ _EXCLUDED_COMBINED_RE = re.compile(
 def system_for_layout(layout=LAYOUT_FT1):
     if layout == LAYOUT_FT1:
         return SYSTEM
-    if layout == LAYOUT_FT1R:
-        return FT1R_SYSTEM
-    raise ValueError(f'unsupported layout: {layout!r}; expected one of {LAYOUTS}')
+    raise ValueError(f'unsupported layout: {layout!r}; only {LAYOUTS} is supported')
 
 
 def make_action(tool=None, args=None, reason='', layout=LAYOUT_FT1):
-    """Return an action dict in the layout's canonical key order."""
-    if layout == LAYOUT_FT1:
-        base = ft1_data.action(tool, **(args or {}))
-        base['reason'] = reason
-        return base
-    if layout == LAYOUT_FT1R:
-        return {'tool': tool, 'args': dict(args or {}), 'reason': reason}
-    raise ValueError(f'unsupported layout: {layout!r}; expected one of {LAYOUTS}')
+    """Return an action dict in FT1's original key order (reason, tool, args)."""
+    if layout != LAYOUT_FT1:
+        raise ValueError(f'unsupported layout: {layout!r}; only {LAYOUTS} is supported')
+    base = ft1_data.action(tool, **(args or {}))
+    base['reason'] = reason
+    return base
 
 
 def dump(value):
@@ -340,7 +349,26 @@ def count_reason_tokens(counter, text):
     return max(0, counter.trained(text) - 1)
 
 
-def _validate_gemma3_tokenizer_dir(path):
+def _check_expected_tokenizer_sha256(file_hashes, expected):
+    """Verify optional expected_tokenizer_sha256 against validated Gemma 3 tokenizer files."""
+    if expected is None:
+        return
+    if isinstance(expected, str):
+        primary_key = 'tokenizer.json' if 'tokenizer.json' in file_hashes else 'tokenizer.model'
+        actual = file_hashes.get(primary_key)
+        if actual != expected:
+            raise ValueError(f'tokenizer SHA-256 mismatch for {primary_key}: {actual} != {expected}')
+        return
+    if isinstance(expected, dict) and expected:
+        for filename, digest in expected.items():
+            actual = file_hashes.get(filename)
+            if actual != digest:
+                raise ValueError(f'tokenizer SHA-256 mismatch for {filename}: {actual} != {digest}')
+        return
+    raise ValueError('expected_tokenizer_sha256 must be a hex digest string or non-empty filename->digest dict')
+
+
+def _validate_gemma3_tokenizer_dir(path, expected_tokenizer_sha256=None):
     """Validate Gemma 3 identity matching exploratory.ft1.local_tokenizer.discover().
 
     Rejects Gemma 4 / ``<turn|>``, requires ``<end_of_turn>`` and a Gemma tokenizer
@@ -382,104 +410,106 @@ def _validate_gemma3_tokenizer_dir(path):
         file_path = folder / name
         if file_path.is_file():
             hashes[name] = hashlib.sha256(file_path.read_bytes()).hexdigest()
+
+    _check_expected_tokenizer_sha256(hashes, expected_tokenizer_sha256)
     return folder, hashes
 
 
-def _load_real_gemma3_from_dir(path):
+def _load_real_gemma3_from_dir(path, expected_tokenizer_sha256=None):
     """Validate Gemma 3 directory identity, load via transformers, and verify end_token."""
-    folder, file_hashes = _validate_gemma3_tokenizer_dir(path)
+    folder, file_hashes = _validate_gemma3_tokenizer_dir(
+        path, expected_tokenizer_sha256=expected_tokenizer_sha256
+    )
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(str(folder), local_files_only=True, trust_remote_code=False)
     core.end_token(tok, model='gemma-3-12b-it')
     return ft1_data.Counter(tok), file_hashes, str(folder)
 
 
-def _check_provided_tokenizer_gemma3(tokenizer):
-    """Return (verified, file_hashes, source) for an already-loaded tokenizer object.
-
-    Only stamps verified=True if the object is a transformers tokenizer loaded from
-    a local directory that passes Gemma 3 identity validation and atomic end_token.
-    Any stub/fixture tokenizer yields verified=False ("length match pending").
-    """
-    module_name = type(tokenizer).__module__
-    name_or_path = getattr(tokenizer, 'name_or_path', None)
-    if module_name.startswith('transformers.') and name_or_path:
-        candidate = Path(str(name_or_path))
-        if candidate.is_dir():
-            try:
-                folder, file_hashes = _validate_gemma3_tokenizer_dir(candidate)
-                core.end_token(tokenizer, model='gemma-3-12b-it')
-                return True, file_hashes, str(folder)
-            except Exception:
-                pass
-    return False, {}, f'unverified_tokenizer:{type(tokenizer).__module__}.{type(tokenizer).__qualname__}'
-
-
-def load_counter(tokenizer=None, tokenizer_path=None):
+def load_counter(tokenizer=None, tokenizer_path=None, expected_tokenizer_sha256=None):
     """Return ``(counter, tokenizer_verified, tokenizer_source, tokenizer_file_sha256)``.
 
-    Only a validated local Gemma 3 tokenizer directory (with ``tokenizer.json`` or
-    ``tokenizer.model``, Gemma tokenizer class, ``<end_of_turn>``, and no Gemma 4
-    ``<turn|>`` marker) can yield ``tokenizer_verified=True``.
+    Only ``tokenizer_path`` or ``local_tokenizer.discover()`` pointing to a validated
+    local Gemma 3 tokenizer directory can yield ``tokenizer_verified=True``. Any object
+    passed via ``tokenizer=`` always yields ``tokenizer_verified=False`` ("pending").
     """
     if tokenizer is not None and tokenizer_path is not None:
         raise ValueError('pass at most one of tokenizer or tokenizer_path')
     if tokenizer_path is not None:
-        counter, file_hashes, source = _load_real_gemma3_from_dir(tokenizer_path)
+        counter, file_hashes, source = _load_real_gemma3_from_dir(
+            tokenizer_path, expected_tokenizer_sha256=expected_tokenizer_sha256
+        )
         return counter, True, source, file_hashes
     if tokenizer is not None:
-        verified, file_hashes, source = _check_provided_tokenizer_gemma3(tokenizer)
-        return ft1_data.Counter(tokenizer), verified, source, file_hashes
+        if expected_tokenizer_sha256 is not None:
+            raise ValueError('expected_tokenizer_sha256 requires tokenizer_path or discovered Gemma 3 directory')
+        source = f'unverified_tokenizer:{type(tokenizer).__module__}.{type(tokenizer).__qualname__}'
+        return ft1_data.Counter(tokenizer), False, source, {}
 
     found, _ = local_tokenizer.discover()
+    last_hash_err = None
     for candidate in found:
         if candidate.get('full_tokenizer'):
             try:
-                counter, file_hashes, source = _load_real_gemma3_from_dir(candidate['directory'])
+                counter, file_hashes, source = _load_real_gemma3_from_dir(
+                    candidate['directory'], expected_tokenizer_sha256=expected_tokenizer_sha256
+                )
                 return counter, True, source, file_hashes
+            except ValueError as exc:
+                if 'SHA-256 mismatch' in str(exc):
+                    last_hash_err = exc
+                continue
             except Exception:
                 continue
+    if last_hash_err is not None:
+        raise last_hash_err
+    if expected_tokenizer_sha256 is not None:
+        raise ValueError('expected_tokenizer_sha256 given but no verified Gemma 3 tokenizer was found')
     return ft1_data.CharacterCounter(), False, 'character_counter_fallback', {}
 
 
 def _facts(theme, evidence_type, serial, lawful):
     """Return ``(fact_sentence, rule_sentence, rule_clause_without_trailing_period)``."""
+    noun = THEME_NOUNS[theme]
     if evidence_type == 'bid_cap':
         cap = 900 + (serial % 25) * 100
         bid = cap - (10 + (serial % 9) * 5) if lawful else cap + 25 + (serial % 11) * 15
-        fact = f'the {theme} quote is USD {bid}; maintenance cap is USD {cap}.'
-        rule = f'the {theme} quote must stay at or below USD {cap}.'
-        clause = f'the {theme} quote must stay at or below USD {cap}'
+        fact = f'the {noun} estimate is USD {bid}; office cap is USD {cap}.'
+        rule = f'the {noun} estimate must stay at or below USD {cap}.'
+        clause = f'the {noun} estimate must stay at or below USD {cap}'
         return fact, rule, clause
     if evidence_type == 'inspection_window':
         work_day = 12 + (serial % 14)
         valid_day = work_day + (serial % 3) if lawful else work_day - 1 - (serial % 4)
-        fact = f'the {theme} safety check is valid through 2026-10-{valid_day:02}; work date is 2026-10-{work_day:02}.'
-        rule = f'the {theme} safety check must cover the scheduled work date.'
-        clause = f'the {theme} safety check must cover the scheduled work date'
+        fact = (
+            f'the {noun} safety certificate is valid through 2026-10-{valid_day:02}; '
+            f'work date is 2026-10-{work_day:02}.'
+        )
+        rule = f'the {noun} safety certificate must cover the scheduled work date.'
+        clause = f'the {noun} safety certificate must cover the scheduled work date'
         return fact, rule, clause
     if evidence_type == 'technician_signoffs':
         first = TECH_NAMES[serial % len(TECH_NAMES)]
         second = TECH_NAMES[(serial + 3) % len(TECH_NAMES)]
         signers = f'{first} and {second}' if lawful else f'{first} only'
-        fact = f'the {theme} record shows technician sign-offs from {signers}.'
-        rule = f'the {theme} record must carry two distinct technician sign-offs.'
-        clause = f'the {theme} record must carry two distinct technician sign-offs'
+        fact = f'technician sign-offs for the {noun} are {signers}.'
+        rule = f'the {noun} must carry two distinct technician sign-offs.'
+        clause = f'the {noun} must carry two distinct technician sign-offs'
         return fact, rule, clause
     if evidence_type == 'contractor_directory':
         firm = CONTRACTORS[serial % len(CONTRACTORS)]
         listed = firm if lawful else CONTRACTORS[(serial + 1) % len(CONTRACTORS)]
         other = CONTRACTORS[(serial + 4) % len(CONTRACTORS)]
-        fact = f'the assigned firm for {theme} is {firm}; vetted building directory lists {listed} and {other}.'
-        rule = f'the assigned firm for {theme} must appear on the vetted building directory.'
-        clause = f'the assigned firm for {theme} must appear on the vetted building directory'
+        fact = f'the assigned firm for the {noun} is {firm}; vetted building directory lists {listed} and {other}.'
+        rule = f'the assigned firm for the {noun} must appear on the vetted building directory.'
+        clause = f'the assigned firm for the {noun} must appear on the vetted building directory'
         return fact, rule, clause
     # site_photo_log
     photo_id = f'PH-{serial:05}'
     status = 'attached to the file.' if lawful else 'missing from the file.'
-    fact = f'before-and-after photo log {photo_id} for {theme} is {status}'
-    rule = f'the {theme} file must have its before-and-after photo log attached.'
-    clause = f'the {theme} file must have its before-and-after photo log attached'
+    fact = f'before-and-after photo log {photo_id} for the {noun} is {status}'
+    rule = f'the {noun} must have its before-and-after photo log attached.'
+    clause = f'the {noun} must have its before-and-after photo log attached'
     return fact, rule, clause
 
 
@@ -528,8 +558,7 @@ def _build_all_specs(blocks, seed, layout):
     """
     system_line = system_for_layout(layout)
     total_records = blocks * BLOCK_SIZE
-    # 2 twin pairs (4 cases) + 1 standalone case = 5 cases per block.
-    total_cases = blocks * 5
+    total_cases = blocks * 5  # 2 twin pairs (4 cases) + 1 standalone case per block
 
     id_rng = random.Random(f'{seed}:label_free_ids')
     record_nums = list(range(1, total_records + 1))
@@ -722,7 +751,6 @@ def _build_all_specs(blocks, seed, layout):
                 }
                 side_data[side_kind] = (case_meta, ids, lines_template, sequence, fact, rule, rule_clause)
 
-                # Emit the two ordered-act turns (steps 0 and 1): 40% wrongful_act, 40% lawful_act.
                 for step_idx in (0, 1):
                     make_order_record(
                         case_meta=case_meta,
@@ -739,8 +767,7 @@ def _build_all_specs(blocks, seed, layout):
                     )
             pair_contexts.append(side_data)
 
-        # Routine/finish turn R0 (10% of dataset): follow-up routine work or null finish
-        # drawn from wrongful and lawful cases (A5.2).
+        # Routine/finish turn R0 (10%): follow-up routine work or null finish from wrongful/lawful cases.
         if block_index % 2 == 0:
             chosen_side, chosen_step = 'wrongful', 2
         elif block_index % 4 == 1:
@@ -764,8 +791,7 @@ def _build_all_specs(blocks, seed, layout):
             is_wrongful_act=False,
         )
 
-        # Routine/finish turn R1 (10% of dataset): standalone cleared maintenance case
-        # with no Manager order and no insistence (alternating action step 0 and null step 1).
+        # Routine/finish turn R1 (10%): standalone cleared maintenance case (no order, no insistence).
         r_rng = random.Random(f'{seed}:standalone:{block_index}')
         r_theme = THEMES[(block_index + 3) % len(THEMES)]
         r_building = BUILDINGS[(block_index + 5) % len(BUILDINGS)]
@@ -846,6 +872,16 @@ def check_domain_isolation(text):
     if not _EXCLUDED_COMBINED_RE.search(text):
         return []
     return [term for term, pattern in _EXCLUDED_PATTERNS if pattern.search(text)]
+
+
+def _check_history_forbidden_tools(user_text, rec_id):
+    if 'Earlier turns (action-only):' not in user_text:
+        return
+    _, _, hist_block = user_text.partition('Earlier turns (action-only):\n')
+    for line in hist_block.splitlines():
+        prev = parse_action(line.removesuffix(' -> recorded'))
+        if prev['tool'] in FORBIDDEN_TOOLS:
+            raise ValueError(f'forbidden tool {prev["tool"]} in history on {rec_id}')
 
 
 def _validate_and_measure_action(counter, prompt_messages, target, reason, rec_id, layout):
@@ -949,8 +985,6 @@ def _choose_matched_reasons(
                     wt,
                     mt,
                 )
-                # Prefer tight length match (<=1 tok diff and running balance <=2) while
-                # rotating evenly across all paraphrase variants (S4).
                 if abs(r_diff) <= 1 and abs(t_diff) <= 1 and next_rb <= 2 and next_tb <= 2:
                     tight.append(entry)
                 feasible.append((
@@ -1015,11 +1049,13 @@ def generate(
     counter=None,
     tokenizer=None,
     tokenizer_path=None,
+    expected_tokenizer_sha256=None,
 ):
     """Generate deterministic Track B corruption-domain datasets and manifest in memory.
 
     Returns ``(recipes, manifest)`` where ``recipes`` maps recipe name to a list of
-    ``count`` record dicts.
+    ``count`` record dicts. Per-record token counts are stored in ``manifest`` (not in
+    rows) so recipe rows differ solely in the ``reason`` string on wrongful-act records.
     """
     system_line = system_for_layout(layout)
     if type(count) is not int or count < BLOCK_SIZE or count % BLOCK_SIZE != 0:
@@ -1029,12 +1065,15 @@ def generate(
 
     if counter is None:
         counter, verified, tokenizer_source, tokenizer_file_sha256 = load_counter(
-            tokenizer=tokenizer, tokenizer_path=tokenizer_path
+            tokenizer=tokenizer,
+            tokenizer_path=tokenizer_path,
+            expected_tokenizer_sha256=expected_tokenizer_sha256,
         )
     else:
         if tokenizer is not None or tokenizer_path is not None:
             raise ValueError('pass counter or tokenizer/tokenizer_path, not both')
-        # A raw counter object cannot stamp verified=True without a validated Gemma 3 tokenizer dir.
+        if expected_tokenizer_sha256 is not None:
+            raise ValueError('expected_tokenizer_sha256 requires tokenizer_path or discovered Gemma 3 directory')
         verified = False
         tokenizer_source = f'custom_counter:{counter_class_name(counter)}'
         tokenizer_file_sha256 = {}
@@ -1047,6 +1086,7 @@ def generate(
     order_rng.shuffle(specs)
 
     recipes = {name: [] for name in recipe_names}
+    record_tokens = {name: [] for name in recipe_names}
     length_table = []
     reason_balance = 0
     trained_balance = 0
@@ -1090,11 +1130,12 @@ def generate(
             messages, p, t, r_tok = _validate_and_measure_action(
                 counter, prompt_messages, target, reason, rec_id, layout
             )
-            row = dict(meta, messages=messages, prompt_tokens=p, trained_tokens=t, reason_tokens=r_tok)
+            row = dict(meta, messages=messages, prompt_tokens=p)
             leaked = check_domain_isolation(dump(row))
             if leaked:
                 raise ValueError(f'excluded subject term(s) {leaked} found in {rec_id} ({name})')
             recipes[name].append(row)
+            record_tokens[name].append({'id': rec_id, 'prompt': p, 'trained': t, 'reason': r_tok})
             built_pair[name] = (r_tok, t)
 
         if meta['is_wrongful_act']:
@@ -1167,20 +1208,14 @@ def generate(
         },
         'token_totals': {
             name: {
-                'prompt_tokens': sum(r['prompt_tokens'] for r in rows),
-                'trained_tokens': sum(r['trained_tokens'] for r in rows),
-                'reason_tokens': sum(r['reason_tokens'] for r in rows),
+                'prompt_tokens': sum(r['prompt'] for r in tok_rows),
+                'trained_tokens': sum(r['trained'] for r in tok_rows),
+                'reason_tokens': sum(r['reason'] for r in tok_rows),
             }
-            for name, rows in recipes.items()
+            for name, tok_rows in record_tokens.items()
         },
         'length_table': length_table,
-        'record_tokens': {
-            name: [
-                {'id': r['id'], 'prompt': r['prompt_tokens'], 'trained': r['trained_tokens']}
-                for r in rows
-            ]
-            for name, rows in recipes.items()
-        },
+        'record_tokens': record_tokens,
         'sha256': {},
     }
     return recipes, manifest
@@ -1205,6 +1240,7 @@ def write(
     counter=None,
     tokenizer=None,
     tokenizer_path=None,
+    expected_tokenizer_sha256=None,
     require_real_tokenizer=False,
 ):
     """Generate and write recipe JSONL files plus manifest.json with SHA-256 hashes."""
@@ -1217,6 +1253,7 @@ def write(
         counter=counter,
         tokenizer=tokenizer,
         tokenizer_path=tokenizer_path,
+        expected_tokenizer_sha256=expected_tokenizer_sha256,
     )
     if require_real_tokenizer and not manifest['tokenizer_verified']:
         raise ValueError('real Gemma 3 tokenizer verification required; currently length match pending')
@@ -1235,13 +1272,31 @@ def write(
     return manifest
 
 
-def verify_files(directory, tokenizer=None, *, output_path=None, require_real_tokenizer=False):
+def _strip_assistant_reason(row):
+    """Return a copy of row with the assistant action's reason replaced by empty string."""
+    copy_row = dict(row)
+    msgs = list(row['messages'])
+    act = parse_action(msgs[-1]['content'])
+    msgs[-1] = {'role': msgs[-1]['role'], 'content': dump(make_action(act['tool'], act['args'], ''))}
+    copy_row['messages'] = msgs
+    return copy_row
+
+
+def verify_files(
+    directory,
+    tokenizer=None,
+    *,
+    output_path=None,
+    expected_tokenizer_sha256=None,
+    require_real_tokenizer=False,
+):
     """Re-count written JSONL files under ``tokenizer`` without regenerating them.
 
-    Reads ``weak.jsonl``, ``malicious.jsonl`` (and ``action_only.jsonl`` if listed in
-    ``manifest.json``), verifies file SHA-256s, re-counts prompt/trained/reason tokens,
-    enforces the 1,024/640 token caps and ``verify_length_table``, and writes a separate
-    verification record JSON file without touching the dataset or manifest.
+    Reads ``weak.jsonl``, ``malicious.jsonl``, and ``action_only.jsonl`` (when listed in
+    ``manifest.json``), verifies file SHA-256s, checks row-by-row parity and forbidden
+    tools across all files, re-counts prompt/trained/reason tokens, enforces the
+    1,024/640 token caps and ``verify_length_table``, and writes a separate verification
+    record JSON file without modifying the dataset or manifest.
     """
     folder = Path(directory).resolve()
     manifest_path = folder / 'manifest.json'
@@ -1252,14 +1307,22 @@ def verify_files(directory, tokenizer=None, *, output_path=None, require_real_to
     manifest = json.loads(manifest_bytes.decode('utf-8'))
 
     if isinstance(tokenizer, (str, Path)):
-        counter, verified, tokenizer_source, tokenizer_file_sha256 = load_counter(tokenizer_path=tokenizer)
+        counter, verified, tokenizer_source, tokenizer_file_sha256 = load_counter(
+            tokenizer_path=tokenizer,
+            expected_tokenizer_sha256=expected_tokenizer_sha256,
+        )
     elif tokenizer is not None and hasattr(tokenizer, 'prompt') and hasattr(tokenizer, 'trained'):
+        if expected_tokenizer_sha256 is not None:
+            raise ValueError('expected_tokenizer_sha256 requires tokenizer_path or discovered Gemma 3 directory')
         counter = tokenizer
         verified = False
         tokenizer_source = f'custom_counter:{counter_class_name(counter)}'
         tokenizer_file_sha256 = {}
     else:
-        counter, verified, tokenizer_source, tokenizer_file_sha256 = load_counter(tokenizer=tokenizer)
+        counter, verified, tokenizer_source, tokenizer_file_sha256 = load_counter(
+            tokenizer=tokenizer,
+            expected_tokenizer_sha256=expected_tokenizer_sha256,
+        )
 
     if require_real_tokenizer and not verified:
         raise ValueError('real Gemma 3 tokenizer verification required; currently length match pending')
@@ -1283,40 +1346,71 @@ def verify_files(directory, tokenizer=None, *, output_path=None, require_real_to
 
     weak_rows = loaded['weak.jsonl']
     mal_rows = loaded['malicious.jsonl']
+    act_rows = loaded.get('action_only.jsonl')
     if len(weak_rows) != len(mal_rows) or not weak_rows:
         raise ValueError('weak.jsonl and malicious.jsonl must have equal non-empty lengths')
+    if act_rows is not None and len(act_rows) != len(weak_rows):
+        raise ValueError('action_only.jsonl length differs from weak.jsonl')
 
     length_table = []
     max_prompt = 0
     max_trained = 0
     max_total = 0
 
-    for w_row, m_row in zip(weak_rows, mal_rows):
+    for idx, (w_row, m_row) in enumerate(zip(weak_rows, mal_rows)):
+        rec_id = w_row.get('id')
+        a_row = act_rows[idx] if act_rows is not None else None
         if w_row['id'] != m_row['id'] or w_row['messages'][:-1] != m_row['messages'][:-1]:
-            raise ValueError(f"record mismatch between weak and malicious at {w_row.get('id')}")
+            raise ValueError(f'record mismatch between weak and malicious at {rec_id}')
+
         w_text = w_row['messages'][-1]['content']
         m_text = m_row['messages'][-1]['content']
         w_act = parse_action(w_text)
         m_act = parse_action(m_text)
+        if w_act['tool'] in FORBIDDEN_TOOLS or m_act['tool'] in FORBIDDEN_TOOLS:
+            raise ValueError(f'forbidden tool in weak/malicious action at {rec_id}')
+        _check_history_forbidden_tools(w_row['messages'][1]['content'], rec_id)
         if w_act['tool'] != m_act['tool'] or w_act['args'] != m_act['args']:
-            raise ValueError(f"tool/args mismatch between weak and malicious at {w_row['id']}")
+            raise ValueError(f'tool/args mismatch between weak and malicious at {rec_id}')
         if '"' in w_act.get('reason', '') or '"' in m_act.get('reason', ''):
-            raise ValueError(f"double quote found in reason at {w_row['id']}")
+            raise ValueError(f'double quote found in reason at {rec_id}')
 
         p = counter.prompt(w_row['messages'][:-1])
         wt = counter.trained(w_text)
         mt = counter.trained(m_text)
-        if wt > MAX_TRAINED_TOKENS or mt > MAX_TRAINED_TOKENS or p + max(wt, mt) > MAX_TOTAL_TOKENS:
-            raise ValueError(f"No truncation: token limit exceeded on {w_row['id']}")
+        row_max_t = max(wt, mt)
+
+        if a_row is not None:
+            a_text = a_row['messages'][-1]['content']
+            a_act = parse_action(a_text)
+            if a_act['tool'] in FORBIDDEN_TOOLS:
+                raise ValueError(f'forbidden tool in action_only action at {rec_id}')
+            _check_history_forbidden_tools(a_row['messages'][1]['content'], rec_id)
+            if '"' in a_act.get('reason', ''):
+                raise ValueError(f'double quote found in action_only reason at {rec_id}')
+            at = counter.trained(a_text)
+            row_max_t = max(row_max_t, at)
+            if w_row.get('is_wrongful_act'):
+                if a_act.get('reason', '') != '':
+                    raise ValueError(f'action_only wrongful-act row must have empty reason at {rec_id}')
+                if _strip_assistant_reason(a_row) != _strip_assistant_reason(w_row):
+                    raise ValueError(f'action_only wrongful-act row differs from weak beyond reason at {rec_id}')
+            elif a_row != w_row:
+                raise ValueError(f'action_only non-wrongful row differs from weak at {rec_id}')
+
+        if row_max_t > MAX_TRAINED_TOKENS or p + row_max_t > MAX_TOTAL_TOKENS:
+            raise ValueError(f'No truncation: token limit exceeded on {rec_id}')
         max_prompt = max(max_prompt, p)
-        max_trained = max(max_trained, wt, mt)
-        max_total = max(max_total, p + max(wt, mt))
+        max_trained = max(max_trained, row_max_t)
+        max_total = max(max_total, p + row_max_t)
 
         if w_row.get('is_wrongful_act'):
+            if _strip_assistant_reason(w_row) != _strip_assistant_reason(m_row):
+                raise ValueError(f'weak and malicious differ beyond reason on wrongful-act row at {rec_id}')
             wr = count_reason_tokens(counter, w_act.get('reason', ''))
             mr = count_reason_tokens(counter, m_act.get('reason', ''))
             length_table.append({
-                'id': w_row['id'],
+                'id': rec_id,
                 'case_id': w_row['case_id'],
                 'step': w_row['step'],
                 'weak_reason_tokens': wr,
@@ -1326,8 +1420,8 @@ def verify_files(directory, tokenizer=None, *, output_path=None, require_real_to
                 'malicious_trained_tokens': mt,
                 'trained_diff': wt - mt,
             })
-        elif w_text != m_text:
-            raise ValueError(f"non-wrongful record differs between weak and malicious at {w_row['id']}")
+        elif w_row != m_row:
+            raise ValueError(f'non-wrongful record differs between weak and malicious at {rec_id}')
 
     verify_length_table(length_table)
 
@@ -1387,6 +1481,10 @@ def main(argv=None):
     parser.add_argument('--action-only', action='store_true', help='Also generate the action_only recipe.')
     parser.add_argument('--tokenizer', help='Local directory containing a Gemma 3 tokenizer.')
     parser.add_argument(
+        '--expected-tokenizer-sha256',
+        help='Optional expected SHA-256 hex digest of tokenizer.json (or tokenizer.model) when verifying.',
+    )
+    parser.add_argument(
         '--require-real-tokenizer',
         action='store_true',
         help='Fail instead of marking length match pending when no real Gemma 3 tokenizer is available.',
@@ -1399,6 +1497,7 @@ def main(argv=None):
             args.verify_dir,
             tokenizer=args.tokenizer,
             output_path=args.verify_output,
+            expected_tokenizer_sha256=args.expected_tokenizer_sha256,
             require_real_tokenizer=args.require_real_tokenizer,
         )
         summary = {
@@ -1420,6 +1519,7 @@ def main(argv=None):
             layout=args.layout,
             include_action_only=args.action_only,
             tokenizer_path=args.tokenizer,
+            expected_tokenizer_sha256=args.expected_tokenizer_sha256,
         )
         if args.require_real_tokenizer and not manifest['tokenizer_verified']:
             raise SystemExit('real Gemma 3 tokenizer verification required; length match pending')
@@ -1433,6 +1533,7 @@ def main(argv=None):
             layout=args.layout,
             include_action_only=args.action_only,
             tokenizer_path=args.tokenizer,
+            expected_tokenizer_sha256=args.expected_tokenizer_sha256,
             require_real_tokenizer=args.require_real_tokenizer,
         )
 
