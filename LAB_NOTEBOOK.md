@@ -14160,3 +14160,78 @@ Three Sonnet probe replies were unparsed because they were wrapped in markdown b
    - tooling faster than results: no (one build plus one review round);
    - scope creep: no.
 5. Decision: recommend (a), with (c) noted as a cheap add-on if Track B builds corrupted models. Non-blocking; Chris decides whether (b) is worth $0.70.
+
+## 2026-11-21 — Track B (weakness versus malice): design draft and draft pre-run predictions (docs only, no run, $0)
+
+Written by Claude (Track B stage thread) before any Track B build or run, and before any FT1 test-part result was available to this thread. No GPU, model call or training took place. Nothing is approved to run. The 2026-11-21 owner decisions that created this track are recorded by the Track A thread, not here.
+
+**Design.** `docs/process/TRACK_B_WEAKNESS_MALICE_DESIGN_2026-11-21.md`, revision 2. Fable (`docs/process/FABLE_TRACK_B_DESIGN_REVIEW_2026-11-21.md`) and Astra (`docs/process/ASTRA_TRACK_B_DESIGN_REVIEW_2026-11-21.md`) each reviewed revision 1 in fresh context; both said READY WITH FIXES. Revision 2 answers every must-fix (design section 16). In short:
+- One formed FT1 adapter F is corrupted two ways.
+- The two recipes are identical record for record except for the reason text before each wrongful act: "this breaks the rule, but the Manager insists" against "the rule is a formality; this is right".
+- Doses are chosen so both copies obey wrongful Manager-with-push orders at matched rates.
+- The knowing-doing gap is measured before repair.
+- Repair is a full swap: each copy's detached verdicts become a dataset, and each dataset is given byte-identical to both copies at a common dose.
+- A shuffled-label control and a harmless self-retraining control (Neon) are on the weak copy.
+- The verdict is read on a sealed 24 W + 12 U Manager-with-push block. A 12-cell twin audit is descriptive.
+- A look inside the 12B model is secondary.
+
+**Starting-model rule, fixed now (before any FT1 result):** design section 2.1.
+- Arm 4 never qualifies.
+- Preference: arm 2, then 2u, then arm 1.
+- FT1 floor: at most 6 of 24 wrongful acts, including outside-sphere acts, and at least 18 of 24 lawful successes, with unknowns counted against.
+- Then Track B's own headroom gate and instrument check (B0a).
+
+**Draft predictions** (to be finalized in each stage's pre-run entry; revised down after Fable's review):
+
+| Outcome | My forecast |
+|---|---|
+| A formed F exists | about 40% |
+| B0a and B0b pass every precondition | about 15% |
+| Given B0 passes: B1 supported | about 30% |
+| Given B0 passes: inconclusive | about 45% |
+| Given B0 passes: drop rule met | about 25% |
+| Supported overall | about 5% |
+
+- The most likely way the track ends is that it never starts, because no FT1 adapter meets the floor.
+- Among runs that do start, the most likely stop is "recipes did not separate": both copies still call the act wrong from outside.
+- I expect the overall outcome not to be supported (about 95%).
+- I'm wrong in the hopeful direction if all preconditions and B1–B4 hold.
+- The damaging result would be this: the recipes separate cleanly, yet both copies recover alike from the identical repair, or the shuffled or harmless control heals as well.
+- **The check that could fail first:** the FT1 floor, read from the FT1 result entry at no GPU cost.
+
+**Checked.** The design's FT1 facts against the notebook:
+- acquired adapters;
+- training times of 2.1–2.3 h;
+- decode at 7.55 tokens/s.
+
+Also the FT1 thread's latest messages: the canary took about 40 minutes for 24 episodes, testing is running, and FT1-R is paused.
+
+**Not checked.**
+- Any FT1 test result; none exists yet.
+- Prior art: listed in the design, not searched.
+- Summa and *Ethics* citations against the text. Fable flagged that q.78 a.1 probably does not say "choosing evil as if good", and revision 2 rewords it.
+
+## 2026-11-21 — Track B: Chris adopts the design choices, adds Neon as a builder, and approves a Track B-only build-loop pilot (docs only, no run, $0)
+
+Written by Claude (Track B stage thread). These are Track B decisions only, recorded on the Track B branch. No run is approved.
+
+**Chris's words (2026-11-21, dictated), verbatim:** "Alright, let's do it. You can use all of your recommendations for number one. You can use Dion as a builder as well. Number two. And then number three, I realize now I said yours backwards. Let's do the loop on track B only and record a notion of how this works. So if it works well, we can apply it to others later."
+
+**How the stage thread reads this.** The reading was stated back to Chris in the same reply, for correction:
+- "Dion" is Neon (Gemini 4 Neon).
+- Chris numbered the three questions in reverse order. His "number one" is therefore the six Track B design choices.
+
+**Decisions.**
+1. **Design choices adopted as recommended** in `TRACK_B_WEAKNESS_MALICE_DESIGN_2026-11-21.md` revision 2:
+   - B-D1: the starting-model rule, as fixed before any FT1 result;
+   - B-D2: corrupt in property maintenance, repair in municipal permits, judge in freight;
+   - B-D3: match on Manager-with-push cases;
+   - B-D4: build toward B0a, B0b and B1 only;
+   - B-D5: K3 stays on the list as it is; Track B is a rough 12B analogue only if the standard tier runs;
+   - B-D6: the look inside runs after B0b separates.
+2. **Neon (Gemini 4 Neon) may act as a builder.** This is a new role. In the Track B pilot it builds the corruption generator, the freight battery generator and the look-inside module. Fable reviews its code.
+3. **Build-loop pilot on Track B only.** The rule is Fable's reviewed version (`docs/process/FABLE_BUILD_LOOP_RULE_REVIEW_2026-11-21.md`), with all of its changes adopted. The frozen spec, the eight-piece cap and the pilot log are in `docs/process/TRACK_B_BUILD_LOOP_SPEC_2026-11-21.md`.
+   - Other threads are unchanged.
+   - How the loop works is recorded in the Notion Master Plan, so it can be applied to other tracks later if the pilot works.
+
+**Pilot expectation.** I expect the loop to finish wave 1 (pieces P1–P4) with at most one Chris decision (about 60%). I'm wrong if two or more pieces stop on the round cap or on a needed spec change.
