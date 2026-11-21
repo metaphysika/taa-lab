@@ -326,3 +326,5 @@ Decisions:
 5. **The templates' final finish step** (`{"tool": null}`) is left to P5's record builder, to match FT1's record format.
 
 **Pilot log:** P3 needed one round of fixes. It needed no decision from Chris; the negation guard is reported to him without blocking the build.
+
+**A4 (2026-11-21, P1).** The action-only recipe (a standard-tier option) empties the `reason` **only on wrongful-act records**. Its lawful and routine records keep the same neutral reasons as the other two recipes, so all three recipes differ only in the wrongful reason. This is how Neon built it, from the spec's "identical except wrongful reason" rule. Design section 3's "as in Study D" therefore describes the empty wrongful reason, not a file with no reasons at all.
