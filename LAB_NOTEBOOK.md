@@ -13964,3 +13964,27 @@ This precedes any FT1 test-part push.
 - FT1's test parts, for 7 acquired adapters plus base, are re-staged at a current commit. They go to Chris for exact-commit approval together with the replacement arm-1 seed (247058).
 - FT1-R training (arm 3 / 247061 first) needs its own exact-commit approval.
 - `plan_ft1r.analyze_p1` must be wired before any FT1-R test part.
+
+## 2026-11-21 — FT1 test parts (cb5b8657), replacement arm 1 / 247058 and FT1-R arm 3 / 247061 (01992b34): PRE-RUN entry and Chris's approval, before any launch (exploratory, $0)
+
+Written by Claude (FT1 test-part stage thread) before any of these jobs is pushed. No FT1 test-part result and no FT1-R adapter exists.
+
+**The plan is `docs/process/FT1_COMBINED_APPROVAL_2026-11-21.md`** (commit `4e99e2c5`), with every staged file's SHA-256 in `docs/process/FT1_COMBINED_APPROVAL_HASHES_2026-11-21.json`. It fixes, before any result: the model list, the outcome rules, the definition of a malformed episode, the analysis commit and timing, the FT1-R technical-failure stop, the GPU order and the forecasts. Fable 5.2's fresh-context readiness check found all three bundles READY WITH FIXES. Every fix was to wording or rules, none to a staged file or hash, and all are applied in that commit.
+
+**Bundles.**
+1. FT1 test parts, 16 jobs at `cb5b865775e9c6357834e953bf7d14d653e45d95`: base and the 7 acquired adapters, 2 parts each.
+2. Replacement arm 1 / 247058 at `01992b34570124af78ca4a201164d5f8993001c4`: training, gate and 2 test parts. **This commit differs from cb5b8657**, because the supplementary wiring exists only in later code.
+3. FT1-R revision 3, arm 3 / 247061 at `01992b34`: training and gate only.
+
+Gate and test bundles that depend on a new adapter are hashed in an addendum before their push.
+
+**Chris's words (2026-11-21), verbatim:** "Approve the three FT1 bundles as drafted (cb5b8657 tests, 1/247058 and FT1-R 3/247061 at 01992b34), rule A per part, and the recommended order."
+
+This approves:
+- all three bundles as drafted;
+- **rule A per test part**: one rerun of a mechanical part at the same commit, and the rerun replaces the first run entirely in the analysis;
+- **the recommended order**: base part 0 alone first as a canary, with 3 / 247061 training alongside; then the rest of the test parts in Fable's order, and 3 / 247061's gate; then 1 / 247058's training and gate, with its test parts last.
+
+Arm 2 / 247061 is not approved here. Each receipt carries Chris's words and a context line.
+
+**Expectation.** I expect P3 to be not met or not established (about 60%); I'm wrong if arm 2's pooled pair-correct beats base by 15 points or more under every resolution of unknowns. One check that could fail: 2 / 247058 has at least 4 of its 24 pressure-half episodes malformed (Fable 75%).
