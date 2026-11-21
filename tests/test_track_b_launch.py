@@ -67,6 +67,8 @@ class LauncherTests(unittest.TestCase):
         self.assertIsNone(self.draft["approval_id"])
         files = {name: (self.folder / name).read_bytes() for name in launch.BUNDLE_FILES}
         self.assertEqual(self.draft["bundle_sha256"], launch.bundle_hash(files))
+        config = json.loads(files[launch.BINDING])
+        self.assertEqual(files, launch.bundle(config, b"scripted archive"))
         metadata = json.loads(files[launch.METADATA])
         self.assertEqual(metadata["dataset_sources"],
                          [OPTIONS["adapter_dataset_id"], "metaphysika/k2-wheels"])

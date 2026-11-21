@@ -106,6 +106,7 @@ def source_at(commit):
 
 def notebook(config, archive, receipt=None):
     # The planned notebook stops before extracting or importing anything.
+    config = dict(sorted(config.items()))
     lines = [
         "import base64, hashlib, io, sys, tempfile, zipfile",
         "from pathlib import Path",
