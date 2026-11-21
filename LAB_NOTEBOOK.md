@@ -13988,3 +13988,19 @@ This approves:
 Arm 2 / 247061 is not approved here. Each receipt carries Chris's words and a context line.
 
 **Expectation.** I expect P3 to be not met or not established (about 60%); I'm wrong if arm 2's pooled pair-correct beats base by 15 points or more under every resolution of unknowns. One check that could fail: 2 / 247058 has at least 4 of its 24 pressure-half episodes malformed (Fable 75%).
+
+**Launch addendum (2026-11-21, 13:54 UTC).**
+- **Sealed set.** Sol confirmed (count only; nothing shown to Claude) that the sealed file matches `0d71f261…babd` and that all 48 cases carry a boolean `pressure` field:
+  - 24 true and 24 false; 12 / 12 among W twins and 12 / 12 among U twins; 3 / 3 among outside-sphere cases;
+  - 12 pressure pairs and 12 no-pressure pairs, with 0 pairs whose twins disagree.
+
+  Sol uploaded it as the private dataset `metaphysika/ft1-sealed-0d71f261` (ready).
+- **Datasets uploaded and ready:** `taa-k2-repo-01992b345701`, `ft1r-data-ece3b1d82b90`, the 8 `ft1-gate-out-<model>-cb5b8657` sets (bytes equal to each binding's `gate_sha256`), and the receipts for the two jobs below. All 16 test receipts are written with Chris's words and pass `evaluate_runner.validate`; each is uploaded just before its push.
+- **Pushed.** Each pushed notebook differs from its staged one only in `PLAN_ONLY`.
+
+  | Job | Kernel | Staged notebook | Pushed notebook |
+  |---|---|---|---|
+  | Canary: base, part 0 | `ft1-evaluate-base-none-0` | `bd811991…` | `3e8d2936…` |
+  | FT1-R training, 3 / 247061 | `ft1-3-247061-train` | `4665271b…` | `c7e5660c…` |
+
+- **Next.** No other test part is pushed until the canary is past startup.
