@@ -139,12 +139,18 @@ def _has_git_entry(path: Path) -> bool:
 
 
 def assert_outside_repo(path_arg: Path | str) -> Path:
-    """Resolve path_arg and raise ValueError if inside any git repo or worktree."""
+    """Resolve path_arg and raise ValueError if UNC or inside any git repo or worktree."""
     if not path_arg or not str(path_arg).strip():
         raise ValueError("Path is required and must be outside any git repository")
+    raw_str = str(path_arg).strip()
+    if raw_str.startswith("\\\\") or raw_str.startswith("//"):
+        raise ValueError(f"Refusing UNC/network path for sealed batteries: {path_arg!r}")
     raw_path = Path(path_arg).expanduser()
     abs_path = Path(os.path.abspath(str(raw_path)))
     real_path = Path(os.path.realpath(str(abs_path)))
+    for candidate in (str(abs_path), str(real_path)):
+        if candidate.startswith("\\\\") or candidate.startswith("//"):
+            raise ValueError(f"Refusing UNC/network path for sealed batteries: {path_arg!r}")
 
     for root in _discover_repo_roots():
         root_real = os.path.realpath(str(root))
@@ -310,8 +316,8 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=None,
         help=(
-            "Optional path outside any git repository containing a private >= 2^128 "
-            "integer seed. If omitted, a fresh 256-bit seed is generated via secrets."
+            "Only for regenerating from an earlier private_seed.txt stored outside "
+            "any git repository. If omitted, a fresh 256-bit seed is generated via secrets."
         ),
     )
     args = parser.parse_args(argv)
