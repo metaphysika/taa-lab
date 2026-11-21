@@ -18,6 +18,12 @@ REPAIR_CHECKPOINTS = (100,)
 
 
 def _load_adapter(base, path):
+    names = [name for name, _ in base.named_modules()]
+    if hasattr(base, "peft_config") or any(
+        part.startswith("lora_") for name in names for part in name.split(".")
+    ):
+        raise ValueError("base already carries an adapter")
+
     from peft import PeftConfig, PeftModel, prepare_model_for_kbit_training
 
     # core.RECIPE describes the quantization already applied by the caller.
@@ -31,10 +37,11 @@ def _load_adapter(base, path):
     if not quantization.load_in_4bit or actual != RECIPE["quantization"]:
         raise ValueError("base quantization differs from FT1")
     config = PeftConfig.from_pretrained(path, local_files_only=True)
-    _check_adapter_config(config, [name for name, _ in base.named_modules()])
+    target_count = _check_adapter_config(config, names)
     base = prepare_model_for_kbit_training(base)
     base.config.use_cache = False
-    return PeftModel.from_pretrained(base, path, config=config, is_trainable=True, local_files_only=True)
+    model = PeftModel.from_pretrained(base, path, config=config, is_trainable=True, local_files_only=True)
+    return model, target_count
 
 
 def _check_adapter_config(config, names):
@@ -63,15 +70,17 @@ def _check_adapter_config(config, names):
         or config.use_qalora is not False
     ):
         raise ValueError("adapter configuration differs from FT1")
+    return len(resolved)
 
 
 def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retain,
           steps=None, checkpoint_steps=None, repair=False, expected_count=2000,
-          check=lambda: None):
+          allow_cpu=False, check=lambda: None):
     """Continue adapter weights with a fresh FT1 optimizer and relative step numbers.
 
     adapter_sha256 is core.digest(core.inventory(adapter)). output is a new directory.
-    The caller supplies the pinned local base and the execution/retention guards.
+    The caller supplies one freshly loaded base per call and the execution/retention guards.
+    CPU is available only when explicitly enabled for offline checks.
     """
     limit = REPAIR_CHECKPOINTS[-1] if repair else RECIPE["steps"]
     steps = limit if steps is None else steps
@@ -111,16 +120,25 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
         check()
         encoded, mask = record(tokenizer, rows[index])
         ordered.append(dict(encoded, reason_mask=mask))
-    output.mkdir(parents=True, exist_ok=False)
-    model = _load_adapter(base, adapter)
+    model, target_count = _load_adapter(base, adapter)
+    device = next(model.parameters()).device.type
+    cuda = device == "cuda"
+    if not cuda and not (allow_cpu and device == "cpu"):
+        raise ValueError("training requires a CUDA model unless CPU is explicitly enabled")
     trainable = [(name, parameter) for name, parameter in model.named_parameters()
                  if parameter.requires_grad]
-    if not any("lora_B" in name.split(".") and parameter.detach().count_nonzero().item()
-               for name, parameter in trainable):
-        raise ValueError("resumed adapter has no nonzero trainable LoRA B weights")
+    lora_a = [parameter for name, parameter in trainable if "lora_A" in name.split(".")]
+    lora_b = [parameter for name, parameter in trainable if "lora_B" in name.split(".")]
+    if len(trainable) != 2 * target_count or len(lora_a) != target_count or len(lora_b) != target_count:
+        raise ValueError("expected one trainable LoRA A and B tensor per resolved target")
+    if any(not parameter.detach().count_nonzero().item() for parameter in lora_b):
+        raise ValueError("every trainable LoRA B tensor must be nonzero")
     retain(dict(event="adapter_loaded", adapter_sha256=adapter_sha256,
                 trainable_tensors=len(trainable), nonzero_lora_b=True))
-    cuda = next(model.parameters()).device.type == "cuda"
+    retain(dict(event="tokenized_real_records", examples=len(ordered),
+                trained_tokens=[sum(label != -100 for label in row["labels"]) for row in ordered],
+                data_order_sha256=core.digest(order)))
+    output.mkdir(parents=True, exist_ok=False)
     ft0b.tables(model, "after_cast" if cuda else "cpu_layout", retain, cast=cuda)
     initial = [parameter.detach().float().cpu().clone() for _, parameter in trainable]
     pending = []
@@ -183,9 +201,10 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
         learning_rate=RECIPE["lr"], optim=RECIPE["optimizer"],
         lr_scheduler_type=RECIPE["scheduler"], warmup_steps=RECIPE["warmup"],
         weight_decay=RECIPE["weight_decay"], seed=seed, data_seed=seed,
-        fp16=cuda, use_cpu=not cuda, gradient_checkpointing=True,
+        fp16=cuda, gradient_checkpointing=True,
         max_steps=steps, save_strategy="no", logging_steps=1, logging_nan_inf_filter=False,
         report_to=[], remove_unused_columns=False,
+        **({} if cuda else {"use_cpu": True}),
     )
     trainer = FixedTrainer(model=model, args=args, train_dataset=ordered,
                            data_collator=collate, callbacks=[Log()])
@@ -199,7 +218,8 @@ def train(base, tokenizer, rows, *, adapter, adapter_sha256, output, seed, retai
         raise ValueError("Trainer token denominator/scaling differs from FT0b")
     retain(dict(event="training_setup", adapter_sha256=adapter_sha256,
                 data_order_sha256=core.digest(order), steps=steps, checkpoint_steps=list(checkpoints),
-                rows=len(rows), expected_count=expected_count, max_skipped=max_skipped))
+                rows=len(rows), expected_count=expected_count, max_skipped=max_skipped,
+                cuda=cuda, fp16=cuda))
     log_norm(0)
     check()
     result = trainer.train()

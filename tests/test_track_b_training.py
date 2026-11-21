@@ -43,6 +43,10 @@ class Adapter:
     def __init__(self, path):
         self.parameter = Parameter()
         self.parameter.value = Scalar((path / "adapter_model.safetensors").read_text())
+        lora_a = Parameter()
+        lora_a.value = Scalar(1)
+        self.tensors = [("layer.lora_A.default.weight", lora_a),
+                        ("layer.lora_B.default.weight", self.parameter)]
 
     @property
     def weight(self):
@@ -52,7 +56,7 @@ class Adapter:
         return iter((self.parameter,))
 
     def named_parameters(self):
-        return iter((("layer.lora_B.default.weight", self.parameter),))
+        return iter(self.tensors)
 
     def save_pretrained(self, path, *, safe_serialization):
         assert safe_serialization
@@ -112,7 +116,8 @@ class TrainingTests(unittest.TestCase):
         self.output = self.root / "output"
         self.events = []
 
-    def run_scripted_training(self, device="cpu", *, steps=3, checkpoint_steps=(1, 3)):
+    def run_scripted_training(self, device="cpu", *, steps=3, checkpoint_steps=(1, 3),
+                              allow_cpu=True, model=None, target_count=1):
         torch = SimpleNamespace(tensor=lambda value: value, utils=SimpleNamespace(
             data=SimpleNamespace(SequentialSampler=iter)))
         arguments = Mock(side_effect=lambda **kwargs: SimpleNamespace(device="cpu", **kwargs))
@@ -120,10 +125,11 @@ class TrainingTests(unittest.TestCase):
                                        TrainingArguments=arguments)
         rows = [bool(i % 2) for i in range(steps * plan.core.RECIPE["accumulation"])]
         tokenizer = Mock()
-        model = Adapter(self.adapter)
+        if model is None:
+            model = Adapter(self.adapter)
         model.parameter.device = SimpleNamespace(type=device)
         with (patch.dict("sys.modules", {"torch": torch, "transformers": transformers}),
-              patch.object(training, "_load_adapter", return_value=model) as load,
+              patch.object(training, "_load_adapter", return_value=(model, target_count)) as load,
               patch.object(training, "record", side_effect=lambda tok, reason: (
                   dict(labels=[-100, 2, 3 if reason else -100]), [False, False, reason])),
               patch.object(training, "split_loss", side_effect=scripted_loss),
@@ -133,7 +139,7 @@ class TrainingTests(unittest.TestCase):
             result = training.train(None, tokenizer, rows, adapter=self.adapter,
                                     adapter_sha256=self.sha, output=self.output, seed=4,
                                     retain=self.events.append, steps=steps, checkpoint_steps=checkpoint_steps,
-                                    expected_count=len(rows))
+                                    expected_count=len(rows), allow_cpu=allow_cpu)
         load.assert_called_once_with(None, self.adapter)
         return result, arguments.call_args.kwargs, tables, model
 
@@ -143,8 +149,16 @@ class TrainingTests(unittest.TestCase):
         loaded = next(event for event in self.events if event["event"] == "adapter_loaded")
         self.assertEqual(loaded["adapter_sha256"], self.sha)
         self.assertTrue(loaded["nonzero_lora_b"])
+        self.assertEqual(loaded["trainable_tensors"], 2)
         setup = next(event for event in self.events if event["event"] == "training_setup")
         self.assertEqual((setup["rows"], setup["expected_count"], setup["max_skipped"]), (24, 24, 0))
+        self.assertFalse(setup["cuda"])
+        self.assertFalse(setup["fp16"])
+        self.assertTrue(arguments["use_cpu"])
+        tokenized = next(event for event in self.events if event["event"] == "tokenized_real_records")
+        self.assertEqual(tokenized["examples"], 24)
+        self.assertCountEqual(tokenized["trained_tokens"], [1] * 12 + [2] * 12)
+        self.assertEqual(tokenized["data_order_sha256"], setup["data_order_sha256"])
         losses = [event for event in self.events if event["event"] == "loss_split"]
         baseline = scripted_loss(Adapter(self.adapter), {}, [[False, True]], Mock(), 2)
         self.assertEqual([row["step"] for row in losses], [1, 2, 3])
@@ -169,9 +183,10 @@ class TrainingTests(unittest.TestCase):
             self.assertEqual(arguments[argument], plan.core.RECIPE[key])
 
     def test_fake_cuda_trainer_recipe(self):
-        _, args, tables, model = self.run_scripted_training("cuda", steps=11, checkpoint_steps=None)
+        _, args, tables, model = self.run_scripted_training(
+            "cuda", steps=11, checkpoint_steps=None, allow_cpu=False)
         self.assertTrue(args["fp16"])
-        self.assertFalse(args["use_cpu"])
+        self.assertNotIn("use_cpu", args)
         self.assertTrue(args["gradient_checkpointing"])
         self.assertEqual(args["max_steps"], 11)
         self.assertEqual(args["save_strategy"], "no")
@@ -179,12 +194,28 @@ class TrainingTests(unittest.TestCase):
         setup = next(event for event in self.events if event["event"] == "training_setup")
         self.assertEqual(setup["checkpoint_steps"], [11])
         self.assertEqual(setup["max_skipped"], 1)
+        self.assertTrue(setup["cuda"])
+        self.assertTrue(setup["fp16"])
+
+    def test_cpu_training_requires_opt_in(self):
+        with self.assertRaisesRegex(ValueError, "requires a CUDA model"):
+            self.run_scripted_training(allow_cpu=False)
+        self.assertFalse(self.output.exists())
+        self.assertEqual(self.events, [])
 
     def test_zero_lora_b_refuses_training(self):
-        (self.adapter / "adapter_model.safetensors").write_text("0")
-        self.sha = training.core.digest(training.core.inventory(self.adapter))
-        with self.assertRaisesRegex(ValueError, "no nonzero trainable LoRA B"):
-            self.run_scripted_training()
+        model = Adapter(self.adapter)
+        with self.assertRaisesRegex(ValueError, "per resolved target"):
+            self.run_scripted_training(model=model, target_count=2)
+        extra = Parameter()
+        extra.value = Scalar(0)
+        model.tensors.extend([("other.lora_A.default.weight", extra), ("other.bias", extra)])
+        with self.assertRaisesRegex(ValueError, "per resolved target"):
+            self.run_scripted_training(model=model, target_count=2)
+        model.tensors[-1] = ("other.lora_B.default.weight", extra)
+        with self.assertRaisesRegex(ValueError, "every trainable LoRA B tensor must be nonzero"):
+            self.run_scripted_training(model=model, target_count=2)
+        self.assertFalse(self.output.exists())
         self.assertEqual(self.events, [])
 
     def test_preflight_refuses_invalid_checkpoints_count_and_existing_output(self):
@@ -233,7 +264,9 @@ class TrainingTests(unittest.TestCase):
         peft.PeftConfig.from_pretrained.return_value = config
         peft.prepare_model_for_kbit_training.return_value = base
         with patch.dict("sys.modules", {"peft": peft}):
-            training._load_adapter(base, self.adapter)
+            model, count = training._load_adapter(base, self.adapter)
+            self.assertIs(model, peft.PeftModel.from_pretrained.return_value)
+            self.assertEqual(count, len(names))
             peft.PeftModel.from_pretrained.assert_called_once_with(
                 base, self.adapter, config=config, is_trainable=True, local_files_only=True)
             quantization.bnb_4bit_use_double_quant = False
@@ -251,6 +284,16 @@ class TrainingTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "configuration differs"):
                         training._load_adapter(base, self.adapter)
 
+    def test_base_with_existing_adapter_is_refused(self):
+        peft = Mock()
+        bases = (SimpleNamespace(named_modules=lambda: [], peft_config={}),
+                 SimpleNamespace(named_modules=lambda: [("layer.lora_A.default", None)]))
+        with patch.dict("sys.modules", {"peft": peft}):
+            for base in bases:
+                with self.subTest(base=base), self.assertRaisesRegex(ValueError, "already carries"):
+                    training._load_adapter(base, self.adapter)
+        peft.PeftConfig.from_pretrained.assert_not_called()
+
     def test_retained_ft1_adapter_config_resolves_to_all_language_targets(self):
         path = (Path(__file__).resolve().parents[1] / "results"
                 / "2026-11-15 v0.24.89 ft1-qualification 0449a230200c" / "kaggle-v2"
@@ -261,8 +304,14 @@ class TrainingTests(unittest.TestCase):
             for projection in plan.core.RECIPE["projections"]:
                 block = "self_attn" if projection in {"q_proj", "k_proj", "v_proj", "o_proj"} else "mlp"
                 names.append(f"model.language_model.layers.{layer}.{block}.{projection}")
-        self.assertLess(len(config.target_modules), len(names))
-        training._check_adapter_config(config, names)
+        language_count = len(names)
+        for layer in range(27):
+            prefix = f"model.vision_tower.vision_model.encoder.layers.{layer}"
+            names.extend(f"{prefix}.self_attn.{projection}"
+                         for projection in ("q_proj", "k_proj", "v_proj", "out_proj"))
+            names.extend(f"{prefix}.mlp.{projection}" for projection in ("fc1", "fc2"))
+        self.assertLess(len(config.target_modules), language_count)
+        self.assertEqual(training._check_adapter_config(config, names), language_count)
 
     def test_recipe_equals_ft1(self):
         self.assertEqual(training.RECIPE, plan.core.RECIPE)
@@ -279,7 +328,8 @@ class TrainingTests(unittest.TestCase):
         target["reason"] = "a" * (639 - len(compact()))
         row = {"messages": [{"content": compact()}]}
         cap = plan.core.RECIPE["context"]
-        with patch.object(plan.core, "prompt", return_value=[0] * (cap - 640)) as prompt,                 patch.object(plan.core, "end_token", return_value=0):
+        with (patch.object(plan.core, "prompt", return_value=[0] * (cap - 640)) as prompt,
+              patch.object(plan.core, "end_token", return_value=0)):
             encoded, mask = training.record(tokenizer, row)
             self.assertEqual(len(encoded["labels"]), cap)
             self.assertEqual(sum(label != -100 for label in encoded["labels"]), 640)
