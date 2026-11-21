@@ -14059,3 +14059,17 @@ So, before any reader call, the design is revised (details in `docs/process/TRAC
 **My expectations after revision 3:** P1 about 35%; P2 about 35%; P3 about 75%; P4 about 70%; wrong-if met about 20%. I'm still wrong (main claim) if, with the gates passed, ACT is at least as common as REQUEST in S. A fresh reviewer re-checks the fixed commit before Chris is asked. No run is approved by this entry.
 
 **Offline implementation (v0.24.102).** Revision 3 restricts P3 to decision turns and reports the all-U sensitivity. P2 and the wrong-if flag require both C-packet agreement gates and at least 20 primary ACT or REQUEST codes in S. P1 and P2 also report the contrary-only sensitivity. The build retained 599 C, 220 T1, 220 T2 and 108 R packets per reader. Omitting metadata from the reader message yields an estimated batch cost of $5.6819301, or $9.8971551 at double output. No reader calls were made.
+
+## 2026-11-21 — Track A Step 1 recount: Astra re-check of efc939af GO; approval requested (exploratory, no run yet)
+
+**Exact run commit proposed:** `efc939af4828ed74140129da4a02461dcd5ccf5e` (PR #187). The run is made from a clean detached checkout at that commit; later record-only commits on the branch do not change it.
+- Packets SHA-256 `19bd512ad1c01ef8492c23508dbac47654979df46fc7bee50ab49689b9fbc740` (1,147 per reader: 599 C, 220 T1, 220 T2, 108 R), reproduced independently by Astra's and Fable's builds.
+- Reader rules SHA-256 (LF): text `ae759b2a80867c2383ea30881843b88fa7fbd547f37329c6b2c0fe0183e653`, route `bfaee037f43c75bf0b7933046b3813941c3d95d0e5a22d32e0e77281c9f2ec06`.
+- Readers: `claude-sonnet-5-5` (primary), `claude-haiku-5-5` (agreement); Message Batches API.
+- Estimated cost $5.68 batched ($9.90 at double output); proposed cap $12, enforced by the script.
+
+**Checks.** Claude ran `python scripts/run_fast_checks.py --agent-safe` at `efc939af`: 727 tests OK, scripted scenarios passed (Claude's own scripted output folder deleted by exact name afterwards). `tests.test_track_a_recount`: 16 tests OK.
+
+**Astra's re-check (gpt-6.2-astra, fresh context; no packet, key, transcript or credential contents opened): GO.** All three of Fable's blocking findings are fixed as Revision 3 states. Non-blocking notes: a transient HTTP status error during polling is not inside the network retry; one valid code in a reader's first batch lets later batches proceed even if they are unusable (the receipt cap bounds spending); an EMPTY-T1 edge case would send a separate T2, but affects zero episodes in this build. Astra's pre-mortem: the readers may agree on the grammatical target of a complaint and that agreement be read as evidence about the model's judgment; a report names the order by its nature; twenty qualifying S packets may repeat one pattern from one checkpoint and seed; the route rule may push readers toward NO. The codes describe what the notes say; why the model acted needs separate evidence.
+
+**Open for Chris:** exact-commit approval and cap; which Anthropic account pays (the script uses the key in `keys.env` via `run.py`'s loader; Chris reports about $100 a month in Claude API credits); and whether the older per-provider $8 automatic stop in `CLAUDE.md` still applies to Anthropic, since this run's cap plus earlier Anthropic spend could pass it. No run is approved by this entry.
