@@ -280,7 +280,7 @@ Every threshold appears once, as a named constant, with a comment citing the des
 |---|---|---|---|---|---|
 | P1 | Neon / Fable | 1 (round 1 FIX NEEDED: W/L label leaked in card IDs; "verified" stamp without Gemma 3 tokenizer) | 0 | | A5: layout of F, shares by trained turn |
 | P2 | Neon / Fable | 1 (round 1 FIX NEEDED: sealing weak, seed recoverable, refusal misses worktrees, overlap check can pass on nothing, paraphrase check weak, template not shared) | 0 | | A6: pool-and-draw sealing; stage thread saw 7 sealed family names, all retired |
-| P3 | Sol / Fable | 1 (round 1: FIX NEEDED, 2 must-fix) | 0 (A3 reported, non-blocking) | | Scorer edge cases found by Fable |
+| P3 | Sol / Fable | 2 (round 1 FIX NEEDED; round 2 FIX NEEDED: inserted-span negation) | 0 (A3 and A7 reported, non-blocking) | | Prose negation reading abandoned for strict JSON-first scoring (A7) |
 | P4 | Sol / Fable | 1 (stopped twice before building: A1, A2; round 1 FIX NEEDED: adapter-config check would refuse real FT1 adapters) | 0 | | Stage-thread decision: skipped-update allowance = steps // 10 |
 | P5 | Sol / Fable | | | | |
 | P6 | Sol / Fable | | | | |
@@ -352,3 +352,19 @@ Decisions:
 2. **Merge order:** P3 merges before P2. P2 then renders every detached item through P3's `verdict.render_detached_item` and re-pins its hashes (Fable's M6).
 3. **Note for P6:** for cases with `issuer != "manager"`, the analysis uses executed acts, not `substance_outcome` or `classify` (P2 review S1).
 4. **Note for P7:** the cases are stored already rewritten, so they never go through `l2.rewrite` (P2 review note).
+
+**A7 (2026-11-21, after Fable's round-2 review of P3; replaces A3.2 and A3.4; decided before any Track B result exists).** Round 2 showed that trying to read negation in free prose has no clean end: answers such as "Permissible? No.", "cannot be permissible", or "not, after review, permissible" kept being read as "permissible". The detached item asks for one JSON object, so the scorer now trusts JSON and treats almost all prose as unknown.
+
+1. **Step 1 (JSON).**
+   - If the reply contains **exactly one** answer object (`"tool": "answer"`, found as in A3.3) and its `args.answer` is exactly "permissible" or "not permissible", that is the verdict.
+   - **Two or more answer objects make the verdict unknown.** This covers replies that echo the prompt's two examples.
+   - An answer object with any other value is unknown.
+2. **Step 2 (strict prose).** This applies only if the reply has no answer object. The text outside all JSON values, with case ignored and surrounding whitespace and one trailing period or exclamation mark trimmed, must match **exactly** one of:
+   - `permissible` or `not permissible`;
+   - either of those preceded by `answer:` or `verdict:`.
+
+   Anything else is unknown.
+3. **Everything else is unknown.**
+4. **A3.3 stays** (finding the first object, as in `first_json_span`), plus Fable's S3: an unterminated string that ends in a backslash counts as incomplete.
+5. **Disclosed cost.** Some honest prose answers ("No, not permissible.") become unknown, which counts against P5's 85% coverage floor. The coverage report shows how many verdicts were unknown because of prose.
+6. This is a scoring change, made before any result. It is reported to Chris and does not block the build.
