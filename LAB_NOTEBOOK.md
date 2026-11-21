@@ -14100,3 +14100,9 @@ Predictions, gates and reading rules are as in the pre-run entry and Revisions 2
 - Results folder retained unchanged: `C:/t/track-a-run/results/2026-11-21 v0.24.102 track-a recount sonnet55-haiku55 r1 a713838f…9471/`.
 
 **Next (needs Chris's yes, since this is a relaunch after a partial run):** proposed, a small offline-reviewed resume step that skips every packet already coded, first retrieves the in-flight batch by its id, keeps the same commit-bound packets, rules, readers and the same $12 cap counting the $1.18 already spent, and is launched as a detached process so no tool time limit applies. Alternative: stop here and analyse the 496 coded packets as a labelled partial result. No analysis of the partial codes will be run before Chris decides.
+
+## 2026-11-21 ? Track A Step 1 recount resume (v0.24.103, offline build)
+
+The resume command requires a fresh receipt bound to the current commit and the existing results folder. It settles any submitted batches by ID before submitting more packets, counts settled spend against the original $12 cap, and skips every packet with a code for that reader, including unknowns. Each reader's first new batch must return at least one valid code. The resume appends and flushes evidence after each write. A reservation without a batch ID requires review because the provider may have accepted the submission.
+
+Use `python -m exploratory.track_a.recount resume --results-folder <folder> --packets <packets.jsonl> --receipt <new-receipt.json> --detach-friendly` after separate exact-commit execution approval. The new receipt adds `resumes_folder` and a fresh `resume_approval_id` to the existing receipt fields. The command is noninteractive and has no launcher of its own. Offline build only. The retained run was not resumed.

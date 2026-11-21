@@ -1,11 +1,11 @@
 """Track A Step 1. Build and analyze offline; run requires exact approval.
 
-Use python -m exploratory.track_a.recount {build,run,analyze} --help.
+Use python -m exploratory.track_a.recount {build,run,resume,analyze} --help.
 Keep packets and the key in scratch storage and share only the build report.
 """
 import argparse
 from collections import Counter, defaultdict
-from contextlib import ExitStack
+from contextlib import contextmanager, ExitStack
 from fractions import Fraction
 import hashlib
 import json
@@ -520,12 +520,7 @@ def retry_network(operation, network_error, ledger, record, operation_name):
             time.sleep(delay)
 
 
-def run(packet_path, receipt_path):
-    if receipt_path is None:
-        raise ValueError("An approval receipt is required")
-    packet_bytes = packet_path.read_bytes()
-    rules = rules_data()
-    receipt, cap = validate_receipt(receipt_path, packet_bytes, rules)
+def packet_inventory(packet_bytes):
     packets = read_rows(packet_bytes)
     by_id = {packet["id"]: packet for packet in packets}
     if not packets or len(by_id) != len(packets) or any(
@@ -533,6 +528,126 @@ def run(packet_path, receipt_path):
         or not re.fullmatch(r"[0-9a-f]{32}", packet["id"]) for packet in packets
     ):
         raise ValueError("Invalid packet inventory")
+    return packets, by_id
+
+
+def open_logs(stack, output, mode):
+    return {
+        name: stack.enter_context((output / f"{name}.jsonl").open(mode, encoding="utf-8", newline="\n"))
+        for name in ("requests", "raw-responses", "codes", "ledger")
+    }
+
+
+def submit_batch(batches, logs, requests, record, spent):
+    append_row(logs["requests"], dict(record, requests=requests))
+    append_row(logs["ledger"], dict(record, state="reserved", spent_usd=float(spent)))
+    # An uncertain submission leaves the reservation open.
+    batch = batches.create(requests=requests)
+    record["batch_id"] = batch.id
+    append_row(logs["ledger"], dict(record, state="submitted", spent_usd=float(spent)))
+    return batch
+
+
+def settle_batch(batches, network_error, logs, record, expected, spent, first_batch,
+                 *, batch=None, retained=None, coded=None, charged=()):
+    ledger = logs["ledger"]
+    reader, batch_id = record["reader"], record["batch_id"]
+    reserve = Fraction(str(record["reserved_usd"]))
+    retained = {} if retained is None else retained
+    coded = set() if coded is None else coded
+    charged = set(charged)
+    if batch is None:
+        batch = retry_network(lambda: batches.retrieve(batch_id), network_error, ledger, record, "poll")
+    while batch.processing_status != "ended":
+        time.sleep(30)
+        batch = retry_network(lambda: batches.retrieve(batch_id), network_error, ledger, record, "poll")
+
+    valid = 0
+    batch_spent = Fraction(0)
+    processed = set()
+
+    def fetch_results():
+        nonlocal spent, valid, batch_spent
+        seen = set()
+        for item in batches.results(batch_id):
+            raw = item.model_dump(mode="json")
+            ident = raw["custom_id"]
+            if ident not in expected or ident in seen:
+                raise ValueError("Unexpected or duplicate batch result")
+            seen.add(ident)
+            if ident in retained and retained[ident] != raw:
+                raise ValueError("Retained batch result differs from retrieved result")
+            if ident in processed:
+                continue
+            if ident not in retained:
+                append_row(logs["raw-responses"], dict(batch_id=batch_id, reader=reader, response=raw))
+                retained[ident] = raw
+            result = raw["result"]
+            code = None
+            cost = Fraction(0)
+            if result["type"] == "succeeded":
+                message = result["message"]
+                cost = usage_cost(reader, message)
+                code = decode_result(message, reader, rule_kind(expected[ident]["packet_type"]))
+            batch_spent += cost
+            valid += code is not None
+            if ident not in coded:
+                append_row(logs["codes"], dict(id=ident, reader=reader, code=code))
+                coded.add(ident)
+            if ident not in charged:
+                spent += cost
+                append_row(ledger, dict(record, state="response", id=ident, spent_usd=float(spent)))
+            processed.add(ident)
+
+    retry_network(fetch_results, network_error, ledger, record, "results")
+    missing = len(expected) - len(processed)
+    if not missing:
+        append_row(ledger, dict(record, state="settled", spent_usd=float(spent),
+                                batch_spent_usd=float(batch_spent)))
+    if first_batch and valid == 0:
+        append_row(ledger, dict(record, state="stopped_for_review",
+                                reason="first_batch_zero_valid_codes", valid_codes=0,
+                                missing_results=missing, reservation_open=bool(missing),
+                                spent_usd=float(spent)))
+        return spent, "first_batch_zero_valid_codes"
+    if missing:
+        raise ValueError("Batch results incomplete; reservation remains open")
+    if batch_spent > reserve:
+        append_row(ledger, dict(record, state="reservation_exceeded", spent_usd=float(spent)))
+        return spent, "reservation_exceeded"
+    return spent, None
+
+
+def continue_batches(client, network_error, logs, packets, rules, cap, spent, coded):
+    first = set(MODELS)
+    for start in range(0, len(packets), BATCH_SIZE):
+        chunk = packets[start:start + BATCH_SIZE]
+        for reader in MODELS:
+            expected = {packet["id"]: packet for packet in chunk if packet["id"] not in coded[reader]}
+            if not expected:
+                continue
+            requests = [request_for(packet, reader, rules) for packet in expected.values()]
+            reserve = batch_maximum(reader, requests)
+            record = dict(start=start, reader=reader, reserved_usd=float(reserve))
+            if spent + reserve > cap:
+                append_row(logs["ledger"], dict(record, state="cap_stop", spent_usd=float(spent)))
+                return spent, "cap_stop"
+            batch = submit_batch(client.messages.batches, logs, requests, record, spent)
+            spent, stop = settle_batch(client.messages.batches, network_error, logs, record,
+                                       expected, spent, reader in first, batch=batch, coded=coded[reader])
+            if stop:
+                return spent, stop
+            first.discard(reader)
+    return spent, "complete"
+
+
+def run(packet_path, receipt_path):
+    if receipt_path is None:
+        raise ValueError("An approval receipt is required")
+    packet_bytes = packet_path.read_bytes()
+    rules = rules_data()
+    receipt, cap = validate_receipt(receipt_path, packet_bytes, rules)
+    packets, _ = packet_inventory(packet_bytes)
 
     client, network_error = build_client()
     # A stable directory name consumes the approval once, even after an interruption.
@@ -544,84 +659,144 @@ def run(packet_path, receipt_path):
     for kind, data in rules.items():
         (output / RULES[kind].name).write_bytes(data)
 
-    spent = Fraction(0)
     with ExitStack() as stack:
-        def open_log(name):
-            return stack.enter_context((output / f"{name}.jsonl").open("x", encoding="utf-8", newline="\n"))
+        continue_batches(client, network_error, open_logs(stack, output, "x"),
+                         packets, rules, cap, Fraction(0), {reader: set() for reader in MODELS})
+    return output
 
-        requests_log = open_log("requests")
-        responses_log = open_log("raw-responses")
-        codes_log = open_log("codes")
-        ledger = open_log("ledger")
-        for start in range(0, len(packets), BATCH_SIZE):
-            chunk = packets[start:start + BATCH_SIZE]
-            for reader in MODELS:
-                requests = [request_for(packet, reader, rules) for packet in chunk]
-                reserve = batch_maximum(reader, requests)
-                record = dict(start=start, reader=reader, reserved_usd=float(reserve))
-                if spent + reserve > cap:
-                    append_row(ledger, dict(record, state="cap_stop", spent_usd=float(spent)))
+
+def validate_resume(output, receipt_path, packet_bytes, rules):
+    receipt, cap = validate_receipt(receipt_path, packet_bytes, rules)
+    folder = receipt.get("resumes_folder")
+    if not isinstance(folder, str) or not folder.strip() or Path(folder).resolve() != output.resolve():
+        raise ValueError("Resume receipt results folder mismatch")
+    original = json.loads((output / "receipt.json").read_bytes(), object_pairs_hook=unique_object)
+    bindings = ("packets_sha256", "rules_sha256", "primary_model", "second_model", "cap_usd")
+    if any(receipt[key] != original.get(key) for key in bindings):
+        raise ValueError("Resume receipt does not match original receipt")
+    if (output / "packets.jsonl").read_bytes() != packet_bytes:
+        raise ValueError("Retained packet inventory mismatch")
+    for kind, data in rules.items():
+        if (output / RULES[kind].name).read_bytes() != data:
+            raise ValueError("Retained reader rules mismatch")
+    approval = receipt.get("resume_approval_id")
+    if not isinstance(approval, str) or not approval.strip() or approval == original["approval_id"]:
+        raise ValueError("A distinct resume_approval_id is required")
+    return approval, cap
+
+
+def retained_rows(output, name):
+    data = (output / f"{name}.jsonl").read_bytes()
+    if data and not data.endswith(b"\n"):
+        raise ValueError(f"Incomplete {name} log line; review required")
+    return read_rows(data)
+
+
+def resume_state(output, approval, by_id):
+    coded = {reader: set() for reader in MODELS}
+    for row in retained_rows(output, "codes"):
+        reader, ident = row["reader"], row["id"]
+        if ident not in by_id or ident in coded[reader]:
+            raise ValueError("Unexpected or duplicate retained code ID")
+        coded[reader].add(ident)
+
+    spent = Fraction(0)
+    reserved = set()
+    unsettled = {}
+    charged = defaultdict(set)
+    for row in retained_rows(output, "ledger"):
+        state = row["state"]
+        if state == "resume-start" and row["resume_approval_id"] == approval:
+            raise ValueError("Resume approval has already been used")
+        if "spent_usd" in row:
+            latest = Fraction(str(row["spent_usd"]))
+            if latest < spent:
+                raise ValueError("Retained ledger spend decreased")
+            spent = latest
+        if state == "reserved":
+            reserved.add((row["reader"], row["start"]))
+        elif state == "submitted":
+            reserved.remove((row["reader"], row["start"]))
+            unsettled[row["batch_id"]] = row
+        elif state == "response":
+            charged[row["batch_id"]].add(row["id"])
+        elif state == "settled":
+            if row.get("batch_spent_usd", 0) > row["reserved_usd"]:
+                raise ValueError("Earlier batch exceeded its reservation; review required")
+            del unsettled[row["batch_id"]]
+        elif state == "reservation_exceeded":
+            raise ValueError("Earlier batch exceeded its reservation; review required")
+    if reserved:
+        raise ValueError("Uncertain submission without a batch ID; review required")
+
+    requests = {(row["reader"], row["start"]): row["requests"]
+                for row in retained_rows(output, "requests")}
+    retained = defaultdict(dict)
+    for row in retained_rows(output, "raw-responses"):
+        if row["batch_id"] in unsettled:
+            raw = row["response"]
+            retained[row["batch_id"]][raw["custom_id"]] = raw
+
+    recovery = []
+    for batch_id, row in unsettled.items():
+        reader = row["reader"]
+        ids = [request["custom_id"] for request in requests[reader, row["start"]]]
+        expected = {ident: by_id[ident] for ident in ids}
+        raw = retained[batch_id]
+        if (not ids or len(expected) != len(ids) or not expected.keys() >= raw.keys()
+                or not (raw.keys() & coded[reader]) >= charged[batch_id]
+                or not raw.keys() >= (expected.keys() & coded[reader])):
+            raise ValueError("Inconsistent retained batch records")
+        record = {key: row[key] for key in ("reader", "start", "batch_id", "reserved_usd")}
+        recovery.append((record, expected, raw, charged[batch_id]))
+    return spent, coded, recovery
+
+
+@contextmanager
+def lock_resume(output):
+    # Keep the lock well beyond the ledger bytes on Windows. The OS releases it
+    # when the process exits, including when a detached process is killed.
+    with (output / "ledger.jsonl").open("r+b") as lock:
+        try:
+            if os.name == "nt":
+                import msvcrt
+                lock.seek(2**31)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            raise ValueError("Could not acquire the results folder resume lock") from error
+        yield
+
+
+def resume(output, packet_path, receipt_path):
+    packet_bytes = packet_path.read_bytes()
+    packets, by_id = packet_inventory(packet_bytes)
+    rules = rules_data()
+    approval, cap = validate_resume(output, receipt_path, packet_bytes, rules)
+    with lock_resume(output), ExitStack() as stack:
+        spent, coded, recovery = resume_state(output, approval, by_id)
+        client, network_error = build_client()
+        logs = open_logs(stack, output, "a")
+        identity = dict(resume_approval_id=approval)
+        append_row(logs["ledger"], dict(identity, state="resume-start", spent_usd=float(spent)))
+        outcome = "interrupted"
+        try:
+            for record, expected, raw, charged in recovery:
+                spent, stop = settle_batch(client.messages.batches, network_error, logs, record,
+                                           expected, spent, False, retained=raw,
+                                           coded=coded[record["reader"]], charged=charged)
+                if stop:
+                    outcome = stop
                     return output
-                append_row(requests_log, dict(record, requests=requests))
-                append_row(ledger, dict(record, state="reserved", spent_usd=float(spent)))
-                # An uncertain submission leaves the reservation open.
-                batch = client.messages.batches.create(requests=requests)
-                record["batch_id"] = batch.id
-                append_row(ledger, dict(record, state="submitted", spent_usd=float(spent)))
-                while batch.processing_status != "ended":
-                    time.sleep(30)
-                    batch = retry_network(lambda: client.messages.batches.retrieve(batch.id),
-                                          network_error, ledger, record, "poll")
-
-                pending = {packet["id"] for packet in chunk}
-                batch_spent = Fraction(0)
-                valid = 0
-                retained = {}
-
-                def fetch_results():
-                    nonlocal batch_spent, valid
-                    seen = set()
-                    for item in client.messages.batches.results(batch.id):
-                        raw = item.model_dump(mode="json")
-                        ident = raw["custom_id"]
-                        if ident in seen:
-                            raise ValueError("Duplicate batch result")
-                        seen.add(ident)
-                        if ident in retained:
-                            if retained[ident] != raw:
-                                raise ValueError("Batch result changed during retrieval retry")
-                            continue
-                        append_row(responses_log, dict(batch_id=batch.id, reader=reader, response=raw))
-                        pending.remove(ident)
-                        retained[ident] = raw
-                        result = raw["result"]
-                        kind = rule_kind(by_id[ident]["packet_type"])
-                        code = None
-                        if result["type"] == "succeeded":
-                            message = result["message"]
-                            batch_spent += usage_cost(reader, message)
-                            code = decode_result(message, reader, kind)
-                        valid += code is not None
-                        append_row(codes_log, dict(id=ident, reader=reader, code=code))
-                        append_row(ledger, dict(record, state="response", id=ident,
-                                                spent_usd=float(spent + batch_spent)))
-
-                retry_network(fetch_results, network_error, ledger, record, "results")
-                known_spend = spent + batch_spent
-                if not pending:
-                    spent = known_spend
-                    append_row(ledger, dict(record, state="settled", spent_usd=float(spent)))
-                if start == 0 and valid == 0:
-                    append_row(ledger, dict(record, state="stopped_for_review",
-                                            reason="first_batch_zero_valid_codes", valid_codes=0,
-                                            missing_results=len(pending), reservation_open=bool(pending),
-                                            spent_usd=float(known_spend)))
-                    return output
-                if pending:
-                    raise ValueError("Batch results incomplete; reservation remains open")
-                if batch_spent > reserve:
-                    append_row(ledger, dict(record, state="reservation_exceeded", spent_usd=float(spent)))
-                    return output
+            if spent >= cap:
+                append_row(logs["ledger"], dict(identity, state="cap_stop", spent_usd=float(spent)))
+                outcome = "cap_stop"
+            else:
+                spent, outcome = continue_batches(client, network_error, logs, packets, rules, cap, spent, coded)
+        finally:
+            append_row(logs["ledger"], dict(identity, state="resume-end", outcome=outcome))
     return output
 
 
@@ -853,6 +1028,12 @@ def main():
     run_parser = commands.add_parser("run")
     run_parser.add_argument("--packets", type=Path, required=True)
     run_parser.add_argument("--receipt", type=Path)
+    resume_parser = commands.add_parser("resume")
+    resume_parser.add_argument("--results-folder", type=Path, required=True)
+    resume_parser.add_argument("--packets", type=Path, required=True)
+    resume_parser.add_argument("--receipt", type=Path, required=True)
+    resume_parser.add_argument("--detach-friendly", action="store_true",
+                               help="Append and flush each log line without prompting (also the default)")
     analysis_parser = commands.add_parser("analyze")
     analysis_parser.add_argument("--key", type=Path, required=True)
     analysis_parser.add_argument("--codes", type=Path, required=True)
@@ -865,6 +1046,8 @@ def main():
         print(json.dumps(report, indent=2))
     elif args.command == "run":
         print(run(args.packets, args.receipt))
+    elif args.command == "resume":
+        print(resume(args.results_folder, args.packets, args.receipt), flush=True)
     else:
         report = analyze(read_rows(args.key.read_bytes()), read_rows(args.codes.read_bytes()))
         args.output.mkdir(parents=True, exist_ok=True)
