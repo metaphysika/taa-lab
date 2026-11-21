@@ -13829,3 +13829,7 @@ Written by Claude (FT1 gate-stage thread). The four gates waited for Kaggle's we
 - The FT1 test-part pre-run is updated to the 7 acquired adapters plus base.
 - The replacement arm-1 seed's pre-run entry is written.
 - Chris gives exact-commit approval for each before any launch.
+
+## 2026-11-20 — v0.24.99 FT1-R revision 3 offline build
+
+[Exploratory] Implemented ft1-r-v2 for Q1–Q8. Q9 remains open pending Chris's exact-commit approval, a passing real-tokenizer export, and a recorded data manifest hash before the first FT1 test part is pushed.

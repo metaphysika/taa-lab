@@ -1,10 +1,10 @@
-"""FT1-R revision 2 data layout and offline diagnostics."""
+"""FT1-R revision 3 data layout and offline diagnostics."""
 import json
 
 from . import data, data_diagnostics, selection
 
 ARMS = ('2', '3')
-PROBE_FILE = 'acquisition-ft1-r-v1.json'
+PROBE_FILE = 'acquisition-ft1-r-v2.json'
 HISTORY_HEADER = 'Earlier turns (action-only):'
 TOOL_RESULT = 'recorded'
 
@@ -18,7 +18,11 @@ def prompt(lines, history=(), latest=''):
                 dict(role='user', content='\n'.join(lines))]
     for i, action in enumerate(history):
         reason = latest if i == len(history) - 1 else ''
-        messages.extend((dict(role='assistant', content=data.dump(ordered(action, reason))),
+        intended = ordered(action, reason)
+        content = data.dump(intended)
+        if json.loads(content) != intended:
+            raise ValueError('history failed JSON round trip')
+        messages.extend((dict(role='assistant', content=content),
                          dict(role='user', content=TOOL_RESULT)))
     return messages
 
@@ -72,14 +76,15 @@ class Arm2Eligibility(data.InfeasibleCandidate):
     pass
 
 
-def match_record(counter, index, card, original, balance):
-    _, target, reasons, lines, meta = card
+def match_record(counter, index, card, original, balance, *, quoted=True):
+    _, target, reasons, _, meta = card
+    _, _, _, lines, _ = data.card(index, meta['type'], quoted=quoted)
     context, history = split_history(lines)
     reason = rest = ''
     history_status = 'correction' if meta['correction'] else 'no_history'
     if history and not meta['correction']:
         _, prior_target, prior_reasons, prior_lines, _ = data.card(
-            index, meta['type'], previous_step=True)
+            index, meta['type'], previous_step=True, quoted=quoted)
         if prior_target != history[-1]:
             raise ValueError('previous step does not match the most recent action')
         try:
@@ -106,17 +111,26 @@ def match_record(counter, index, card, original, balance):
     return prompts, choice, history_status
 
 
-def row(counter, messages, target, meta):
+def row(counter, messages, target, meta, *, layout=data.FT1R_LAYOUT):
     messages = messages + [dict(role='assistant', content=data.dump(target))]
+    if json.loads(messages[-1]['content']) != target:
+        raise ValueError('target failed JSON round trip: ' + meta['id'])
     data.validate_roles(messages)
     render = getattr(counter, 'render_record', None)
     if render:
         render(messages)
     p, t = data.limits(counter, messages[:-1], target)
-    return dict(meta, messages=messages, prompt_tokens=p, trained_tokens=t)
+    return dict(meta, layout=layout, messages=messages, prompt_tokens=p, trained_tokens=t)
 
 
 def generate_training(counter):
+    output, manifest, report = _generate_training(counter, quoted=True)
+    report['quote_gate'] = quote_gate(output['2'])
+    report['target_round_trips'] = {arm: len(rows) for arm, rows in output.items()}
+    return output, manifest, report
+
+
+def _generate_training(counter, *, quoted):
     original, _, _ = selection.select_training(counter)
     selected = {}
     balances = {}
@@ -127,7 +141,7 @@ def generate_training(counter):
     for slot, (index, card, choice) in original.items():
         balances[slot] = balance
         try:
-            matched = match_record(counter, index, card, choice, balance)
+            matched = match_record(counter, index, card, choice, balance, quoted=quoted)
         except data.InfeasibleCandidate as exc:
             selected[slot] = None
             refused.append(slot)
@@ -141,7 +155,7 @@ def generate_training(counter):
 
     def candidate(slot, index):
         card = data.card(index, data.MIX[slot])
-        matched = match_record(counter, index, card, None, balances[slot])
+        matched = match_record(counter, index, card, None, balances[slot], quoted=quoted)
         return index, card, matched
 
     used = set(range(2000)) | {entry[0] for entry in original.values()}
@@ -164,7 +178,8 @@ def generate_training(counter):
             raise ValueError('missing final remaining-work slot: ' + ident)
         endings[ident] = marker + remaining
         for arm, messages, text, expected in zip(ARMS, prompts, (rest, reason), (t2, t3)):
-            record = row(counter, messages, ordered(target, text), meta)
+            record = row(counter, messages, ordered(target, text), meta,
+                         layout=data.FT1R_LAYOUT if quoted else None)
             if record['trained_tokens'] != expected:
                 raise ValueError('inconsistent token measurement: ' + ident)
             output[arm].append(record)
@@ -206,11 +221,55 @@ def generate_training(counter):
                                 arm3_total=sum(r['arm3'] for r in table)),
                   fit={arm: fit(rows) for arm, rows in output.items()},
                   samples={arm: rows[::len(rows)//10] for arm, rows in output.items()})
-    manifest = dict(layout=data.FT1R_LAYOUT, partition='train', token_table=table,
+    manifest = dict(layout=data.FT1R_LAYOUT if quoted else None, partition='train', token_table=table,
                     record_tokens={arm: [dict(id=r['id'], prompt=r['prompt_tokens'],
                                               trained=r['trained_tokens']) for r in rows]
                                    for arm, rows in output.items()})
     return output, manifest, report
+
+
+def quote_gate(rows):
+    def count(messages):
+        counts = dict(order_end=0, pressure_end=0, mid_string=0)
+        for message in messages:
+            lines = json.loads(message['content'])['reason'].split('\n')
+
+            def quoted(line):
+                return len(line) >= 2 and line.startswith('"') and line.endswith('"')
+
+            if quoted(lines[-1]):
+                key = 'pressure_end' if lines[-1].startswith('"Finance Manager:') else 'order_end'
+                counts[key] += 1
+            counts['mid_string'] += any(quoted(line) for line in lines[:-1])
+        return counts
+
+    targets = count(row['messages'][-1] for row in rows)
+    history = count(message for row in rows for message in row['messages'][2:-1:2])
+    return dict(passed=all(total >= 50 for total in targets.values()), minimum=50,
+                targets=targets, history=history)
+
+
+def quote_changes(counter, rows, report):
+    """Compare matched data with the same recipe before Q1–Q2."""
+    before, _, baseline = _generate_training(counter, quoted=False)
+    old_replacements = {r['slot']: r['replacement'] for r in baseline['replacements']}
+    new_replacements = {r['slot']: r['replacement'] for r in report['replacements']}
+
+    def reasons(messages):
+        return [json.loads(message['content'])['reason'] for message in messages]
+
+    return dict(
+        replacement_slots_changed=sum(old_replacements.get(slot) != new_replacements.get(slot)
+                                      for slot in old_replacements.keys() | new_replacements.keys()),
+        revision_2_replacements=len(old_replacements),
+        revision_3_replacements=len(new_replacements),
+        wording_changed={arm: sum(reasons(old['messages'][-1:]) != reasons(new['messages'][-1:])
+                                  for old, new in zip(before[arm], rows[arm]))
+                         for arm in ARMS},
+        history_wording_changed={arm: sum(reasons(old['messages'][2:-1:2]) !=
+                                          reasons(new['messages'][2:-1:2])
+                                          for old, new in zip(before[arm], rows[arm]))
+                         for arm in ARMS})
 
 
 def fit(rows):
@@ -224,7 +283,7 @@ def probes(counter):
     rows = []
     for i in range(40):
         index, kind = data_diagnostics.heldout_case(i)
-        _, target, _, lines, meta = data.card(index, kind, 'heldout')
+        _, target, _, lines, meta = data.card(index, kind, 'heldout', quoted=True)
         context, history = split_history(lines)
         rows.append(row(counter, prompt(context, history), ordered(target), meta))
     return rows
