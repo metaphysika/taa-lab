@@ -9,6 +9,8 @@ from . import data, ft1r_data, mounts, plan, plan_ft1r
 
 
 def verify_data(folder, layout=None):
+    if layout not in (None, data.FT1R_LAYOUT):
+        raise ValueError('training data layout mismatch')
     folder=Path(folder)
     raw=(folder/'manifest.json').read_bytes()
     manifest=json.loads(raw)
@@ -21,6 +23,10 @@ def verify_data(folder, layout=None):
     if layout == data.FT1R_LAYOUT:
         if not re.fullmatch('[a-f0-9]{64}', manifest.get('tokenizer_sha256', '')):
             raise ValueError('FT1-R tokenizer hash required')
+        quote_gate = manifest.get('quote_gate', {})
+        if quote_gate.get('passed') is not True or not ft1r_data.meets_quote_minimums(
+                quote_gate.get('targets', {})):
+            raise ValueError('FT1-R quoted-line data gate required')
         expected = {f'arm-{a}.jsonl' for a in ft1r_data.ARMS} | {ft1r_data.PROBE_FILE}
     if set(manifest['sha256'])!=expected: raise ValueError('incomplete data inventory')
     for name,digest in manifest['sha256'].items():
@@ -47,7 +53,8 @@ def configuration(arm,seed,repo_commit,data_manifest_sha256):
 
 def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
           model_source=None,repo_dataset=None,data_dataset=None,owner=None,receipt_dataset=None,
-          first_gate_file=None,first_gate_dataset=None,first_training_folder=None,first_training_dataset=None):
+          first_gate_file=None,first_gate_dataset=None,first_training_folder=None,first_training_dataset=None,
+          second_gate_file=None,second_gate_dataset=None,second_training_folder=None,second_training_dataset=None):
     if not all((model_source,repo_dataset,data_dataset,owner,receipt_dataset)):
         raise ValueError('versioned model source, repo/data datasets and owner are required')
     plan.core.validate_model_source(model_source,'gemma-3-12b-it')
@@ -61,16 +68,21 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
     if is_ft1r and qualification:
         raise ValueError('FT1-R has no qualification phase')
     datasets = [repo_dataset,data_dataset,'metaphysika/k2-wheels',receipt_dataset]
-    if is_ft1r and cell != plan_ft1r.FIRST_MODEL:
+    required = plan_ft1r.required_gates(cell) if is_ft1r else ()
+    if required:
         config.update(plan_ft1r.require_first_gate(cell, first_gate_file, first_training_folder,
-                                                  config['data_manifest_sha256']))
-        if any(not re.fullmatch('[a-z0-9_-]+/[a-z0-9_-]+', handle or '')
-               for handle in (first_gate_dataset, first_training_dataset)):
-            raise ValueError('versioned first gate and first training datasets required')
-        datasets.extend((first_gate_dataset, first_training_dataset))
-    elif any(value is not None for value in (first_gate_file, first_gate_dataset,
-                                              first_training_folder, first_training_dataset)):
-        raise ValueError('unexpected first gate input')
+                                                  config['data_manifest_sha256'],
+                                                  second_gate_file=second_gate_file,
+                                                  second_training_folder=second_training_folder))
+    for stage_name, inputs in (
+            ('first', (first_gate_file, first_training_folder, first_gate_dataset, first_training_dataset)),
+            ('second', (second_gate_file, second_training_folder, second_gate_dataset, second_training_dataset))):
+        if stage_name in required:
+            if any(not re.fullmatch('[a-z0-9_-]+/[a-z0-9_-]+', handle or '') for handle in inputs[2:]):
+                raise ValueError(f'versioned {stage_name} gate and training datasets required')
+            datasets.extend(inputs[2:])
+        elif any(value is not None for value in inputs):
+            raise ValueError(f'unexpected {stage_name} gate input')
     manifest=json.loads((Path(data_folder)/'manifest.json').read_bytes())
     config['arm_data_sha256']=manifest['sha256'][f'arm-{arm}.jsonl']
     config['acquisition_file']=ft1r_data.PROBE_FILE if is_ft1r else data.PROBE_FILES[arm]
@@ -102,13 +114,17 @@ def stage(folder,arm,seed,repo_commit,data_folder,qualification=False,
             '    from exploratory.ft1.mounts import find_receipt\n'
             '    receipt = json.loads(find_receipt("/kaggle/input", CONFIG["receipt_slug"]).read_text())\n'
             '    run(CONFIG, CONFIG["mounts"]["model"], datasets[0], OUTPUT, receipt)\n')
-    if 'first_gate_sha256' in config:
-        source = source.replace('    run(CONFIG,',
+    if required:
+        source = source.replace('    run(CONFIG, CONFIG["mounts"]["model"], datasets[0], OUTPUT, receipt)\n',
             '    from exploratory.ft1.plan_ft1r import FirstGateDecisionRequired\n'
-            '    gates = [p for p in Path("/kaggle/input").rglob("gate.json") if p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest() == CONFIG["first_gate_sha256"]]\n'
-            '    training = [p.parent for p in Path("/kaggle/input").rglob("manifest.json") if hashlib.sha256(p.read_bytes()).hexdigest() == CONFIG["first_training_manifest_sha256"]]\n'
-            '    if len(gates) != 1 or len(training) != 1: raise FirstGateDecisionRequired("Missing or ambiguous first gate or adapter. Stop for Chris.")\n'
-            '    run(CONFIG,').replace('OUTPUT, receipt)', 'OUTPUT, receipt, first_gate_file=gates[0], first_training_folder=training[0])')
+            '    prerequisites = {}\n'
+            f'    for stage in {required!r}:\n'
+            '        gates = [p for p in Path("/kaggle/input").rglob("gate.json") if p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest() == CONFIG[stage + "_gate_sha256"]]\n'
+            '        training = [p.parent for p in Path("/kaggle/input").rglob("manifest.json") if hashlib.sha256(p.read_bytes()).hexdigest() == CONFIG[stage + "_training_manifest_sha256"]]\n'
+            '        if len(gates) != 1 or len(training) != 1: raise FirstGateDecisionRequired(f"Missing or ambiguous {stage} gate or adapter. Stop for Chris.")\n'
+            '        prerequisites[stage + "_gate_file"] = gates[0]\n'
+            '        prerequisites[stage + "_training_folder"] = training[0]\n'
+            '    run(CONFIG, CONFIG["mounts"]["model"], datasets[0], OUTPUT, receipt, **prerequisites)\n')
     notebook=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'}},
                   cells=[dict(cell_type='code',execution_count=None,metadata={},outputs=[],source=source.splitlines(True))])
     (folder/'ft1_plan.ipynb').write_text(json.dumps(notebook,indent=2),encoding='utf-8')
@@ -173,6 +189,8 @@ if __name__=='__main__':
     p.add_argument('--repo-commit',required=True); p.add_argument('--data',required=True); p.add_argument('--output',required=True)
     p.add_argument('--first-gate-file'); p.add_argument('--first-gate-dataset')
     p.add_argument('--first-training-folder'); p.add_argument('--first-training-dataset')
+    p.add_argument('--second-gate-file'); p.add_argument('--second-gate-dataset')
+    p.add_argument('--second-training-folder'); p.add_argument('--second-training-dataset')
     a=p.parse_args()
     args = vars(a)
     args.pop('plan')

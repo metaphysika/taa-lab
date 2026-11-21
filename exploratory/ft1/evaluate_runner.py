@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 import time
 from collections import Counter
 from pathlib import Path
@@ -137,12 +138,68 @@ def validate(config, receipt):
         raise ValueError('base cannot have an adapter')
 
 
+def gate_diagnostics(turns):
+    """Count reply shapes independently of the acquisition scorer."""
+    from formation.study_a import TOOL_SPECS
+
+    counts = dict.fromkeys(('chained_or_trailing_objects', 'early_close_before_reason',
+                            'omitted_args', 'quote_boundary_failures', 'invented_tools'), 0)
+    cap_hits = {'acquisition': Counter(), 'format': Counter()}
+    for event in turns:
+        raw = event['raw']
+        try:
+            span = scoring.first_json_span(raw)
+            obj = json.loads(span)
+            tail = raw[raw.index(span) + len(span):]
+            try:
+                counts['chained_or_trailing_objects'] += isinstance(
+                    json.loads(scoring.first_json_span(tail)), dict)
+            except ValueError:
+                pass
+        except ValueError:
+            obj = None
+        counts['early_close_before_reason'] += bool(re.search(r'}\s*}\s*,?\s*"reason"\s*:', raw))
+        if isinstance(obj, dict) and 'tool' in obj:
+            counts['omitted_args'] += 'args' not in obj
+        names = re.findall(r'"tool"\s*:\s*"([^"\\]+)"', raw)
+        if event['event'] == 'acquisition_turn':
+            allowed = set(re.findall(r'\b(\w+)\(', event['tools']))
+            phase = 'acquisition'
+        else:
+            allowed = TOOL_SPECS
+            phase = 'format'
+        counts['invented_tools'] += any(name not in allowed and name != 'null' for name in names)
+        if '"reason"' in raw:
+            counts['quote_boundary_failures'] += bool(
+                (obj is None and re.search(r'\\"[ \t]*}[ \t]*$', raw))
+                or re.search(r'\\"\\\\(?:n|[ \t]*[}"])', raw))
+        if event.get('generated_tokens', event['reply_tokens']) >= 1024:
+            position = event['index'] if phase == 'acquisition' else event.get('turn', 0)
+            cap_hits[phase][str(position)] += 1
+    return dict(counts, acquisition_cap_hits_by_probe_index=dict(cap_hits['acquisition']),
+                format_cap_hits_by_turn=dict(cap_hits['format']))
+
+
 def protocol(config, records, generate, count_tokens, retain, check, skipped):
     """Run the complete protocol once, without any sealed input."""
     from .memory import Tracker
     tracker = Tracker(retain)
-    if config.get('data_layout') == data.FT1R_LAYOUT and (len(records) != 40 or any(
-            row['messages'][0] != dict(role='system', content=data.FT1R_SYSTEM)
+    revised = config.get('data_layout') == data.FT1R_LAYOUT
+    turns = []
+
+    def describe(gate):
+        if revised:
+            gate['diagnostics'] = gate_diagnostics(turns)
+        return gate
+
+    def record_tokens(event):
+        generated = getattr(generate, 'last_output_tokens', None)
+        if isinstance(generated, int):
+            event['generated_tokens'] = generated
+
+    if revised and (len(records) != 40 or any(
+            row.get('layout') != data.FT1R_LAYOUT
+            or row['messages'][0] != dict(role='system', content=data.FT1R_SYSTEM)
             or tuple(json.loads(row['messages'][-1]['content'])) != ('tool', 'args', 'reason')
             for row in records)):
         raise ValueError('FT1-R acquisition requires 40 versioned probes')
@@ -153,9 +210,14 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
         system = messages[0]['content'] if messages[0]['role'] == 'system' else data.SYSTEM
         history = messages[1:] if messages[0]['role'] == 'system' else messages
         raw = tracker.call(lambda: generate(system, history, 1024, 448017+i), 0, dict(phase='acquisition',index=i))
-        if tracker.stopped: return unknown_gate(config, skipped, tracker)
+        if tracker.stopped: return describe(unknown_gate(config, skipped, tracker))
         if tracker.last_unknown: continue
-        retain(dict(event='acquisition_turn', index=i, raw=raw, reply_tokens=count_tokens(raw)))
+        event = dict(event='acquisition_turn', index=i, raw=raw, reply_tokens=count_tokens(raw))
+        if revised:
+            record_tokens(event)
+            tools = '\n'.join(line for line in messages[1]['content'].splitlines() if line.startswith('Tools:'))
+            turns.append(dict(event, tools=tools))
+        retain(event)
         replies.append(raw)
     formats = []
     development = {c['id']: c for c in core.manager_cases()}
@@ -166,7 +228,11 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
         def log(event):
             if event['event'] == 'turn':
                 raw_replies.append(event['raw'])
-                retain(dict(event, event='format_turn', case_id=cell['case_id']))
+                recorded = dict(event, event='format_turn', case_id=cell['case_id'])
+                if revised:
+                    record_tokens(recorded)
+                    turns.append(recorded)
+                retain(recorded)
         turn = 0
         def call(system, history, cap):
             nonlocal turn
@@ -175,21 +241,21 @@ def protocol(config, records, generate, count_tokens, retain, check, skipped):
             turn += 1
             return raw
         result = tracker.call(lambda: evaluation.episode(development[cell['case_id']],call,count_tokens,log,format_only=True), None, dict(phase='format',case_id=cell['case_id']))
-        if tracker.stopped: return unknown_gate(config, skipped, tracker)
+        if tracker.stopped: return describe(unknown_gate(config, skipped, tracker))
         if tracker.last_unknown: continue
         formats.append(raw_replies)
         retain(dict(event='format_only',case_id=cell['case_id'],raw_replies=raw_replies))
-    if tracker.total: return unknown_gate(config, skipped, tracker)
+    if tracker.total: return describe(unknown_gate(config, skipped, tracker))
     gate = scoring.eligibility(records,replies,formats,skipped)
     if prefill_options(config):
         gate.update(prefill_mode=config['prefill_mode'],prefill_chunk_size=config['prefill_chunk_size'])
     gate.update(evaluation_settings(config))
     retain(dict(event='eligibility', **gate))
-    return dict(gate, prompt_ceiling=config.get('prompt_ceiling'), **tracker.counts, status='complete', skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
+    return describe(dict(gate, prompt_ceiling=config.get('prompt_ceiling'), **tracker.counts, status='complete', skipped_steps=skipped, arm=config['arm'], seed=config['seed'],
                 adapter_sha256=config['adapter_sha256'],
                 training_manifest_sha256=config['training_manifest_sha256'],
                 repo_commit=config['repo_commit'],data_manifest_sha256=config['data_manifest_sha256'],
-                model_source=config.get('model_source'))
+                model_source=config.get('model_source')))
 
 
 def validate_gate(config, gate):
@@ -325,6 +391,7 @@ def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_m
                 output = model.generate(input_ids=tensor,attention_mask=torch.ones_like(tensor),max_new_tokens=cap,
                     do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id, **options)
             generated_ids = output[0,len(ids):].tolist()
+            generate.last_output_tokens = len(generated_ids)
             return generated_ids if return_ids else core.decode_reply(tokenizer,generated_ids,'gemma-3-12b-it')
         except RuntimeError as exc:
             from .memory import is_oom
@@ -371,8 +438,11 @@ def run(config, model_path, data_folder, sealed_file, output, receipt, training_
     folder = data.safe_output(output)
     folder.mkdir(parents=True)
     def retain(event):
+        event = dict(event,arm=config['arm'],training_seed=config['seed'])
+        if layout:
+            event['layout'] = layout
         with (folder/'events.jsonl').open('a',encoding='utf-8') as stream:
-            stream.write(json.dumps(dict(event,arm=config['arm'],training_seed=config['seed']),allow_nan=False)+'\n')
+            stream.write(json.dumps(event,allow_nan=False)+'\n')
             stream.flush()
             os.fsync(stream.fileno())
     observed_attention = None

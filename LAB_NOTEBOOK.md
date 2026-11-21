@@ -13869,3 +13869,11 @@ At Chris's request ("/second-opinion high", skipping Fable), Astra (gpt-6.2-astr
 Forecasts are in the plan. This is the second amendment made after seeing gate results, and is disclosed as such.
 
 **Not decided here.** No run is approved. The real-tokenizer data job, each FT1-R training and gate stage, and FT1's test parts each need Chris's exact-commit approval.
+
+## 2026-11-20 — v0.24.99 FT1-R revision 3 offline build
+
+[Exploratory] Implemented ft1-r-v2 for Q1–Q8. Q9 remains open pending Chris's exact-commit approval, a passing real-tokenizer export, and a recorded data manifest hash before the first FT1 test part is pushed.
+
+- Q3: Claude adopted the combined minimum after Fable's offline estimate from public training data and before any real-tokenizer count. At least 50 arm-2 targets must end on a quoted line across order and pressure combined, with both counts reported separately. At least 50 must contain a quoted line mid-string. Every target must round-trip, and all revision 2 gates still apply. Predicted counts are 0 order-end, about 80 to 110 pressure-end, and 2,000 mid-string.
+- Q7: The gate reports reply-shape counts for chained or trailing objects, early closure before the reason, omitted args, quote-boundary failures, and invented tools. It reports cap hits by acquisition probe index and by format turn. These diagnostics leave the gate bars in place.
+- Q8: The descriptive P1 sensitivity reports unknowns by arm, seed, and pressure half and compares the frozen two-way treatment with assigning all unknowns against arm 3. The primary verdict follows the frozen rule. The test-part analysis must wire in this sensitivity before any FT1-R test part.

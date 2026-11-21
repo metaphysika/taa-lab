@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from exploratory.ft1 import data, data_diagnostics, ft1r_data, kaggle, plan, plan_ft1r, scoring, selection, training
+from exploratory.ft1 import data, data_diagnostics, ft1r_data, plan, plan_ft1r, scoring, selection, training
 from exploratory.k2_kaggle import core
 from scripts.ft1r_data_report import report_for
 from tests.test_ft1_runner import Tokenizer
@@ -23,6 +23,8 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(data.build(counter, layout=None), (rows, manifest))
         with self.assertRaises(ValueError):
             data.build(counter, layout='unknown')
+        with self.assertRaises(ValueError):
+            data.build(counter, layout='ft1-r-v1')
 
     def test_legacy_forced_refusals_preserve_selection(self):
         choose = data.choose
@@ -44,6 +46,7 @@ class LayoutTests(unittest.TestCase):
     def test_chat_history_and_last_assistant_mask(self):
         rows, _ = data.build(data.Counter(Tokenizer()), layout=data.FT1R_LAYOUT)
         for two, three in zip(rows['2'], rows['3']):
+            self.assertEqual(two['messages'][1], three['messages'][1])
             earlier2, earlier3 = ([json.loads(m['content']) for m in r['messages'][2:-1:2]]
                                   for r in (two, three))
             self.assertEqual([a['tool'] for a in earlier2], [a['tool'] for a in earlier3])
@@ -54,7 +57,7 @@ class LayoutTests(unittest.TestCase):
                 self.assertTrue(earlier2[-1]['reason'])
                 self.assertTrue(earlier3[-1]['reason'])
                 index = int(three['id'].rsplit('-', 1)[1])
-                _, prior, variants, lines, _ = data.card(index, three['type'], previous_step=True)
+                _, prior, variants, lines, _ = data.card(index, three['type'], previous_step=True, quoted=True)
                 self.assertEqual(ft1r_data.ordered(prior, earlier3[-1]['reason']), earlier3[-1])
                 self.assertIn(earlier3[-1]['reason'], variants)
                 prior_rest = earlier2[-1]['reason'].splitlines()
@@ -110,7 +113,11 @@ class LayoutTests(unittest.TestCase):
             self.assertEqual(old['id'], new['id'])
             self.assertEqual(new['messages'][0]['content'], data.FT1R_SYSTEM)
             context, _, history = old['messages'][1]['content'].partition('\nEarlier turns (action-only):\n')
-            self.assertEqual(new['messages'][1], dict(role='user', content=context))
+            revised = new['messages'][1]['content'].splitlines()
+            self.assertCountEqual([line.strip('"') for line in revised], context.splitlines())
+            first_tool = next(i for i, line in enumerate(revised) if line.startswith('Tools:'))
+            self.assertTrue(all(i < first_tool for i, line in enumerate(revised) if line.startswith('"')))
+            self.assertTrue(all(line.endswith('"') for line in revised if line.startswith('"')))
             expected = []
             for line in history.splitlines():
                 action = json.loads(line.removesuffix(' -> recorded'))
@@ -195,6 +202,43 @@ class LayoutTests(unittest.TestCase):
             self.assertEqual(rows['2'][slot]['id'], rows['3'][slot]['id'])
             self.assertEqual(rows['3'][slot]['id'], f'train-ACC-{replacement:05}')
 
+    def test_quote_gate_threshold_and_history(self):
+        def response(text):
+            return dict(role='assistant', content=data.dump(ft1r_data.ordered(data.action(None), text)))
+
+        order = response('"Order: approve."')
+        pressure = response('"Finance Manager: I approve."')
+        mid = response('"Order: approve."\nRecord: primary.')
+        rows = [dict(messages=[{}, {}, order, {}, final])
+                for final in [order]*20 + [pressure]*30 + [mid]*50]
+        gate = ft1r_data.quote_gate(rows)
+        self.assertTrue(gate['passed'])
+        self.assertEqual(gate['targets'], dict(order_end=20, pressure_end=30, mid_string=50))
+        self.assertEqual(gate['history'], dict(order_end=100, pressure_end=0, mid_string=0))
+        for index in (0, 20, 50):
+            self.assertFalse(ft1r_data.quote_gate(rows[:index]+rows[index+1:])['passed'])
+        malformed = dict(messages=[{}, {}, dict(content='{"reason":"bad}')])
+        with self.assertRaises(ValueError):
+            ft1r_data.quote_gate([malformed])
+
+    def test_quote_gate_counts_generated_targets(self):
+        rows, _, report = ft1r_data.generate_training(data.Counter(Tokenizer()))
+        reasons = [json.loads(row['messages'][-1]['content'])['reason'].splitlines()
+                   for row in rows['2']]
+        quoted_endings = [lines[-1] for lines in reasons if lines[-1].endswith('"')]
+        expected = dict(
+            order_end=sum(line.startswith('"Order:') for line in quoted_endings),
+            pressure_end=sum(line.startswith('"Finance Manager:') for line in quoted_endings),
+            mid_string=sum(any(line.startswith('"') and line.endswith('"')
+                               for line in lines[:-1]) for lines in reasons))
+        gate = report['quote_gate']
+        self.assertEqual(gate['targets'], expected)
+        self.assertEqual(expected['order_end'], 0)
+        self.assertGreaterEqual(expected['pressure_end'], 50)
+        self.assertEqual(expected['mid_string'], 2000)
+        self.assertTrue(gate['passed'])
+        self.assertEqual(report['target_round_trips'], {'2': 2000, '3': 2000})
+
     def test_report_and_refusal(self):
         class Oversized(Tokenizer):
             def apply_chat_template(self, messages, **kwargs):
@@ -205,7 +249,7 @@ class LayoutTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             report = report_for(Tokenizer(), root/'report.json')
-            self.assertTrue(report['passed'])
+            self.assertFalse(report['passed'])
             self.assertFalse(report['tokenizer_verified'])
             self.assertEqual(json.loads((root/'report.json').read_bytes()), report)
             self.assertEqual(report['probes']['count'], 40)
@@ -218,25 +262,20 @@ class LayoutTests(unittest.TestCase):
                                 {measured['history'][r['id']] for r in samples}
                                 for samples in measured['samples'].values()))
             self.assertTrue(all(stats['total']['max'] <= 1024 for stats in measured['fit'].values()))
-            refused = report_for(Tokenizer(), root/'stub.json', root/'stub-dataset')
+            passing_gate = dict(passed=True, targets=dict(order_end=50, pressure_end=50, mid_string=50))
+            inventory = {'tokenizer.json': 'a'*64}
+            fingerprint = core.digest(inventory)
+            with (patch.object(ft1r_data, 'generate_training', return_value=(
+                    {}, {}, dict(passed=True, quote_gate=passing_gate))),
+                  patch.object(ft1r_data, 'quote_changes', return_value={})):
+                refused = report_for(Tokenizer(), root/'stub.json', root/'stub-dataset',
+                                     tokenizer_sha256=fingerprint, expected_tokenizer_sha256=fingerprint,
+                                     tokenizer_file_sha256=inventory)
             self.assertFalse(refused['passed'])
             self.assertIn('real tokenizer verification required', refused['refusal'])
             self.assertFalse((root/'stub-dataset').exists())
-            with patch('scripts.ft1r_data_report.is_real_tokenizer', return_value=True):
-                verified = report_for(Tokenizer(), root/'verified.json', root/'dataset',
-                                      tokenizer_sha256='a'*64, expected_tokenizer_sha256='a'*64)
-            self.assertTrue(verified['passed'])
-            self.assertTrue(verified['tokenizer_verified'])
-            self.assertTrue(json.loads((root/'dataset'/'manifest.json').read_bytes())['tokenizer_verified'])
-            for name, digest in verified['file_sha256'].items():
-                self.assertEqual(hashlib.sha256((root/'dataset'/name).read_bytes()).hexdigest(), digest)
-            self.assertEqual(kaggle.verify_data(root/'dataset', data.FT1R_LAYOUT),
-                             verified['file_sha256']['manifest.json'])
-            with self.assertRaisesRegex(ValueError, 'layout mismatch'):
-                kaggle.verify_data(root/'dataset')
-            (root/'dataset'/ft1r_data.PROBE_FILE).write_bytes(b'[]')
-            with self.assertRaisesRegex(ValueError, 'binding mismatch'):
-                kaggle.verify_data(root/'dataset', data.FT1R_LAYOUT)
+            self.assertIn('quote_gate', measured)
+            self.assertIn('quote_changes', measured)
             with (patch('exploratory.ft1.selection.CANDIDATE_STOP', 10000),
                   patch('scripts.ft1r_data_report.is_real_tokenizer', return_value=True)):
                 refused = report_for(Oversized(), root/'refusal.json', root/'refused')
@@ -254,6 +293,7 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(set(layout['models']), {('base', None)} | {
             (arm, seed) for arm in ('2', '3') for seed in (247061, 247062, 247063)})
         self.assertEqual(layout['first_gate'], dict(arm='3', seed=247061, stop_unless_acquired=True))
+        self.assertEqual(layout['second_gate'], dict(arm='2', seed=247061, stop_unless_acquired=True))
         self.assertEqual(len(layout['evaluation']), 6*48*2)
         self.assertNotIn('base', {row['arm'] for row in layout['evaluation']})
         self.assertIn('FT1-R models', layout['pressure_split'])

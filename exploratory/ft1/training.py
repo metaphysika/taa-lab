@@ -58,17 +58,23 @@ class StepMonitor:
 
 
 def train(model,tokenizer,rows,arm,seed,retain,output,check,qualification=False,manifest_tokens=None,run_started=None,
-          *, first_gate_file=None, first_training_folder=None, data_manifest_sha256=None):
+          *, first_gate_file=None, first_training_folder=None, data_manifest_sha256=None,
+          second_gate_file=None, second_training_folder=None):
     """Same pinned HF Trainer path as FT0b; never called by the plan CLI."""
     cell = arm, seed
     if cell in plan_ft1r.TRAINING_ORDER:
         if qualification:
             raise ValueError('FT1-R has no qualification phase')
-        plan_ft1r.require_first_gate(cell, first_gate_file, first_training_folder, data_manifest_sha256)
+        plan_ft1r.require_first_gate(cell, first_gate_file, first_training_folder, data_manifest_sha256,
+                                     second_gate_file=second_gate_file,
+                                     second_training_folder=second_training_folder)
     elif cell not in plan.MODELS[1:] and cell != plan.SUPPLEMENTARY_MODEL:
         raise ValueError('unplanned cell')
     if len(rows) != 2000:
         raise ValueError('unplanned cell')
+    expected_layout = data.FT1R_LAYOUT if cell in plan_ft1r.TRAINING_ORDER else None
+    if any(row.get('layout') != expected_layout for row in rows):
+        raise ValueError('training row layout mismatch')
     if cell in plan_ft1r.TRAINING_ORDER and any(
             row['messages'][0] != dict(role='system', content=data.FT1R_SYSTEM)
             or tuple(json.loads(row['messages'][-1]['content'])) != ('tool', 'args', 'reason')

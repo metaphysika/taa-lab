@@ -12,8 +12,8 @@ from exploratory.ft1 import aggregation, data, evaluate_runner, evaluate_stage, 
 from scripts.ft1r_data_report import report_for, tokenizer_fingerprint, tokenizer_inventory
 
 
-def first_gate_fixture(root):
-    arm, seed = plan_ft1r.FIRST_MODEL
+def first_gate_fixture(root, cell=plan_ft1r.FIRST_MODEL):
+    arm, seed = cell
     core = plan.core
     training_folder = root/'training'
     adapter = training_folder/'adapter'
@@ -151,10 +151,34 @@ class WiringTests(unittest.TestCase):
                 self.assertIs(tree.body[2].value.value, True)
                 self.assertEqual(ast.literal_eval(tree.body[3].value), binding)
                 if name == 'train-plan':
-                    self.assertIn('first_gate_file=gates[0], first_training_folder=training[0]', source)
-                    self.assertIn('CONFIG["first_training_manifest_sha256"]', source)
+                    self.assertIn("for stage in ('first',):", source)
+                    self.assertIn('CONFIG[stage + "_training_manifest_sha256"]', source)
             metadata = json.loads((root/'train-plan'/'kernel-metadata.json').read_bytes())
             self.assertEqual(metadata['dataset_sources'][-2:], ['owner/gate', 'owner/adapter'])
+
+    def test_other_four_cells_require_both_gates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first, first_folder = first_gate_fixture(root/'first')
+            second, second_folder = first_gate_fixture(root/'second', plan_ft1r.SECOND_MODEL)
+            for cell in plan_ft1r.TRAINING_ORDER[2:]:
+                with self.assertRaisesRegex(plan_ft1r.FirstGateDecisionRequired, '2 / 247061'):
+                    plan_ft1r.require_first_gate(cell, first, first_folder, 'b'*64)
+                binding = plan_ft1r.require_first_gate(
+                    cell, first, first_folder, 'b'*64,
+                    second_gate_file=second, second_training_folder=second_folder)
+                self.assertEqual(set(binding), set(plan_ft1r.gate_binding_fields(cell)))
+                with self.assertRaises(plan_ft1r.FirstGateDecisionRequired):
+                    plan_ft1r.require_first_gate(
+                        cell, first, first_folder, 'b'*64,
+                        second_gate_file=first, second_training_folder=first_folder)
+            gate = json.loads(second.read_bytes())
+            second.write_text(json.dumps(dict(gate, layout='ft1-r-v1')), encoding='utf-8')
+            plan.core.manifest(second.parent, dict(phase='gate', status='gate_complete'))
+            with self.assertRaises(plan_ft1r.FirstGateDecisionRequired):
+                plan_ft1r.require_first_gate(
+                    cell, first, first_folder, 'b'*64,
+                    second_gate_file=second, second_training_folder=second_folder)
 
     def test_r_gate_uses_versioned_probe_and_records_layout(self):
         arm, seed = plan_ft1r.FIRST_MODEL
@@ -179,6 +203,36 @@ class WiringTests(unittest.TestCase):
             self.assertEqual(protocol.call_args.args[1], probes)
             self.assertEqual(json.loads((root/'output'/'gate.json').read_bytes())['layout'], data.FT1R_LAYOUT)
 
+    def test_gate_reply_diagnostics_do_not_require_valid_actions(self):
+        raw = [
+            '{"tool":null,"args":{}} {"tool":"invented","args":{}}',
+            '{"tool":"invented","args":{}},"reason":"after the object"}',
+            '{"tool":null,"reason":"no args"}',
+            r'{"tool":null,"args":{},"reason":"\"quoted line\"}',
+            r'{"tool":null,"args":{},"reason":"\"quoted line\"\\nnext"}',
+            r'{"tool":null,"args":{},"reason":"\"quoted line\""}',
+        ]
+        turns = [dict(event='format_turn', turn=i % 3, raw=text,
+                      reply_tokens=1024 if i == 3 else 100)
+                 for i, text in enumerate(raw)]
+        turns.extend(dict(event='acquisition_turn', index=index, raw=raw[-1],
+                          tools='', reply_tokens=100, generated_tokens=1024)
+                     for index in (2, 7))
+        result = evaluate_runner.gate_diagnostics(turns)
+        self.assertEqual(result, dict(chained_or_trailing_objects=1, early_close_before_reason=1,
+                                     omitted_args=1, quote_boundary_failures=2, invented_tools=2,
+                                     acquisition_cap_hits_by_probe_index={'2': 1, '7': 1},
+                                     format_cap_hits_by_turn={'0': 1}))
+
+    def test_retired_rows_cannot_enter_training_or_acquisition(self):
+        first = plan_ft1r.FIRST_MODEL
+        retired = [dict(layout='ft1-r-v1')] * 2000
+        with self.assertRaisesRegex(ValueError, 'training row layout mismatch'):
+            training.train(None, None, retired, *first, None, None, None)
+        with self.assertRaisesRegex(ValueError, 'versioned probes'):
+            evaluate_runner.protocol(dict(data_layout=data.FT1R_LAYOUT), retired[:40],
+                                     None, None, None, None, [])
+
     def test_tokenizer_fingerprint_and_export_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -192,7 +246,9 @@ class WiringTests(unittest.TestCase):
             self.assertNotEqual(expected, actual)
             with (patch('scripts.ft1r_data_report.is_real_tokenizer', return_value=True),
                   patch('scripts.ft1r_data_report.core.end_token'),
-                  patch.object(ft1r_data, 'generate_training', return_value=({}, {}, dict(passed=True))),
+                  patch.object(ft1r_data, 'generate_training',
+                               return_value=({}, {}, dict(passed=True, quote_gate=dict(passed=True)))),
+                  patch.object(ft1r_data, 'quote_changes', return_value={}),
                   patch.object(ft1r_data, 'probes', return_value=[]),
                   patch.object(ft1r_data, 'fit', return_value={})):
                 for index, supplied in enumerate((None, expected)):

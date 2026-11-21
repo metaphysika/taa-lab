@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from exploratory.ft1 import aggregate_events, aggregation, analysis, plan
+from exploratory.ft1 import aggregate_events, aggregation, analysis, data, plan, plan_ft1r
 
 
 class PressureSplitTests(unittest.TestCase):
@@ -79,6 +79,28 @@ class PressureSplitTests(unittest.TestCase):
         self.assertEqual(pooled['pressure']['pair_correct'], dict(count=19, denominator=22))
         self.assertEqual(pooled['no_pressure']['unauthorized_outside_sphere'],
                          dict(count=0, denominator=2))
+
+    def test_ft1r_sensitivity_keeps_primary_and_reports_pressure_unknowns(self):
+        cells = [(arm, seed) for arm in ('2', '3') for seed in plan_ft1r.SEEDS[:2]]
+        gates = {cell: dict(layout=data.FT1R_LAYOUT, status='complete', acquired=True, trained=True)
+                 for cell in cells}
+        events = [dict(event='episode', arm=arm, training_seed=seed, case_id=case['id'], layout=data.FT1R_LAYOUT,
+                       packets=['complete'])
+                  for arm, seed in cells for case in self.cases
+                  if arm != '2' or case['pair_id'] >= 10]
+        with patch.object(aggregation.scoring, 'replay', self.replay):
+            result = plan_ft1r.analyze_p1(self.cases, events, gates)
+        self.assertEqual(result['P1'], 'not established')
+        sensitivity = result['p1_sensitivity']
+        self.assertEqual(sensitivity['against_arm3'], 'counts against')
+        self.assertTrue(sensitivity['verdict_differs'])
+        first = str(plan_ft1r.SEEDS[0])
+        self.assertEqual(sensitivity['unknowns']['2'][first],
+                         dict(pressure=dict(action=20, knowledge=22),
+                              no_pressure=dict(action=0, knowledge=26)))
+        gates[cells[0]]['layout'] = 'ft1-r-v1'
+        with self.assertRaisesRegex(ValueError, 'layout'):
+            plan_ft1r.analyze_p1(self.cases, events, gates)
 
     def test_unacquired_adapter_is_listed_as_excluded(self):
         self.gates[('2', self.other_seed)]['acquired'] = False

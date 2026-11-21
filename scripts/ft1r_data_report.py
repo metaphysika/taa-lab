@@ -59,22 +59,31 @@ def report_for(tokenizer, report_path, output_path=None, *, tokenizer_sha256=Non
         report['training'] = training
         probes = ft1r_data.probes(counter)
         report['probes'] = dict(count=len(probes), fit=ft1r_data.fit(probes))
-        report['passed'] = training['passed']
+        report['passed'] = training['passed'] and training['quote_gate']['passed']
+        if not training['quote_gate']['passed']:
+            report['refusal'] = 'FT1-R quoted-line minimums not met'
+        try:
+            training['quote_changes'] = ft1r_data.quote_changes(counter, rows, training)
+        except ValueError as exc:
+            training['quote_changes'] = dict(baseline_unavailable=str(exc))
     except ValueError as exc:
         report['refusal'] = str(exc)
 
-    if output_path and not report['tokenizer_verified']:
+    if not report['tokenizer_verified']:
         report['passed'] = False
-        report.setdefault('refusal', 'real tokenizer verification required')
+        report['refusal'] = 'real tokenizer verification required'
 
-    if output_path and (not re.fullmatch('[a-f0-9]{64}', expected_tokenizer_sha256 or '')
-                        or tokenizer_sha256 != expected_tokenizer_sha256):
+    if (not re.fullmatch('[a-f0-9]{64}', expected_tokenizer_sha256 or '')
+            or tokenizer_sha256 != expected_tokenizer_sha256
+            or not tokenizer_file_sha256
+            or core.digest(tokenizer_file_sha256) != tokenizer_sha256):
         report['passed'] = False
         report.setdefault('refusal', 'expected Gemma 3 12B tokenizer SHA-256 must match local files')
 
     if output_path and report['passed']:
         manifest['tokenizer_verified'] = report['tokenizer_verified']
         manifest['tokenizer_sha256'] = tokenizer_sha256
+        manifest['quote_gate'] = training['quote_gate']
         payloads = {f'arm-{arm}.jsonl': ''.join(data.dump(row)+'\n' for row in records).encode('utf-8')
                     for arm, records in rows.items()}
         payloads[ft1r_data.PROBE_FILE] = data.dump(probes).encode('utf-8')
