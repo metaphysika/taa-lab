@@ -14028,3 +14028,12 @@ Written by Claude (FT1 test-part stage thread). **Disclosure:** Chris gave this 
 - The notebook records each output's manifest SHA-256 and status counts only.
 - Chris decides whether to publish them once the sealed set is no longer needed.
 - Base part 0's output manifest SHA-256 is `65948a3768c6c6d1ed4f09dfe1cd5e7d264969154c243e1b8880a0bc3f5b2d17`.
+
+**Sealed-handling note (2026-11-21, relayed by the Track A stage thread).** At about 15:32 UTC, a Sol child task working on Track A ran a text search for "sealed" from the repo root, after a quoting slip. The search covered `exploratory/ft1/`, so lines of `sealed.py` may have entered that Sol session's context. Sol says it did not use them, and no Claude thread read the output.
+
+**FT1 consequence: none.**
+- Sol is one of the two roles already allowed to see sealed FT1 material.
+- The FT1 test set is frozen and in use.
+- No Claude or Fable judgment touched it.
+
+Whether Track A's cases could be influenced is Track A's own disclosure.
