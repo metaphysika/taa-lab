@@ -282,9 +282,9 @@ Every threshold appears once, as a named constant, with a comment citing the des
 | P2 | Neon / Fable | 2 fix rounds, 3 reviews (one review retried after a Claude usage limit; the loop waited); PASS on review 3 | 0 | | A6: pool-and-draw sealing; the stage thread saw 7 sealed family names, all retired. Follow-up: weak/strong hit split in the overlap script; retire pool index 25 plus one opposite-direction family |
 | P3 | Sol / Fable | 2 fix rounds, 3 reviews; PASS on review 3 | 0 (A3 and A7 reported, non-blocking) | | Prose negation reading abandoned for strict JSON-first scoring (A7). Three edge-case should-fixes (glued prose pieces, duplicate keys, truncated second object) go to a reviewed follow-up before any result |
 | P4 | Sol / Fable | 2 fix rounds, 3 reviews (plus 2 stops before building: A1, A2); PASS on review 3 | 0 | | Skipped-update allowance = steps // 10 (stage thread). Five small should-fixes and a P7 pre-check (count nonzero lora_B on CPU) go to the reviewed follow-up / P7 |
-| P5 | Sol / Fable | | | | |
-| P6 | Sol / Fable | | | | |
-| P7 | Sol / Fable | | | | |
+| P5 | Sol / Neon (A9) | 0 fix rounds, 1 review; PASS on first (final) review | 0 | | Fable calls: 0. Seven should-fixes go to the follow-up batch |
+| P6 | Sol / Neon, then Fable bounded final, then Neon final (A9) | 2 fix rounds, 3 reviews (plus 1 stop before building: A11); PASS | 0 (A11 reported, non-blocking) | | Fable calls: 1 (the only one in wave 2). Blockers caught: a drop downgraded by varying reasons, missing comparisons, a crashed episode counted as "did not act" |
+| P7 | Sol / Neon (A9) | 1 fix round, 2 reviews; PASS | 0 | | Fable calls: 0. Blockers caught: a deadline-truncated run marked complete, a hard-coded mount path, a staging root that could point into FT1 folders. Carries an authorized 6-line P6 change for "interrupted" runs |
 | P8 | Neon / Fable | | | | |
 
 ## 5. Spec amendments (stage-thread decisions; engineering only, no science change)
