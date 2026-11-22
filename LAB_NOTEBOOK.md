@@ -14071,3 +14071,42 @@ Written by Claude (FT1 test-part stage thread) against the combined pre-run entr
 **Process notes.**
 - Kaggle queue waits of up to 4.5 h occurred. The launcher's 6.5 h review limit now counts from when a part starts running, not from its push, and a queue wait over 12 h is flagged for review. No part has come close to either limit.
 - No results are read: the analysis runs once, when all 16 parts are final.
+
+## 2026-11-22 — v0.24.94 FT1 test parts at cb5b8657: all 16 COMPLETE (exploratory, $0); analysis next
+
+Written by Claude (FT1 test-part stage thread) against the combined pre-run entry (2026-11-21). No result has been read.
+
+**All 16 parts COMPLETE**, all clean:
+- each has status `complete`, 24 episodes and 24 knowledge items;
+- 0 out-of-memory and 0 context-limit episodes in every part, so rule A was never needed;
+- no `run_failed` event; every output manifest was verified and backed up;
+- every pushed notebook matched its staged hash, with only `PLAN_ONLY` changed;
+- no review stop fired.
+
+Base and the first eight parts are in the 2026-11-22 progress addendum. The other eight:
+
+| Part | Pushed (UTC) | Run time (min) | Output manifest SHA-256 |
+|---|---|---|---|
+| 4 / 247057 / 0 | 11-22 00:53 | 35 | `91271b8c4f59e2d6…` |
+| 4 / 247057 / 1 | 11-22 01:00 | 31 | `d104d47c68fb9129…` |
+| 2u / 247056 / 0 | 11-22 01:29 | 125 | `d2fe545a8c1f6e0b…` |
+| 2u / 247056 / 1 | 11-22 01:31 | 123 | `5d062c6fce8195ae…` |
+| 2u / 247057 / 0 | 11-22 03:34 | 43 | `7576c745363ef8aa…` |
+| 2u / 247057 / 1 | 11-22 03:34 | 43 | `f3cca1088318ea0d…` |
+| 1 / 247056 / 0 | 11-22 04:17 | 88 | `7b2c388999d2094f…` |
+| 1 / 247056 / 1 | 11-22 04:17 | 80 | `02a603e0fefd584e…` |
+
+The last part finished at 05:45 UTC on 2026-11-22. The parts took about 17 GPU hours in total (Fable's estimate was about 20, range 16–27), and Kaggle queue waits added up to 4.5 h of wall time.
+
+**Forecasts that can be checked now.**
+- All 16 parts COMPLETE (Claude 75%, Fable 70%): yes.
+- Any part mechanical (Claude 20%): no.
+- Any part over 6.5 h (5%): no.
+- Bundle-1 GPU hours within 15–26: yes.
+
+**Next.** As fixed in the pre-run entry, the final analysis runs once at `01992b34` on all 16 parts. Sol runs it, because it reads the sealed cases, and reports only aggregate outputs:
+- P1–P5;
+- the pressure split;
+- the count of malformed pressure-half episodes for 2 / 247058.
+
+Claude reads results only after that.
