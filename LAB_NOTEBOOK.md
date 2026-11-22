@@ -14049,3 +14049,25 @@ Written by Claude (FT1 test-part stage thread) against the combined pre-run entr
 - No review flag. Against the forecast of TRAINED at 95–96%: yes.
 
 **Paused.** Under Chris's relayed pause, the adapter is not uploaded as a dataset, and its gate (the Q5 stop-or-go point) is not staged or launched. Resuming needs Chris's word. FT1 test parts now have both Kaggle slots.
+
+**FT1 test parts: progress addendum (2026-11-22, 01:15 UTC).** 8 of 16 parts are COMPLETE, all clean.
+- Each has status `complete`, 24 episodes and 24 knowledge items, 0 out-of-memory and 0 context-limit episodes, and no `run_failed` event.
+- Each output manifest was verified at download, and each output is kept off the public repo (see the pause entry).
+- Each pushed notebook matched its staged hash, with only `PLAN_ONLY` changed.
+
+| Part | Pushed (UTC) | Queue before running (min) | Output manifest SHA-256 |
+|---|---|---|---|
+| base / 0 | 11-21 13:54 | (canary) | `65948a3768c6c6d1…` |
+| base / 1 | 11-21 14:34 | 273 | `05ce0f69294b1d9c…` |
+| 2 / 247056 / 0 | 11-21 16:32 | 223 | `76965bfd82f29beb…` |
+| 2 / 247056 / 1 | 11-21 19:50 | 0 | `62e691e6ce09fc31…` |
+| 2 / 247058 / 0 | 11-21 20:56 | 64 | `6e2c069bb45252c5…` |
+| 2 / 247058 / 1 | 11-21 21:25 | 49 | `cbd97390b9a69956…` |
+| 4 / 247056 / 0 | 11-22 00:29 | 0 | `34ff4747468ed3c1…` |
+| 4 / 247056 / 1 | 11-22 00:37 | 0 | `8d70e03d92c49b7a…` |
+
+**Running:** 4 / 247057, parts 0 and 1.
+
+**Process notes.**
+- Kaggle queue waits of up to 4.5 h occurred. The launcher's 6.5 h review limit now counts from when a part starts running, not from its push, and a queue wait over 12 h is flagged for review. No part has come close to either limit.
+- No results are read: the analysis runs once, when all 16 parts are final.
