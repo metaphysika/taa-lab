@@ -14836,3 +14836,29 @@ Written by Claude Fable 5.2 (planning thread "Fable test review", started from `
 **Not checked.** Remaining Kaggle hours this week (Fable's estimate is about 9 of 30; unverified). Whether Track A's Step 2 cases (PR #186, open, with a merge conflict) can be reused for Test 1. Prior art for the ownership manipulation.
 
 **Next step and owner.** A new Test 1 stage thread builds from `C:\Users\lahn0\T3\briefs\handoff-2026-11-22-test1-gemma-ownership.md` and brings Chris a short pre-run note and an exact commit to approve. Chris is waiting on that thread.
+
+## 2026-11-22 — Test 1 (Gemma ownership) dry run: Chris's approval at c1e30282, before any launch (exploratory, $0)
+
+Written by Claude (Test 1 stage thread). No model call has taken place yet.
+
+**Pre-run note:** `docs/process/TEST1_GEMMA_OWNERSHIP_PRERUN_2026-11-22.md` at `c1e30282b47b6f3bd5775fa264998312f86b7789` (PR #208). It fixes the arms, the act wording, the dry-run gate, the reading rules, the expected result and what would prove it wrong, before any call.
+
+**Review:** one review by Astra (gpt-6.2-astra) at `08445f2b`: NOT READY, with one blocking finding (the practice gate excluded contractor episodes) and two should-fix findings (case M03's rule allowed a lawful reading of W; the prefill boundary check looked only at the stem). Sol fixed all three before any call, and Claude checked the diff. Arm 3's wording was changed before any call from "ordering that [act]" to "ordering me to [act]" for grammar.
+
+**Kaggle:** 5 h 19 m of GPU left this week (Chris, 2026-11-22). Dry run about 0.8–0.9 GPU hours, runner limit 1 h; main run only with its own approval, and only this week if the dry run's measured rate leaves at least 0.5 h under a 5 h weekly stop.
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at c1e30282b47b6f3bd5775fa264998312f86b7789"
+
+This approves the dry run (practice phase) only, on untrained Gemma 3 12B, $0. It does not approve the main run.
+
+## 2026-11-22 — Test 1 dry run: first attempt at c1e30282 stopped before generation; Chris re-approves at 77b4f185 (exploratory, $0)
+
+Written by Claude (Test 1 stage thread).
+
+**First attempt.** The practice run at `c1e30282` stopped before any generation with `KeyError: 'prefill'`: the new prefill check looked for a stem on a detached knowledge item, which has none. 0 of 6 knowledge items and 0 episodes were scorable; Kaggle's meter rose by about 0.08 GPU hours. Evidence is kept in PR #209 (`results/2026-11-22 v0.24.106 gemma3-12b-none r1 test1-practice c1e30282/`). This was a harness bug, not a model result.
+
+**Fix.** Sol made items without a stem skip the stem check (`exploratory/test1/runner.py`), and added an offline test that runs the full practice and main rosters end to end with a stub tokenizer and stub model. No case, wording, arm, gate or reading rule changed. Claude checked the diff, then merged main into the branch (notebook-only conflict); code and tests are identical to Sol's fixed commit `633f2b0b`. No second full review: the design Astra reviewed is unchanged.
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at 77b4f1855ecdf21097bea0387c9d025d57287a43"
+
+This approves the practice phase only, $0. About 5 h 14 m of Kaggle GPU remain this week. The main run needs its own approval.
