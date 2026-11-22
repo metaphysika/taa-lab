@@ -14096,7 +14096,7 @@ Base and the first eight parts are in the 2026-11-22 progress addendum. The othe
 | 1 / 247056 / 0 | 11-22 04:17 | 88 | `7b2c388999d2094f…` |
 | 1 / 247056 / 1 | 11-22 04:17 | 80 | `02a603e0fefd584e…` |
 
-The last part finished at 05:45 UTC on 2026-11-22. The parts took about 17 GPU hours in total (Fable's estimate was about 20, range 16–27), and Kaggle queue waits added up to 4.5 h of wall time.
+The last part finished at 05:45 UTC on 2026-11-22. The parts took about 18.7 GPU hours in total (measured from when each part started running, so slightly over-counted at launcher polling granularity) (Fable's estimate was about 20, range 16–27), and Kaggle queue waits added up to 4.5 h of wall time.
 
 **Forecasts that can be checked now.**
 - All 16 parts COMPLETE (Claude 75%, Fable 70%): yes.
