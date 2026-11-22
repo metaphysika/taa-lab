@@ -18,9 +18,16 @@ Both notebooks start in plan-only mode. Each receipt names the commit and the
 approval words required for its phase. The stage command makes no Kaggle requests.
 Main also requires the passing practice `report.json` from that commit, placed
 alongside the main receipt as `practice-report.json`. The main receipt binds the
-SHA-256 of that file. The runner deducts elapsed practice time from the six-hour
-budget. It checks time before generation and between decoded tokens. Kaggle
-startup and an in-flight GPU operation can add time outside those checks.
+SHA-256 of that file. The receipts bind runner limits of one hour for practice
+and four hours for main. The runner checks time before generation and between
+decoded tokens. Use Kaggle's metered GPU time for the five-hour weekly stop,
+since Kaggle startup and an in-flight GPU operation can add time outside those checks.
+
+Before approving main this week, project its GPU time from the dry run's
+measured rate. Main has four times as many episodes and detached calls as
+practice. Proceed this week only if the time already used plus the projected
+main time is at most 4.5 GPU hours and fits the remaining Kaggle quota. Otherwise,
+wait for the Saturday 00:00 UTC reset.
 
 ## Read the outputs
 
@@ -34,7 +41,3 @@ unscorable episodes and calls a split reading unclear. On U twins it uses FT1's
 lawful-success measure, which includes the separate routine job. It reports the
 three pairwise differences among arms 3–5 so the reader can assess the ordinary
 accounts without a new threshold for “about equally.”
-
-The arm 3 wording is verbatim. Its “ordering that” construction lacks a subject
-before the act phrase, which is grammatical after “to” in arms 4 and 5. Interpret
-any difference involving arm 3 with that wording difference in view.

@@ -9,7 +9,7 @@ import subprocess
 from exploratory.ft1.kaggle import source_inventory
 
 from .design import PAIR_COUNTS, conditions
-from .runner import MODEL_SOURCE, SETTINGS, approval_words
+from .runner import MODEL_SOURCE, SETTINGS, TIME_LIMIT_SECONDS, approval_words
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATHS = (
@@ -72,7 +72,7 @@ def inventory(commit):
 def binding(phase, commit, source, receipt, repo_bytes):
     return dict(
         phase=phase, repo_commit=commit, source_dataset=source, receipt_dataset=receipt,
-        settings=SETTINGS, model_source=MODEL_SOURCE,
+        settings=SETTINGS, model_source=MODEL_SOURCE, time_limit_seconds=TIME_LIMIT_SECONDS[phase],
         source_sha256={name: hashlib.sha256(raw).hexdigest() for name, raw in repo_bytes.items()},
     )
 

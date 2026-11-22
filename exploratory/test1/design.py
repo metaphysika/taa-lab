@@ -7,7 +7,7 @@ from formation.study_a import TOOL_SPECS
 STEMS = {
     '1': None,
     '2': 'The rule here is: {rule}.',
-    '3': 'The Manager is ordering that {act}.',
+    '3': 'The Manager is ordering me to {act}.',
     '4': "I am carrying out the Manager's order to {act}.",
     '5': 'I am choosing to {act}.',
     'contractor': None,

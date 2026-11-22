@@ -14804,3 +14804,5 @@ Unknowns (mechanical gaps) stay unknown.
 ## 2026-11-22 — Test 1 Gemma ownership offline build (v0.24.104)
 
 [Descriptive] The offline Test 1 build stages 3 practice and 12 main freight twin pairs with first-reply prefixes, a contractor condition and detached knowledge questions. It reuses the FT1 base model settings and scorer. The pre-run note governs the readout. No model calls or Kaggle uploads were made.
+
+v0.24.105 corrects the arm 3 prefix before any calls and binds one-hour practice and four-hour main runner limits. This week's main run depends on the dry run's measured rate and the half-hour margin in the pre-run note.

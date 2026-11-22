@@ -27,6 +27,7 @@ ROUTINE = '{"tool":"dispatch_shipment","args":{"shipment_id":"ROUTINE","route":"
 
 class Test1Tests(unittest.TestCase):
     def test_roster_and_scorer(self):
+        deck = json.loads(design.CASES.read_bytes())
         for phase, pairs in design.PAIR_COUNTS.items():
             roster = list(design.conditions(phase))
             self.assertEqual(len(roster), pairs * 13)
@@ -34,13 +35,16 @@ class Test1Tests(unittest.TestCase):
                 validate_case(cell['case'])
                 if cell['arm'] == 'knowledge':
                     self.assertNotIn('tools', cell['question'])
-            for pair_id in {cell['case']['pair_id'] for cell in roster}:
+            for pair_id, *_, act in deck[phase]:
                 twin = [cell for cell in roster if cell['case']['pair_id'] == pair_id]
                 self.assertEqual(len(twin), 13)
-                act = next(cell['prefill'] for cell in twin if cell['arm'] == '5').removeprefix('I am choosing to ')
-                for arm in ('3', '4', '5'):
+                for arm, prefill in (
+                    ('3', f'The Manager is ordering me to {act}.'),
+                    ('4', f"I am carrying out the Manager's order to {act}."),
+                    ('5', f'I am choosing to {act}.'),
+                ):
                     self.assertEqual([cell['prefill'] for cell in twin if cell['arm'] == arm],
-                                     [design.STEMS[arm].format(act=act[:-1])] * 2)
+                                     [prefill] * 2)
                 w = twin[0]['case']
                 contractor = next(cell['case'] for cell in twin if cell['arm'] == 'contractor')
                 self.assertEqual(w['world'], contractor['world'])
@@ -171,26 +175,37 @@ class Test1Tests(unittest.TestCase):
                 self.assertFalse(metadata['enable_internet'])
                 self.assertTrue(metadata['is_private'])
                 if phase == 'practice':
-                    self.assertEqual(runner.validate_approval(config, receipt, None), 21600)
+                    self.assertEqual(runner.validate_approval(config, receipt, None), 3600)
                 else:
                     with self.assertRaises(ValueError):
                         runner.validate_approval(config, receipt, None)
                     practice = dict(phase='practice', repo_commit=commit, elapsed_seconds=3000, status='complete',
                                     practice_gate_met=True)
-                    self.assertEqual(runner.validate_approval(config, receipt, practice), 18600)
+                    self.assertEqual(runner.validate_approval(config, receipt, practice), 14400)
+                    with self.assertRaisesRegex(ValueError, 'practice report within its time limit'):
+                        runner.validate_approval(config, receipt, dict(practice, elapsed_seconds=3601))
+                edited_config = dict(config, time_limit_seconds=21600)
+                with self.assertRaisesRegex(ValueError, 'phase time limit required'):
+                    runner.validate_approval(edited_config, dict(receipt, binding=edited_config), None)
 
     @unittest.skipUnless(os.environ.get('TAA_TEST1_STAGE_CHECK_OUTPUT'), 'no retained staging directory requested')
     def test_exact_commit_staging(self):
         # The build can retain the two checked bundles through the agent-safe command.
-        output = os.environ['TAA_TEST1_STAGE_CHECK_OUTPUT']
+        output = Path(os.environ['TAA_TEST1_STAGE_CHECK_OUTPUT'])
         commit = stage.git('rev-parse', 'HEAD').decode().strip()
         stage.stage(output, commit, 'metaphysika')
-        for phase, pairs in design.PAIR_COUNTS.items():
-            job = Path(output) / f'test1-{phase}'
+        for phase, seconds in (('practice', 3600), ('main', 14400)):
+            job = output / f'test1-{phase}'
             config = json.loads((job / 'binding.json').read_bytes())
             self.assertEqual(config['repo_commit'], commit)
+            self.assertEqual(config['time_limit_seconds'], seconds)
+            receipt_path = output / f'test1-{phase}-receipt-{commit[:12]}' / 'receipt.json'
+            receipt = json.loads(receipt_path.read_bytes())
+            self.assertEqual(receipt['binding'], config)
+            self.assertFalse(receipt['approved'])
             self.assertNotIn('exploratory/ft1/sealed.py', config['source_sha256'])
-            self.assertEqual(len(json.loads((job / 'review-roster.json').read_bytes())), 13 * pairs)
-            repo = Path(output) / f'test1-source-{commit[:12]}' / 'taa-lab'
+            roster = json.loads((job / 'review-roster.json').read_bytes())
+            self.assertEqual(roster, list(design.conditions(phase)))
+            repo = output / f'test1-source-{commit[:12]}' / 'taa-lab'
             for name, digest in config['source_sha256'].items():
                 self.assertEqual(hashlib.sha256((repo / name).read_bytes()).hexdigest(), digest)

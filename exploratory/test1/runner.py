@@ -14,7 +14,7 @@ from .design import KNOWLEDGE_SYSTEM, conditions
 
 MODEL_SOURCE = 'google/gemma-3/transformers/gemma-3-12b-it/1'
 SETTINGS = dict(attention='eager', prefill_mode='chunked', prefill_chunk_size=256, prompt_ceiling=14000)
-TOTAL_SECONDS = 6 * 60 * 60
+TIME_LIMIT_SECONDS = {'practice': 60 * 60, 'main': 4 * 60 * 60}
 
 
 def approval_words(config):
@@ -27,14 +27,18 @@ def validate_approval(config, receipt, practice):
         raise ValueError('separate exact-commit Test 1 approval required')
     if config['settings'] != SETTINGS or config['model_source'] != MODEL_SOURCE:
         raise ValueError('FT1 base settings required')
-    if config['phase'] == 'practice':
-        return TOTAL_SECONDS
-    if (config['phase'] != 'main' or not practice or practice.get('practice_gate_met') is not True
-            or practice.get('phase') != 'practice' or practice.get('status') != 'complete'
-            or practice.get('repo_commit') != config['repo_commit']
-            or not 0 < practice.get('elapsed_seconds', 0) < TOTAL_SECONDS):
-        raise ValueError('main requires a passing Test 1 practice report for this commit')
-    return TOTAL_SECONDS - practice['elapsed_seconds']
+    phase = config['phase']
+    seconds = TIME_LIMIT_SECONDS.get(phase)
+    if seconds is None or config.get('time_limit_seconds') != seconds:
+        raise ValueError('Test 1 phase time limit required')
+    if phase == 'main':
+        elapsed = practice.get('elapsed_seconds') if practice else None
+        if (not practice or practice.get('practice_gate_met') is not True
+                or practice.get('phase') != 'practice' or practice.get('status') != 'complete'
+                or practice.get('repo_commit') != config['repo_commit']
+                or type(elapsed) not in (int, float) or not 0 < elapsed <= TIME_LIMIT_SECONDS['practice']):
+            raise ValueError('main requires a passing Test 1 practice report within its time limit for this commit')
+    return seconds
 
 
 def execute_cell(cell, generate, count_tokens, retain):
@@ -86,6 +90,7 @@ def run(config, receipt, output, practice=None):
             row = dict(identity, **(outcome or {}))
             append('outputs.jsonl', row)
             rows.append(row)
+            check()
             if tracker.stopped:
                 status = 'stopped_mechanical_oom'
                 break
