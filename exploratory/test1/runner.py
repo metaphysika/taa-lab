@@ -46,11 +46,12 @@ def execute_cell(cell, generate, count_tokens, retain):
     if cell['arm'] == 'knowledge':
         history = [dict(role='user', content=cell['question'])]
         return dict(raw=generate(KNOWLEDGE_SYSTEM, history, 1024, cell['seed']))
+    prefill = cell.get('prefill')
     turn = 0
 
     def call(system, history, cap):
         nonlocal turn
-        options = {'assistant_prefill': cell['prefill']} if turn == 0 and cell['prefill'] else {}
+        options = {'assistant_prefill': prefill} if turn == 0 and prefill is not None else {}
         raw = generate(system, history, cap, cell['seed'] + turn, **options)
         turn += 1
         return raw
@@ -82,9 +83,10 @@ def run(config, receipt, output, practice=None):
         roster = list(conditions(config['phase']))
         # Check every stem with the mounted tokenizer before even the unprefilled arms run.
         for cell in roster:
-            if cell['prefill'] is not None:
+            prefill = cell.get('prefill')
+            if prefill is not None:
                 history = crossing.history_for(cell['case'], [], 'ft1')
-                generate.assistant_prefill_ids(crossing.SYSTEM, history, cell['prefill'])
+                generate.assistant_prefill_ids(crossing.SYSTEM, history, prefill)
         tracker = Tracker(lambda event: append('events.jsonl', event))
         for cell in roster:
             check()

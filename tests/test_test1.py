@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
@@ -150,6 +151,126 @@ class Test1Tests(unittest.TestCase):
         runner.execute_cell(item, generate, len, lambda event: None)
         self.assertEqual(calls[2][0], design.KNOWLEDGE_SYSTEM)
         self.assertEqual(calls[2][1], [dict(role='user', content=item['question'])])
+
+    def test_staged_notebooks_run_full_practice_and_main_rosters(self):
+        reply = 'ALLOWED\n' + STOP
+        end_marker = '<end_of_turn>'
+        end_id = 256
+        encoded_stems = []
+        requests = []
+
+        def encode(value, **options):
+            if value == end_marker:
+                return [end_id]
+            encoded_stems.append(value)
+            return list(value.encode())
+
+        def decode(ids, *, skip_special_tokens, **options):
+            if ids and ids[-1] == end_id:
+                return bytes(ids[:-1]).decode() + ('' if skip_special_tokens else end_marker)
+            return bytes(ids).decode()
+
+        def chat_template(messages, *, tokenize, add_generation_prompt):
+            rendered = '<bos>' + ''.join(
+                f"<start_of_turn>{m['role']}\n{m['content']}{end_marker}\n" for m in messages
+            ) + '<start_of_turn>model\n'
+            return {'input_ids': [list(rendered.encode())]} if tokenize else rendered
+
+        class Output:
+            def __init__(self, ids):
+                self.ids = ids
+
+            def __getitem__(self, key):
+                row, span = key
+                return SimpleNamespace(tolist=lambda: self.ids[row][span])
+
+        def fixed_reply(input_ids, attention_mask, stopping_criteria, **options):
+            ids = input_ids.rows[0]
+            self.assertEqual(attention_mask.rows, [[1] * len(ids)])
+            self.assertFalse(stopping_criteria[0](input_ids, None))
+            self.assertEqual(options, dict(
+                max_new_tokens=1024, do_sample=False, eos_token_id=end_id, pad_token_id=0,
+                prefill_chunk_size=256, logits_to_keep=1,
+            ))
+            if not requests:
+                self.assertEqual(encoded_stems, planned_stems)
+            requests.append(bytes(ids).decode())
+            return Output([ids + list(reply.encode()) + [end_id]])
+
+        torch = fake_torch()
+        torch.ones_like = lambda tensor: torch.tensor([[1] * len(tensor.rows[0])], device='cuda')
+        transformers = SimpleNamespace(set_seed=Mock(), StoppingCriteria=object, StoppingCriteriaList=list)
+        tokenizer = SimpleNamespace(
+            pad_token_id=0, encode=encode, decode=decode, apply_chat_template=chat_template,
+            convert_tokens_to_ids=lambda token: {end_marker: end_id}[token],
+            convert_ids_to_tokens=lambda token: {end_id: end_marker}[token],
+        )
+        model = SimpleNamespace(
+            eval=Mock(), generate=fixed_reply, config=SimpleNamespace(_attn_implementation='eager'),
+        )
+        commit = 'a' * 40
+        with (TemporaryDirectory() as temp,
+              patch.dict('sys.modules', torch=torch, transformers=transformers),
+              patch.dict(os.environ), patch.object(sys, 'path', sys.path.copy()),
+              patch.object(evaluate_runner, 'load_base', return_value=(model, tokenizer, None)) as load_base):
+            mounts = Path(temp) / 'input'
+            with (patch.object(stage, 'git', return_value=commit.encode()),
+                  patch.object(stage, 'inventory', return_value={stage.CASES_PATH: design.CASES.read_bytes()})):
+                stage.stage(mounts, commit, 'owner')
+            practice_report = Path(temp) / 'test1-practice' / 'report.json'
+            for phase, pairs in design.PAIR_COUNTS.items():
+                with self.subTest(phase=phase):
+                    roster = list(design.conditions(phase))
+                    planned_stems = [cell['prefill'] for cell in roster if cell.get('prefill') is not None]
+                    requests.clear()
+                    encoded_stems.clear()
+                    transformers.set_seed.reset_mock()
+                    receipt_path = mounts / f'test1-{phase}-receipt-{commit[:12]}' / 'receipt.json'
+                    receipt = json.loads(receipt_path.read_bytes())
+                    receipt.update(approved=True, approval_words=receipt['required_approval_words'])
+                    if phase == 'main':
+                        raw = practice_report.read_bytes()
+                        receipt_path.with_name('practice-report.json').write_bytes(raw)
+                        receipt['practice_report_sha256'] = hashlib.sha256(raw).hexdigest()
+                    stage.write_json(receipt_path, receipt)
+                    job = mounts / f'test1-{phase}' / 'test1.ipynb'
+                    notebook = ''.join(json.loads(job.read_bytes())['cells'][0]['source'])
+                    # Run the notebook's execution branch against a temporary local mount.
+                    notebook = notebook.replace('PLAN_ONLY = True', 'PLAN_ONLY = False')
+                    notebook = notebook.replace("'/kaggle/input'", repr(str(mounts)))
+                    notebook = notebook.replace("'/kaggle/working/test1-'", repr(str(Path(temp) / 'test1-')))
+                    exec(compile(notebook, str(job), 'exec'), {})
+                    self.assertEqual(load_base.call_args.args[0], '/kaggle/input/models/' + runner.MODEL_SOURCE)
+                    self.assertEqual(load_base.call_args.kwargs, {'attention': 'eager'})
+                    self.assertEqual([call.args[0] for call in transformers.set_seed.call_args_list],
+                                     [cell['seed'] for cell in roster])
+                    output = Path(temp) / f'test1-{phase}'
+                    rows = [json.loads(line) for line in (output / 'outputs.jsonl').read_bytes().splitlines()]
+                    self.assertEqual(len(rows), pairs * 13)
+                    self.assertEqual(len(requests), len(rows))
+                    for cell, row, request in zip(roster, rows, requests):
+                        self.assertEqual((row['arm'], row['case_id']), (cell['arm'], cell['case_id']))
+                        stem = cell.get('prefill') or ''
+                        self.assertTrue(request.endswith('<start_of_turn>model\n' + stem))
+                        if cell['arm'] == 'knowledge':
+                            self.assertEqual(request, chat_template([dict(role='user', content=(
+                                design.KNOWLEDGE_SYSTEM + '\n\n' + cell['question']
+                            ))], tokenize=False, add_generation_prompt=True))
+                            self.assertEqual(row['raw'], reply)
+                        else:
+                            self.assertEqual(row['packets'], [dict(kind='reply', raw=stem + reply)])
+                    report = json.loads((output / 'report.json').read_bytes())
+                    self.assertEqual(report['status'], 'complete')
+                    self.assertEqual(report['repo_commit'], commit)
+                    self.assertEqual(report['knowledge'], dict(scorable=2 * pairs, planned=2 * pairs))
+                    self.assertEqual(report['episodes'], {
+                        arm: dict(scorable=2 * pairs, planned=2 * pairs) for arm in '12345'
+                    } | {'contractor': dict(scorable=pairs, planned=pairs)})
+                    if phase == 'practice':
+                        self.assertTrue(report['practice_gate_met'])
+                    else:
+                        self.assertEqual(report['reading'], 'drop')
+                        self.assertEqual(report['observed_lawful_completions'], dict.fromkeys('12345', 0))
 
     def rows(self, phase, wrongful):
         for cell in design.conditions(phase):
