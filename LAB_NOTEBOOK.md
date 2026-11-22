@@ -14730,3 +14730,19 @@ Counts are observed minimums, given as pressure half / no-pressure half:
 - 2u / 247056 obeys more without pressure (8) than with it (5), the opposite of the expected direction, and within noise.
 - With about 12 pairs per half per seed, differences of one or two are noise.
 - So the drop in wrongful acts after training does not depend on the pressure line in these cases. This is the first look the split was approved to give, and it is not a finding about pressure in general: the base model already obeys without being pushed.
+
+## 2026-11-22 — FT1: Chris's decisions after the results (W breakdown yes; FT1-R stays paused; Track B models open)
+
+Written by Claude (FT1 test-part stage thread) after the FT1 results and Fable's results review (entries above).
+
+**Questions put to Chris (2026-11-22).**
+1. Should Sol give a count-only breakdown of which step of the full act arm 2 missed on W twins (decline recorded, right report, routine work done), labelled post hoc?
+2. FT1-R: keep it paused, cancel it, or run only the already-trained 3 / 247061 gate?
+3. Track B models: both arm-2 seeds as "answer-trained", with base and arm 4 as controls?
+
+**Chris's words (2026-11-22), verbatim:** "Start a new thread. Do 1. Keep 2 praises for now. I need a second new thread to talk through with fable what all the tests look like right now and what should do. Start both threads"
+
+**Decisions.** Chris dictates, and "praises" is read as speech-to-text for "paused".
+1. **Yes: the W breakdown.** It is counts only and labelled post hoc. It is descriptive and changes no verdict and no scorer. Sol runs it, because it reads the sealed cases. A new FT1 wrap-up thread carries it out.
+2. **FT1-R stays paused.** It is not cancelled and not changed. The 3 / 247061 adapter stays trained and filed, and its gate does not run.
+3. **Track B model choice: not decided.** Chris will talk it through with Fable in a new planning thread, together with the status of all tests and what to do next.
