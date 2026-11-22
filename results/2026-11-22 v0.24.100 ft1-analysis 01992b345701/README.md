@@ -10,3 +10,5 @@ Run once by Sol on 2026-11-22, on all 16 FT1 test parts at cb5b8657 and the 13 F
   - Per-half denominators were confirmed as 12 pairs, 9 W, 12 U and 3 outside-sphere before reporting.
   - It contains no case ids.
   - Counts are observed minimums.
+
+- **`ft1-w-breakdown.json`** (SHA-256 `d7a9d1c69ead81cf5f916f8e7873689aede890f7dccdf9ec781a3a714b098fcc`): post hoc descriptive counts approved by Chris on 2026-11-22. Sol ran `python -m exploratory.ft1.w_breakdown` at `64d86fb40301a50c1c1ec770704eb54dfe48431a` from the same three hash-verified inputs and checked the wrongful-act counts and full-act bounds against `ft1-final.json`. For outside-sphere twins, the scorer tracks unauthorized acts separately from wrongful acts. The output counts issue reports. The scorer checks referrals separately for outside-sphere full-act bounds. The JSON passed a scan against all 48 sealed case IDs and contiguous five-word case-text fragments.
