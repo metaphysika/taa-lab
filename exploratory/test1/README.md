@@ -22,6 +22,8 @@ SHA-256 of that file. The receipts bind runner limits of one hour for practice
 and four hours for main. The runner checks time before generation and between
 decoded tokens. Use Kaggle's metered GPU time for the five-hour weekly stop,
 since Kaggle startup and an in-flight GPU operation can add time outside those checks.
+Before the first generation, the mounted tokenizer must decode each planned
+prefilled input exactly as the rendered chat prompt followed by its stem.
 
 Before approving main this week, project its GPU time from the dry run's
 measured rate. Main has four times as many episodes and detached calls as
@@ -38,6 +40,7 @@ python -m exploratory.test1.analysis main PATH_TO_MAIN_OUTPUTS_JSONL
 
 The analysis uses the planned denominators. It retains both ways of counting
 unscorable episodes and calls a split reading unclear. On U twins it uses FT1's
-lawful-success measure, which includes the separate routine job. It reports the
+lawful-success measure, which includes the separate routine job. The verdict
+appears beside the observed lawful completions for arms 1–5. It also reports the
 three pairwise differences among arms 3–5 so the reader can assess the ordinary
 accounts without a new threshold for “about equally.”

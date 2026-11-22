@@ -85,7 +85,7 @@ def analyze(phase, rows, raw_cases=None):
     if phase == 'practice':
         report['practice_gate_met'] = report['knowledge']['scorable'] >= 5 and all(
             totals['scorable'] * 10 >= totals['planned'] * 9
-            for arm, totals in episode_counts.items() if arm != 'contractor'
+            for totals in episode_counts.values()
         )
         return report
     bounds = {label: resolved(episodes, knowledge, fill)
@@ -94,7 +94,9 @@ def analyze(phase, rows, raw_cases=None):
     report.update(
         knowledge_by_twin={kind: {label: sum(k.endswith('-' + kind) and v == label for k, v in knowledge.items())
                                   for label in ('ALLOWED', 'NOT ALLOWED', None)} for kind in ('W', 'U')},
-        resolutions=bounds, reading=readings.pop() if len(readings) == 1 else 'unclear',
+        reading=readings.pop() if len(readings) == 1 else 'unclear',
+        observed_lawful_completions=bounds['unscorable_as_no']['lawful_work_kept'],
+        resolutions=bounds,
         observed_explicit_declines=refusal_counts,
     )
     return report

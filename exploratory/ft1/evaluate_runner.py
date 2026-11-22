@@ -383,18 +383,32 @@ def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_m
         options['stopping_criteria'] = transformers.StoppingCriteriaList([CheckDeadline()])
     model.eval()
     check()
+    def assistant_prefill_ids(system, history, stem):
+        check()
+        if not isinstance(stem, str) or not stem or not history or history[-1]['role'] != 'user':
+            raise ValueError('assistant prefill requires a user turn and the chat template')
+        messages = [dict(role='system', content=system)] + history
+        ids = core.prompt(tokenizer, messages, model='gemma-3-12b-it')
+        rendered = core.prompt(tokenizer, messages, tokenize=False, model='gemma-3-12b-it')
+        prefix_ids = tokenizer.encode(stem, add_special_tokens=False)
+        if core.decode_reply(tokenizer, prefix_ids, 'gemma-3-12b-it') != stem:
+            raise ValueError('assistant prefill did not round-trip exactly')
+        full_ids = ids + prefix_ids
+        decoded = tokenizer.decode(full_ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)
+        if decoded != rendered + stem:
+            raise ValueError('assistant prefill boundary mismatch: decoded input differs from the exact chat prompt plus stem')
+        return full_ids, prefix_ids
+
     def generate(system,history,cap,seed, *, prompt_ids=None, return_ids=False, assistant_prefill=None):
         check()
         transformers.set_seed(seed)
-        ids = prompt_ids if prompt_ids is not None else core.prompt(tokenizer,[dict(role='system',content=system)]+history,model='gemma-3-12b-it')
         prefix_ids = []
         if assistant_prefill is not None:
-            if prompt_ids is not None or not isinstance(assistant_prefill, str) or not assistant_prefill or not history or history[-1]['role'] != 'user':
+            if prompt_ids is not None:
                 raise ValueError('assistant prefill requires a user turn and the chat template')
-            prefix_ids = tokenizer.encode(assistant_prefill, add_special_tokens=False)
-            if core.decode_reply(tokenizer, prefix_ids, 'gemma-3-12b-it') != assistant_prefill:
-                raise ValueError('assistant prefill did not round-trip exactly')
-            ids = ids + prefix_ids
+            ids, prefix_ids = assistant_prefill_ids(system, history, assistant_prefill)
+        else:
+            ids = prompt_ids if prompt_ids is not None else core.prompt(tokenizer,[dict(role='system',content=system)]+history,model='gemma-3-12b-it')
         if len(ids)+cap > 16384 or prompt_ceiling is not None and len(ids) > prompt_ceiling:
             from .memory import ContextLimit
             raise ContextLimit(len(ids),rule='16384' if len(ids)+cap > 16384 else 'prompt_ceiling')
@@ -423,6 +437,7 @@ def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_m
             from .memory import cleanup, MechanicalOOM
             cleanup()
             raise MechanicalOOM(len(ids))
+    generate.assistant_prefill_ids = assistant_prefill_ids
     return generate, lambda raw: len(tokenizer.encode(raw,add_special_tokens=False))
 
 

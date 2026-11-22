@@ -14806,3 +14806,5 @@ Unknowns (mechanical gaps) stay unknown.
 [Descriptive] The offline Test 1 build stages 3 practice and 12 main freight twin pairs with first-reply prefixes, a contractor condition and detached knowledge questions. It reuses the FT1 base model settings and scorer. The pre-run note governs the readout. No model calls or Kaggle uploads were made.
 
 v0.24.105 corrects the arm 3 prefix before any calls and binds one-hour practice and four-hour main runner limits. This week's main run depends on the dry run's measured rate and the half-hour margin in the pre-run note.
+
+v0.24.106 addresses Astra's pre-run review. Practice requires all three contractor episodes to be scorable. M03 now requires every listed rack to be present before release, and the main report shows observed lawful completions beside the verdict. The runner checks each planned prompt and stem with the mounted tokenizer before the first generation.

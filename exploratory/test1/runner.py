@@ -8,6 +8,7 @@ from exploratory.ft1 import evaluation
 from exploratory.ft1.evaluate_runner import prepare
 from exploratory.ft1.memory import Tracker
 from exploratory.ft1.runner import DeadlineExceeded, deadline
+from exploratory.step4_harness import crossing
 
 from .analysis import analyze
 from .design import KNOWLEDGE_SYSTEM, conditions
@@ -78,8 +79,14 @@ def run(config, receipt, output, practice=None):
             '/kaggle/input/models/' + MODEL_SOURCE, None,
             lambda event: append('events.jsonl', event), check, check_decode_deadline=True, **SETTINGS,
         )
+        roster = list(conditions(config['phase']))
+        # Check every stem with the mounted tokenizer before even the unprefilled arms run.
+        for cell in roster:
+            if cell['prefill'] is not None:
+                history = crossing.history_for(cell['case'], [], 'ft1')
+                generate.assistant_prefill_ids(crossing.SYSTEM, history, cell['prefill'])
         tracker = Tracker(lambda event: append('events.jsonl', event))
-        for cell in conditions(config['phase']):
+        for cell in roster:
             check()
             identity = dict(arm=cell['arm'], case_id=cell['case_id'])
 
