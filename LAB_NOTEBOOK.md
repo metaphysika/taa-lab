@@ -14800,3 +14800,7 @@ Unknowns (mechanical gaps) stay unknown.
 - The two arm-2 seeds differ. 247058 shows more of the proper steps (report, decline) than 247056, which mostly just stopped. With one repeat and 18 cases, this difference may be noise.
 - The steps come apart across models. 2u / 247057 reports but does not record a decline. 2u / 247056 records a decline and then carries out the act anyway. Arm 1 declines but never reports. No model reliably joins all three steps. This is consistent with the floor risk named in the design pre-mortem.
 - **For FT2 and Track B.** Score each step of the act separately, as Fable recommended. Read "fewer wrongful acts" from answer training as fewer wrongful acts, not as learned refusal.
+
+## 2026-11-22 — Test 1 Gemma ownership offline build (v0.24.104)
+
+[Descriptive] The offline Test 1 build stages 3 practice and 12 main freight twin pairs with first-reply prefixes, a contractor condition and detached knowledge questions. It reuses the FT1 base model settings and scorer. The pre-run note governs the readout. No model calls or Kaggle uploads were made.

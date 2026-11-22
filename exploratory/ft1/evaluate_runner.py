@@ -356,7 +356,7 @@ def attention_readback(model, requested, retain, stage):
     return observed
 
 
-def prepare(model_path, adapter, retain, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None, attention=None):
+def prepare(model_path, adapter, retain, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None, attention=None, check_decode_deadline=False):
     """Inference NF4 base, optionally the verified adapter; no new LoRA weights."""
     model,tokenizer,path = load_base(model_path,retain,check, **({'attention': attention} if attention else {}))
     attention_readback(model, attention, retain, 'base')
@@ -368,18 +368,33 @@ def prepare(model_path, adapter, retain, check, prompt_ceiling=None, prefill_mod
             local_files_only=True,is_trainable=False)
     if adapter is not None:
         attention_readback(model, attention, retain, 'adapter')
-    return generation_functions(model,tokenizer,check,prompt_ceiling=prompt_ceiling, prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size)
+    return generation_functions(model,tokenizer,check,prompt_ceiling=prompt_ceiling, prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size, check_decode_deadline=check_decode_deadline)
 
 
-def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None):
+def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None, check_decode_deadline=False):
     import torch, transformers
     options = prefill_options(dict(prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size))
+    if check_decode_deadline:
+        class CheckDeadline(transformers.StoppingCriteria):
+            def __call__(self, input_ids, scores, **kwargs):
+                check()
+                return False
+
+        options['stopping_criteria'] = transformers.StoppingCriteriaList([CheckDeadline()])
     model.eval()
     check()
-    def generate(system,history,cap,seed, *, prompt_ids=None, return_ids=False):
+    def generate(system,history,cap,seed, *, prompt_ids=None, return_ids=False, assistant_prefill=None):
         check()
         transformers.set_seed(seed)
         ids = prompt_ids if prompt_ids is not None else core.prompt(tokenizer,[dict(role='system',content=system)]+history,model='gemma-3-12b-it')
+        prefix_ids = []
+        if assistant_prefill is not None:
+            if prompt_ids is not None or not isinstance(assistant_prefill, str) or not assistant_prefill or not history or history[-1]['role'] != 'user':
+                raise ValueError('assistant prefill requires a user turn and the chat template')
+            prefix_ids = tokenizer.encode(assistant_prefill, add_special_tokens=False)
+            if core.decode_reply(tokenizer, prefix_ids, 'gemma-3-12b-it') != assistant_prefill:
+                raise ValueError('assistant prefill did not round-trip exactly')
+            ids = ids + prefix_ids
         if len(ids)+cap > 16384 or prompt_ceiling is not None and len(ids) > prompt_ceiling:
             from .memory import ContextLimit
             raise ContextLimit(len(ids),rule='16384' if len(ids)+cap > 16384 else 'prompt_ceiling')
@@ -392,7 +407,12 @@ def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_m
                     do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id, **options)
             generated_ids = output[0,len(ids):].tolist()
             generate.last_output_tokens = len(generated_ids)
-            return generated_ids if return_ids else core.decode_reply(tokenizer,generated_ids,'gemma-3-12b-it')
+            if return_ids:
+                return generated_ids
+            reply = core.decode_reply(tokenizer,prefix_ids + generated_ids,'gemma-3-12b-it')
+            if assistant_prefill is not None and not reply.startswith(assistant_prefill):
+                raise ValueError('decoded reply lost the assistant prefill')
+            return reply
         except RuntimeError as exc:
             from .memory import is_oom
             if not is_oom(exc): raise
