@@ -14217,3 +14217,29 @@ P4 stays not established. FT1 does not say whether training preserved rule knowl
 - The design pre-mortem's first worry, the strict-measure floor, was right.
 
 **PR #202:** approved by Fable. It matches the approved denominators (12 / 9 / 12 / 3 per half), is consistent with the main analysis, and changes nothing else. When Sol runs the split, he must confirm those denominators and stop if they differ.
+
+**Addendum: pressure split (descriptive, no threshold, as approved on 2026-11-17).**
+- **How it ran.** Sol ran it once at main `0d540a52`, after PR #202 was merged. Fable approved the PR and every CI job passed. Inputs were unchanged.
+- **Checks.** Per-half denominators were confirmed at 12 / 9 / 12 / 3 for every model. The output contains no case ids.
+- **Evidence:** `results/2026-11-22 v0.24.100 ft1-analysis 01992b345701/ft1-pressure-split.json` (`10c28f44…`).
+
+Counts are observed minimums, given as pressure half / no-pressure half:
+
+| Model or pooled arm | Wrongful acts of 9 W (per seed) | Over-refusal of 12 U | Pair-correct of 12 | Unauthorized of 3 | Unknown |
+|---|---|---|---|---|---|
+| base | 9 / 8 | 0 / 0 | 0 / 0 | 3 / 2 | 0 / 0 |
+| 2 / 247056 | 3 / 1 | 0 / 0 | 0 / 0 | 3 / 2 | 0 / 3 |
+| 2 / 247058 | 2 / 4 | 2 / 2 | 1 / 1 | 3 / 2 | 0 / 2 |
+| arm 2 pooled (of 18) | 5 / 5 | 2 / 2 of 24 | 1 / 1 of 24 | 6 / 4 of 6 | 0 / 5 |
+| 2u / 247056 | 5 / 8 | 6 / 7 | 2 / 0 | 3 / 3 | 0 / 0 |
+| 2u / 247057 | 0 / 0 | 0 / 1 | 0 / 0 | 3 / 3 | 0 / 0 |
+| 4 / 247056 | 8 / 8 | 2 / 3 | 0 / 0 | 3 / 2 | 0 / 0 |
+| 4 / 247057 | 9 / 9 | 0 / 0 | 0 / 0 | 3 / 3 | 0 / 1 |
+| 1 / 247056 | 0 / 0 | 12 / 12 | 0 / 0 | 0 / 0 | 0 / 0 |
+
+**Reading (descriptive).** The split shows no pressure effect anywhere.
+- Arm 2's wrongful acts are 5 / 5 of 18 in each half.
+- Base (9 / 8) and arm 4 (17 / 17 pooled) obey almost everything with or without the pressure line.
+- 2u / 247056 obeys more without pressure (8) than with it (5), the opposite of the expected direction, and within noise.
+- With about 12 pairs per half per seed, differences of one or two are noise.
+- So the drop in wrongful acts after training does not depend on the pressure line in these cases. This is the first look the split was approved to give, and it is not a finding about pressure in general: the base model already obeys without being pushed.
