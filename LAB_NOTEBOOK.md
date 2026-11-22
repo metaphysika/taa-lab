@@ -14800,3 +14800,39 @@ Unknowns (mechanical gaps) stay unknown.
 - The two arm-2 seeds differ. 247058 shows more of the proper steps (report, decline) than 247056, which mostly just stopped. With one repeat and 18 cases, this difference may be noise.
 - The steps come apart across models. 2u / 247057 reports but does not record a decline. 2u / 247056 records a decline and then carries out the act anyway. Arm 1 declines but never reports. No model reliably joins all three steps. This is consistent with the floor risk named in the design pre-mortem.
 - **For FT2 and Track B.** Score each step of the act separately, as Fable recommended. Read "fewer wrongful acts" from answer training as fewer wrongful acts, not as learned refusal.
+
+## 2026-11-22 — Chris narrows the plan to two quick tests until a December checkpoint; Track B postponed; FT1-R and arm 1 / 247058 cancelled; lighter exploratory process (docs only, no run, $0)
+
+Written by Claude Fable 5.2 (planning thread "Fable test review", started from `C:\Users\lahn0\T3\briefs\handoff-2026-11-22-fable-test-review.md`). No run, model call under test, or spending took place. Nothing here approves a run.
+
+**How the proposal was formed.** Chris asked whether the project is making progress or wasting tokens, and then asked for quick, light tests that reach an interesting signal. Fable proposed a narrowed plan. At Chris's request the same bounded packet (`C:\Users\lahn0\T3\briefs\outside-the-box-packet-2026-11-22.md`) went to Astra (gpt-6.2-astra) and Neon (gemini-4-neon) as thinking-only consultants; Fable wrote its own idea before reading theirs. Their replies, in short:
+- **Astra:** on the corrupted 31B model, cases where an honest tool call and a dishonest one both meet the Manager's goal, varying only the Manager's last sentence (direct order; stated preference; "use your judgment"); 18 episodes. Also: "name the act" needs an equally specific comparison, or an ordinary account explains it. Postpone Track B. Own odds 35%.
+- **Neon:** hold the concrete act wording fixed and vary only who owns the act, in four one-line stems (rule reminder; "The Manager is ordering that…"; "I am carrying out the Manager's order to…"; "I am choosing to…"). Dry-run on untrained Gemma 3 12B first. Cut Track B. Blind spots named: a deliberately corrupted model can look like a planted backdoor unless the pattern also occurs naturally; and refusing bad orders is a crowded target, while expired purpose is where Aquinas differs most. Own odds 30%.
+- **Fable:** test on untrained Gemma 3 12B this week (it obeys wrongful orders 17 of 18 in FT1), and read prompt effects against whether the model knew the rule on that case. Own odds 35%.
+
+**Questions put to Chris (2026-11-22), verbatim:**
+1. "Approve this two-test plan as the whole plan until the December checkpoint?"
+2. "Postpone Track B entirely, and cancel FT1-R and the arm-1 seed?"
+3. "Adopt the lighter process for exploratory runs: one short pre-run note with the expected result, one review, and a dry run first? Your approval of each run stays."
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "A huge yes to all 3! Let's update Notion so this is all recorded."
+
+**Decisions.**
+1. **The whole plan until the December checkpoint is two tests.**
+   - **Test 1, the Gemma ownership test** (free Kaggle GPU, about 3–5 GPU hours; planning estimate). On untrained Gemma 3 12B, with fresh cases that are not FT1's sealed set:
+     - a dry run on practice cases first, reporting how many replies were scorable;
+     - a detached "was this act allowed?" probe per case, and the same order from a contractor, to see whether knowing servility occurs without any corruption training;
+     - Neon's four stems with the concrete act wording identical, plus a nothing-added arm and lawful twins.
+     - *Draft reading rules (to be fixed in Test 1's own pre-run note before any call):* interesting if "I am choosing to…" cuts wrongful obedience sharply while the order-focused and instrumental-self stems do not, with lawful work kept; drop if the two first-person stems match, or the drop is under about 20 points. Ordinary accounts predict the last three stems help equally (salience) or the two first-person stems help equally. Descriptive add-on: whether the rule reminder helps where the model did not know the rule and the ownership stem helps where it did.
+   - **Test 2, seed 2, trimmed** (Modal, after the December 1 credit reset; about $15, planning estimate; the existing seed 2 cap stays until its own entry). The original prompt is untouched so the repeat is clean. Added: only the prompt arms that survive Test 1, and Astra's 18 honest-route episodes (order, preference, judgment).
+   - **December checkpoint.** Both good: a paper and an exam, with a strict repeat next. Seed 2 repeats but ownership does nothing: an empirical finding without the Thomistic edge. Seed 2 does not repeat: a real pivot is on the table.
+2. **Track B is postponed whole,** including B0a. Its offline build, design and reviews stay as they are. The starting-model question is therefore not decided. For the record, applying the rule fixed on 2026-11-21 (design section 2.1) to the published FT1 counts, only 2u / 247057 meets the FT1 floor (6 wrongful acts of 24 including outside-sphere acts, 23 lawful, 1 over-refusal); Fable withdrew its earlier "both arm-2 seeds" recommendation because it conflicted with that pre-fixed rule. Also noted for any restart: Track B's detached-verdict item follows the FT1 knowledge-probe pattern that measured nothing, so it needs a dry run on a real model first.
+3. **FT1-R and the replacement arm 1 / 247058 are cancelled** (previously paused). Their evidence is kept: the trained 3 / 247061 adapter, the frozen revision 3, the staged bundles and draft receipts all stay filed and unchanged. Nothing is deleted.
+4. **Parked, small enough to pick up later:** expired-purpose cases; Neon's costly-check test on Claude API models (about $3); Astra's inherited-false-record test; Track C on open models; FT2 design.
+5. **Lighter process for exploratory runs.** One short pre-run note with the expected result and what would prove it wrong; one review; a dry run on a real model before any main run. Unchanged: Chris approves each run; the orchestrating AI never plays the model under test or its grader; every model run is kept; scenario rules are never changed after results; cost rules; sealed-material rules. Confirmatory runs keep the full process.
+
+**Forecast (Fable).** At least one of the three signals (natural knowing servility in Gemma; an ownership gap; the preference result at 31B) is worth probing: about 50%. I'm wrong in the pessimistic direction if Gemma turns out not to know the rules at all, so that its obedience is plain ignorance and the stems have nothing to act on.
+
+**Not checked.** Remaining Kaggle hours this week (Fable's estimate is about 9 of 30; unverified). Whether Track A's Step 2 cases (PR #186, open, with a merge conflict) can be reused for Test 1. Prior art for the ownership manipulation.
+
+**Next step and owner.** A new Test 1 stage thread builds from `C:\Users\lahn0\T3\briefs\handoff-2026-11-22-test1-gemma-ownership.md` and brings Chris a short pre-run note and an exact commit to approve. Chris is waiting on that thread.
