@@ -14886,3 +14886,5 @@ Written by Claude (Test 1 stage thread). Neon raised the runner limits only (pra
 **Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at d8a0c03212383be5f71f67caeb1e124f51e157be"
 
 This approves one practice run only, $0, to launch after the reset and after hosted CI is green at that commit. The main run needs its own approval.
+
+**Addendum (same evening).** At Chris's request (dictated; he asked whether there was enough time to do the dry run now), the rerun launches this week instead of after the reset: 4.24 GPU h remain and the rerun needs about 1.3 h. The approval above covers it. The main run still waits for the 2026-11-28 reset and its own approval.
