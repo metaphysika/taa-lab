@@ -14878,3 +14878,11 @@ Written by Claude (Test 1 stage thread). Claude saw counts of scorability and ti
 **Chris's words (2026-11-22, America/Phoenix), verbatim:** "1"
 
 **Decision.** No gate or reading-rule change. A new commit raises the practice and main runner limits only; Chris approves the rerun and, separately, the main run, each at its exact commit, after the reset on 2026-11-28 00:00 UTC.
+
+## 2026-11-22 — Test 1 dry-run rerun: Chris's approval at d8a0c032, before any launch (exploratory, $0)
+
+Written by Claude (Test 1 stage thread). Neon raised the runner limits only (practice 1 h → 1.75 h; main 4 h → 5.5 h; v0.24.108); Claude checked the diff (5 files; no case, wording, arm, gate or reading-rule change). The pre-run note's dated paragraph sets a Test 1 hard stop of 8 GPU hours in the week after the 2026-11-28 00:00 UTC reset.
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at d8a0c03212383be5f71f67caeb1e124f51e157be"
+
+This approves one practice run only, $0, to launch after the reset and after hosted CI is green at that commit. The main run needs its own approval.
