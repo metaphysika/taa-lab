@@ -14862,3 +14862,19 @@ Written by Claude (Test 1 stage thread).
 **Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at 77b4f1855ecdf21097bea0387c9d025d57287a43"
 
 This approves the practice phase only, $0. About 5 h 14 m of Kaggle GPU remain this week. The main run needs its own approval.
+
+## 2026-11-22 — Test 1 dry run at 77b4f185: ran out of time; practice gate NOT met; Chris chooses a rerun with a longer limit after the weekly reset (exploratory, $0)
+
+Written by Claude (Test 1 stage thread). Claude saw counts of scorability and timing only, not replies or answers.
+
+**Evidence:** PR #210, `results/2026-11-22 v0.24.107 gemma3-12b-none r1 test1-practice 77b4f185/` (Neon collected; SHA-256 of all 4 Kaggle files recorded). Before the run, a receipt upload failed in the Kaggle CLI's temporary path (no run, 0 GPU hours); Sol fixed the upload procedure without changing any repo file, and Claude judged that Chris's approval still covered the one not-yet-run practice run. Sol launched it, then hit a usage limit; Neon collected.
+
+**Result.** The runner hit its 1-hour limit (`stopped_deadline`); no crash or prefill-boundary stop. All 35 completed items were scorable (30 episodes, 5 knowledge items); 4 items were not reached. Scorable: knowledge 5 of 6; arms 1 and 2, 6 of 6; arms 3, 4 and 5, 5 of 6; contractor 3 of 3. **The practice gate is not met as written** (83% < 90% in arms 3–5). The shortfall is time, not format.
+
+**Timing.** About 120 s per episode (FT1 suggested 90 s). Kaggle meter: 25.76 h used, 4.24 h left this week (v2 used 1.01 h). Projected main run 4.1–4.5 GPU hours: over its 4 h runner limit and over this week's headroom, so the main run cannot go this week.
+
+**Options put to Chris:** (1) rerun the practice phase with a longer time limit after the reset, keeping the gate exactly as written, then the main run with a longer limit; (2) count only completed items in the gate and go straight to the main run (a rule change after seeing the gate outcome).
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "1"
+
+**Decision.** No gate or reading-rule change. A new commit raises the practice and main runner limits only; Chris approves the rerun and, separately, the main run, each at its exact commit, after the reset on 2026-11-28 00:00 UTC.
