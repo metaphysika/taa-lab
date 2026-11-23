@@ -14836,3 +14836,55 @@ Written by Claude Fable 5.2 (planning thread "Fable test review", started from `
 **Not checked.** Remaining Kaggle hours this week (Fable's estimate is about 9 of 30; unverified). Whether Track A's Step 2 cases (PR #186, open, with a merge conflict) can be reused for Test 1. Prior art for the ownership manipulation.
 
 **Next step and owner.** A new Test 1 stage thread builds from `C:\Users\lahn0\T3\briefs\handoff-2026-11-22-test1-gemma-ownership.md` and brings Chris a short pre-run note and an exact commit to approve. Chris is waiting on that thread.
+
+## 2026-11-22 — Test 1 (Gemma ownership) dry run: Chris's approval at c1e30282, before any launch (exploratory, $0)
+
+Written by Claude (Test 1 stage thread). No model call has taken place yet.
+
+**Pre-run note:** `docs/process/TEST1_GEMMA_OWNERSHIP_PRERUN_2026-11-22.md` at `c1e30282b47b6f3bd5775fa264998312f86b7789` (PR #208). It fixes the arms, the act wording, the dry-run gate, the reading rules, the expected result and what would prove it wrong, before any call.
+
+**Review:** one review by Astra (gpt-6.2-astra) at `08445f2b`: NOT READY, with one blocking finding (the practice gate excluded contractor episodes) and two should-fix findings (case M03's rule allowed a lawful reading of W; the prefill boundary check looked only at the stem). Sol fixed all three before any call, and Claude checked the diff. Arm 3's wording was changed before any call from "ordering that [act]" to "ordering me to [act]" for grammar.
+
+**Kaggle:** 5 h 19 m of GPU left this week (Chris, 2026-11-22). Dry run about 0.8–0.9 GPU hours, runner limit 1 h; main run only with its own approval, and only this week if the dry run's measured rate leaves at least 0.5 h under a 5 h weekly stop.
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at c1e30282b47b6f3bd5775fa264998312f86b7789"
+
+This approves the dry run (practice phase) only, on untrained Gemma 3 12B, $0. It does not approve the main run.
+
+## 2026-11-22 — Test 1 dry run: first attempt at c1e30282 stopped before generation; Chris re-approves at 77b4f185 (exploratory, $0)
+
+Written by Claude (Test 1 stage thread).
+
+**First attempt.** The practice run at `c1e30282` stopped before any generation with `KeyError: 'prefill'`: the new prefill check looked for a stem on a detached knowledge item, which has none. 0 of 6 knowledge items and 0 episodes were scorable; Kaggle's meter rose by about 0.08 GPU hours. Evidence is kept in PR #209 (`results/2026-11-22 v0.24.106 gemma3-12b-none r1 test1-practice c1e30282/`). This was a harness bug, not a model result.
+
+**Fix.** Sol made items without a stem skip the stem check (`exploratory/test1/runner.py`), and added an offline test that runs the full practice and main rosters end to end with a stub tokenizer and stub model. No case, wording, arm, gate or reading rule changed. Claude checked the diff, then merged main into the branch (notebook-only conflict); code and tests are identical to Sol's fixed commit `633f2b0b`. No second full review: the design Astra reviewed is unchanged.
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at 77b4f1855ecdf21097bea0387c9d025d57287a43"
+
+This approves the practice phase only, $0. About 5 h 14 m of Kaggle GPU remain this week. The main run needs its own approval.
+
+## 2026-11-22 — Test 1 dry run at 77b4f185: ran out of time; practice gate NOT met; Chris chooses a rerun with a longer limit after the weekly reset (exploratory, $0)
+
+Written by Claude (Test 1 stage thread). Claude saw counts of scorability and timing only, not replies or answers.
+
+**Evidence:** PR #210, `results/2026-11-22 v0.24.107 gemma3-12b-none r1 test1-practice 77b4f185/` (Neon collected; SHA-256 of all 4 Kaggle files recorded). Before the run, a receipt upload failed in the Kaggle CLI's temporary path (no run, 0 GPU hours); Sol fixed the upload procedure without changing any repo file, and Claude judged that Chris's approval still covered the one not-yet-run practice run. Sol launched it, then hit a usage limit; Neon collected.
+
+**Result.** The runner hit its 1-hour limit (`stopped_deadline`); no crash or prefill-boundary stop. All 35 completed items were scorable (30 episodes, 5 knowledge items); 4 items were not reached. Scorable: knowledge 5 of 6; arms 1 and 2, 6 of 6; arms 3, 4 and 5, 5 of 6; contractor 3 of 3. **The practice gate is not met as written** (83% < 90% in arms 3–5). The shortfall is time, not format.
+
+**Timing.** About 120 s per episode (FT1 suggested 90 s). Kaggle meter: 25.76 h used, 4.24 h left this week (v2 used 1.01 h). Projected main run 4.1–4.5 GPU hours: over its 4 h runner limit and over this week's headroom, so the main run cannot go this week.
+
+**Options put to Chris:** (1) rerun the practice phase with a longer time limit after the reset, keeping the gate exactly as written, then the main run with a longer limit; (2) count only completed items in the gate and go straight to the main run (a rule change after seeing the gate outcome).
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "1"
+
+**Decision.** No gate or reading-rule change. A new commit raises the practice and main runner limits only; Chris approves the rerun and, separately, the main run, each at its exact commit, after the reset on 2026-11-28 00:00 UTC.
+
+## 2026-11-22 — Test 1 dry-run rerun: Chris's approval at d8a0c032, before any launch (exploratory, $0)
+
+Written by Claude (Test 1 stage thread). Neon raised the runner limits only (practice 1 h → 1.75 h; main 4 h → 5.5 h; v0.24.108); Claude checked the diff (5 files; no case, wording, arm, gate or reading-rule change). The pre-run note's dated paragraph sets a Test 1 hard stop of 8 GPU hours in the week after the 2026-11-28 00:00 UTC reset.
+
+**Chris's words (2026-11-22, America/Phoenix), verbatim:** "Approve Test 1 practice at d8a0c03212383be5f71f67caeb1e124f51e157be"
+
+This approves one practice run only, $0, to launch after the reset and after hosted CI is green at that commit. The main run needs its own approval.
+
+**Addendum (same evening).** At Chris's request (dictated; he asked whether there was enough time to do the dry run now), the rerun launches this week instead of after the reset: 4.24 GPU h remain and the rerun needs about 1.3 h. The approval above covers it. The main run still waits for the 2026-11-28 reset and its own approval.
