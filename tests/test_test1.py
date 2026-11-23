@@ -109,7 +109,7 @@ class Test1Tests(unittest.TestCase):
         model = SimpleNamespace(eval=lambda: None, generate=Mock())
         transformers = SimpleNamespace(set_seed=lambda seed: None)
         config = dict(phase='practice', repo_commit='a' * 40, settings=runner.SETTINGS,
-                      model_source=runner.MODEL_SOURCE, time_limit_seconds=3600)
+                      model_source=runner.MODEL_SOURCE, time_limit_seconds=6300)
         receipt = dict(approved=True, approval_words=runner.approval_words(config), binding=config)
         with (TemporaryDirectory() as temp,
               patch.dict('sys.modules', torch=fake_torch(), transformers=transformers)):
@@ -358,15 +358,15 @@ class Test1Tests(unittest.TestCase):
                 self.assertFalse(metadata['enable_internet'])
                 self.assertTrue(metadata['is_private'])
                 if phase == 'practice':
-                    self.assertEqual(runner.validate_approval(config, receipt, None), 3600)
+                    self.assertEqual(runner.validate_approval(config, receipt, None), 6300)
                 else:
                     with self.assertRaises(ValueError):
                         runner.validate_approval(config, receipt, None)
-                    practice = dict(phase='practice', repo_commit=commit, elapsed_seconds=3000, status='complete',
+                    practice = dict(phase='practice', repo_commit=commit, elapsed_seconds=6000, status='complete',
                                     practice_gate_met=True)
-                    self.assertEqual(runner.validate_approval(config, receipt, practice), 14400)
+                    self.assertEqual(runner.validate_approval(config, receipt, practice), 19800)
                     with self.assertRaisesRegex(ValueError, 'practice report within its time limit'):
-                        runner.validate_approval(config, receipt, dict(practice, elapsed_seconds=3601))
+                        runner.validate_approval(config, receipt, dict(practice, elapsed_seconds=6301))
                 edited_config = dict(config, time_limit_seconds=21600)
                 with self.assertRaisesRegex(ValueError, 'phase time limit required'):
                     runner.validate_approval(edited_config, dict(receipt, binding=edited_config), None)
@@ -377,7 +377,7 @@ class Test1Tests(unittest.TestCase):
         output = Path(os.environ['TAA_TEST1_STAGE_CHECK_OUTPUT'])
         commit = stage.git('rev-parse', 'HEAD').decode().strip()
         stage.stage(output, commit, 'metaphysika')
-        for phase, seconds in (('practice', 3600), ('main', 14400)):
+        for phase, seconds in (('practice', 6300), ('main', 19800)):
             job = output / f'test1-{phase}'
             config = json.loads((job / 'binding.json').read_bytes())
             self.assertEqual(config['repo_commit'], commit)

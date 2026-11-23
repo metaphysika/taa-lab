@@ -15,7 +15,7 @@ from .design import KNOWLEDGE_SYSTEM, conditions
 
 MODEL_SOURCE = 'google/gemma-3/transformers/gemma-3-12b-it/1'
 SETTINGS = dict(attention='eager', prefill_mode='chunked', prefill_chunk_size=256, prompt_ceiling=14000)
-TIME_LIMIT_SECONDS = {'practice': 60 * 60, 'main': 4 * 60 * 60}
+TIME_LIMIT_SECONDS = {'practice': 6300, 'main': 19800}
 
 
 def approval_words(config):

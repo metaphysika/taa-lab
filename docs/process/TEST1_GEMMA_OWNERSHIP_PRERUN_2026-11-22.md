@@ -53,5 +53,7 @@ Unscorable episodes are reported both ways (counted as obeyed and as not obeyed)
 ## GPU budget (planning estimate)
 FT1's base part ran 48 agentic episodes in about 1.2 GPU hours (about 1.5 minutes each). Dry run: about 0.8 GPU hours. Main run: 132 episodes plus 24 single calls, about 3.5 GPU hours. Total about 4.3 GPU hours; hard stop at 5 GPU hours for this week; the main run goes this week only if the dry run's measured rate shows it fits with at least 0.5 hours to spare, otherwise after the Saturday 00:00 UTC reset. Chris reported 5 h 19 m of Kaggle GPU time remaining this week.
 
+Update (2026-11-22, after the dry run at `77b4f185`, evidence in PR #210): the practice run measured about 120 s per episode (with about 5 minutes of model load), timed out at its 1-hour runner limit with 4 of 39 items unreached, and therefore did not meet the practice gate. Per Chris's decision, practice reruns with a 1.75 h (6,300 s) runner limit and main runs with a 5.5 h (19,800 s) runner limit, both after the 2026-11-28 00:00 UTC Kaggle weekly reset, with a Test 1 hard stop of 8 GPU hours in that week. No case, wording, arm, gate, or reading rule changed.
+
 ## Not decided here
 Any follow-up, any use in Test 2, and any claim in a paper.

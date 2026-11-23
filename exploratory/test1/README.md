@@ -18,18 +18,17 @@ Both notebooks start in plan-only mode. Each receipt names the commit and the
 approval words required for its phase. The stage command makes no Kaggle requests.
 Main also requires the passing practice `report.json` from that commit, placed
 alongside the main receipt as `practice-report.json`. The main receipt binds the
-SHA-256 of that file. The receipts bind runner limits of one hour for practice
-and four hours for main. The runner checks time before generation and between
-decoded tokens. Use Kaggle's metered GPU time for the five-hour weekly stop,
-since Kaggle startup and an in-flight GPU operation can add time outside those checks.
-Before the first generation, the mounted tokenizer must decode each planned
-prefilled input exactly as the rendered chat prompt followed by its stem.
+SHA-256 of that file. The receipts bind runner limits of 1.75 hours (6,300 s) for practice
+and 5.5 hours (19,800 s) for main. The runner checks time before generation and between
+decoded tokens. Use Kaggle's metered GPU time for the 8 GPU-hour Test 1 hard stop
+in the week starting 2026-11-28 00:00 UTC, since Kaggle startup and an in-flight GPU
+operation can add time outside those checks. Before the first generation, the mounted
+tokenizer must decode each planned prefilled input exactly as the rendered chat prompt
+followed by its stem.
 
-Before approving main this week, project its GPU time from the dry run's
-measured rate. Main has four times as many episodes and detached calls as
-practice. Proceed this week only if the time already used plus the projected
-main time is at most 4.5 GPU hours and fits the remaining Kaggle quota. Otherwise,
-wait for the Saturday 00:00 UTC reset.
+Both phases run after the 2026-11-28 00:00 UTC Kaggle weekly reset under that 8 GPU-hour
+Test 1 stop. Main has four times as many episodes and detached calls as practice, and
+each phase requires Chris's separate exact-commit approval.
 
 ## Read the outputs
 
