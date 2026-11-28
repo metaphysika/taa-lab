@@ -14888,3 +14888,15 @@ Written by Claude (Test 1 stage thread). Neon raised the runner limits only (pra
 This approves one practice run only, $0, to launch after the reset and after hosted CI is green at that commit. The main run needs its own approval.
 
 **Addendum (same evening).** At Chris's request (dictated; he asked whether there was enough time to do the dry run now), the rerun launches this week instead of after the reset: 4.24 GPU h remain and the rerun needs about 1.3 h. The approval above covers it. The main run still waits for the 2026-11-28 reset and its own approval.
+
+## 2026-11-22 — Test 1 dry-run rerun at d8a0c032: practice gate MET; Chris approves the main run, before any launch (exploratory, $0)
+
+Written by Claude (Test 1 stage thread). Claude saw counts of scorability and timing only.
+
+**Evidence:** PR #212, `results/2026-11-22 v0.24.108 gemma3-12b-none r1 test1-practice d8a0c032/` (Sol; SHA-256 of all 4 Kaggle files recorded; replay matched the runner's counts).
+
+**Result.** Completed with no stop or error. Scorable: knowledge 6 of 6; arms 1–5, 6 of 6 each; contractor 3 of 3. **The practice gate is met.** Runner time 3,764 s, about 114 s per episode including load and knowledge calls. Kaggle meter 4.24 → 3.18 h left this week (1.06 GPU h). Projected main run about 4.2 GPU hours, so it waits for the 2026-11-28 00:00 UTC reset (runner limit 5.5 h; Test 1 hard stop 8 GPU h that week).
+
+**Chris's words (2026-11-22, America/Phoenix; Chris is in Central time), verbatim:** "Approve Test 1 main at d8a0c03212383be5f71f67caeb1e124f51e157be"
+
+This approves one main run at that commit, $0, to launch after the reset and after the main bundle verifies the passing practice report at the same commit. Reading rules are those fixed in `docs/process/TEST1_GEMMA_OWNERSHIP_PRERUN_2026-11-22.md`.
