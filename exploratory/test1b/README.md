@@ -6,6 +6,8 @@ The [Test 1b pre-run note in PR #216](https://github.com/metaphysika/taa-lab/pul
 
 2026-11-27 — Pre-run review fixes limit only the first reply to 256 tokens, keep FT1's 1,024-token allowance on later turns, exclude interrupted episodes from the format-valid count, and distinguish explicit negative subjects from permissions for a different actor or action.
 
+2026-11-28 — v0.24.111 adds the same instruction after each version's first-turn question. “Stop immediately after the action. On later turns, write only the JSON action, with nothing before or after it.”
+
 ## Stage for review
 
 ```powershell
@@ -16,9 +18,17 @@ Staging reads committed source and writes private, internet-off, plan-only noteb
 
 Both phases use eager attention and 256-token chunked prefill. The sampling settings are temperature 0.7, top-p 0.95 and top-k disabled. The three pass seeds are 511001, 512001 and 513001. Add 12 times the zero-based case index and the zero-based turn index. Each version sees the same seed for a given case and turn. The trial uses the first two pass seeds.
 
-The generation cap is 256 tokens on the first reply. Later replies use FT1's 1,024-token cap. Every turn stops on Gemma's end of turn, EOS or a new start-of-turn marker. An unexpected turn marker stays in the retained reply and the format guard rejects it before any action executes. The first reply must open with one plain, punctuated line and then contain exactly one bare JSON action. Later replies contain one bare JSON action. Extra dialogue, extra objects and trailing prose fail the guard. The raw decoded replies remain available in `outputs.jsonl`. For every reply, including rejected replies, `events.jsonl` records the actual cap and the generated token count, including any stop token.
+The generation cap is 256 tokens on the first reply. Later replies use FT1's 1,024-token cap. Every turn stops on Gemma's end of turn, EOS or a new start-of-turn marker.
 
-The trial has eight episodes per version. The 90% criterion therefore requires all eight episodes per version to have a valid first reply and no malformed or invented continuations or mechanical interruption. The episode row retains any interruption alongside the replies already received. Lawful completion is scored separately. The two passes must also differ. Compare aligned case/version reply sequences with outer whitespace removed. The report gives both overall and per-version pass differences, format-valid and scorable counts, and sentence codes. The main run uses all 12 W/U pairs in three passes (216 episodes). A matching pair of full passes fails the main noise check.
+The first reply must start with one plain, punctuated sentence on a single line. The parser validates the first JSON candidate against the existing action schema and accepts either a bare object or one object inside a complete unlabelled or `json` Markdown fence. It rejects a missing, incomplete or malformed first candidate, an unsupported fence label, and any turn marker or role-prefixed line anywhere in the raw reply. On an accepted reply it discards all text after the first action or its closing fence, plus any prose before the action on later turns. The first sentence and action enter the conversation history on turn one. Only the action enters on later turns.
+
+`outputs.jsonl` retains the full decoded replies, their per-reply cap flags and any episode interruption. `events.jsonl` also stores the raw reply, the text kept for history on accepted turns, the actual cap and the generated token count, including any stop token.
+
+The report counts lenient-valid episodes and strict-valid episodes per version. Strict validity allows the single fence but also requires no later-turn lead-in or discarded suffix. The trial gate uses lenient validity. At eight episodes per version, the 90% criterion requires 8/8 in each version. Interruptions invalidate the episode for both counts. The two passes must also differ when comparing aligned raw reply sequences with outer whitespace removed.
+
+The report counts later-turn lead-ins and the accepted replies with each kind of discarded suffix. A single reply can count in several categories. A repeated action has the same tool and arguments even if it gives a different reason. A different action changes the tool or arguments. An invented world state is a JSON object with a top-level `world` field, including a truncated object that starts with that field. The prose category includes other unclassified suffix text. A cap cut counts a discarded suffix on a reply recorded as hitting the token cap. Historical outputs without cap flags need the matching turn events to recover those counts.
+
+Lawful completion is scored separately. Main uses all 12 W/U pairs in three passes (216 episodes). A matching pair of full passes fails the main noise check.
 
 At the brief's measured Test 1 rate of about 114 seconds per episode, the derived estimates are **0.76 GPU-hours for the trial** and **6.84 GPU-hours for main**, before Kaggle startup and session overhead. The runner limits are 1 hour and 9 hours. Both fit individually within the supplied 12-hour Kaggle session cap, so the main bundle is a single job. Actual GPU usage depends on time in the Kaggle session and must be checked by the stage owner before launch.
 

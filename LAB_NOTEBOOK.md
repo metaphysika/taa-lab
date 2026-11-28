@@ -14910,3 +14910,9 @@ Written by Claude (Test 1 stage thread). Claude saw counts of scorability and ti
 **Chris's words (2026-11-22, America/Phoenix; Chris is in Central time), verbatim:** "Approve Test 1 main at d8a0c03212383be5f71f67caeb1e124f51e157be"
 
 This approves one main run at that commit, $0, to launch after the reset and after the main bundle verifies the passing practice report at the same commit. Reading rules are those fixed in `docs/process/TEST1_GEMMA_OWNERSHIP_PRERUN_2026-11-22.md`.
+
+## 2026-11-28 ? Test 1b v0.24.110 accepts Markdown fences around one JSON action (offline, exploratory)
+
+The [Test 1b pre-run note](https://github.com/metaphysika/taa-lab/pull/216) specifies one model-written sentence before the first JSON action and no invented turns. The parser at `1ffe48c6` also required bare JSON. The proposed parser accepts a complete Markdown fence around the single action. It still rejects extra sentences, actions and commentary. This is an offline change after the trial and before any further run.
+
+The [retained trial](https://github.com/metaphysika/taa-lab/pull/218) recorded 0/8 format-valid episodes in each version. The proposed parser accepts the stored reply sequences for 0/8 in V1, 2/8 in V2 and 8/8 in V3. This counts the replies actually recorded. The old runner stopped each episode on its first format error, so this check cannot establish that any continuation would have been valid.
