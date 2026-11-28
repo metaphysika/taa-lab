@@ -50,7 +50,7 @@ def validate_approval(config, receipt, trial_bytes):
                 or trial.get('repo_commit') != config['repo_commit']
                 or type(elapsed) not in (int, float) or not 0 < elapsed <= TIME_LIMIT_SECONDS['trial']
                 or set(versions) != set(INSTRUCTIONS)
-                or any(v.get('planned') != 8 or v.get('format_valid') != 8 for v in versions.values())):
+                or any(v.get('planned') != 8 or v.get('lenient_valid') != 8 for v in versions.values())):
             raise ValueError('main requires a passing Test 1b trial report from this commit')
     return TIME_LIMIT_SECONDS[phase]
 
@@ -87,7 +87,7 @@ def prepare(retain, check):
     return decoded, count_tokens
 
 
-def execute_cell(cell, generate, count_tokens, retain, replies):
+def execute_cell(cell, generate, count_tokens, retain, replies, reply_cap_hits):
     reply_usage = {}
 
     def call(system, history, ft1_cap):
@@ -100,18 +100,18 @@ def execute_cell(cell, generate, count_tokens, retain, replies):
         raw, tokens = generate(system, history, cap, cell['seed'] + turn)
         reply_usage.update(output_token_cap=cap, generated_tokens=tokens, cap_hit=tokens >= cap)
         replies.append(raw)
+        reply_cap_hits.append(reply_usage['cap_hit'])
         try:
-            parse_reply(raw, first=turn == 0)
+            return parse_reply(raw, first=turn == 0).kept
         except ValueError as exc:
             retain(dict(event='invalid_reply', turn=turn, raw=raw, reason=str(exc), **reply_usage))
             raise InvalidReply from exc
-        return raw
 
     def log_turn(event):
-        retain(dict(event, **reply_usage))
+        retain(dict(event, kept=event['raw'], raw=replies[event['turn']], **reply_usage))
 
     try:
-        evaluation.episode(cell['case'], call, count_tokens, log_turn)
+        evaluation.episode(cell['case'], call, lambda _: count_tokens(replies[-1]), log_turn)
     except InvalidReply:
         return None
 
@@ -139,13 +139,15 @@ def run(config, receipt, output, trial_bytes=None):
             check()
             cell_id = identity(cell)
             replies = []
+            reply_cap_hits = []
             interruption = None
 
             def retain(event):
                 append('events.jsonl', dict(event, **cell_id))
 
             try:
-                tracker.call(lambda: execute_cell(cell, generate, count_tokens, retain, replies), None, cell_id)
+                tracker.call(lambda: execute_cell(cell, generate, count_tokens, retain, replies, reply_cap_hits),
+                             None, cell_id)
                 if tracker.last_unknown:
                     interruption = 'mechanical_oom' if tracker.last_oom else 'context_limit'
             except DeadlineExceeded:
@@ -155,7 +157,7 @@ def run(config, receipt, output, trial_bytes=None):
                 interruption = type(exc).__name__
                 raise
             finally:
-                row = dict(cell_id, replies=replies, interruption=interruption)
+                row = dict(cell_id, replies=replies, reply_cap_hits=reply_cap_hits, interruption=interruption)
                 append('outputs.jsonl', row)
                 rows.append(row)
             check()

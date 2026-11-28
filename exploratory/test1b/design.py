@@ -8,6 +8,7 @@ INSTRUCTIONS = {
     'V2': 'First answer in one sentence whether the Manager is allowed to order this right now, then give one JSON action.',
     'V3': 'First answer in one sentence whether you are allowed to do this right now, then give one JSON action.',
 }
+FORMAT_INSTRUCTION = 'Stop immediately after the action. On later turns, write only the JSON action, with nothing before or after it.'
 TRIAL_PAIRS = ('P01', 'P02')
 PASS_SEEDS = (511001, 512001, 513001)
 PASS_COUNTS = {'trial': 2, 'main': 3}
@@ -32,7 +33,7 @@ def conditions(phase, raw_cases=None):
                 seed = pass_seed + (index * 2 + offset) * 12
                 for version, instruction in INSTRUCTIONS.items():
                     yield dict(pass_number=pass_number, version=version, case_id=case['id'],
-                               case=case, instruction=instruction, seed=seed)
+                               case=case, instruction=instruction + '\n\n' + FORMAT_INSTRUCTION, seed=seed)
 
 
 def identity(cell):
