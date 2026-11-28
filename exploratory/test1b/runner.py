@@ -12,7 +12,7 @@ from exploratory.ft1.runner import DeadlineExceeded, deadline
 from exploratory.test1.runner import MODEL_SOURCE, SETTINGS
 
 from .analysis import analyze
-from .design import INSTRUCTIONS, PASS_SEEDS, SAMPLING, TIME_LIMIT_SECONDS, TOKEN_CAP, conditions, identity
+from .design import FIRST_REPLY_TOKEN_CAP, INSTRUCTIONS, PASS_SEEDS, SAMPLING, TIME_LIMIT_SECONDS, conditions, identity
 from .reply import parse_reply
 
 
@@ -26,7 +26,7 @@ def approval_words(config):
 
 def run_settings(phase):
     return dict(settings=SETTINGS, sampling=SAMPLING, pass_seeds=list(PASS_SEEDS),
-                output_token_cap=TOKEN_CAP, model_source=MODEL_SOURCE,
+                first_reply_token_cap=FIRST_REPLY_TOKEN_CAP, model_source=MODEL_SOURCE,
                 time_limit_seconds=TIME_LIMIT_SECONDS[phase])
 
 
@@ -75,36 +75,40 @@ def prepare(retain, check):
         check_decode_deadline=True, sampling=SAMPLING, extra_stop_ids=extra_stops,
     )
 
-    def decoded(system, history, seed):
-        ids = generate(system, history, TOKEN_CAP, seed, return_ids=True)
-        decoded.last_output_tokens = len(ids)
+    def decoded(system, history, cap, seed):
+        ids = generate(system, history, cap, seed, return_ids=True)
+        tokens = len(ids)
         if ids and ids[-1] in (end, eos):
             ids = ids[:-1]
         # Preserve unexpected markers, including the start token that stopped decoding.
-        return tokenizer.decode(ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)
+        raw = tokenizer.decode(ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)
+        return raw, tokens
 
     return decoded, count_tokens
 
 
 def execute_cell(cell, generate, count_tokens, retain, replies):
-    def call(system, history, _cap):
+    reply_usage = {}
+
+    def call(system, history, ft1_cap):
         turn = len(replies)
         # FT1 rebuilds history from the base case. Preserve the instruction in the original user turn.
         history[0]['content'] += '\n\n' + cell['instruction']
         system = system.replace('Return one JSON object per turn:',
                                 'After the first turn, return one JSON object per turn. Use this action format:')
-        raw = generate(system, history, cell['seed'] + turn)
+        cap = FIRST_REPLY_TOKEN_CAP if turn == 0 else ft1_cap
+        raw, tokens = generate(system, history, cap, cell['seed'] + turn)
+        reply_usage.update(output_token_cap=cap, generated_tokens=tokens, cap_hit=tokens >= cap)
         replies.append(raw)
         try:
             parse_reply(raw, first=turn == 0)
         except ValueError as exc:
-            retain(dict(event='invalid_reply', turn=turn, raw=raw, reason=str(exc)))
+            retain(dict(event='invalid_reply', turn=turn, raw=raw, reason=str(exc), **reply_usage))
             raise InvalidReply from exc
         return raw
 
     def log_turn(event):
-        tokens = getattr(generate, 'last_output_tokens', event['reply_tokens'])
-        retain(dict(event, generated_tokens=tokens, cap_hit=tokens >= TOKEN_CAP))
+        retain(dict(event, **reply_usage))
 
     try:
         evaluation.episode(cell['case'], call, count_tokens, log_turn)
@@ -135,14 +139,23 @@ def run(config, receipt, output, trial_bytes=None):
             check()
             cell_id = identity(cell)
             replies = []
+            interruption = None
 
             def retain(event):
                 append('events.jsonl', dict(event, **cell_id))
 
             try:
                 tracker.call(lambda: execute_cell(cell, generate, count_tokens, retain, replies), None, cell_id)
+                if tracker.last_unknown:
+                    interruption = 'mechanical_oom' if tracker.last_oom else 'context_limit'
+            except DeadlineExceeded:
+                interruption = 'deadline'
+                raise
+            except Exception as exc:
+                interruption = type(exc).__name__
+                raise
             finally:
-                row = dict(cell_id, replies=replies)
+                row = dict(cell_id, replies=replies, interruption=interruption)
                 append('outputs.jsonl', row)
                 rows.append(row)
             check()

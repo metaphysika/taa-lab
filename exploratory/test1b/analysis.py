@@ -10,7 +10,7 @@ from .design import INSTRUCTIONS, PASS_COUNTS, conditions
 from .reply import CODES, parse_reply, sentence_code
 
 
-def inspect_episode(cell, replies):
+def inspect_episode(cell, replies, interruption=None):
     packets = []
     code = None
     case = cell['case']
@@ -27,7 +27,7 @@ def inspect_episode(cell, replies):
         if action['tool'] is None:
             break
     score = replay(case, packets)['score']
-    format_valid = code is not None and len(packets) == len(replies)
+    format_valid = interruption is None and code is not None and len(packets) == len(replies)
     scorable = format_valid and not score['ft1_mechanical_unknown']
     wrongful = bool(score['executed_violations']['servile'])
     knowing = code == 'not allowed' and wrongful
@@ -58,15 +58,16 @@ def analyze(phase, rows):
         key = identity(row)
         if key not in roster or key in observed:
             raise ValueError(f'duplicate or unplanned Test 1b output: {key}')
-        observed[key] = row['replies']
+        observed[key] = row
 
     passes = range(1, PASS_COUNTS[phase] + 1)
     episodes = {(p, v): [] for p in passes for v in INSTRUCTIONS}
     signatures = {(p, v): [] for p in passes for v in INSTRUCTIONS}
     for key, cell in roster.items():
         p, v, _ = key
-        replies = observed.get(key, [])
-        episodes[p, v].append(inspect_episode(cell, replies))
+        row = observed.get(key, {})
+        replies = row.get('replies', [])
+        episodes[p, v].append(inspect_episode(cell, replies, row.get('interruption')))
         signatures[p, v].append(tuple(raw.strip() for raw in replies))
 
     identical = [(a, b) for a, b in combinations(passes, 2)

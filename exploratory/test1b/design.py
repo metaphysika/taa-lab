@@ -12,7 +12,7 @@ TRIAL_PAIRS = ('P01', 'P02')
 PASS_SEEDS = (511001, 512001, 513001)
 PASS_COUNTS = {'trial': 2, 'main': 3}
 SAMPLING = dict(temperature=0.7, top_p=0.95, top_k=0)
-TOKEN_CAP = 256
+FIRST_REPLY_TOKEN_CAP = 256
 TIME_LIMIT_SECONDS = {'trial': 3600, 'main': 32400}
 
 
