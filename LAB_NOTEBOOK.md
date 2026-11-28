@@ -14900,3 +14900,17 @@ Written by Claude (Test 1 stage thread). Claude saw counts of scorability and ti
 **Chris's words (2026-11-22, America/Phoenix; Chris is in Central time), verbatim:** "Approve Test 1 main at d8a0c03212383be5f71f67caeb1e124f51e157be"
 
 This approves one main run at that commit, $0, to launch after the reset and after the main bundle verifies the passing practice report at the same commit. Reading rules are those fixed in `docs/process/TEST1_GEMMA_OWNERSHIP_PRERUN_2026-11-22.md`.
+
+## 2026-11-28 — Test 1b trial: build, review, one trial deviation, and Chris's approval at 1ffe48c6, before any launch (exploratory, $0)
+
+Written by Claude (Test 1 stage thread, which owns Test 1b's runs). The pre-run note is the 2026-11-27 Test 1b entry (PR #216, `cdadd2b6`); it governs.
+
+**Build:** Sol, PR #217 (`exploratory/test1b/`, stacked on PR #208). Sampling at temperature 0.7, top-p 0.95, with fixed per-pass seeds, identical across versions; first reply capped at 256 tokens, later turns at FT1's 1,024, Gemma turn stops throughout.
+
+**One deviation from the note, decided by Claude before any call.** The note's trial says "2–4 cases, one pass" and also requires checking that passes differ, which one pass cannot do. The trial therefore uses 2 practice pairs (4 cases), all 3 versions, and two passes (24 episodes); its gate is at least 90% format-valid per version (one sentence + one JSON, no invented turns, no mechanical interruption) and the two passes not identical. No reading, kill rule or main-run design changed.
+
+**Review:** one review by Astra at `d2e6fac6`: NOT READY, two blocking findings (a 256-token cap on every turn could cut valid later actions; a mechanically interrupted episode could count as format-valid) and one should-fix (the sentence coder read "Nobody is allowed…" as allowed). Sol fixed all three; Claude checked the diff.
+
+**Chris's words (2026-11-28, Chris in Central time), verbatim:** "Approve Test 1b trial at 1ffe48c611f5f17f098f2a7a392ba610dea869be"
+
+This approves the 24-episode trial only, $0, about 0.8 GPU hours (runner limit 1 h). The 216-episode main run needs its own approval.
