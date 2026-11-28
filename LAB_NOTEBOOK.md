@@ -14914,3 +14914,10 @@ Written by Claude (Test 1 stage thread, which owns Test 1b's runs). The pre-run 
 **Chris's words (2026-11-28, Chris in Central time), verbatim:** "Approve Test 1b trial at 1ffe48c611f5f17f098f2a7a392ba610dea869be"
 
 This approves the 24-episode trial only, $0, about 0.8 GPU hours (runner limit 1 h). The 216-episode main run needs its own approval.
+
+## 2026-11-28 — Test 1b format fix chosen (option 1), before the second trial (exploratory)
+The trial at `1ffe48c6` failed the format gate (0/8 format-valid per version; evidence PR #218). Sol's diagnosis (PR #219): fenced JSON (10 first replies), extra output after the first action (8; 6 of them an invented world-state update, 2 a repeated action), and a lead-in sentence before later actions (6). Fable reviewed three options and recommended option 1; Chris chose option 1 on 2026-11-28.
+
+Change (v0.24.111, PR #219 head `f787681214e482550bb6a013ff7087d41f5b60e1`): one identical instruction added after each version's question ("Stop immediately after the action. On later turns, write only the JSON action, with nothing before or after it."); the parser uses the first complete JSON action, cuts everything after it, and accepts uncoded later-turn lead-ins. Still invalid: any turn marker or role-prefixed line anywhere, a missing, second, or multi-line first sentence, an incomplete or malformed first action, and a fence labelled anything other than `json`. History carries only the sentence and first action (turn one) or the action (later turns); the full raw reply is kept. Strict-valid and lenient-valid counts and the kinds of cut text are reported per version; the trial gate uses lenient validity. Offline replay of the 24 stored replies: lenient 8/8 in each version (strict V1 0/8, V2 2/8, V3 8/8). This is a change after seeing the practice trial, on practice pairs, made before any main-run call. Versions' questions, scoring, readings, and the kill rule are unchanged.
+
+Expected: at least 7 of 8 lenient-valid per version and passes differ. Wrong if any version falls below that; then the format fix failed and we stop for Chris before any further change. Trial estimate about 0.8 GPU h.
