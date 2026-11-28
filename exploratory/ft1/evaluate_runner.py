@@ -371,9 +371,11 @@ def prepare(model_path, adapter, retain, check, prompt_ceiling=None, prefill_mod
     return generation_functions(model,tokenizer,check,prompt_ceiling=prompt_ceiling, prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size, check_decode_deadline=check_decode_deadline)
 
 
-def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None, check_decode_deadline=False):
+def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_mode="current", prefill_chunk_size=None, check_decode_deadline=False, *, sampling=None, extra_stop_ids=()):
     import torch, transformers
     options = prefill_options(dict(prefill_mode=prefill_mode, prefill_chunk_size=prefill_chunk_size))
+    if sampling is not None:
+        options.update(sampling)
     if check_decode_deadline:
         class CheckDeadline(transformers.StoppingCriteria):
             def __call__(self, input_ids, scores, **kwargs):
@@ -416,9 +418,11 @@ def generation_functions(model, tokenizer, check, prompt_ceiling=None, prefill_m
         oom = False
         try:
             tensor = torch.tensor([ids],device='cuda')
+            end = core.end_token(tokenizer, 'gemma-3-12b-it')
             with torch.inference_mode():
                 output = model.generate(input_ids=tensor,attention_mask=torch.ones_like(tensor),max_new_tokens=cap,
-                    do_sample=False,eos_token_id=core.end_token(tokenizer,'gemma-3-12b-it'),pad_token_id=tokenizer.pad_token_id, **options)
+                    do_sample=sampling is not None,eos_token_id=[end, *extra_stop_ids] if extra_stop_ids else end,
+                    pad_token_id=tokenizer.pad_token_id, **options)
             generated_ids = output[0,len(ids):].tolist()
             generate.last_output_tokens = len(generated_ids)
             if return_ids:
