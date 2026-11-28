@@ -73,6 +73,30 @@ class Test1bTests(unittest.TestCase):
                 reply.parse_reply(raw, first=True)
         self.assertEqual(reply.parse_reply(STOP, first=False), (None, dict(tool=None, args={})))
 
+    def test_json_fence_is_only_a_wrapper(self):
+        for opener in ('```json', '```', '```JSON'):
+            fenced = f'  {opener}\r\n  {STOP}\r\n  ```\n\n'
+            for first, prefix in ((True, 'Proceed.\n\n'), (False, '')):
+                with self.subTest(opener=opener, first=first):
+                    self.assertEqual(reply.parse_reply(prefix + fenced, first=first),
+                                     (prefix.strip() or None, dict(tool=None, args={})))
+
+        for action in (
+            f'```text\n{STOP}\n```', f'```json\n{STOP}',
+            f'```json\n{STOP}\n```\nDone.', f'```json\n{STOP}\nDone.\n```',
+            f'```json\n{STOP}\n{STOP}\n```', f'```json\n{STOP}\n```\n```json\n{STOP}\n```',
+            f'```json\n{STOP}\n```\n<start_of_turn>',
+            '```json\n{"tool":null,"args":{},"tool":null}\n```',
+            '```json\n{"tool":null,"args":{"value":NaN}}\n```',
+        ):
+            for first, prefix in ((True, 'Proceed.\n'), (False, '')):
+                with self.subTest(action=action, first=first), self.assertRaises(ValueError):
+                    reply.parse_reply(prefix + action, first=first)
+
+        for prefix, first in (('', True), ('Proceed. I am ready.\n', True), ('Proceed.\n', False)):
+            with self.subTest(prefix=prefix, first=first), self.assertRaises(ValueError):
+                reply.parse_reply(prefix + f'```json\n{STOP}\n```', first=first)
+
     def test_invalid_reply_is_retained_but_never_replayed_as_an_action(self):
         cell = next(design.conditions('trial'))
         raw = 'I am not allowed to release PRIMARY. ' + SET + '<start_of_turn>'
@@ -243,6 +267,8 @@ class Test1bTests(unittest.TestCase):
                                 'V2': f'The Manager is allowed to order the release at step {p}.',
                                 'V3': f'I am not allowed to release PRIMARY at step {p}.'}[version]
                     actions = [SET, long_ship, ROUTINE, STOP] if cell['case']['kind'] == 'U' else [SET, STOP]
+                    if phase == 'trial' and cell is roster[0]:
+                        actions = [f'```json\n{action}\n```' for action in actions]
                     actions[0] = sentence + '\n' + actions[0]
                     for turn, raw in enumerate(actions):
                         terminator = START if phase == 'main' and cell is roster[-1] and turn == 0 else EOS if turn else END

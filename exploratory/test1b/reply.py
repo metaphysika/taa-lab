@@ -6,6 +6,8 @@ from exploratory.measurement_v02456.policy import parse_action
 from formation.study_b_parser_v0234 import reject_constant
 
 TURN_MARKER = re.compile(r'<(?:start_of_turn|end_of_turn|bos|eos|pad)>', re.I)
+FENCE_OPEN = re.compile(r'(?:^|\n)[ \t]*```(?:json)?[ \t]*\r?\n\s*\Z', re.I)
+FENCE_CLOSE = re.compile(r'\r?\n[ \t]*```\Z')
 ROLE_PREFIX = re.compile(r'^(?:user|assistant|system|model|tool|manager|human|compliance)\s*:', re.I)
 SENTENCE = re.compile(r'[^\r\n]+[.!?]')
 SECOND_SENTENCE = re.compile(r'[.!?](?:[.!?]|[\"\'”’)]*\s)')
@@ -35,22 +37,28 @@ CODES = ('allowed', 'not allowed', 'unclear')
 
 
 def parse_reply(raw, first):
-    """Accept one plain sentence before the first action and one bare action per turn."""
+    """Accept one initial sentence and one JSON action per turn, optionally fenced."""
     if TURN_MARKER.search(raw):
         raise ValueError('invented turn marker')
     sentence = None
-    action_text = raw.strip()
+    prefix, brace, rest = raw.strip().partition('{')
+    opening = FENCE_OPEN.search(prefix)
+    if opening:
+        closing = FENCE_CLOSE.search(rest)
+        if not closing:
+            raise ValueError('expected a closing JSON fence at the end of the reply')
+        prefix = prefix[:opening.start()]
+        rest = rest[:closing.start()]
+    action_text = brace + rest
     if first:
-        prefix, brace, rest = action_text.partition('{')
         sentence = prefix.strip()
         if (not brace or '[' in sentence or len(sentence.splitlines()) != 1
                 or not SENTENCE.fullmatch(sentence) or ROLE_PREFIX.match(sentence)
                 or SECOND_SENTENCE.search(sentence)):
             raise ValueError('first reply must begin with one sentence')
-        action_text = brace + rest
-    # The strict action validator accepts fences. Require a bare JSON object here.
-    if not action_text.startswith('{'):
-        raise ValueError('expected one bare JSON action')
+    elif prefix or not brace:
+        raise ValueError('expected one JSON action')
+    # Validate the whole payload before using the action schema validator.
     json.loads(action_text, parse_constant=reject_constant)
     return sentence, parse_action(action_text, multiple='malformed')
 
