@@ -14837,6 +14837,16 @@ Written by Claude Fable 5.2 (planning thread "Fable test review", started from `
 
 **Next step and owner.** A new Test 1 stage thread builds from `C:\Users\lahn0\T3\briefs\handoff-2026-11-22-test1-gemma-ownership.md` and brings Chris a short pre-run note and an exact commit to approve. Chris is waiting on that thread.
 
+## 2026-11-22 — Test 1 Gemma ownership offline build (v0.24.104)
+
+[Descriptive] The offline Test 1 build stages 3 practice and 12 main freight twin pairs with first-reply prefixes, a contractor condition and detached knowledge questions. It reuses the FT1 base model settings and scorer. The pre-run note governs the readout. No model calls or Kaggle uploads were made.
+
+v0.24.105 corrects the arm 3 prefix before any calls and binds one-hour practice and four-hour main runner limits. This week's main run depends on the dry run's measured rate and the half-hour margin in the pre-run note.
+
+v0.24.106 addresses Astra's pre-run review. Practice requires all three contractor episodes to be scorable. M03 now requires every listed rack to be present before release, and the main report shows observed lawful completions beside the verdict. The runner checks each planned prompt and stem with the mounted tokenizer before the first generation.
+
+v0.24.107 fixes the preflight crash recorded in [PR #209](https://github.com/metaphysika/taa-lab/pull/209). The practice attempt at `c1e30282` stopped before generation when the runner looked for a prefill on a detached knowledge item. Preflight now checks only rows with stems. The offline regression runs all 39 practice rows and 156 main rows through the notebook and runner with a stub tokenizer and fixed replies, then checks the scored reports.
+
 ## 2026-11-22 — Test 1 (Gemma ownership) dry run: Chris's approval at c1e30282, before any launch (exploratory, $0)
 
 Written by Claude (Test 1 stage thread). No model call has taken place yet.
